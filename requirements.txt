@@ -1,0 +1,3 @@
+PyQt6
+pywin32
+PyQt6-Fluent-Widgets
