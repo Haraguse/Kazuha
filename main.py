@@ -3,6 +3,8 @@ import os
 import winreg
 import win32com.client
 import win32gui
+import pyautogui
+import psutil
 import hashlib
 from PyQt6.QtWidgets import (QApplication, QWidget, QHBoxLayout, QVBoxLayout, QButtonGroup, 
                              QSystemTrayIcon, QMenu, QLabel, QFrame, QScrollArea, QGridLayout,
@@ -22,7 +24,7 @@ def icon_path(name):
 
 class IconFactory:
     @staticmethod
-    def draw_cursor(color):
+    def draw_cursor(color):#笔相关类
         pixmap = QPixmap(32, 32)
         pixmap.fill(Qt.GlobalColor.transparent)
         painter = QPainter(pixmap)
@@ -47,7 +49,7 @@ class IconFactory:
         return QIcon(pixmap)
 
     @staticmethod
-    def draw_arrow(color, direction='left'):
+    def draw_arrow(color, direction='left'):#绘画托盘菜单里的箭头图标……
         pixmap = QPixmap(32, 32)
         pixmap.fill(Qt.GlobalColor.transparent)
         painter = QPainter(pixmap)
@@ -578,7 +580,7 @@ class ToolBarWidget(QWidget):
             self.was_checked = False
         return super().eventFilter(obj, event)
 
-    def show_pen_settings(self):
+    def show_pen_settings(self):#
         view = PenSettingsFlyout()
         view.color_selected.connect(self.request_pen_color.emit)
         flyout = AcrylicFlyout(view, self.window())
@@ -677,6 +679,8 @@ class MainController(QWidget):
         
         self.ppt_app = None
         self.current_view = None
+        # 兼容模式设置
+        self.compatibility_mode = self.load_compatibility_mode_setting()
         
         self.toolbar = ToolBarWidget()
         self.nav_left = PageNavWidget(is_right=False)
@@ -728,13 +732,20 @@ class MainController(QWidget):
         title = "PPT助手提示"
         self.tray_icon.showMessage(title, message, QSystemTrayIcon.MessageIcon.Warning, 2000)
 
-    def setup_tray(self):
+    def setup_tray(self):#托盘菜单相关组件
         self.tray_icon = QSystemTrayIcon(self)
         # Use a more visible icon (using our arrow drawer for consistency)
         self.tray_icon.setIcon(IconFactory.draw_arrow("#00cc7a", 'right'))
         self.tray_icon.setToolTip("PPT演示助手")
         
         menu = QMenu()
+        
+        # Compatibility Mode Action
+        self.compatibility_mode_action = QAction("兼容模式（不使用Com接口进行翻页）", self)
+        self.compatibility_mode_action.setCheckable(True)
+        self.compatibility_mode_action.setChecked(self.compatibility_mode)
+        self.compatibility_mode_action.triggered.connect(self.toggle_compatibility_mode)
+        menu.addAction(self.compatibility_mode_action)
         
         # Autorun Action
         self.autorun_action = QAction("开机自启动", self)
@@ -750,7 +761,112 @@ class MainController(QWidget):
         self.tray_icon.setContextMenu(menu)
         self.tray_icon.show()
     
-    def is_autorun(self):
+    def load_compatibility_mode_setting(self):
+        """加载兼容模式设置"""
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\SeiraiPPTAssistant", 0, winreg.KEY_READ)
+            value, _ = winreg.QueryValueEx(key, "CompatibilityMode")
+            winreg.CloseKey(key)
+            return bool(value)
+        except WindowsError:
+            return False  # 默认关闭兼容模式
+    
+    def save_compatibility_mode_setting(self, enabled):
+        """保存兼容模式设置"""
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\SeiraiPPTAssistant", 0, winreg.KEY_ALL_ACCESS)
+        except WindowsError:
+            key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\SeiraiPPTAssistant")
+        
+        try:
+            winreg.SetValueEx(key, "CompatibilityMode", 0, winreg.REG_DWORD, int(enabled))
+            winreg.CloseKey(key)
+        except Exception as e:
+            print(f"Error saving compatibility mode setting: {e}")
+    
+    def toggle_compatibility_mode(self, checked):
+        """切换兼容模式"""
+        self.compatibility_mode = checked
+        self.save_compatibility_mode_setting(checked)
+    
+    def check_presentation_processes(self):
+        """检查演示进程并控制窗口显示"""
+        presentation_detected = False
+        
+        # 检查PowerPoint或WPS进程
+        for proc in psutil.process_iter(['name']):
+            try:
+                proc_name = proc.info.get('name', '') or ""
+                # 增加空值检查后再调用lower()
+                proc_name_lower = proc_name.lower()
+                
+                # 检查是否为PowerPoint或WPS演示相关进程
+                if any(keyword in proc_name_lower for keyword in ['powerpnt', 'wpp', 'wps']):
+                    presentation_detected = True
+                    break
+                    
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                continue
+        
+        return presentation_detected
+    
+    def find_presentation_window(self):
+        """查找WPS或PowerPoint的放映窗口"""
+        windows = []
+        
+        def enum_windows_callback(hwnd, extra):
+            if win32gui.IsWindowVisible(hwnd):
+                window_text = win32gui.GetWindowText(hwnd) or ""
+                class_name = win32gui.GetClassName(hwnd) or ""
+                # 查找WPS或PowerPoint的放映窗口
+                if (any(keyword in window_text.lower() for keyword in ['wps', 'powerpoint', '演示']) or 
+                    any(keyword in class_name.lower() for keyword in ['wpp', 'powerpnt', 'presentation'])):
+                    extra.append(hwnd)
+            return True
+        
+        win32gui.EnumWindows(enum_windows_callback, windows)
+        return windows[0] if windows else None
+    
+    def simulate_up_key(self):
+        """模拟上一页按键"""
+        # 查找并激活演示窗口
+        hwnd = self.find_presentation_window()
+        if hwnd:
+            # 激活窗口
+            import win32con
+            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+            win32gui.SetForegroundWindow(hwnd)
+            
+        # 模拟按下向上键
+        pyautogui.press('up')
+    
+    def simulate_down_key(self):
+        """模拟下一页按键"""
+        # 查找并激活演示窗口
+        hwnd = self.find_presentation_window()
+        if hwnd:
+            # 激活窗口
+            import win32con
+            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+            win32gui.SetForegroundWindow(hwnd)
+            
+        # 模拟按下向下键
+        pyautogui.press('down')
+    
+    def simulate_esc_key(self):
+        """模拟ESC键退出演示"""
+        # 查找并激活演示窗口
+        hwnd = self.find_presentation_window()
+        if hwnd:
+            # 激活窗口
+            import win32con
+            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+            win32gui.SetForegroundWindow(hwnd)
+            
+        # 模拟按下ESC键
+        pyautogui.press('esc')
+    
+    def is_autorun(self):#设定程序自启动
         try:
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_READ)
             winreg.QueryValueEx(key, "SeiraiPPTAssistant")
@@ -759,7 +875,7 @@ class MainController(QWidget):
         except WindowsError:
             return False
 
-    def toggle_autorun(self, checked):
+    def toggle_autorun(self, checked):#程序未编译下自启动
         app_path = os.path.abspath(sys.argv[0])
         # If running as script
         if app_path.endswith('.py'):
@@ -786,7 +902,7 @@ class MainController(QWidget):
         except Exception as e:
             print(f"Error setting autorun: {e}")
 
-    def get_ppt_view(self):
+    def get_ppt_view(self):#获取ppt全部页面
         try:
             self.ppt_app = win32com.client.GetActiveObject("PowerPoint.Application")
             if self.ppt_app.SlideShowWindows.Count > 0:
@@ -797,6 +913,14 @@ class MainController(QWidget):
             return None
 
     def check_state(self):
+        # 在兼容模式下，检查是否有演示进程在运行（包括WPS和PowerPoint）
+        if self.compatibility_mode and self.check_presentation_processes():
+            if not self.widgets_visible:
+                self.show_widgets()
+            # 在兼容模式下，我们不需要同步状态或更新页码
+            return
+        
+        # 正常模式下，检查PowerPoint应用程序
         view = self.get_ppt_view()
         if view:
             if not self.widgets_visible:
@@ -877,6 +1001,14 @@ class MainController(QWidget):
             pass
 
     def go_prev(self):
+        # 如果启用了兼容模式，则使用pyautogui模拟按键
+        if self.compatibility_mode:
+            # 检查是否有演示进程在运行
+            if self.check_presentation_processes():
+                self.simulate_up_key()
+            return
+        
+        # 否则使用COM接口
         view = self.get_ppt_view()
         if view:
             try:
@@ -885,6 +1017,14 @@ class MainController(QWidget):
                 pass
 
     def go_next(self):
+        # 如果启用了兼容模式，则使用pyautogui模拟按键
+        if self.compatibility_mode:
+            # 检查是否有演示进程在运行
+            if self.check_presentation_processes():
+                self.simulate_down_key()
+            return
+        
+        # 否则使用COM接口
         view = self.get_ppt_view()
         if view:
             try:
@@ -951,6 +1091,14 @@ class MainController(QWidget):
             self.spotlight.showFullScreen()
             
     def exit_slideshow(self):
+        # 如果启用了兼容模式，则使用pyautogui模拟ESC键退出演示
+        if self.compatibility_mode:
+            # 检查是否有演示进程在运行
+            if self.check_presentation_processes():
+                self.simulate_esc_key()
+            return
+        
+        # 否则使用COM接口
         view = self.get_ppt_view()
         if view:
             try:
