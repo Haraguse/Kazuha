@@ -17,8 +17,7 @@ from qfluentwidgets import (PushButton, TransparentToolButton, ToolButton,
                             Flyout, FlyoutView, FlyoutAnimationType)
 from qfluentwidgets.components.material import AcrylicFlyout
 
-# 导入批注功能模块
-from AnnotationWidget import AnnotationWidget
+
 
 
 def icon_path(name):
@@ -729,46 +728,13 @@ class MainController(QWidget):
             nav.btn_next.clicked.connect(self.go_next)
             nav.request_slide_jump.connect(self.jump_to_slide)
 
-    def toggle_annotation(self, enable=True):
-        """切换批注功能"""
-        # 只在兼容模式下启用批注功能
-        if not self.compatibility_mode:
-            return
-            
-        if enable and self.annotation_widget is None:
-            # 创建批注窗口
-            self.annotation_widget = AnnotationWidget()
-        elif not enable and self.annotation_widget is not None:
-            # 关闭并清理批注窗口
-            self.annotation_widget.clear()
-            self.annotation_widget.close()
-            self.annotation_widget = None
-
-    def set_annotation_pen(self, size=None, color=None):
-        """设置批注笔的属性"""
-        if self.annotation_widget:
-            self.annotation_widget.set_pen_properties(size, color)
-
-    def clear_annotations(self):
-        """清除所有批注"""
-        if self.annotation_widget:
-            self.annotation_widget.clear()
-
-    def undo_annotation(self):
-        """撤销批注"""
-        if self.annotation_widget:
-            self.annotation_widget.undo()
-
-    def redo_annotation(self):
-        """重做批注"""
-        if self.annotation_widget:
-            self.annotation_widget.redo()
             
     def handle_arrow_tool(self):
         """处理选择工具点击"""
         # 在兼容模式下，关闭批注功能
         if self.compatibility_mode:
-            self.toggle_annotation(False)
+            pass
+            #预留接口
         else:
             self.set_pointer(1)
 
@@ -776,15 +742,15 @@ class MainController(QWidget):
         """处理笔工具点击"""
         # 在兼容模式下，启用批注功能
         if self.compatibility_mode:
-            self.toggle_annotation(True)
+            pass
+            #预留接口
         else:
             self.set_pointer(2)
-
     def handle_eraser_tool(self):
         """处理橡皮工具点击"""
-        # 在兼容模式下，如果批注功能已启用，则清除批注
         if self.compatibility_mode:
-            self.clear_annotations()
+            pass
+            #预留接口，使用时应启用橡皮功能
         else:
             self.set_pointer(5)
 
@@ -792,28 +758,8 @@ class MainController(QWidget):
         """处理笔颜色选择"""
         # 在兼容模式下，设置批注笔的颜色
         if self.compatibility_mode:
-            # 将RGB整数转换为Qt颜色
-            r = color & 0xFF
-            g = (color >> 8) & 0xFF
-            b = (color >> 16) & 0xFF
-            qt_color = Qt.GlobalColor.black  # 默认黑色
-            if r == 255 and g == 0 and b == 0:
-                qt_color = Qt.GlobalColor.red
-            elif r == 0 and g == 255 and b == 0:
-                qt_color = Qt.GlobalColor.green
-            elif r == 0 and g == 0 and b == 255:
-                qt_color = Qt.GlobalColor.blue
-            elif r == 255 and g == 255 and b == 0:
-                qt_color = Qt.GlobalColor.yellow
-            elif r == 255 and g == 0 and b == 255:
-                qt_color = Qt.GlobalColor.magenta
-            elif r == 0 and g == 255 and b == 255:
-                qt_color = Qt.GlobalColor.cyan
-            elif r == 0 and g == 0 and b == 0:
-                qt_color = Qt.GlobalColor.black
-            elif r == 255 and g == 255 and b == 255:
-                qt_color = Qt.GlobalColor.white
-            self.set_annotation_pen(color=qt_color)
+            pass
+            #预留接口
         else:
             self.set_pen_color(color)
 
@@ -821,7 +767,8 @@ class MainController(QWidget):
         """处理清除笔迹"""
         # 在兼容模式下，清除批注
         if self.compatibility_mode:
-            self.clear_annotations()
+            pass
+            #预留接口
         else:
             self.clear_ink()
 
