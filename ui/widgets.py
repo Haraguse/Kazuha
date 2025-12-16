@@ -1038,7 +1038,10 @@ class ToolBarWidget(QWidget):
 class TimerWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setStyleSheet("background-color: #1e1e1e;") 
         self.setWindowTitle("计时器")
+        # 设置窗口图标
+        self.setWindowIcon(QIcon(icon_path("trayicon.svg")))
         flags = Qt.WindowType.Window | Qt.WindowType.WindowTitleHint | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowCloseButtonHint | Qt.WindowType.WindowStaysOnTopHint
         self.setWindowFlags(flags)
         self.resize(320, 220)
@@ -1062,6 +1065,48 @@ class TimerWindow(QWidget):
         self.setup_up_page()
         self.setup_down_page()
         self.tab_widget = TabWidget(self)
+        # 为TabWidget设置样式以提高按钮可见性
+        self.tab_widget.setStyleSheet("""
+            QTabWidget::pane {
+                background-color: #2d2d2d;
+                border: 1px solid #444444;
+                border-radius: 8px;
+            }
+            QTabBar::tab {
+                background-color: #3c3c3c;
+                color: #dddddd;
+                padding: 8px 16px;
+                margin-right: 2px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+            }
+            QTabBar::tab:selected {
+                background-color: #2d2d2d;
+                color: #ffffff;
+                font-weight: bold;
+            }
+            QTabBar::tab:!selected {
+                background-color: #3c3c3c;
+                color: #aaaaaa;
+            }
+            QPushButton {
+                background-color: #3c3c3c;
+                color: white;
+                border: 1px solid #555555;
+                padding: 6px 12px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #4d4d4d;
+            }
+            QPushButton:pressed {
+                background-color: #2d2d2d;
+            }
+            QPushButton:disabled {
+                background-color: #2d2d2d;
+                color: #777777;
+            }
+        """)
         self.tab_widget.addPage(self.up_page, "正计时")
         self.tab_widget.addPage(self.down_page, "倒计时")
         layout.addWidget(self.tab_widget)
@@ -1120,7 +1165,7 @@ class TimerWindow(QWidget):
         btn_layout.addStretch()
         btn_layout.addWidget(self.down_start_btn)
         btn_layout.addWidget(self.down_reset_btn)
-        btn_layout.addStretch()
+        
         layout.addLayout(btn_layout)
 
     def init_timers(self):
