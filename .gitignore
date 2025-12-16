@@ -6,4 +6,6 @@ dist/SeiraiPPTAssistant.exe
 SeiraiPPTAssistant.spec
 dist/*
 __pycache__/*
-venv/*
+venv/*  
+controllers/__pycache__/*
+ui/__pycache__/*
