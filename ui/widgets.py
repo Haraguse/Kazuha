@@ -5,15 +5,16 @@ from PyQt6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QButtonGroup,
                              QScrollArea)
 from PyQt6.QtCore import (Qt, QSize, pyqtSignal, QEvent, QRect, QPropertyAnimation, 
                           QEasingCurve, QAbstractAnimation, QTimer, QSequentialAnimationGroup, 
-                          QPoint, QThread)
-from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QPen
+                          QPoint, QThread, QTime)
+from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QPen, QFont, QFontDatabase
 from qfluentwidgets import (TransparentToolButton, ToolButton, SpinBox,
                             PrimaryPushButton, PushButton, TabWidget,
                             ToolTipFilter, ToolTipPosition, Flyout, FlyoutAnimationType,
                             Pivot, SegmentedWidget, TimePicker, Theme, isDarkTheme,
                             FluentIcon, StrongBodyLabel, TitleLabel, LargeTitleLabel,
                             BodyLabel, CaptionLabel, IndeterminateProgressRing,
-                            SmoothScrollArea, FlowLayout)
+                            SmoothScrollArea, FlowLayout, InfoBadge, InfoBadgePosition,
+                            TopNavigationBar, NavigationItemPosition)
 from qfluentwidgets.components.material import AcrylicFlyout
 from .detached_flyout import DetachedFlyoutWindow
 
@@ -432,14 +433,14 @@ class CompatibilityAnnotationWidget(QWidget):
             bg_color = "rgba(255, 255, 255, 240)"
             border_color = "rgba(0, 0, 0, 0.1)"
             btn_bg = "rgba(0, 0, 0, 0.05)"
-            btn_checked = "#00cc7a"
+            btn_checked = "#d8a7b1"
             btn_hover = "rgba(0, 0, 0, 0.1)"
             text_color = "#333333"
         else:
             bg_color = "rgba(30, 30, 30, 240)"
             border_color = "rgba(255, 255, 255, 0.1)"
             btn_bg = "rgba(255, 255, 255, 0.1)"
-            btn_checked = "#00cc7a"
+            btn_checked = "#d8a7b1"
             btn_hover = "rgba(255, 255, 255, 0.2)"
             text_color = "white"
             
@@ -746,11 +747,10 @@ class SpotlightOverlay(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        # Fill screen with semi-transparent color based on theme
         if self.current_theme == Theme.LIGHT:
-            painter.setBrush(QColor(255, 255, 255, 180))
+            painter.setBrush(QColor(255, 255, 255, 178))
         else:
-            painter.setBrush(QColor(0, 0, 0, 180))
+            painter.setBrush(QColor(0, 0, 0, 178))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRect(self.rect())
         
@@ -763,7 +763,7 @@ class SpotlightOverlay(QWidget):
             # Draw border
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
             painter.setBrush(Qt.BrushStyle.NoBrush)
-            pen = QPen(QColor("#00cc7a"))
+            pen = QPen(QColor("#d8a7b1"))
             pen.setWidth(3)
             painter.setPen(pen)
             painter.drawRoundedRect(self.selection_rect, 10, 10)
@@ -814,16 +814,42 @@ class PageNavWidget(QWidget):
         self.page_info_widget.setCursor(Qt.CursorShape.PointingHandCursor)
         self.page_info_widget.installEventFilter(self)
         
-        from PyQt6.QtWidgets import QVBoxLayout
         info_layout = QVBoxLayout(self.page_info_widget)
         info_layout.setContentsMargins(10, 0, 10, 0)
         info_layout.setSpacing(2)
         info_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        self.lbl_page_num = QLabel("1/--")
-        self.lbl_page_text = QLabel("页码")
+        self.page_num_widget = QWidget(self.page_info_widget)
+        num_layout = QHBoxLayout(self.page_num_widget)
+        num_layout.setContentsMargins(0, 0, 0, 0)
+        num_layout.setSpacing(2)
         
-        info_layout.addWidget(self.lbl_page_num, 0, Qt.AlignmentFlag.AlignCenter)
+        self.lbl_page_current = QLabel("1")
+        self.lbl_page_slash = QLabel("/")
+        self.lbl_page_total = QLabel("--")
+        
+        for lbl in (self.lbl_page_current, self.lbl_page_slash, self.lbl_page_total):
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        num_layout.addWidget(self.lbl_page_current)
+        num_layout.addWidget(self.lbl_page_slash)
+        num_layout.addWidget(self.lbl_page_total)
+        num_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.lbl_page_text = QLabel("页码")
+        base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        font_path = os.path.join(base_dir, "ui", "RobotoCondensed-Bold.ttf")
+        if os.path.exists(font_path):
+            font_id = QFontDatabase.addApplicationFont(font_path)
+            if font_id != -1:
+                families = QFontDatabase.applicationFontFamilies(font_id)
+                if families:
+                    font = QFont(families[0])
+                    self.lbl_page_current.setFont(font)
+                    self.lbl_page_total.setFont(font)
+        self.lbl_page_text.setFont(QFont("Microsoft YaHei"))
+        
+        info_layout.addWidget(self.page_num_widget, 0, Qt.AlignmentFlag.AlignCenter)
         info_layout.addWidget(self.lbl_page_text, 0, Qt.AlignmentFlag.AlignCenter)
         
         inner_layout.addWidget(self.btn_prev)
@@ -839,7 +865,6 @@ class PageNavWidget(QWidget):
         inner_layout.addWidget(self.line2)
         
         inner_layout.addWidget(self.btn_next)
-        
         layout.addWidget(self.container)
         self.setLayout(layout)
 
@@ -876,12 +901,13 @@ class PageNavWidget(QWidget):
                 border-radius: 12px;
             }}
             QLabel {{
-                font-family: "Segoe UI", "Microsoft YaHei";
                 color: {text_color};
             }}
         """)
         
-        self.lbl_page_num.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {text_color};")
+        self.lbl_page_current.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {text_color};")
+        self.lbl_page_slash.setStyleSheet(f"font-size: 14px; color: {subtext_color};")
+        self.lbl_page_total.setStyleSheet(f"font-size: 12px; color: {subtext_color};")
         self.lbl_page_text.setStyleSheet(f"font-size: 12px; color: {subtext_color};")
         self.line1.setStyleSheet(f"color: {line_color};")
         self.line2.setStyleSheet(f"color: {line_color};")
@@ -961,7 +987,8 @@ class PageNavWidget(QWidget):
         win.show_at(self.page_info_widget)
 
     def update_page(self, current, total):
-        self.lbl_page_num.setText(f"{current}/{total}")
+        self.lbl_page_current.setText(str(current))
+        self.lbl_page_total.setText(str(total))
     
     def apply_settings(self):
         self.btn_prev.setToolTip("上一页")
@@ -971,6 +998,8 @@ class PageNavWidget(QWidget):
         self.style_nav_btn(self.btn_next, self.current_theme)
 
 
+
+
 class ToolBarWidget(QWidget):
     request_spotlight = pyqtSignal()
     request_pointer_mode = pyqtSignal(int)
@@ -978,6 +1007,7 @@ class ToolBarWidget(QWidget):
     request_clear_ink = pyqtSignal()
     request_exit = pyqtSignal()
     request_timer = pyqtSignal()
+    request_dlna_info = pyqtSignal()
     
     def __init__(self):
         super().__init__()
@@ -1008,6 +1038,8 @@ class ToolBarWidget(QWidget):
         
         self.btn_pen = self.create_tool_btn("笔", "Pen.svg")
         self.btn_pen.clicked.connect(lambda: self.request_pointer_mode.emit(2))
+        self.pen_badge = None
+        self.pen_color_value = None
         
         self.btn_eraser = self.create_tool_btn("橡皮", "Eraser.svg")
         self.btn_eraser.clicked.connect(lambda: self.request_pointer_mode.emit(5))
@@ -1157,6 +1189,9 @@ class ToolBarWidget(QWidget):
             btn.setIcon(get_icon(icon_name, theme))
             self.style_tool_btn(btn, theme) if btn.isCheckable() else self.style_action_btn(btn, theme)
 
+        if self.pen_color_value is not None:
+            self.update_pen_color_badge(self.pen_color_value)
+
     def create_tool_btn(self, text, icon_name):
         btn = TransparentToolButton(parent=self)
         btn.setIcon(get_icon(icon_name, self.current_theme))
@@ -1183,12 +1218,12 @@ class ToolBarWidget(QWidget):
             hover_bg = "rgba(0, 0, 0, 0.05)"
             checked_bg = "rgba(0, 0, 0, 0.05)"
             text_color = "#333333"
-            border_bottom = "#00cc7a"
+            border_bottom = "#d8a7b1"
         else:
             hover_bg = "rgba(255, 255, 255, 0.1)"
             checked_bg = "rgba(255, 255, 255, 0.1)"
             text_color = "white"
-            border_bottom = "#00cc7a"
+            border_bottom = "#d8a7b1"
             
         btn.setStyleSheet(f"""
             TransparentToolButton {{
@@ -1252,12 +1287,56 @@ class ToolBarWidget(QWidget):
                     color: {text_color};
                 }}
                 TransparentToolButton:hover {{
-                    background-color: {hover_bg};
-                }}
-                TransparentToolButton:pressed {{
-                    background-color: {pressed_bg};
-                }}
+                background-color: {hover_bg};
+            }}
+            TransparentToolButton:pressed {{
+                background-color: {pressed_bg};
+            }}
             """)
+
+    def get_pen_color_name(self, r, g, b):
+        if (r, g, b) == (255, 0, 0):
+            return "红"
+        if (r, g, b) == (0, 0, 0):
+            return "黑"
+        if (r, g, b) == (0, 0, 255):
+            return "蓝"
+        if (r, g, b) == (0, 255, 0):
+            return "绿"
+        if (r, g, b) == (255, 255, 0):
+            return "黄"
+        if (r, g, b) == (255, 255, 255):
+            return "白"
+        if (r, g, b) == (255, 165, 0):
+            return "橙"
+        if (r, g, b) == (128, 0, 128):
+            return "紫"
+        if (r, g, b) == (255, 0, 255):
+            return "粉"
+        if (r, g, b) == (0, 255, 255):
+            return "青"
+        return ""
+
+    def update_pen_color_badge(self, color):
+        self.pen_color_value = color
+        r = color & 0xFF
+        g = (color >> 8) & 0xFF
+        b = (color >> 16) & 0xFF
+        name = self.get_pen_color_name(r, g, b)
+        if not name:
+            if self.pen_badge:
+                self.pen_badge.hide()
+            return
+        if not self.pen_badge:
+            self.pen_badge = InfoBadge.info(
+                name,
+                parent=self.container,
+                target=self.btn_pen,
+                position=InfoBadgePosition.BOTTOM_RIGHT
+            )
+        else:
+            self.pen_badge.setText(name)
+            self.pen_badge.show()
 
     def setup_click_feedback(self, btn, base_size):
         anim = QPropertyAnimation(btn, b"iconSize", self)
@@ -1282,7 +1361,7 @@ class TimerWindow(QWidget):
         self.current_theme = Theme.DARK
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.resize(340, 280)
+        self.resize(360, 320)
         
         self.up_seconds = 0
         self.up_running = False
@@ -1291,8 +1370,8 @@ class TimerWindow(QWidget):
         self.down_running = False
         self.sound_effect = None
         self.drag_pos = None
+        self.digit_font = None
         
-        # Main Container
         self.container = QWidget(self)
         self.container.setObjectName("Container")
         
@@ -1304,7 +1383,6 @@ class TimerWindow(QWidget):
         self.layout.setContentsMargins(20, 20, 20, 20)
         self.layout.setSpacing(15)
         
-        # Header
         header_layout = QHBoxLayout()
         self.title_label = TitleLabel("计时工具", self)
         self.close_btn = TransparentToolButton(FluentIcon.CLOSE, self)
@@ -1316,14 +1394,9 @@ class TimerWindow(QWidget):
         header_layout.addWidget(self.close_btn)
         self.layout.addLayout(header_layout)
         
-        # Segmented Widget for switching modes
-        self.pivot = SegmentedWidget(self)
-        self.pivot.addItem("up", "正计时")
-        self.pivot.addItem("down", "倒计时")
-        self.pivot.currentItemChanged.connect(self.on_pivot_changed)
-        self.layout.addWidget(self.pivot)
+        self.nav_bar = TopNavigationBar(self)
+        self.layout.addWidget(self.nav_bar)
         
-        # Content Stack
         self.stack = QStackedWidget(self)
         self.up_page = QWidget()
         self.down_page = QWidget()
@@ -1335,18 +1408,41 @@ class TimerWindow(QWidget):
         self.stack.addWidget(self.down_page)
         self.stack.addWidget(self.completed_page)
         self.layout.addWidget(self.stack)
-        
+
+        self.init_fonts()
+        self.init_navigation()
         self.init_timers()
         self.init_sound()
         self.set_theme(Theme.DARK)
-        
-        self.pivot.setCurrentItem("up")
 
-    def on_pivot_changed(self, route_key):
-        if route_key == "up":
-            self.stack.setCurrentWidget(self.up_page)
-        else:
-            self.stack.setCurrentWidget(self.down_page)
+        self.stack.setCurrentWidget(self.up_page)
+
+    def init_fonts(self):
+        base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        font_path = os.path.join(base_dir, "ui", "RobotoCondensed-Bold.ttf")
+        if os.path.exists(font_path):
+            font_id = QFontDatabase.addApplicationFont(font_path)
+            if font_id != -1:
+                families = QFontDatabase.applicationFontFamilies(font_id)
+                if families:
+                    self.digit_font = QFont(families[0])
+
+    def init_navigation(self):
+        self.nav_bar.addItem(
+            routeKey="up",
+            icon=FluentIcon.TRANSPARENT,
+            text="正计时",
+            onClick=lambda: self.stack.setCurrentWidget(self.up_page),
+            position=NavigationItemPosition.TOP
+        )
+        self.nav_bar.addItem(
+            routeKey="down",
+            icon=FluentIcon.TRANSPARENT,
+            text="倒计时",
+            onClick=lambda: self.stack.setCurrentWidget(self.down_page),
+            position=NavigationItemPosition.TOP
+        )
+        self.nav_bar.setCurrentItem("up")
 
     def setup_up_page(self):
         layout = QVBoxLayout(self.up_page)
@@ -1411,26 +1507,19 @@ class TimerWindow(QWidget):
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.setSpacing(20)
         
-        # Time input area
         self.input_widget = QWidget()
         input_layout = QHBoxLayout(self.input_widget)
         input_layout.setContentsMargins(0, 0, 0, 0)
         input_layout.setSpacing(10)
         
-        self.down_min_spin = SpinBox()
-        self.down_min_spin.setRange(0, 999)
-        self.down_min_spin.setSuffix(" 分")
-        self.down_min_spin.setFixedWidth(110)
-        self.down_min_spin.setValue(5) # Default 5 mins
-        
-        self.down_sec_spin = SpinBox()
-        self.down_sec_spin.setRange(0, 59)
-        self.down_sec_spin.setSuffix(" 秒")
-        self.down_sec_spin.setFixedWidth(110)
-        
+        self.time_picker = TimePicker(self.input_widget)
+        default_time = QTime(0, 5, 0)
+        self.time_picker.setTime(default_time)
+        self.time_picker.setColumnVisible(0, True)
+        self.time_picker.setColumnVisible(1, True)
+        self.time_picker.setColumnVisible(2, True)
         input_layout.addStretch()
-        input_layout.addWidget(self.down_min_spin)
-        input_layout.addWidget(self.down_sec_spin)
+        input_layout.addWidget(self.time_picker)
         input_layout.addStretch()
         
         self.down_label = QLabel("00:00")
@@ -1480,14 +1569,25 @@ class TimerWindow(QWidget):
                 border-radius: 12px;
             }}
         """)
-        
-        font_style = f"font-size: 56px; font-weight: bold; color: {text_color}; font-family: 'Segoe UI', 'Microsoft YaHei';"
-        self.up_label.setStyleSheet(font_style)
-        self.down_label.setStyleSheet(font_style)
-        
-        completed_style = f"font-size: 24px; font-weight: bold; color: {text_color}; font-family: 'Segoe UI', 'Microsoft YaHei';"
+
+        if self.digit_font:
+            font = QFont(self.digit_font)
+        else:
+            font = QFont("Microsoft YaHei")
+        font.setPixelSize(56)
+        font.setWeight(QFont.Weight.Bold)
+
+        self.up_label.setFont(font)
+        self.down_label.setFont(font)
+        self.up_label.setStyleSheet(f"color: {text_color};")
+        self.down_label.setStyleSheet(f"color: {text_color};")
+
+        completed_font = QFont(self.digit_font) if self.digit_font else QFont("Microsoft YaHei")
+        completed_font.setPixelSize(24)
+        completed_font.setWeight(QFont.Weight.Bold)
         if hasattr(self, 'completed_label'):
-            self.completed_label.setStyleSheet(completed_style)
+            self.completed_label.setFont(completed_font)
+            self.completed_label.setStyleSheet(f"color: {text_color};")
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -1595,18 +1695,17 @@ class TimerWindow(QWidget):
 
     def toggle_down(self):
         if not self.down_running:
-            # Check if we are resuming or starting new
             if self.down_remaining <= 0 and self.down_total_seconds == 0:
-                # Start new
-                minutes = self.down_min_spin.value()
-                seconds = self.down_sec_spin.value()
-                total = minutes * 60 + seconds
+                t = self.time_picker.time
+                hours = t.hour()
+                minutes = t.minute()
+                seconds = t.second()
+                total = hours * 3600 + minutes * 60 + seconds
                 if total <= 0:
                     return
                 self.down_total_seconds = total
                 self.down_remaining = total
             
-            # Switch to label view
             self.input_widget.hide()
             self.down_label.show()
             self.down_label.setText(self.format_time(self.down_remaining))
@@ -1641,5 +1740,7 @@ class TimerWindow(QWidget):
             self.down_start_btn.setText("开始")
             
             self.stack.setCurrentWidget(self.completed_page)
-            self.play_ring()
-            self.shake_window()
+        self.play_ring()
+        self.shake_window()
+
+

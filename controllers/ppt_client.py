@@ -179,3 +179,19 @@ class PPTClient:
             return False
         except:
             return True # Fail safe
+
+    def has_media(self):
+        try:
+            view = self.get_active_view()
+            if not view:
+                return False
+            slide = view.Slide
+            if slide.Shapes.Count == 0:
+                return False
+            for shape in slide.Shapes:
+                t = getattr(shape, "Type", 0)
+                if t == 16:
+                    return True
+            return False
+        except:
+            return False

@@ -2,15 +2,28 @@ import sys
 import os
 import winreg
 import psutil
+import ctypes
+import socket
+import threading
+import uuid
+import time
+import struct
+import re
+import html
 
 from PyQt6.QtWidgets import QApplication, QWidget, QSystemTrayIcon
-from PyQt6.QtCore import QTimer, Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import QTimer, Qt, QThread, pyqtSignal, QUrl
+from PyQt6.QtGui import QIcon, QColor, QDesktopServices
 from qfluentwidgets import setTheme, Theme, SystemTrayMenu, Action
+try:
+    from qfluentwidgets import setThemeColor
+except ImportError:
+    setThemeColor = None
 from ui.widgets import AnnotationWidget, TimerWindow, LoadingOverlay
 from .ppt_client import PPTClient
 import pythoncom
 import os
+
 
 class SlideExportThread(QThread):
     def __init__(self, cache_dir):
@@ -44,11 +57,18 @@ class SlideExportThread(QThread):
             print(f"Slide export error: {e}")
         pythoncom.CoUninitialize()
 
+
+
+
+
+
 class BusinessLogicController(QWidget):
     def __init__(self):
         super().__init__()
         self.theme_mode = self.load_theme_setting()
         setTheme(self.theme_mode)
+        if setThemeColor:
+            setThemeColor(QColor("#d8a7b1"))
         
         self.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
@@ -190,7 +210,7 @@ class BusinessLogicController(QWidget):
             self.theme_dark_action.setChecked(theme == Theme.DARK)
         
         self.update_widgets_theme()
-            
+
     def update_widgets_theme(self):
         """Update theme for all active widgets"""
         theme = self.theme_mode
@@ -396,20 +416,22 @@ class BusinessLogicController(QWidget):
             screen.height() - tb_h - MARGIN, # Flush bottom
             tb_w, tb_h
         )
-        nav_w = self.nav_left.sizeHint().width()
-        nav_h = self.nav_left.sizeHint().height()
-        y = screen.height() - nav_h - MARGIN
+        nav_left_w = self.nav_left.sizeHint().width()
+        nav_left_h = self.nav_left.sizeHint().height()
+        y = screen.height() - nav_left_h - MARGIN
         
         self.nav_left.setGeometry(
             MARGIN,
             y,
-            nav_w, nav_h
+            nav_left_w, nav_left_h
         )
         
+        nav_right_w = self.nav_right.sizeHint().width()
+        nav_right_h = self.nav_right.sizeHint().height()
         self.nav_right.setGeometry(
-            screen.width() - nav_w - MARGIN,
+            screen.width() - nav_right_w - MARGIN,
             y,
-            nav_w, nav_h
+            nav_right_w, nav_right_h
         )
 
     def sync_state(self, view):
@@ -430,6 +452,7 @@ class BusinessLogicController(QWidget):
             total = self.ppt_client.get_slide_count()
             self.nav_left.update_page(current, total)
             self.nav_right.update_page(current, total)
+            self.adjust_positions()
         except:
             pass
 
@@ -465,7 +488,12 @@ class BusinessLogicController(QWidget):
     def change_pen_color(self, color):
         """更改笔颜色"""
         self.set_pen_color(color)
-                
+        try:
+            if self.toolbar:
+                self.toolbar.update_pen_color_badge(color)
+        except Exception:
+            pass
+
     def clear_ink(self):
         if not self.ppt_client.has_ink():
             self.show_warning(None, "当前页没有笔迹")
