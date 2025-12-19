@@ -1,5 +1,9 @@
 name: Nightly Release
 
+# Ensure the workflow has write permission to repository contents so the release can be created
+permissions:
+  contents: write
+
 on:
   schedule:
     - cron: "0 0 * * *"
@@ -8,43 +12,84 @@ on:
 jobs:
   create-nightly-release:
     runs-on: windows-latest
+    # Redundant but explicit: job-level permissions inherit from workflow-level
     permissions:
       contents: write
-      issues: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set nightly tag
         id: set_tag
+        shell: pwsh
         run: |
           $tag = "nightly-{0:yyyyMMdd}" -f (Get-Date).ToUniversalTime()
-          "TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Add-Content -Path $env:GITHUB_ENV -Value "TAG=$tag"
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install dependencies
+        shell: pwsh
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if (Test-Path -Path 'requirements.txt') {
+            pip install -r requirements.txt
+          }
           pip install pyinstaller
 
       - name: Build exe
-        run: pyinstaller --noconfirm --noconsole --onefile --name Kazuha main.py --add-data "icons;icons" --add-data "ui/timer_ring.ogg;ui"
+        shell: pwsh
+        run: |
+          # clean previous build artifacts to avoid stale files
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue build,dist || $null
+          # Use single quotes around add-data to avoid PowerShell semicolon parsing issues
+          pyinstaller --noconfirm --noconsole --onefile --name Kazuha main.py --add-data 'icons;icons' --add-data 'ui/timer_ring.ogg;ui'
+
+      - name: List dist contents
+        shell: pwsh
+        run: |
+          if (Test-Path -Path dist) {
+            Write-Host "dist contents:"
+            Get-ChildItem -Path dist -Recurse | Format-Table -AutoSize
+          } else {
+            Write-Error "dist directory not found. Build may have failed."
+          }
+
+      - name: Verify built exe exists
+        id: verify_asset
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path dist -Filter *.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) {
+            Write-Error "No .exe found in dist. Failing the job."
+            exit 1
+          }
+          Write-Host "Found asset: $($exe.FullName)"
+          Add-Content -Path $env:GITHUB_ENV -Value ("ASSET_PATH=" + $exe.FullName)
 
       - name: Create nightly release and upload asset
-        uses: softprops/action-gh-release@v2
+        # Using ncipollo/release-action which creates a release and uploads files in one step
+        uses: ncipollo/release-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.TAG }}
+          tag: ${{ env.TAG }}
           name: ${{ env.TAG }}
+          body: Nightly build ${{ env.TAG }}
           prerelease: true
           draft: false
-          body: Nightly build ${{ env.TAG }}
-          files: dist/Kazuha.exe
-
-
+          files: ${{ env.ASSET_PATH }}
