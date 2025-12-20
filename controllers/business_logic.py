@@ -2,17 +2,77 @@ import sys
 import os
 import winreg
 import psutil
+import subprocess
+from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication, QWidget, QSystemTrayIcon
 from PyQt6.QtCore import QTimer, Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QIcon
-from qfluentwidgets import setTheme, Theme, SystemTrayMenu, Action
+from PyQt6.QtGui import QIcon, QFont
+from qfluentwidgets import (
+    setTheme,
+    Theme,
+    SystemTrayMenu,
+    Action,
+    setThemeColor,
+    QConfig,
+    qconfig,
+    OptionsConfigItem,
+    OptionsValidator,
+    EnumSerializer,
+    ColorConfigItem,
+    ConfigItem,
+    MessageBox,
+    PushButton,
+)
 from ui.widgets import AnnotationWidget, TimerWindow, LoadingOverlay, RippleOverlay
 from .ppt_client import PPTClient
 from .version_manager import VersionManager
-from qfluentwidgets import MessageBox, PushButton
 import pythoncom
 import os
+
+CONFIG_DIR = Path(os.getenv("APPDATA")) / "SeiraiPPTAssistant"
+CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+CONFIG_PATH = CONFIG_DIR / "config.json"
+
+
+class Config(QConfig):
+    windowEffect = OptionsConfigItem(
+        "Theme",
+        "WindowEffect",
+        "Mica",
+        OptionsValidator(["Mica", "Acrylic", "Normal"]),
+        None,
+    )
+    enableStartUp = ConfigItem("General", "EnableStartUp", False)
+    timerPosition = OptionsConfigItem(
+        "General",
+        "TimerPosition",
+        "Center",
+        OptionsValidator(
+            ["Center", "TopLeft", "TopRight", "BottomLeft", "BottomRight"]
+        ),
+        None,
+    )
+    clockPosition = OptionsConfigItem(
+        "General",
+        "ClockPosition",
+        "TopRight",
+        OptionsValidator(
+            ["TopLeft", "TopRight", "BottomLeft", "BottomRight"]
+        ),
+        None,
+    )
+    language = OptionsConfigItem(
+        "General",
+        "Language",
+        "Simplified Chinese",
+        OptionsValidator(["Simplified Chinese", "English"]),
+        None,
+    )
+
+
+cfg = Config()
+qconfig.load(str(CONFIG_PATH), cfg)
 
 class SlideExportThread(QThread):
     def __init__(self, cache_dir):
@@ -84,6 +144,12 @@ class BusinessLogicController(QWidget):
         self.process_check_timer.timeout.connect(self.check_conflicting_processes)
         self.process_check_timer.start(3000)
 
+        # Sync autorun state
+        is_auto = self.is_autorun()
+        if cfg.enableStartUp.value != is_auto:
+            cfg.set(cfg.enableStartUp, is_auto)
+            qconfig.save(str(CONFIG_PATH), cfg)
+
     def check_conflicting_processes(self):
         try:
             import subprocess
@@ -104,6 +170,176 @@ class BusinessLogicController(QWidget):
                 self.conflicting_process_running = False
         except Exception as e:
             pass
+
+    def set_theme_color(self, color_str):
+        setThemeColor(color_str)
+        self.save_theme_setting(self.theme_mode) # Re-save to persist if needed, though config handles it
+
+    def set_font(self, font_name):
+        font = QFont()
+        font.setFamilies([font_name, "Microsoft YaHei"])
+        font.setPixelSize(14) # Default size
+        QApplication.setFont(font)
+        # Update all top-level widgets
+        for widget in QApplication.topLevelWidgets():
+            widget.setFont(font)
+        
+    def set_animation(self, enabled):
+        # qfluentwidgets doesn't have a global switch exposed easily, 
+        # but we can try to set it on specific widgets if needed.
+        # For now, this is a placeholder or we can implement specific animation toggles.
+        pass
+
+    def set_window_effect(self, effect_name):
+        # Update config if needed
+        if cfg.windowEffect.value != effect_name:
+            cfg.set(cfg.windowEffect, effect_name)
+        self.update_widgets_theme()
+
+    def set_context_menu_style(self, style):
+        self.set_window_effect(style)
+
+    def apply_window_effect_to_widget(self, widget):
+        if not widget:
+            return
+            
+        effect_name = cfg.windowEffect.value
+        try:
+            hwnd = int(widget.winId())
+            # Try to import WindowEffect
+            try:
+                from qfluentwidgets.window import WindowEffect
+                from qfluentwidgets import isDarkTheme
+            except ImportError:
+                from qfluentwidgets import WindowEffect, isDarkTheme
+            
+            effect = WindowEffect()
+            
+            if effect_name == "Mica":
+                effect.setMicaEffect(hwnd, isDarkTheme())
+            elif effect_name == "Acrylic":
+                # Acrylic requires a gradient color or hex
+                color = "000000" if isDarkTheme() else "ffffff"
+                effect.setAcrylicEffect(hwnd, gradientColor=color, enableShadow=True)
+            else:
+                effect.removeBackgroundEffect(hwnd)
+                
+        except Exception as e:
+            # Fail silently if effect not supported
+            pass
+
+    def set_start_up(self, enabled):
+        self.toggle_autorun(enabled)
+
+    def toggle_tray_autorun(self, checked=False):
+        enabled = bool(checked)
+        if cfg.enableStartUp.value != enabled:
+            cfg.set(cfg.enableStartUp, enabled)
+            qconfig.save(str(CONFIG_PATH), cfg)
+        self.set_start_up(enabled)
+
+    def set_tray_timer_position(self, pos):
+        if cfg.timerPosition.value != pos:
+            cfg.set(cfg.timerPosition, pos)
+            qconfig.save(str(CONFIG_PATH), cfg)
+        if pos == "Center":
+            self.timer_pos_center_action.setChecked(True)
+            self.timer_pos_tl_action.setChecked(False)
+            self.timer_pos_tr_action.setChecked(False)
+            self.timer_pos_bl_action.setChecked(False)
+            self.timer_pos_br_action.setChecked(False)
+        elif pos == "TopLeft":
+            self.timer_pos_center_action.setChecked(False)
+            self.timer_pos_tl_action.setChecked(True)
+            self.timer_pos_tr_action.setChecked(False)
+            self.timer_pos_bl_action.setChecked(False)
+            self.timer_pos_br_action.setChecked(False)
+        elif pos == "TopRight":
+            self.timer_pos_center_action.setChecked(False)
+            self.timer_pos_tl_action.setChecked(False)
+            self.timer_pos_tr_action.setChecked(True)
+            self.timer_pos_bl_action.setChecked(False)
+            self.timer_pos_br_action.setChecked(False)
+        elif pos == "BottomLeft":
+            self.timer_pos_center_action.setChecked(False)
+            self.timer_pos_tl_action.setChecked(False)
+            self.timer_pos_tr_action.setChecked(False)
+            self.timer_pos_bl_action.setChecked(True)
+            self.timer_pos_br_action.setChecked(False)
+        elif pos == "BottomRight":
+            self.timer_pos_center_action.setChecked(False)
+            self.timer_pos_tl_action.setChecked(False)
+            self.timer_pos_tr_action.setChecked(False)
+            self.timer_pos_bl_action.setChecked(False)
+            self.timer_pos_br_action.setChecked(True)
+
+    def set_tray_clock_position(self, pos):
+        if cfg.clockPosition.value != pos:
+            cfg.set(cfg.clockPosition, pos)
+            qconfig.save(str(CONFIG_PATH), cfg)
+        if pos == "TopLeft":
+            self.clock_pos_tl_action.setChecked(True)
+            self.clock_pos_tr_action.setChecked(False)
+            self.clock_pos_bl_action.setChecked(False)
+            self.clock_pos_br_action.setChecked(False)
+        elif pos == "TopRight":
+            self.clock_pos_tl_action.setChecked(False)
+            self.clock_pos_tr_action.setChecked(True)
+            self.clock_pos_bl_action.setChecked(False)
+            self.clock_pos_br_action.setChecked(False)
+        elif pos == "BottomLeft":
+            self.clock_pos_tl_action.setChecked(False)
+            self.clock_pos_tr_action.setChecked(False)
+            self.clock_pos_bl_action.setChecked(True)
+            self.clock_pos_br_action.setChecked(False)
+        elif pos == "BottomRight":
+            self.clock_pos_tl_action.setChecked(False)
+            self.clock_pos_tr_action.setChecked(False)
+            self.clock_pos_bl_action.setChecked(False)
+            self.clock_pos_br_action.setChecked(True)
+    def set_timer_position(self, pos):
+        # Position is handled when window is toggled
+        pass
+
+    def set_clock_position(self, pos):
+        self.adjust_positions()
+
+    def set_language(self, language):
+        if cfg.language.value != language:
+            cfg.set(cfg.language, language)
+            qconfig.save(str(CONFIG_PATH), cfg)
+        self.show_warning(None, "语言设置将在重启后生效")
+
+    def set_language_zh(self, checked=False):
+        self.set_language("Simplified Chinese")
+        if hasattr(self, "language_zh_action"):
+            self.language_zh_action.setChecked(True)
+        if hasattr(self, "language_en_action"):
+            self.language_en_action.setChecked(False)
+
+    def set_language_en(self, checked=False):
+        self.set_language("English")
+        if hasattr(self, "language_zh_action"):
+            self.language_zh_action.setChecked(False)
+        if hasattr(self, "language_en_action"):
+            self.language_en_action.setChecked(True)
+
+    def restart_application(self):
+        app_path = os.path.abspath(sys.argv[0])
+        if app_path.endswith(".py"):
+            python_exe = sys.executable.replace("python.exe", "pythonw.exe")
+            if not os.path.exists(python_exe):
+                python_exe = sys.executable
+            cmd = [python_exe, app_path]
+        else:
+            cmd = [sys.executable]
+        try:
+            subprocess.Popen(cmd, close_fds=True)
+        except Exception:
+            pass
+        app = QApplication.instance()
+        if app is not None:
+            app.quit()
     
     def setup_connections(self):
         """设置UI组件与业务逻辑之间的信号连接"""
@@ -140,7 +376,6 @@ class BusinessLogicController(QWidget):
 
         tray_menu = SystemTrayMenu(parent=self)
 
-        # Removed Compatibility Mode Checkbox
         annotation_action = Action(self, text="独立批注", triggered=self.toggle_annotation_mode)
         timer_action = Action(self, text="计时器", triggered=self.toggle_timer_window)
 
@@ -148,6 +383,37 @@ class BusinessLogicController(QWidget):
         self.theme_light_action = Action(self, text="浅色模式", checkable=True, triggered=self.set_theme_light)
         self.theme_dark_action = Action(self, text="深色模式", checkable=True, triggered=self.set_theme_dark)
 
+        language_menu = SystemTrayMenu("语言", parent=tray_menu)
+        self.language_zh_action = Action(self, text="简体中文", checkable=True, triggered=self.set_language_zh)
+        self.language_en_action = Action(self, text="English", checkable=True, triggered=self.set_language_en)
+        language_menu.addAction(self.language_zh_action)
+        language_menu.addAction(self.language_en_action)
+
+        self.autorun_action = Action(self, text="开机自启动", checkable=True, triggered=self.toggle_tray_autorun)
+
+        timer_pos_menu = SystemTrayMenu("计时器位置", parent=tray_menu)
+        self.timer_pos_center_action = Action(self, text="居中", checkable=True, triggered=lambda: self.set_tray_timer_position("Center"))
+        self.timer_pos_tl_action = Action(self, text="左上角", checkable=True, triggered=lambda: self.set_tray_timer_position("TopLeft"))
+        self.timer_pos_tr_action = Action(self, text="右上角", checkable=True, triggered=lambda: self.set_tray_timer_position("TopRight"))
+        self.timer_pos_bl_action = Action(self, text="左下角", checkable=True, triggered=lambda: self.set_tray_timer_position("BottomLeft"))
+        self.timer_pos_br_action = Action(self, text="右下角", checkable=True, triggered=lambda: self.set_tray_timer_position("BottomRight"))
+        timer_pos_menu.addAction(self.timer_pos_center_action)
+        timer_pos_menu.addAction(self.timer_pos_tl_action)
+        timer_pos_menu.addAction(self.timer_pos_tr_action)
+        timer_pos_menu.addAction(self.timer_pos_bl_action)
+        timer_pos_menu.addAction(self.timer_pos_br_action)
+
+        clock_pos_menu = SystemTrayMenu("时钟位置", parent=tray_menu)
+        self.clock_pos_tl_action = Action(self, text="左上角", checkable=True, triggered=lambda: self.set_tray_clock_position("TopLeft"))
+        self.clock_pos_tr_action = Action(self, text="右上角", checkable=True, triggered=lambda: self.set_tray_clock_position("TopRight"))
+        self.clock_pos_bl_action = Action(self, text="左下角", checkable=True, triggered=lambda: self.set_tray_clock_position("BottomLeft"))
+        self.clock_pos_br_action = Action(self, text="右下角", checkable=True, triggered=lambda: self.set_tray_clock_position("BottomRight"))
+        clock_pos_menu.addAction(self.clock_pos_tl_action)
+        clock_pos_menu.addAction(self.clock_pos_tr_action)
+        clock_pos_menu.addAction(self.clock_pos_bl_action)
+        clock_pos_menu.addAction(self.clock_pos_br_action)
+
+        restart_action = Action(self, text="重启", triggered=self.restart_application)
         exit_action = Action(self, text="退出", triggered=self.exit_application)
 
         tray_menu.addAction(annotation_action)
@@ -157,8 +423,12 @@ class BusinessLogicController(QWidget):
         tray_menu.addAction(self.theme_light_action)
         tray_menu.addAction(self.theme_dark_action)
         tray_menu.addSeparator()
-        
-        # About Menu
+        tray_menu.addMenu(language_menu)
+        tray_menu.addMenu(timer_pos_menu)
+        tray_menu.addMenu(clock_pos_menu)
+        tray_menu.addAction(self.autorun_action)
+        tray_menu.addSeparator()
+
         about_menu = SystemTrayMenu("关于", parent=tray_menu)
         check_update_action = Action(self, text="检查更新", triggered=self.check_for_updates)
         about_action = Action(self, text="版本信息", triggered=self.show_about_dialog)
@@ -169,6 +439,30 @@ class BusinessLogicController(QWidget):
         
         tray_menu.addSeparator()
         tray_menu.addAction(exit_action)
+
+        current_language = cfg.language.value
+        if current_language == "English":
+            self.language_en_action.setChecked(True)
+            self.language_zh_action.setChecked(False)
+        else:
+            self.language_zh_action.setChecked(True)
+            self.language_en_action.setChecked(False)
+
+        if cfg.enableStartUp.value:
+            self.autorun_action.setChecked(True)
+
+        timer_pos = cfg.timerPosition.value
+        self.timer_pos_center_action.setChecked(timer_pos == "Center")
+        self.timer_pos_tl_action.setChecked(timer_pos == "TopLeft")
+        self.timer_pos_tr_action.setChecked(timer_pos == "TopRight")
+        self.timer_pos_bl_action.setChecked(timer_pos == "BottomLeft")
+        self.timer_pos_br_action.setChecked(timer_pos == "BottomRight")
+
+        clock_pos = cfg.clockPosition.value
+        self.clock_pos_tl_action.setChecked(clock_pos == "TopLeft")
+        self.clock_pos_tr_action.setChecked(clock_pos == "TopRight")
+        self.clock_pos_bl_action.setChecked(clock_pos == "BottomLeft")
+        self.clock_pos_br_action.setChecked(clock_pos == "BottomRight")
 
         self.tray_icon.setContextMenu(tray_menu)
         self.set_theme_mode(self.theme_mode)
@@ -279,7 +573,6 @@ class BusinessLogicController(QWidget):
         if hasattr(self, "theme_dark_action"):
             self.theme_dark_action.setChecked(theme == Theme.DARK)
         
-        # Trigger update for all widgets
         self.update_widgets_theme()
             
     def update_widgets_theme(self):
@@ -299,8 +592,14 @@ class BusinessLogicController(QWidget):
             widgets.append(self.annotation_widget)
             
         for widget in widgets:
-            if widget and hasattr(widget, 'set_theme'):
-                widget.set_theme(theme)
+            if widget:
+                if hasattr(widget, 'set_theme'):
+                    widget.set_theme(theme)
+                
+                # Apply window effect only to UI panels, not full-screen overlays
+                # AnnotationWidget and SpotlightOverlay should remain transparent/dimmed
+                if widget not in [self.spotlight, self.annotation_widget]:
+                    self.apply_window_effect_to_widget(widget)
     
     def set_theme_auto(self, checked=False):
         self.set_theme_mode(Theme.AUTO)
@@ -326,6 +625,33 @@ class BusinessLogicController(QWidget):
             self.timer_window.show()
             self.timer_window.activateWindow()
             self.timer_window.raise_()
+            
+            # Position the window
+            pos_setting = cfg.timerPosition.value
+            screen = QApplication.primaryScreen().geometry()
+            w = self.timer_window.width()
+            h = self.timer_window.height()
+            
+            if pos_setting == "Center":
+                x = screen.left() + (screen.width() - w) // 2
+                y = screen.top() + (screen.height() - h) // 2
+            elif pos_setting == "TopLeft":
+                x = screen.left() + 20
+                y = screen.top() + 20
+            elif pos_setting == "TopRight":
+                x = screen.left() + screen.width() - w - 20
+                y = screen.top() + 20
+            elif pos_setting == "BottomLeft":
+                x = screen.left() + 20
+                y = screen.top() + screen.height() - h - 20
+            elif pos_setting == "BottomRight":
+                x = screen.left() + screen.width() - w - 20
+                y = screen.top() + screen.height() - h - 20
+            else: # Default Center
+                x = screen.left() + (screen.width() - w) // 2
+                y = screen.top() + (screen.height() - h) // 2
+            
+            self.timer_window.move(x, y)
     
     def on_timer_state_changed(self, up_seconds, up_running, down_remaining, down_running):
         if not self.clock_widget:
@@ -516,17 +842,29 @@ class BusinessLogicController(QWidget):
             self.clock_widget.adjustSize()
             cw = self.clock_widget.width()
             ch = self.clock_widget.height()
-            max_cw = max(50, width - 2 * MARGIN)
-            if cw > max_cw:
-                cw = max_cw
-            x = left + width - cw - MARGIN
-            y = top + MARGIN
-            min_x = left + MARGIN
-            min_y = top + MARGIN
-            if x < min_x:
-                x = min_x
-            if y < min_y:
-                y = min_y
+            
+            # Use configured position
+            pos_setting = cfg.clockPosition.value
+            
+            if pos_setting == "TopLeft":
+                x = left + MARGIN
+                y = top + MARGIN
+            elif pos_setting == "BottomLeft":
+                x = left + MARGIN
+                y = bottom - ch - MARGIN
+            elif pos_setting == "BottomRight":
+                x = right - cw - MARGIN
+                y = bottom - ch - MARGIN
+            else: # Default TopRight
+                x = right - cw - MARGIN
+                y = top + MARGIN
+                
+            # Boundary checks (keep within screen)
+            if x < left + MARGIN: x = left + MARGIN
+            if x > right - cw - MARGIN: x = right - cw - MARGIN
+            if y < top + MARGIN: y = top + MARGIN
+            if y > bottom - ch - MARGIN: y = bottom - ch - MARGIN
+                
             self.clock_widget.setGeometry(x, y, cw, ch)
 
     def sync_state(self, view):

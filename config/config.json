@@ -1,0 +1,11 @@
+{
+    "QFluentWidgets": {
+        "FontFamilies": [
+            "Bahnschrift",
+            "Microsoft YaHei",
+            "PingFang SC"
+        ],
+        "ThemeColor": "#ff009faa",
+        "ThemeMode": "Auto"
+    }
+}
