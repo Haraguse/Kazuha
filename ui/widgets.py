@@ -15,6 +15,8 @@ from qfluentwidgets import (TransparentToolButton, ToolButton, SpinBox,
                             BodyLabel, CaptionLabel, IndeterminateProgressRing,
                             SmoothScrollArea, FlowLayout)
 from qfluentwidgets.components.material import AcrylicFlyout
+HEIGHT_BAR = 60
+
 try:
     from .detached_flyout import DetachedFlyoutWindow
 except ImportError:
@@ -120,6 +122,9 @@ class PenSettingsFlyout(QWidget):
         layout.setSpacing(12)
         
         title = StrongBodyLabel("墨迹颜色", self)
+        font = title.font()
+        font.setFamily("Meiryo UI")
+        title.setFont(font)
         layout.addWidget(title)
         
         self.grid_widget = QWidget()
@@ -248,7 +253,7 @@ class LoadingOverlay(QWidget):
         self.ring.setStrokeWidth(4)
         
         self.label = BodyLabel("正在加载幻灯片预览...", self)
-        self.label.setStyleSheet("color: white; font-size: 14px; font-family: 'Segoe UI Variable', 'Segoe UI', 'Microsoft YaHei';")
+        self.label.setStyleSheet("color: white; font-size: 14px;")
         
         layout.addWidget(self.ring)
         layout.addWidget(self.label, 0, Qt.AlignmentFlag.AlignCenter)
@@ -819,17 +824,20 @@ class PageNavWidget(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
         layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
+        # [修改] 统一边距：左右10，上下5。配合总高度60，内部高度为50
+        layout.setContentsMargins(10, 5, 10, 5)
         layout.setSpacing(0)
         
         self.container = QWidget()
         self.container.setObjectName("Container")
         
         inner_layout = QHBoxLayout(self.container)
-        inner_layout.setContentsMargins(8, 6, 8, 6)
+        inner_layout.setContentsMargins(8, 0, 8, 0)
         inner_layout.setSpacing(15)
         
-        self.container.setMinimumHeight(56)
+        # [修改] 强制锁死内部容器高度为 50
+        self.container.setFixedHeight(50)
+        
         self.btn_prev = TransparentToolButton(parent=self)
         self.btn_prev.setFixedSize(36, 36) 
         self.btn_prev.setIconSize(QSize(18, 18))
@@ -852,8 +860,8 @@ class PageNavWidget(QWidget):
         
         from PyQt6.QtWidgets import QVBoxLayout
         info_layout = QVBoxLayout(self.page_info_widget)
-        info_layout.setContentsMargins(10, 0, 10, 0)
-        info_layout.setSpacing(2)
+        info_layout.setContentsMargins(6, 0, 6, 0)
+        info_layout.setSpacing(0) # [修改] 减小垂直间距
         info_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         self.lbl_page_num = QLabel("1/--")
@@ -882,6 +890,7 @@ class PageNavWidget(QWidget):
         inner_layout.addWidget(self.btn_next)
         
         layout.addWidget(self.container)
+        self.setFixedHeight(HEIGHT_BAR)
         self.setLayout(layout)
 
         self.setup_click_feedback(self.btn_prev, QSize(18, 18))
@@ -913,15 +922,16 @@ class PageNavWidget(QWidget):
             indicator_color = "#B38F8F"
             indicator_hover = "rgba(179, 143, 143, 0.3)"
             
+        # [修改] 统一圆角为 25px (对应 50px 高度)
         self.container.setStyleSheet(f"""
             QWidget#Container {{
                 background-color: {bg_color};
                 border: 1px solid {border_color};
                 border-bottom: 1px solid {border_color};
-                border-radius: 28px;
+                border-radius: 25px;
             }}
             QWidget#PageInfo {{
-                border-radius: 18px;
+                border-radius: 12px;
                 background-color: transparent;
             }}
             QWidget#PageInfo:hover {{
@@ -929,13 +939,25 @@ class PageNavWidget(QWidget):
                 background: qradialgradient(spread:pad, cx:0.5, cy:0.5, radius:0.17, fx:0.5, fy:0.5, stop:0 {indicator_color}, stop:1 transparent);
             }}
             QLabel {{
-                font-family: "Segoe UI", "Microsoft YaHei";
                 color: {text_color};
             }}
         """)
         
-        self.lbl_page_num.setStyleSheet(f"font-size: 14px; font-weight: bold; color: {text_color};")
-        self.lbl_page_text.setStyleSheet(f"font-size: 12px; color: {subtext_color};")
+        # [修改] 修复字体基线问题：
+        # 1. 使用 Segoe UI 字体
+        # 2. 增加 padding-top 强制下压
+        self.lbl_page_num.setStyleSheet(f"""
+            font-family: 'Bahnschrift', sans-serif;
+            font-size: 16px; 
+            font-weight: bold; 
+            color: {text_color}; 
+            padding-top: 4px;
+            background-color: transparent;
+        """)
+        
+        # [修改] 微调下方小字位置
+        self.lbl_page_text.setStyleSheet(f"font-size: 10px; color: {subtext_color}; padding-bottom: 2px;")
+        
         self.line1.setStyleSheet(f"color: {line_color};")
         self.line2.setStyleSheet(f"color: {line_color};")
         
@@ -963,15 +985,17 @@ class PageNavWidget(QWidget):
                 border: none;
                 background-color: transparent;
                 color: {text_color};
-                background: qradialgradient(spread:pad, cx:0.5, cy:0.5, radius:0.11, fx:0.5, fy:0.5, stop:0 {dot_color}, stop:1 transparent);
+                padding: 0;
             }}
             TransparentToolButton:hover {{
+                border-radius: 18px;
                 background-color: {hover_bg};
-                background: qradialgradient(spread:pad, cx:0.5, cy:0.5, radius:0.17, fx:0.5, fy:0.5, stop:0 {dot_color}, stop:1 transparent);
+                padding: 0;
             }}
             TransparentToolButton:pressed {{
+                border-radius: 18px;
                 background-color: {pressed_bg};
-                background: qradialgradient(spread:pad, cx:0.5, cy:0.5, radius:0.17, fx:0.5, fy:0.5, stop:0 {dot_color}, stop:1 transparent);
+                padding: 0;
             }}
         """)
     
@@ -1020,7 +1044,33 @@ class PageNavWidget(QWidget):
         self.slide_selector_window = None
 
     def update_page(self, current, total):
-        self.lbl_page_num.setText(f"<html><head/><body><p><span style='font-size:14pt;'>{current}</span><span style='font-size:10pt;'>/{total}</span></p></body></html>")
+        from PyQt6.QtCore import QPoint
+        # 保持 HTML 结构以支持大小字体，但由于 stylesheet 设置了 font-family 和 padding，这里主要控制相对大小
+        html = f"<html><head/><body><p><span style='font-size:16pt;'>{current}</span><span style='font-size:10pt;'>/{total}</span></p></body></html>"
+        if not hasattr(self, "page_base_pos") or self.page_base_pos is None:
+            self.lbl_page_num.setText(html)
+            self.page_base_pos = self.lbl_page_num.pos()
+            self.last_page_value = current
+            return
+        if hasattr(self, "last_page_value") and self.last_page_value == current:
+            self.lbl_page_num.setText(html)
+            return
+        direction = 1
+        if hasattr(self, "last_page_value") and self.last_page_value is not None and current < self.last_page_value:
+            direction = -1
+        self.last_page_value = current
+        self.lbl_page_num.setText(html)
+        if not hasattr(self, "page_anim") or self.page_anim is None:
+            self.page_anim = QPropertyAnimation(self.lbl_page_num, b"pos", self)
+            self.page_anim.setDuration(150)
+            self.page_anim.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        self.page_anim.stop()
+        offset = 6
+        start_pos = self.page_base_pos + QPoint(0, offset * direction)
+        self.lbl_page_num.move(start_pos)
+        self.page_anim.setStartValue(start_pos)
+        self.page_anim.setEndValue(self.page_base_pos)
+        self.page_anim.start()
     
     def apply_settings(self):
         self.btn_prev.setToolTip("上一页")
@@ -1043,23 +1093,26 @@ class ToolBarWidget(QWidget):
         self.current_theme = Theme.DARK
         self.indicator = None
         self.was_checked = False
+        self.current_pen_color = None
         self.pen_settings_win = None
         self.eraser_settings_win = None
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
         layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
+        # [修改] 与 PageNavWidget 保持完全一致的边距 (10, 5, 10, 5)
+        layout.setContentsMargins(10, 5, 10, 5)
         
         self.container = QWidget()
         self.container.setObjectName("Container")
         self.container.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         
         container_layout = QHBoxLayout(self.container)
-        container_layout.setContentsMargins(8, 6, 8, 6) 
-        container_layout.setSpacing(12) 
+        container_layout.setContentsMargins(10, 6, 10, 6)
+        container_layout.setSpacing(10)
         
-        self.container.setMinimumHeight(56)
+        # [修改] 锁死高度为 50，与页码栏一致
+        self.container.setFixedHeight(50)
         
         self.group = QButtonGroup(self)
         self.group.setExclusive(True)
@@ -1108,6 +1161,7 @@ class ToolBarWidget(QWidget):
         
         layout.addWidget(self.container)
         self.setLayout(layout)
+        self.setFixedHeight(HEIGHT_BAR)
         
         self.btn_arrow.setChecked(True)
         self.indicator = QFrame(self.container)
@@ -1158,13 +1212,17 @@ class ToolBarWidget(QWidget):
             self.pen_settings_win = None
             return
         view = PenSettingsFlyout(self)
-        view.color_selected.connect(self.request_pen_color.emit)
+        view.color_selected.connect(self.on_pen_color_selected)
         view.setStyleSheet("background-color: transparent;")
         win = DetachedFlyoutWindow(view, self)
         view.color_selected.connect(win.close)
         win.destroyed.connect(self.on_pen_settings_closed)
         self.pen_settings_win = win
         win.show_at(self.btn_pen)
+    
+    def on_pen_color_selected(self, color):
+        self.update_pen_display(color)
+        self.request_pen_color.emit(color)
 
     def show_eraser_settings(self):
         if self.eraser_settings_win and self.eraser_settings_win.isVisible():
@@ -1193,23 +1251,28 @@ class ToolBarWidget(QWidget):
             
         self.current_theme = theme
         
+        # Check for window effect
+        effect = self.property("windowEffect")
+        is_transparent = effect in ["Mica", "Acrylic"]
+        
         if theme == Theme.LIGHT:
-            bg_color = "rgba(255, 255, 255, 240)"
+            bg_color = "rgba(255, 255, 255, 240)" if not is_transparent else "rgba(255, 255, 255, 10)"
             border_color = "rgba(0, 0, 0, 0.1)"
             text_color = "#333333"
             line_color = "rgba(0, 0, 0, 0.1)"
         else:
-            bg_color = "rgba(30, 30, 30, 240)"
+            bg_color = "rgba(30, 30, 30, 240)" if not is_transparent else "rgba(30, 30, 30, 10)"
             border_color = "rgba(255, 255, 255, 0.1)"
             text_color = "white"
             line_color = "rgba(255, 255, 255, 0.2)"
             
+        # [修改] 统一圆角为 25px，对应 50px 高度
         self.container.setStyleSheet(f"""
             QWidget#Container {{
                 background-color: {bg_color};
                 border: 1px solid {border_color};
                 border-bottom: 1px solid {border_color};
-                border-radius: 28px;
+                border-radius: 25px;
             }}
         """)
         
@@ -1233,11 +1296,12 @@ class ToolBarWidget(QWidget):
         if self.indicator:
             self.indicator.setStyleSheet(f"background-color: {indicator_color}; border-radius: 1px;")
             self.update_indicator_for_current()
+        self.update_pen_icon_state()
 
     def create_tool_btn(self, text, icon_name):
         btn = TransparentToolButton(parent=self)
         btn.setIcon(get_icon(icon_name, self.current_theme))
-        btn.setFixedSize(40, 48) # Increased height to accommodate dot
+        btn.setFixedSize(36, 36)
         btn.setIconSize(QSize(20, 20))
         btn.setCheckable(True)
         btn.setToolTip(text)
@@ -1248,7 +1312,7 @@ class ToolBarWidget(QWidget):
     def create_action_btn(self, text, icon_name):
         btn = TransparentToolButton(parent=self)
         btn.setIcon(get_icon(icon_name, self.current_theme))
-        btn.setFixedSize(40, 48) # Increased height
+        btn.setFixedSize(36, 36)
         btn.setIconSize(QSize(20, 20))
         btn.setToolTip(text)
         btn.installEventFilter(ToolTipFilter(btn, 1000, ToolTipPosition.TOP))
@@ -1267,29 +1331,78 @@ class ToolBarWidget(QWidget):
             
         btn.setStyleSheet(f"""
             TransparentToolButton {{
-                border-radius: 20px;
+                border-radius: 18px;
                 border: none;
                 background-color: transparent;
                 color: {text_color};
-                margin: 2px;
             }}
             TransparentToolButton:hover {{
+                border-radius: 18px;
                 background-color: {hover_bg};
             }}
             TransparentToolButton:checked {{
+                border-radius: 18px;
                 background-color: {checked_bg};
                 color: {text_color};
             }}
             TransparentToolButton:checked:hover {{
+                border-radius: 18px;
                 background-color: {checked_bg};
             }}
         """)
+    
+    def get_pen_color_char(self, r, g, b):
+        if (r, g, b) == (255, 0, 0):
+            return "紅"
+        if (r, g, b) == (0, 255, 0):
+            return "綠"
+        if (r, g, b) == (0, 0, 255):
+            return "藍"
+        if (r, g, b) == (255, 255, 0):
+            return "黃"
+        if (r, g, b) == (0, 0, 0):
+            return "黑"
+        if (r, g, b) == (255, 255, 255):
+            return "白"
+        if (r, g, b) == (255, 165, 0):
+            return "橙"
+        if (r, g, b) == (128, 0, 128):
+            return "紫"
+        if (r, g, b) == (255, 0, 255):
+            return "紫"
+        if (r, g, b) == (0, 255, 255):
+            return "青"
+        return "筆"
+    
+    def update_pen_display(self, color):
+        self.current_pen_color = color
+        r = color & 0xFF
+        g = (color >> 8) & 0xFF
+        b = (color >> 16) & 0xFF
+        char = self.get_pen_color_char(r, g, b)
+        self.btn_pen.setIcon(QIcon())
+        self.btn_pen.setText(char)
+        font = self.btn_pen.font()
+        font.setFamily("Meiryo UI")
+        font.setPixelSize(16)
+        font.setBold(True)
+        self.btn_pen.setFont(font)
+        self.style_tool_btn(self.btn_pen, self.current_theme)
     
     def on_tool_btn_toggled(self, checked):
         if not checked:
             return
         btn = self.sender()
         self.update_indicator_geometry(btn)
+        self.update_pen_icon_state()
+
+    def update_pen_icon_state(self):
+        if self.btn_pen.isChecked() and self.current_pen_color is not None:
+            self.update_pen_display(self.current_pen_color)
+        else:
+            self.btn_pen.setText("")
+            self.btn_pen.setIcon(get_icon("Pen.svg", self.current_theme))
+            self.style_tool_btn(self.btn_pen, self.current_theme)
     
     def update_indicator_for_current(self):
         for btn in (self.btn_arrow, self.btn_pen, self.btn_eraser):
@@ -1324,30 +1437,34 @@ class ToolBarWidget(QWidget):
         if btn == self.btn_exit:
              btn.setStyleSheet(f"""
                 TransparentToolButton {{
-                    border-radius: 20px;
+                    border-radius: 18px;
                     border: none;
                     background-color: transparent;
                     color: {text_color};
                 }}
                 TransparentToolButton:hover {{
+                    border-radius: 18px;
                     background-color: rgba(255, 50, 50, 0.3);
                 }}
                 TransparentToolButton:pressed {{
+                    border-radius: 18px;
                     background-color: rgba(255, 50, 50, 0.5);
                 }}
             """)
         else:
             btn.setStyleSheet(f"""
                 TransparentToolButton {{
-                    border-radius: 20px;
+                    border-radius: 18px;
                     border: none;
                     background-color: transparent;
                     color: {text_color};
                 }}
                 TransparentToolButton:hover {{
+                    border-radius: 18px;
                     background-color: {hover_bg};
                 }}
                 TransparentToolButton:pressed {{
+                    border-radius: 18px;
                     background-color: {pressed_bg};
                 }}
             """)
@@ -1452,12 +1569,16 @@ class ClockWidget(QWidget):
             
         self.current_theme = theme
         
+        # Check for window effect
+        effect = self.property("windowEffect")
+        is_transparent = effect in ["Mica", "Acrylic"]
+        
         if theme == Theme.LIGHT:
-            bg_color = "rgba(255, 255, 255, 240)"
+            bg_color = "rgba(255, 255, 255, 240)" if not is_transparent else "rgba(255, 255, 255, 10)"
             border_color = "rgba(0, 0, 0, 0.1)"
             text_color = "#333333"
         else:
-            bg_color = "rgba(30, 30, 30, 240)"
+            bg_color = "rgba(30, 30, 30, 240)" if not is_transparent else "rgba(30, 30, 30, 10)"
             border_color = "rgba(255, 255, 255, 0.1)"
             text_color = "white"
             
@@ -1469,7 +1590,6 @@ class ClockWidget(QWidget):
                 border-radius: 20px;
             }}
             QLabel {{
-                font-family: "Segoe UI", "Microsoft YaHei";
                 font-size: 16px;
                 font-weight: bold;
                 color: {text_color};
@@ -1671,13 +1791,18 @@ class TimerWindow(QWidget):
 
     def set_theme(self, theme):
         self.current_theme = theme
+        
+        # Check for window effect
+        effect = self.property("windowEffect")
+        is_transparent = effect in ["Mica", "Acrylic"]
+        
         if theme == Theme.LIGHT:
-            bg_color = "rgba(243, 243, 243, 0.95)"
+            bg_color = "rgba(243, 243, 243, 0.95)" if not is_transparent else "rgba(243, 243, 243, 0.1)"
             border_color = "rgba(0, 0, 0, 0.05)"
             text_color = "#333333"
             self.title_label.setTextColor("#333333", "#333333")
         else:
-            bg_color = "rgba(32, 32, 32, 0.95)"
+            bg_color = "rgba(32, 32, 32, 0.95)" if not is_transparent else "rgba(32, 32, 32, 0.1)"
             border_color = "rgba(255, 255, 255, 0.08)"
             text_color = "white"
             self.title_label.setTextColor("white", "white")
@@ -1690,11 +1815,11 @@ class TimerWindow(QWidget):
             }}
         """)
         
-        font_style = f"font-size: 56px; font-weight: bold; color: {text_color}; font-family: 'Segoe UI', 'Microsoft YaHei';"
+        font_style = f"font-size: 56px; font-weight: bold; color: {text_color};"
         self.up_label.setStyleSheet(font_style)
         self.down_label.setStyleSheet(font_style)
         
-        completed_style = f"font-size: 24px; font-weight: bold; color: {text_color}; font-family: 'Segoe UI', 'Microsoft YaHei';"
+        completed_style = f"font-size: 24px; font-weight: bold; color: {text_color};"
         if hasattr(self, 'completed_label'):
             self.completed_label.setStyleSheet(completed_style)
 

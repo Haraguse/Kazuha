@@ -10,8 +10,8 @@ def main():
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     
-    # Initialize business logic controller
     controller = BusinessLogicController()
+    controller.set_font("Bahnschrift")
     
     # Initialize UI components
     controller.toolbar = ToolBarWidget()
