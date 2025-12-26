@@ -1,0 +1,39 @@
+{
+    "Clock": {
+        "FontWeight": "Bold",
+        "ShowDate": false,
+        "ShowLunar": false,
+        "ShowSeconds": false
+    },
+    "General": {
+        "ClockPosition": "TopRight",
+        "EnableClock": true,
+        "EnableGlobalAnimation": true,
+        "EnableGlobalSound": true,
+        "EnableStartUp": true,
+        "EnableSystemNotification": true,
+        "Language": "Simplified Chinese",
+        "NativeWindowFrame": false,
+        "NavPosition": "MiddleSides",
+        "TimerPosition": "Center"
+    },
+    "QFluentWidgets": {
+        "FontFamilies": [
+            "Segoe UI",
+            "Microsoft YaHei",
+            "PingFang SC"
+        ],
+        "ThemeColor": "#ff009faa"
+    },
+    "Layout": {
+        "ScreenPadding": "Normal",
+        "ScreenPaddingBottom": 20,
+        "ScreenPaddingLeft": 20,
+        "ScreenPaddingLock": true,
+        "ScreenPaddingRight": 20,
+        "ScreenPaddingTop": 20
+    },
+    "Theme": {
+        "ThemeMode": "Auto"
+    }
+}

@@ -1,6 +1,7 @@
 import sys
 import os
 import traceback
+import ctypes
 from datetime import datetime
 from PyQt6.QtWidgets import QApplication
 from controllers.business_logic import BusinessLogicController, cfg
@@ -9,10 +10,8 @@ from crash_handler import CrashAwareApplication, CrashHandler
 
 def setup_logging():
     try:
-        log_dir = os.path.join(os.getenv("APPDATA"), "Kazuha")
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-        log_path = os.path.join(log_dir, "debug.log")
+        base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(sys.argv[0])))
+        log_path = os.path.join(base_dir, "debug.log")
         
         # Reset log file
         with open(log_path, "w") as f:
@@ -23,9 +22,9 @@ def setup_logging():
         return None
 
 def log_message(msg):
-    log_dir = os.path.join(os.getenv("APPDATA"), "Kazuha")
-    log_path = os.path.join(log_dir, "debug.log")
     try:
+        base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(sys.argv[0])))
+        log_path = os.path.join(base_dir, "debug.log")
         with open(log_path, "a") as f:
             f.write(f"{datetime.now()}: {msg}\n")
     except:
@@ -41,10 +40,19 @@ def main():
     QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
     
     try:
+        try:
+            app_id = "万演 主程序通知"
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+        except Exception:
+            pass
+
         crash_handler = CrashHandler(log_path=log_path)
         crash_handler.install()
         app = CrashAwareApplication(sys.argv, crash_handler)
         app.setQuitOnLastWindowClosed(False)
+
+        app.setApplicationName("Kazuha")
+        app.setApplicationDisplayName("Kazuha.Midori.Settings")
 
         # Set global font
         from PyQt6.QtGui import QFont
@@ -98,7 +106,6 @@ def main():
         sys.exit(1)
 
 if __name__ == '__main__':
-    # Ensure multiprocessing support for Windows (freeze_support)
     import multiprocessing
     multiprocessing.freeze_support()
     main()

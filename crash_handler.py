@@ -19,8 +19,8 @@ class CrashInfo:
 
 
 def _default_log_path() -> str:
-    log_dir = os.path.join(os.getenv("APPDATA") or os.getenv("TEMP") or "C:\\", "Kazuha")
-    return os.path.join(log_dir, "debug.log")
+    base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(sys.argv[0])))
+    return os.path.join(base_dir, "debug.log")
 
 
 def _format_exception(exc_type, exc, tb) -> str:
@@ -76,8 +76,7 @@ class CrashWindow(QDialog):
         self.setWindowTitle(crash.title)
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
         self.resize(860, 560)
-        
-        # Apply font
+
         from PyQt6.QtGui import QFont
         font = QFont("Bahnschrift", 14)
         font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
@@ -86,7 +85,7 @@ class CrashWindow(QDialog):
         root = QVBoxLayout(self)
         root.setContentsMargins(18, 18, 18, 18)
         root.setSpacing(12)
-        
+
         if isDarkTheme():
             self.setStyleSheet("QDialog { background-color: rgb(32, 32, 32); color: white; }")
         else:
@@ -107,7 +106,7 @@ class CrashWindow(QDialog):
                     icon_label.setPixmap(pm.scaled(icon_label.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
                 break
 
-        title = TitleLabel("崩溃啦 (＞﹏＜)", self)
+        title = TitleLabel("Kazuha 崩溃啦！", self)
         title_row.addWidget(icon_label, 0, Qt.AlignmentFlag.AlignVCenter)
         title_row.addWidget(title, 0, Qt.AlignmentFlag.AlignVCenter)
         title_row.addStretch(1)
@@ -181,55 +180,20 @@ class CrashHandler:
 
         self._handling = True
         details = _format_exception(exc_type, exc, tb)
-        crash = CrashInfo(title="崩溃", details=details)
-
-        app = QApplication.instance()
-        if app is None:
-            self._handling = False
-            return
-
-        def do_exit():
-            try:
-                app.quit()
-            finally:
-                os._exit(1)
-
-        def do_copy():
-            clipboard = app.clipboard()
-            if clipboard is not None:
-                clipboard.setText(win.details_text())
-
-        def do_restart():
-            self.restart()
-
-        win = CrashWindow(crash, parent=None)
-        win.exit_btn.clicked.connect(do_exit)
-        win.copy_btn.clicked.connect(do_copy)
-        win.restart_btn.clicked.connect(do_restart)
-        
-        # Play crash sound
         try:
-            base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
-            sound_path = os.path.join(base_dir, "SoundEffectResources", "Error.ogg")
-            if os.path.exists(sound_path):
-                from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
-                from PyQt6.QtCore import QUrl
-                
-                player = QMediaPlayer()
-                audio_output = QAudioOutput()
-                player.setAudioOutput(audio_output)
-                player.setSource(QUrl.fromLocalFile(sound_path))
-                audio_output.setVolume(1.0)
-                player.play()
-                
-                # Keep reference to prevent GC
-                win._crash_player = player
-                win._crash_audio = audio_output
+            print(details, file=sys.stderr)
         except Exception:
             pass
-
-        win.exec()
-        os._exit(1)
+        try:
+            with open(self._log_path, "a", encoding="utf-8") as f:
+                f.write(details)
+                f.write("\n\n")
+        except Exception:
+            pass
+        try:
+            os._exit(1)
+        except Exception:
+            sys.exit(1)
 
     def restart(self):
         try:
@@ -264,3 +228,58 @@ class CrashAwareApplication(QApplication):
             if exc_type is not None and exc is not None and tb is not None:
                 self._crash_handler.handle(exc_type, exc, tb)
             return False
+
+
+def run_watchdog_process(parent_pid: int, log_path: str | None = None):
+    import ctypes
+    import os
+    log_path = log_path or _default_log_path()
+    kernel32 = ctypes.windll.kernel32
+    SYNCHRONIZE = 0x00100000
+    PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+    WAIT_OBJECT_0 = 0x00000000
+    handle = kernel32.OpenProcess(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, False, int(parent_pid))
+    if not handle:
+        return
+    exit_code = ctypes.c_ulong(259)
+    rc = kernel32.WaitForSingleObject(handle, 0xFFFFFFFF)
+    if rc != WAIT_OBJECT_0:
+        kernel32.CloseHandle(handle)
+        return
+    if not kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
+        kernel32.CloseHandle(handle)
+        return
+    code = int(exit_code.value)
+    kernel32.CloseHandle(handle)
+    if code == 0:
+        return
+    try:
+        with open(log_path, "r", encoding="utf-8") as f:
+            details = f.read()
+    except Exception:
+        details = f"Process {parent_pid} exited with code {code}"
+    crash = CrashInfo(title="Kazuha 崩溃啦！", details=details)
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication(sys.argv[:1])
+    win = CrashWindow(crash, parent=None)
+    handler = CrashHandler(log_path=log_path)
+
+    def do_exit():
+        try:
+            app.quit()
+        finally:
+            os._exit(1)
+
+    def do_copy():
+        clipboard = app.clipboard()
+        if clipboard is not None:
+            clipboard.setText(win.details_text())
+
+    def do_restart():
+        handler.restart()
+
+    win.exit_btn.clicked.connect(do_exit)
+    win.copy_btn.clicked.connect(do_copy)
+    win.restart_btn.clicked.connect(do_restart)
+    win.exec()

@@ -1255,39 +1255,38 @@ class ToolBarWidget(QWidget):
         self.eraser_settings_win = None
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        
-        layout = QHBoxLayout()
-        layout.setContentsMargins(10, 5, 10, 5)
-        
-        self.container = QWidget()
+
+        outer_layout = QHBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+
+        self.container = QWidget(self)
         self.container.setObjectName("Container")
         self.container.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        
-        container_layout = QHBoxLayout(self.container)
-        container_layout.setContentsMargins(10, 6, 10, 6)
-        container_layout.setSpacing(10)
-        
-        self.container.setFixedHeight(50)
-        
+
+        inner_layout = QHBoxLayout(self.container)
+        inner_layout.setContentsMargins(16, 7, 16, 7)
+        inner_layout.setSpacing(10)
+
         self.group = QButtonGroup(self)
         self.group.setExclusive(True)
-        
+
         self.btn_arrow = self.create_tool_btn("Mouse.svg")
         self.btn_arrow.clicked.connect(lambda: self.request_pointer_mode.emit(1))
-        
+
         self.btn_pen = self.create_tool_btn("Pen.svg")
         self.btn_pen.clicked.connect(lambda: self.request_pointer_mode.emit(2))
-        
+
         self.btn_eraser = self.create_tool_btn("Eraser.svg")
         self.btn_eraser.clicked.connect(lambda: self.request_pointer_mode.emit(5))
-        
+
         self.btn_clear = self.create_action_btn("Clear.svg")
         self.btn_clear.clicked.connect(self.request_clear_ink.emit)
-        
+
         self.group.addButton(self.btn_arrow)
         self.group.addButton(self.btn_pen)
         self.group.addButton(self.btn_eraser)
-        
+
         self.btn_spotlight = self.create_action_btn("Select.svg")
         self.btn_spotlight.clicked.connect(self.request_spotlight.emit)
         self.btn_timer = self.create_action_btn("timer.svg")
@@ -1295,35 +1294,45 @@ class ToolBarWidget(QWidget):
 
         self.btn_exit = self.create_action_btn("Minimaze.svg")
         self.btn_exit.clicked.connect(self.request_exit.emit)
-        
-        container_layout.addWidget(self.btn_arrow)
-        container_layout.addWidget(self.btn_pen)
-        container_layout.addWidget(self.btn_eraser)
-        container_layout.addWidget(self.btn_clear)
-        
-        self.line1 = QFrame()
-        self.line1.setFrameShape(QFrame.Shape.VLine)
-        container_layout.addWidget(self.line1)
-        
-        container_layout.addWidget(self.btn_spotlight)
-        container_layout.addWidget(self.btn_timer)
 
-        self.line2 = QFrame()
-        self.line2.setFrameShape(QFrame.Shape.VLine)
-        container_layout.addWidget(self.line2)
+        self.sep1 = QWidget(self.container)
+        self.sep1.setObjectName("ToolSeparator")
+        self.sep1.setFixedWidth(1)
+        self.sep1.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
 
-        container_layout.addWidget(self.btn_exit)
-        
-        layout.addWidget(self.container)
-        self.setLayout(layout)
+        self.sep2 = QWidget(self.container)
+        self.sep2.setObjectName("ToolSeparator")
+        self.sep2.setFixedWidth(1)
+        self.sep2.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+
+        self.btn_arrow.setToolTip("指针")
+        self.btn_pen.setToolTip("画笔")
+        self.btn_eraser.setToolTip("橡皮擦")
+        self.btn_clear.setToolTip("清除全部批注")
+        self.btn_spotlight.setToolTip("聚焦高亮")
+        self.btn_timer.setToolTip("计时器")
+        self.btn_exit.setToolTip("退出放映")
+
+        inner_layout.addWidget(self.btn_arrow)
+        inner_layout.addWidget(self.btn_pen)
+        inner_layout.addWidget(self.btn_eraser)
+        inner_layout.addWidget(self.btn_clear)
+        inner_layout.addWidget(self.sep1)
+        inner_layout.addWidget(self.btn_spotlight)
+        inner_layout.addWidget(self.btn_timer)
+        inner_layout.addWidget(self.sep2)
+        inner_layout.addWidget(self.btn_exit)
+
+        outer_layout.addWidget(self.container)
+
+        self.container.setFixedHeight(50)
         self.setFixedHeight(HEIGHT_BAR)
-        
+
         self.btn_arrow.setChecked(True)
         self.indicator = QFrame(self.container)
         self.indicator.setFixedHeight(2)
         self.indicator.hide()
-        
-        # Install event filter to detect second click for expansion
+
         self.btn_pen.installEventFilter(self)
         self.btn_eraser.installEventFilter(self)
 
@@ -1334,8 +1343,9 @@ class ToolBarWidget(QWidget):
         self.setup_click_feedback(self.btn_spotlight, QSize(20, 20))
         self.setup_click_feedback(self.btn_timer, QSize(20, 20))
         self.setup_click_feedback(self.btn_exit, QSize(20, 20))
-        
+
         self.set_theme(Theme.AUTO)
+        self.adjustSize()
 
     def eventFilter(self, obj, event):
         if event.type() == QEvent.Type.MouseButtonPress:
@@ -1438,10 +1448,11 @@ class ToolBarWidget(QWidget):
                 border-radius: 25px;
             }}
         """)
-        
-        self.line1.setStyleSheet(f"color: {line_color}; background-color: {line_color};")
-        self.line2.setStyleSheet(f"color: {line_color}; background-color: {line_color};")
-        
+
+        for sep in (getattr(self, "sep1", None), getattr(self, "sep2", None)):
+            if sep is not None:
+                sep.setStyleSheet(f"QWidget#ToolSeparator {{ background-color: {line_color}; margin: 0 4px; }}")
+
         # Update icons and button styles
         for btn, icon_name in [
             (self.btn_arrow, "Mouse.svg"),
@@ -1641,7 +1652,7 @@ class ToolBarWidget(QWidget):
         y = self.container.height() - h - 4
         self.indicator.setGeometry(x, y, indicator_width, h)
         self.indicator.show()
-    
+
     def style_action_btn(self, btn, theme):
         if theme == Theme.LIGHT:
             hover_bg = "rgba(212, 165, 165, 0.2)"

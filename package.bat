@@ -24,7 +24,7 @@ rem /XD - exclude directories
 rem /XF - exclude files
 robocopy "%ROOT%" "%PACK_DIR%" /E ^
     /XD ".git" "build" "dist" "venv" "__pycache__" ^
-    /XF ".gitignore" "*.pyc" "*.pyo" "SeiraiPPTAssistant.spec" "*.spec" "_package_tmp" >nul
+    /XF ".gitignore" "*.pyc" "*.pyo" "Kazuha.spec" "*.spec" "_package_tmp" >nul
 
 if %errorlevel% GEQ 8 (
     echo [ERROR] File copy failed with errorlevel %errorlevel%.
@@ -62,4 +62,3 @@ echo.
 echo Packaging aborted due to errors.
 echo.
 exit /b 1
-
