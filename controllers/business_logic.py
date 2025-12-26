@@ -40,17 +40,19 @@ import time
 from typing import Optional
 from datetime import datetime
 
+def get_app_base_dir():
+    return Path(getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(sys.argv[0]))))
+
 def log(msg):
     try:
-        log_dir = os.path.join(os.getenv("APPDATA"), "Kazuha")
-        log_path = os.path.join(log_dir, "debug.log")
+        base_dir = get_app_base_dir()
+        log_path = base_dir / "debug.log"
         with open(log_path, "a") as f:
             f.write(f"{datetime.now()}: [BusinessLogic] {msg}\n")
     except:
         pass
 
-# fallback 到 Temp
-CONFIG_DIR = Path(os.getenv("APPDATA", os.getenv("TEMP", "C:\\"))) / "Kazuha"
+CONFIG_DIR = get_app_base_dir()
 CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 CONFIG_PATH = CONFIG_DIR / "config.json"
 
@@ -64,6 +66,9 @@ class Config(QConfig):
         None,
     )
     enableStartUp = ConfigItem("General", "EnableStartUp", False)
+    enableSystemNotification = ConfigItem("General", "EnableSystemNotification", True)
+    enableGlobalSound = ConfigItem("General", "EnableGlobalSound", True)
+    enableGlobalAnimation = ConfigItem("General", "EnableGlobalAnimation", True)
     timerPosition = OptionsConfigItem(
         "General",
         "TimerPosition",
@@ -109,6 +114,20 @@ class Config(QConfig):
     clockShowDate = ConfigItem("Clock", "ShowDate", False)
     clockShowLunar = ConfigItem("Clock", "ShowLunar", False)
     enableClock = ConfigItem("General", "EnableClock", False)
+    screenPaddingTop = ConfigItem("Layout", "ScreenPaddingTop", 20)
+    screenPaddingBottom = ConfigItem("Layout", "ScreenPaddingBottom", 20)
+    screenPaddingLeft = ConfigItem("Layout", "ScreenPaddingLeft", 20)
+    screenPaddingRight = ConfigItem("Layout", "ScreenPaddingRight", 20)
+    screenPaddingLock = ConfigItem("Layout", "ScreenPaddingLock", True)
+    screenPadding = OptionsConfigItem(
+        "Layout",
+        "ScreenPadding",
+        "Normal",
+        OptionsValidator(
+            ["Small", "Normal", "Large"]
+        ),
+        None,
+    )
 
 
 cfg = Config()
@@ -161,7 +180,13 @@ class BusinessLogicController(QWidget):
         except Exception:
             self._com_initialized = False
 
-        self.theme_mode = self.load_theme_setting()
+        tv = cfg.themeMode.value
+        if tv == "Light":
+            self.theme_mode = Theme.LIGHT
+        elif tv == "Dark":
+            self.theme_mode = Theme.DARK
+        else:
+            self.theme_mode = Theme.AUTO
         setTheme(self.theme_mode)
         
         # Connect to system theme changes
@@ -214,8 +239,10 @@ class BusinessLogicController(QWidget):
         self.process_check_timer.timeout.connect(self.check_conflicting_processes)
         self.process_check_timer.start(3000)
 
-        # Sync autorun state
-        is_auto = self.is_autorun()
+        try:
+            is_auto = self.is_autorun()
+        except Exception:
+            is_auto = False
         if cfg.enableStartUp.value != is_auto:
             cfg.set(cfg.enableStartUp, is_auto)
             cfg.save()
@@ -232,8 +259,8 @@ class BusinessLogicController(QWidget):
                 if self.clock_widget and self.clock_widget.isVisible():
                     self.clock_widget.hide()
                 if not self.conflicting_process_running and hasattr(self, "tray_icon") and cfg.enableClock.value:
-                    self.tray_icon.showMessage("提示", "检测到 ClassIsland/ClassWidgets，已自动隐藏时钟组件。", QSystemTrayIcon.MessageIcon.Information, 2000)
-                    self.sound_manager.play("ConflictCICW")
+                    self.tray_show_message("Kazuha", "检测到 ClassIsland/ClassWidgets，已自动隐藏时钟组件。", QSystemTrayIcon.MessageIcon.Information, 2000)
+                    self.play_sound("ConflictCICW")
                 self.conflicting_process_running = True
             else:
                 if self.clock_widget and not self.clock_widget.isVisible() and self.widgets_visible and cfg.enableClock.value:
@@ -244,7 +271,6 @@ class BusinessLogicController(QWidget):
 
     def set_theme_color(self, color_str):
         setThemeColor(color_str)
-        self.save_theme_setting(self.theme_mode) # Re-save to persist if needed, though config handles it
 
     def set_font(self, font_name="Bahnschrift"):
         font = QFont()
@@ -255,11 +281,29 @@ class BusinessLogicController(QWidget):
         for widget in QApplication.topLevelWidgets():
             widget.setFont(font)
         
+    def play_sound(self, name, *args, **kwargs):
+        if not cfg.enableGlobalSound.value:
+            return
+        self.sound_manager.play(name, *args, **kwargs)
+        
+    def speak_text(self, text):
+        if not cfg.enableGlobalSound.value:
+            return
+        self.sound_manager.speak(text)
+        
+    def tray_show_message(self, title, message, icon, timeout):
+        if not cfg.enableSystemNotification.value:
+            return
+        if hasattr(self, "tray_icon") and self.tray_icon:
+            self.tray_icon.showMessage(title, message, icon, timeout)
+        
     def set_animation(self, enabled):
         # qfluentwidgets doesn't have a global switch exposed easily, 
         # but we can try to set it on specific widgets if needed.
         # For now, this is a placeholder or we can implement specific animation toggles.
-        pass
+        if cfg.enableGlobalAnimation.value != bool(enabled):
+            cfg.set(cfg.enableGlobalAnimation, bool(enabled))
+            cfg.save()
 
     def set_start_up(self, enabled):
         self.toggle_autorun(enabled)
@@ -339,10 +383,9 @@ class BusinessLogicController(QWidget):
             cfg.save()
             
         if self.widgets_visible:
-            # Force update to snap back to correct position
-            self.show_widgets(animate=True)
+            self.show_widgets(animate=cfg.enableGlobalAnimation.value)
         elif changed and hasattr(self, "tray_icon"):
-            self.tray_icon.showMessage("提示", "翻页组件位置设置已保存，将在下一次放映时生效。", QSystemTrayIcon.MessageIcon.Information, 2000)
+            self.tray_show_message("Kazuha", "翻页组件位置设置已保存，将在下一次放映时生效。", QSystemTrayIcon.MessageIcon.Information, 2000)
 
         if pos == "BottomSides":
             self.nav_pos_bottom_action.setChecked(True)
@@ -427,6 +470,8 @@ class BusinessLogicController(QWidget):
         """设置系统托盘图标和菜单"""
         import sys
         import os
+        from qfluentwidgets import FluentIcon as FIF
+        
         def icon_path(name):
             base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
             if hasattr(sys, "_MEIPASS"):
@@ -438,41 +483,40 @@ class BusinessLogicController(QWidget):
 
         tray_menu = SystemTrayMenu(parent=self)
         
+        # Add actions with Fluent Icons
+        action_settings = Action(FIF.SETTING, "选项", triggered=self.show_settings)
+        action_exit = Action(FIF.POWER_BUTTON, "退出", triggered=self.exit_application)
+        
         tray_menu.addActions([
-            Action("选项", triggered=self.show_settings),
-            Action("退出", triggered=self.exit_application),
+            action_settings,
+            action_exit
         ])
         
         self.tray_icon.setContextMenu(tray_menu)
         self.tray_icon.show()
         
     def show_settings(self):
+        from ui.settings_window import SettingsWindow
         if not hasattr(self, 'settings_window') or self.settings_window is None:
-            from ui.settings_window import SettingsWindow
             self.settings_window = SettingsWindow()
             self.settings_window.configChanged.connect(self.on_settings_changed)
             self.settings_window.checkUpdateClicked.connect(self.check_for_updates)
             if hasattr(self.settings_window, 'set_theme'):
                 self.settings_window.set_theme(self.theme_mode)
-                
         self.settings_window.show()
         self.settings_window.activateWindow()
         
     def on_settings_changed(self):
-        # Handle immediate updates
         self.toggle_autorun(cfg.enableStartUp.value)
         
-        # Update clock visibility
         if self.clock_widget:
             if cfg.enableClock.value and self.widgets_visible and not self.conflicting_process_running:
                 self.clock_widget.show()
             elif not cfg.enableClock.value:
                 self.clock_widget.hide()
         
-        # Update window effect for all widgets
         self.update_widgets_theme()
         
-        # Apply theme change
         target_theme = cfg.themeMode.value
         if target_theme == "Auto":
             self.set_theme_auto(checked=True)
@@ -481,16 +525,13 @@ class BusinessLogicController(QWidget):
         elif target_theme == "Dark":
             self.set_theme_dark(checked=True)
             
-        # Update clock settings
         if self.clock_widget and hasattr(self.clock_widget, 'apply_settings'):
             self.clock_widget.apply_settings(cfg)
         
-        # Save settings
         cfg.save()
         
-        # Re-layout widgets if positions changed (with animation)
         if self.widgets_visible:
-            self.show_widgets(animate=True)
+            self.show_widgets(animate=cfg.enableGlobalAnimation.value)
             
     def show_about(self):
         title = "关于 Seirai PPT Assistant"
@@ -522,24 +563,26 @@ class BusinessLogicController(QWidget):
         self.set_theme_mode(self.theme_mode)
         self.tray_icon.show()
         
-        # Connect Version Manager Signals
         self.version_manager.update_available.connect(self.on_update_available)
         self.version_manager.update_error.connect(lambda e: self.show_warning(None, f"更新错误: {e}"))
-        
-        # Auto check for updates
-        self.version_manager.check_for_updates()
+        self.version_manager.update_check_finished.connect(self.on_update_check_finished)
 
     def check_for_updates(self):
-        self.tray_icon.showMessage("PPT助手", "正在检查更新...", QSystemTrayIcon.MessageIcon.Information, 2000)
         self.version_manager.check_for_updates()
 
     def on_update_available(self, info):
+        if hasattr(self, "settings_window") and self.settings_window:
+            if hasattr(self.settings_window, "set_update_info"):
+                try:
+                    self.settings_window.set_update_info(info.get("version"), info.get("body"))
+                except Exception:
+                    pass
+
         title = "发现新版本"
         content = f"版本: {info['version']}\n\n{info['body']}\n\n是否立即更新？"
         
         w = MessageBox(title, content, self.get_parent_for_dialog())
         if w.exec():
-            # Find the exe asset
             asset_url = None
             for asset in info['assets']:
                 if asset['name'].endswith('.exe'):
@@ -547,16 +590,24 @@ class BusinessLogicController(QWidget):
                     break
             
             if asset_url:
-                self.tray_icon.showMessage("PPT助手", "正在后台下载更新...", QSystemTrayIcon.MessageIcon.Information, 3000)
+                self.tray_show_message("Kazuha", "正在后台下载更新...", QSystemTrayIcon.MessageIcon.Information, 3000)
                 self.version_manager.download_and_install(asset_url)
             else:
                 self.show_warning(None, "未找到可执行的更新文件")
+
+    def on_update_check_finished(self):
+        if hasattr(self, "settings_window") and self.settings_window:
+            if hasattr(self.settings_window, "stop_update_loading"):
+                try:
+                    self.settings_window.stop_update_loading()
+                except Exception:
+                    pass
 
     def show_about_dialog(self):
         version_info = self.version_manager.current_version_info
         v_name = version_info.get('versionName', 'Unknown')
         
-        self.sound_manager.play("WindowPop")
+        self.play_sound("WindowPop")
         w = MessageBox("关于 PPT助手", f"当前版本: {v_name}\n\n一个专注于演示辅助的工具。\n\nDesigned by Seirai.", self.get_parent_for_dialog())
         w.exec()
 
@@ -627,9 +678,15 @@ class BusinessLogicController(QWidget):
         
         # Ensure qfluentwidgets theme is set
         setTheme(theme)
-        
-        # Save setting
-        self.save_theme_setting(theme)
+        if theme == Theme.LIGHT:
+            v = "Light"
+        elif theme == Theme.DARK:
+            v = "Dark"
+        else:
+            v = "Auto"
+        if cfg.themeMode.value != v:
+            cfg.set(cfg.themeMode, v)
+            cfg.save()
         
         # Update tray menu actions state
         if hasattr(self, "theme_auto_action"):
@@ -690,13 +747,13 @@ class BusinessLogicController(QWidget):
                 self.timer_window.timer_state_changed.connect(self.on_timer_state_changed)
                 self.timer_window.countdown_finished.connect(self.on_countdown_finished)
                 self.timer_window.timer_reset.connect(self.on_timer_reset)
-                self.timer_window.pre_reminder_triggered.connect(self.sound_manager.speak)
+                self.timer_window.pre_reminder_triggered.connect(self.speak_text)
                 self.timer_window.emit_state()
         if self.timer_window.isVisible():
             self.timer_window.hide()
         else:
             self.timer_window.show()
-            self.sound_manager.play("WindowPop")
+            self.play_sound("WindowPop")
             self.timer_window.activateWindow()
             self.timer_window.raise_()
             
@@ -737,16 +794,16 @@ class BusinessLogicController(QWidget):
     
     def on_countdown_finished(self):
         if self.timer_window and self.timer_window.strong_reminder_mode and self.timer_window.post_rem_switch.isChecked():
-            self.sound_manager.speak("倒计时结束")
+            self.speak_text("倒计时结束")
 
         if self.timer_window and self.timer_window.strong_reminder_mode:
             # Check for custom ringtone
             ring_data = self.timer_window.ringtone_combo.currentData()
             if ring_data and ring_data != "StrongTimerRing":
                 # It's a path
-                self.sound_manager.play("CustomRing", loop=True, custom_path=ring_data)
+                self.play_sound("CustomRing", loop=True, custom_path=ring_data)
             else:
-                self.sound_manager.play("StrongTimerRing", loop=True)
+                self.play_sound("StrongTimerRing", loop=True)
                 
             # Force show timer window
             if not self.timer_window.isVisible():
@@ -771,7 +828,7 @@ class BusinessLogicController(QWidget):
                 # Ensure timer window is above mask
                 self.timer_window.raise_()
         else:
-            self.sound_manager.play("TimerRing")
+            self.play_sound("TimerRing")
             
         if not self.clock_widget:
             return
@@ -784,7 +841,7 @@ class BusinessLogicController(QWidget):
         self.sound_manager.stop("StrongTimerRing")
         self.sound_manager.stop("CustomRing") # Stop custom ring too
         self.sound_manager.stop("TimerRing")
-        self.sound_manager.play("Reset")
+        self.play_sound("Reset")
         if hasattr(self, 'mask_overlay') and self.mask_overlay:
             self.mask_overlay.close()
             self.mask_overlay = None
@@ -822,13 +879,33 @@ class BusinessLogicController(QWidget):
         
         return presentation_detected
     
-    def is_autorun(self):#设定程序自启动
+    def is_autorun(self):
+        key = None
         try:
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_READ) as key:
+            key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_READ)
+            try:
                 winreg.QueryValueEx(key, "Kazuha")
-            return True
+                return True
+            except FileNotFoundError:
+                try:
+                    if key is not None:
+                        winreg.CloseKey(key)
+                        key = None
+                    self.toggle_autorun(True)
+                    return True
+                except Exception:
+                    return False
+            except OSError:
+                return False
         except Exception:
             return False
+        finally:
+            if key is not None:
+                try:
+                    winreg.CloseKey(key)
+                except Exception:
+                    pass
 
     def toggle_autorun(self, checked):#程序未编译下自启动
         app_path = os.path.abspath(sys.argv[0])
@@ -1025,7 +1102,7 @@ class BusinessLogicController(QWidget):
         
         if state.is_running:
             if not self.widgets_visible:
-                self.show_widgets()
+                self.show_widgets(animate=cfg.enableGlobalAnimation.value)
             else:
                 self.ensure_topmost()
             
@@ -1083,7 +1160,7 @@ class BusinessLogicController(QWidget):
 
     def change_pointer_mode(self, mode):
         self.ppt_worker.set_pointer_type(mode)
-        self.sound_manager.play("Switch")
+        self.play_sound("Switch")
         if self.toolbar:
             self.toolbar.set_pointer_mode(mode)
 
@@ -1110,6 +1187,55 @@ class BusinessLogicController(QWidget):
             self.clock_widget.show()
             
         self.adjust_positions(self.last_state.hwnd, animate=animate)
+        if animate:
+            try:
+                from PyQt6.QtCore import QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QRect
+
+                tb_geo = self.toolbar.geometry()
+                nav_l_geo = self.nav_left.geometry()
+                nav_r_geo = self.nav_right.geometry()
+
+                target_tb = tb_geo
+                target_nav_l = nav_l_geo
+                target_nav_r = nav_r_geo
+
+                offset = max(target_tb.height() * 2, 120)
+
+                start_tb = QRect(target_tb.x(), target_tb.y() + offset, target_tb.width(), target_tb.height())
+                start_nav_l = QRect(target_nav_l.x(), target_nav_l.y() + offset, target_nav_l.width(), target_nav_l.height())
+                start_nav_r = QRect(target_nav_r.x(), target_nav_r.y() + offset, target_nav_r.width(), target_nav_r.height())
+
+                self.toolbar.setGeometry(start_tb)
+                self.nav_left.setGeometry(start_nav_l)
+                self.nav_right.setGeometry(start_nav_r)
+
+                group = QParallelAnimationGroup(self)
+
+                anim_tb = QPropertyAnimation(self.toolbar, b"geometry", self.toolbar)
+                anim_tb.setDuration(450)
+                anim_tb.setStartValue(start_tb)
+                anim_tb.setEndValue(target_tb)
+                anim_tb.setEasingCurve(QEasingCurve.Type.OutBack)
+                group.addAnimation(anim_tb)
+
+                anim_nav_l = QPropertyAnimation(self.nav_left, b"geometry", self.nav_left)
+                anim_nav_l.setDuration(450)
+                anim_nav_l.setStartValue(start_nav_l)
+                anim_nav_l.setEndValue(target_nav_l)
+                anim_nav_l.setEasingCurve(QEasingCurve.Type.OutBack)
+                group.addAnimation(anim_nav_l)
+
+                anim_nav_r = QPropertyAnimation(self.nav_right, b"geometry", self.nav_right)
+                anim_nav_r.setDuration(450)
+                anim_nav_r.setStartValue(start_nav_r)
+                anim_nav_r.setEndValue(target_nav_r)
+                anim_nav_r.setEasingCurve(QEasingCurve.Type.OutBack)
+                group.addAnimation(anim_nav_r)
+
+                group.start()
+                self._entry_anim_group = group
+            except Exception:
+                pass
         self.ensure_topmost()
         self.widgets_visible = True
         
@@ -1138,31 +1264,42 @@ class BusinessLogicController(QWidget):
                 g = QApplication.primaryScreen().geometry()  # type: ignore
                 screen = (g.left(), g.top(), g.width(), g.height())
 
-        MARGIN = 20
         left, top, width, height = screen
         right = left + width
         bottom = top + height
-        
-        tb_w = self.toolbar.sizeHint().width()
-        tb_h = self.toolbar.sizeHint().height()
-        tb_w = min(tb_w, width - 2 * MARGIN)
-        tb_x = left + (width - tb_w) // 2
-        tb_y = top + height - tb_h - MARGIN
-        self.toolbar.setGeometry(tb_x, tb_y, tb_w, tb_h)
-        
+
+        mt = max(0, int(cfg.screenPaddingTop.value))
+        mb = max(0, int(cfg.screenPaddingBottom.value))
+        ml = max(0, int(cfg.screenPaddingLeft.value))
+        mr = max(0, int(cfg.screenPaddingRight.value))
+
         nav_w = self.nav_left.sizeHint().width()
         nav_h = self.nav_left.sizeHint().height()
-        
+
         nav_pos_setting = cfg.navPosition.value
         if nav_pos_setting == "MiddleSides":
-            # Vertical layout centered vertically
-            nav_y = top + (height - nav_h) // 2
+            usable_h = max(0, height - mt - mb - nav_h)
+            nav_y = top + mt + usable_h // 2
         else:
-            # Bottom sides (default)
-            nav_y = top + height - nav_h - MARGIN
+            nav_y = bottom - mb - nav_h
 
-        target_nav_l = QRect(left + MARGIN, nav_y, nav_w, nav_h)
-        target_nav_r = QRect(right - nav_w - MARGIN, nav_y, nav_w, nav_h)
+        target_nav_l = QRect(left + ml, nav_y, nav_w, nav_h)
+        target_nav_r = QRect(right - mr - nav_w, nav_y, nav_w, nav_h)
+
+        try:
+            self.toolbar.adjustSize()
+        except Exception:
+            pass
+
+        tb_hint_w = self.toolbar.sizeHint().width()
+        tb_h = self.toolbar.sizeHint().height()
+        max_tb_w = max(0, width - ml - mr)
+        tb_w = min(tb_hint_w, max_tb_w)
+        tb_x = left + ml + (max_tb_w - tb_w) // 2
+        tb_y = bottom - mb - tb_h - 7
+
+        tb_x = max(left + ml, min(right - mr - tb_w, tb_x))
+        self.toolbar.setGeometry(tb_x, tb_y, tb_w, tb_h)
 
         if animate and self.widgets_visible and (self.nav_left.geometry() != target_nav_l or self.nav_right.geometry() != target_nav_r):
              from PyQt6.QtCore import QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
@@ -1206,27 +1343,23 @@ class BusinessLogicController(QWidget):
             pos_setting = cfg.clockPosition.value
             
             if pos_setting == "TopLeft":
-                x = left + MARGIN
-                y = top + MARGIN
+                x = left + ml
+                y = top + mt
             elif pos_setting == "BottomLeft":
-                x = left + MARGIN
-                y = bottom - ch - MARGIN
-                if nav_pos_setting == "BottomSides":
-                    y = y - nav_h - MARGIN
+                x = left + ml
+                y = bottom - mb - ch
             elif pos_setting == "BottomRight":
-                x = right - cw - MARGIN
-                y = bottom - ch - MARGIN
-                if nav_pos_setting == "BottomSides":
-                    y = y - nav_h - MARGIN
-            else: # Default TopRight
-                x = right - cw - MARGIN
-                y = top + MARGIN
+                x = right - mr - cw
+                y = bottom - mb - ch
+            else:
+                x = right - mr - cw
+                y = top + mt
                 
             # Boundary checks (keep within screen)
-            if x < left + MARGIN: x = left + MARGIN
-            if x > right - cw - MARGIN: x = right - cw - MARGIN
-            if y < top + MARGIN: y = top + MARGIN
-            if y > bottom - ch - MARGIN: y = bottom - ch - MARGIN
+            if x < left + ml: x = left + ml
+            if x > right - cw - mr: x = right - cw - mr
+            if y < top + mt: y = top + mt
+            if y > bottom - ch - mb: y = bottom - ch - mb
             
             target_geo = QRect(x, y, cw, ch)
             current_geo = self.clock_widget.geometry()
@@ -1283,7 +1416,7 @@ class BusinessLogicController(QWidget):
     def jump_to_slide(self, index):
         self.ppt_worker.goto_slide(index)
         # self.sound_manager.play("Cursor")
-        self.sound_manager.play("Confirm")
+        self.play_sound("Confirm")
 
     def set_pointer(self, type_id):
         if type_id == 5:
@@ -1299,13 +1432,13 @@ class BusinessLogicController(QWidget):
     def change_pen_color(self, color):
         """更改笔颜色"""
         self.set_pen_color(color)
-        self.sound_manager.play("Confirm")
+        self.play_sound("Confirm")
                 
     def clear_ink(self):
         if not self.last_state.has_ink:
             self.show_warning(None, "当前页没有笔迹")
         self.ppt_worker.erase_ink()
-        self.sound_manager.play("ClearAll")
+        self.play_sound("ClearAll")
                 
     def toggle_spotlight(self):
         assert self.spotlight is not None
@@ -1313,7 +1446,7 @@ class BusinessLogicController(QWidget):
             self.spotlight.hide()
         else:
             self.spotlight.showFullScreen()
-            self.sound_manager.play("Switch")
+            self.play_sound("Switch")
             
 
     def exit_slideshow(self):
@@ -1355,6 +1488,6 @@ class BusinessLogicController(QWidget):
             app.quit()
 
     def show_warning(self, target, message):
-        title = "PPT助手提示"
-        self.tray_icon.showMessage(title, message, QSystemTrayIcon.MessageIcon.Warning, 2000)
+        title = "Kazuha"
+        self.tray_show_message(title, message, QSystemTrayIcon.MessageIcon.Warning, 2000)
 

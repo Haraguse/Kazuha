@@ -80,7 +80,8 @@ class ClockPreviewWidget(QWidget):
         if rect.width() > 0 and rect.height() > 0:
             r = min(radius, int(rect.height() / 2))
             path = QPainterPath()
-            path.addRoundedRect(rect, r, r)
+            from PyQt6.QtCore import QRectF
+            path.addRoundedRect(QRectF(rect), float(r), float(r))
             self.container.setMask(QRegion(path.toFillPolygon().toPolygon()))
         else:
             self.container.clearMask()

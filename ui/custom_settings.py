@@ -1,7 +1,7 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QGridLayout
 from PyQt6.QtCore import Qt, QRectF, QPoint, QPropertyAnimation, QEasingCurve, pyqtProperty
 from PyQt6.QtGui import QPainter, QColor, QPen, QBrush, QPainterPath
-from qfluentwidgets import OptionsSettingCard, Theme, isDarkTheme, themeColor
+from qfluentwidgets import OptionsSettingCard, Theme, isDarkTheme, themeColor, SettingCard, PushButton, PrimaryPushButton, BodyLabel, SpinBox, SwitchButton
 
 class SchematicOptionButton(QWidget):
     """ Individual schematic option button with hover/press animations """
@@ -140,6 +140,8 @@ class SchematicOptionButton(QWidget):
             self.draw_theme_content(painter, rect)
         elif self.schematic_type == "nav_pos":
             self.draw_nav_content(painter, rect)
+        elif self.schematic_type == "toolbar_pos":
+            self.draw_toolbar_content(painter, rect)
             
     def draw_theme_content(self, painter, rect):
         if self.value == "Light":
@@ -202,6 +204,59 @@ class SchematicOptionButton(QWidget):
             painter.drawEllipse(QRectF(rect.left() + margin, rect.center().y() - btn_size/2, btn_size, btn_size))
             painter.drawEllipse(QRectF(rect.right() - margin - btn_size, rect.center().y() - btn_size/2, btn_size, btn_size))
 
+    def draw_toolbar_content(self, painter, rect):
+        is_dark = isDarkTheme()
+        screen_color = QColor(60, 60, 60) if is_dark else QColor(255, 255, 255)
+        bar_color = QColor(0, 204, 122)
+        
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(screen_color)
+        painter.drawRoundedRect(rect, 4, 4)
+        
+        margin_x = 8
+        margin_y = 8
+        bar_thickness = 6
+        
+        v = "Bottom"
+        h = "Center"
+        if "Top" in self.value:
+            v = "Top"
+        elif "Middle" in self.value:
+            v = "Middle"
+        elif "Bottom" in self.value:
+            v = "Bottom"
+        if "Left" in self.value:
+            h = "Left"
+        elif "Right" in self.value:
+            h = "Right"
+        elif "Center" in self.value:
+            h = "Center"
+        
+        is_vertical = v == "Middle" and h in ("Left", "Right")
+        
+        painter.setBrush(bar_color)
+        
+        if is_vertical:
+            bar_w = bar_thickness
+            bar_h = rect.height() - 2 * margin_y
+            y = rect.top() + margin_y
+            if h == "Left":
+                x = rect.left() + margin_x
+            else:
+                x = rect.right() - margin_x - bar_w
+        else:
+            bar_h = bar_thickness
+            bar_w = rect.width() - 2 * margin_x
+            if v == "Top":
+                y = rect.top() + margin_y
+            elif v == "Middle":
+                y = rect.center().y() - bar_h / 2
+            else:
+                y = rect.bottom() - margin_y - bar_h
+            x = rect.left() + (rect.width() - bar_w) / 2
+        
+        painter.drawRoundedRect(QRectF(x, y, bar_w, bar_h), 3, 3)
+
 
 class SchematicWidget(QWidget):
     """ Container for schematic option buttons """
@@ -209,13 +264,26 @@ class SchematicWidget(QWidget):
         super().__init__(parent)
         self.schematic_type = schematic_type
         self.configItem = configItem
-        self.setFixedHeight(140)
+        
+        # Adjust height based on type
+        if schematic_type == "toolbar_pos":
+            self.setFixedHeight(260) # Increased height for grid layout
+        else:
+            self.setFixedHeight(140)
+            
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
-        self.layout = QHBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(15)
-        self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Use QGridLayout for toolbar_pos, QHBoxLayout for others
+        if schematic_type == "toolbar_pos":
+            self.layout = QGridLayout(self)
+            self.layout.setContentsMargins(0, 0, 0, 0)
+            self.layout.setSpacing(15)
+            self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        else:
+            self.layout = QHBoxLayout(self)
+            self.layout.setContentsMargins(0, 0, 0, 0)
+            self.layout.setSpacing(15)
+            self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         self.buttons = []
         self.setup_options()
@@ -223,15 +291,37 @@ class SchematicWidget(QWidget):
     def setup_options(self):
         if self.schematic_type == "theme":
             options = [("Light", "浅色"), ("Dark", "深色"), ("Auto", "跟随系统")]
+            for val, text in options:
+                btn = SchematicOptionButton(val, text, self.schematic_type, self)
+                self.layout.addWidget(btn)
+                self.buttons.append(btn)
+                
         elif self.schematic_type == "nav_pos":
             options = [("BottomSides", "底部两端"), ("MiddleSides", "中部两侧")]
-        else:
-            options = []
+            for val, text in options:
+                btn = SchematicOptionButton(val, text, self.schematic_type, self)
+                self.layout.addWidget(btn)
+                self.buttons.append(btn)
+                
+        elif self.schematic_type == "toolbar_pos":
+            # Grid layout for toolbar position
+            # Row 0: MiddleLeft, Empty, MiddleRight
+            # Row 1: BottomLeft, BottomCenter, BottomRight
             
-        for val, text in options:
-            btn = SchematicOptionButton(val, text, self.schematic_type, self)
-            self.layout.addWidget(btn)
-            self.buttons.append(btn)
+            # (value, text, row, col)
+            grid_options = [
+                ("MiddleLeft", "中部左侧", 0, 0),
+                # ("MiddleCenter", "中部居中", 0, 1), # Not supported/allowed
+                ("MiddleRight", "中部右侧", 0, 2),
+                ("BottomLeft", "底部左侧", 1, 0),
+                ("BottomCenter", "底部居中", 1, 1),
+                ("BottomRight", "底部右侧", 1, 2),
+            ]
+            
+            for val, text, row, col in grid_options:
+                btn = SchematicOptionButton(val, text, self.schematic_type, self)
+                self.layout.addWidget(btn, row, col)
+                self.buttons.append(btn)
             
         self.update_state()
         
@@ -297,3 +387,242 @@ class SchematicOptionsSettingCard(OptionsSettingCard):
             widget = item.widget()
             if widget and widget != self.schematic:
                 widget.hide()
+
+
+class ScreenPaddingPreview(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.top = 20
+        self.bottom = 20
+        self.left = 20
+        self.right = 20
+
+    def set_margins(self, t, b, l, r):
+        self.top = max(0, t)
+        self.bottom = max(0, b)
+        self.left = max(0, l)
+        self.right = max(0, r)
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        rect = self.rect().adjusted(10, 10, -10, -10)
+        if rect.width() <= 0 or rect.height() <= 0:
+            return
+        is_dark = isDarkTheme()
+        bg = QColor(20, 20, 20) if is_dark else QColor(245, 245, 245)
+        screen_color = QColor(40, 40, 40) if is_dark else QColor(255, 255, 255)
+        margin_color = QColor(0, 120, 215, 80)
+        painter.fillRect(rect, bg)
+        inner = QRectF(rect.adjusted(6, 6, -6, -6))
+        painter.setPen(Qt.PenStyle.NoPen)
+        from PyQt6.QtWidgets import QApplication
+        screen = QApplication.primaryScreen()
+        if screen is not None:
+            g = screen.geometry()
+            sw = float(g.width())
+            sh = float(g.height())
+        else:
+            sw = 1920.0
+            sh = 1080.0
+        if sw <= 0 or sh <= 0:
+            sw = 1920.0
+            sh = 1080.0
+        screen_aspect = sw / sh
+        iw = inner.width()
+        ih = inner.height()
+        target_w = iw
+        target_h = target_w / screen_aspect
+        if target_h > ih:
+            target_h = ih
+            target_w = target_h * screen_aspect
+        screen_rect = QRectF(
+            inner.center().x() - target_w / 2,
+            inner.center().y() - target_h / 2,
+            target_w,
+            target_h,
+        )
+        painter.setBrush(screen_color)
+        painter.drawRoundedRect(screen_rect, 8, 8)
+        mt = float(self.top)
+        mb = float(self.bottom)
+        ml = float(self.left)
+        mr = float(self.right)
+        scale_x = screen_rect.width() / sw
+        scale_y = screen_rect.height() / sh
+        st = mt * scale_y
+        sb = mb * scale_y
+        sl = ml * scale_x
+        sr = mr * scale_x
+        st = max(0.0, min(st, screen_rect.height() * 0.49))
+        sb = max(0.0, min(sb, screen_rect.height() * 0.49))
+        sl = max(0.0, min(sl, screen_rect.width() * 0.49))
+        sr = max(0.0, min(sr, screen_rect.width() * 0.49))
+        painter.setBrush(margin_color)
+        painter.drawRect(QRectF(screen_rect.left(), screen_rect.top(), screen_rect.width(), st))
+        painter.drawRect(QRectF(screen_rect.left(), screen_rect.bottom() - sb, screen_rect.width(), sb))
+        painter.drawRect(QRectF(screen_rect.left(), screen_rect.top() + st, sl, screen_rect.height() - st - sb))
+        painter.drawRect(QRectF(screen_rect.right() - sr, screen_rect.top() + st, sr, screen_rect.height() - st - sb))
+        content = QRectF(
+            screen_rect.left() + sl,
+            screen_rect.top() + st,
+            max(0.0, screen_rect.width() - sl - sr),
+            max(0.0, screen_rect.height() - st - sb),
+        )
+        painter.setBrush(QColor(0, 0, 0, 0))
+        pen = QPen(QColor(0, 120, 215))
+        pen.setStyle(Qt.PenStyle.DashLine)
+        painter.setPen(pen)
+        painter.drawRoundedRect(content, 6, 6)
+
+
+class ScreenPaddingSettingCard(SettingCard):
+    def __init__(self, icon, title, content, parent=None):
+        super().__init__(icon, title, content, parent)
+        self.configBtn = PushButton("调整", self)
+        self.configBtn.setFixedWidth(120)
+        self.configBtn.clicked.connect(self._show_config_overlay)
+        self.hBoxLayout.addWidget(self.configBtn, 0, Qt.AlignmentFlag.AlignRight)
+        self.hBoxLayout.addSpacing(16)
+
+    def _show_config_overlay(self):
+        from PyQt6.QtWidgets import QWidget
+        from PyQt6.QtCore import QSize
+        from qfluentwidgets import MessageBoxBase, SubtitleLabel
+        from controllers.business_logic import cfg
+
+        class PaddingConfigDialog(MessageBoxBase):
+            def __init__(self, parent=None):
+                super().__init__(parent)
+                title_label = SubtitleLabel("组件屏幕边距", self)
+                self.viewLayout.addWidget(title_label)
+                container = QWidget(self)
+                c_layout = QVBoxLayout(container)
+                c_layout.setContentsMargins(0, 0, 0, 0)
+                c_layout.setSpacing(16)
+                self.viewLayout.addWidget(container)
+                self.preview = ScreenPaddingPreview(container)
+                self.preview.setMinimumHeight(220)
+                self.preview.setMaximumHeight(260)
+                c_layout.addWidget(self.preview)
+                controls = QGridLayout()
+                controls.setHorizontalSpacing(12)
+                controls.setVerticalSpacing(8)
+                top_label = BodyLabel("上", container)
+                bottom_label = BodyLabel("下", container)
+                left_label = BodyLabel("左", container)
+                right_label = BodyLabel("右", container)
+                self.spin_top = SpinBox(container)
+                self.spin_bottom = SpinBox(container)
+                self.spin_left = SpinBox(container)
+                self.spin_right = SpinBox(container)
+                for s in (self.spin_top, self.spin_bottom, self.spin_left, self.spin_right):
+                    s.setRange(0, 200)
+                    s.setFixedWidth(80)
+                self.lockSwitch = SwitchButton(container)
+                self.lockSwitch.setOnText("锁定相同")
+                self.lockSwitch.setOffText("锁定相同")
+                controls.addWidget(top_label, 0, 0)
+                controls.addWidget(self.spin_top, 0, 1)
+                controls.addWidget(bottom_label, 0, 2)
+                controls.addWidget(self.spin_bottom, 0, 3)
+                controls.addWidget(left_label, 1, 0)
+                controls.addWidget(self.spin_left, 1, 1)
+                controls.addWidget(right_label, 1, 2)
+                controls.addWidget(self.spin_right, 1, 3)
+                controls.addWidget(self.lockSwitch, 0, 4, 2, 1)
+                c_layout.addLayout(controls)
+                preset_row = QHBoxLayout()
+                preset_row.setSpacing(12)
+                preset_row.addWidget(BodyLabel("预设", container))
+                self.btn_small = PushButton("小", container)
+                self.btn_medium = PushButton("中", container)
+                self.btn_large = PushButton("大", container)
+                for b in (self.btn_small, self.btn_medium, self.btn_large):
+                    b.setFixedWidth(60)
+                preset_row.addWidget(self.btn_small)
+                preset_row.addWidget(self.btn_medium)
+                preset_row.addWidget(self.btn_large)
+                preset_row.addStretch()
+                c_layout.addLayout(preset_row)
+                t = int(cfg.screenPaddingTop.value)
+                b = int(cfg.screenPaddingBottom.value)
+                l = int(cfg.screenPaddingLeft.value)
+                r = int(cfg.screenPaddingRight.value)
+                lock = bool(cfg.screenPaddingLock.value)
+                self.spin_top.setValue(t)
+                self.spin_bottom.setValue(b)
+                self.spin_left.setValue(l)
+                self.spin_right.setValue(r)
+                self.lockSwitch.setChecked(lock)
+                self.preview.set_margins(t, b, l, r)
+                self.spin_top.valueChanged.connect(self._on_spin_changed)
+                self.spin_bottom.valueChanged.connect(self._on_spin_changed)
+                self.spin_left.valueChanged.connect(self._on_spin_changed)
+                self.spin_right.valueChanged.connect(self._on_spin_changed)
+                self.lockSwitch.checkedChanged.connect(self._on_lock_changed)
+                self.btn_small.clicked.connect(lambda: self._apply_preset(10))
+                self.btn_medium.clicked.connect(lambda: self._apply_preset(20))
+                self.btn_large.clicked.connect(lambda: self._apply_preset(40))
+                self.cancelButton.setText("取消")
+                self.yesButton.setText("应用")
+                self.yesButton.clicked.connect(self._apply_and_close)
+
+            def _sync_preview(self):
+                t = self.spin_top.value()
+                b = self.spin_bottom.value()
+                l = self.spin_left.value()
+                r = self.spin_right.value()
+                self.preview.set_margins(t, b, l, r)
+
+            def _on_spin_changed(self, _):
+                if self.lockSwitch.isChecked():
+                    sender = self.sender()
+                    if sender is not None:
+                        v = sender.value()
+                        self.spin_top.blockSignals(True)
+                        self.spin_bottom.blockSignals(True)
+                        self.spin_left.blockSignals(True)
+                        self.spin_right.blockSignals(True)
+                        self.spin_top.setValue(v)
+                        self.spin_bottom.setValue(v)
+                        self.spin_left.setValue(v)
+                        self.spin_right.setValue(v)
+                        self.spin_top.blockSignals(False)
+                        self.spin_bottom.blockSignals(False)
+                        self.spin_left.blockSignals(False)
+                        self.spin_right.blockSignals(False)
+                self._sync_preview()
+
+            def _on_lock_changed(self, checked):
+                if checked:
+                    v = self.spin_top.value()
+                    self.spin_bottom.setValue(v)
+                    self.spin_left.setValue(v)
+                    self.spin_right.setValue(v)
+                self._sync_preview()
+
+            def _apply_preset(self, margin):
+                self.spin_top.setValue(margin)
+                self.spin_bottom.setValue(margin)
+                self.spin_left.setValue(margin)
+                self.spin_right.setValue(margin)
+                self._sync_preview()
+
+            def _apply_and_close(self):
+                t = self.spin_top.value()
+                b = self.spin_bottom.value()
+                l = self.spin_left.value()
+                r = self.spin_right.value()
+                lock = self.lockSwitch.isChecked()
+                cfg.screenPaddingTop.value = t
+                cfg.screenPaddingBottom.value = b
+                cfg.screenPaddingLeft.value = l
+                cfg.screenPaddingRight.value = r
+                cfg.screenPaddingLock.value = lock
+                cfg.save()
+                self.accept()
+
+        w = PaddingConfigDialog(self.window())
+        w.exec()

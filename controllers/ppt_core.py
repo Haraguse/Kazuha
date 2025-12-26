@@ -7,6 +7,7 @@ import win32api
 import win32gui
 import win32con
 import os
+import sys
 from datetime import datetime
 from dataclasses import dataclass
 
@@ -59,16 +60,7 @@ class PPTClient:
         if not self.app:
             if not self.connect():
                 return 0
-
         try:
-            try:
-                if self.app.ActivePresentation and self.app.ActivePresentation.SlideShowWindow:
-                    hwnd = int(self.app.ActivePresentation.SlideShowWindow.HWND)
-                    if hwnd > 0 and win32gui.IsWindow(hwnd):
-                        return hwnd
-            except:
-                pass
-            
             count = int(self.app.SlideShowWindows.Count)
             for i in range(1, count + 1):
                 try:
@@ -80,7 +72,6 @@ class PPTClient:
                     continue
         except Exception:
             self.app = None
-            pass
 
         return 0
 
@@ -99,18 +90,10 @@ class PPTClient:
         if not self.app:
             if not self.connect():
                 return None
-
         try:
-            try:
-                if self.app.ActivePresentation and self.app.ActivePresentation.SlideShowWindow:
-                    view = self.app.ActivePresentation.SlideShowWindow.View
-                    if view:
-                        return view
-            except:
-                pass
-
-            if self.app.SlideShowWindows.Count > 0:
-                for i in range(1, self.app.SlideShowWindows.Count + 1):
+            count = int(self.app.SlideShowWindows.Count)
+            if count > 0:
+                for i in range(1, count + 1):
                     try:
                         view = self.app.SlideShowWindows(i).View
                         if view:
@@ -271,8 +254,8 @@ def ppt_worker_process(cmd_queue, result_queue):
     pythoncom.CoInitialize()
     client = PPTClient()
     
-    # Debug log
-    log_file = os.path.join(os.getenv("APPDATA"), "Kazuha", "worker_core.log")
+    base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(sys.argv[0])))
+    log_file = os.path.join(base_dir, "worker_core.log")
     def worker_log(msg):
         try:
             with open(log_file, "a", encoding='utf-8') as f:
