@@ -4,7 +4,7 @@
 > 如果您对此类项目有固有的排斥感，请无视此项目，谢谢。
 ---
 
-<img width="6000" height="2880" alt="Kazuha Banner" src="https://github.com/user-attachments/assets/8bfc7e2f-afc9-406b-ad2f-fdae9dd00c9d" />
+<img width="1200" height="576" alt="Kazuha Banner" src="https://github.com/user-attachments/assets/8bfc7e2f-afc9-406b-ad2f-fdae9dd00c9d" />
 
     
 [![Latest Release](https://img.shields.io/github/v/release/TCYKyousen/Kazuha?style=for-the-badge)](https://github.com/TCYKyousen/Kazuha/releases)
