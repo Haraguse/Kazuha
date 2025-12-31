@@ -3,7 +3,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, QTimer
 from .ppt_core import ppt_worker_process, PPTState
 
 class PPTWorker(QObject):
-    state_updated = pyqtSignal(object) # PPTState
+    state_updated = pyqtSignal(object)
     
     def __init__(self):
         super().__init__()
@@ -12,9 +12,8 @@ class PPTWorker(QObject):
         self.process = None
         self.running = False
         
-        # Timer to poll results from the queue
         self.poll_timer = QTimer()
-        self.poll_timer.setInterval(50) # Poll every 50ms
+        self.poll_timer.setInterval(50)
         self.poll_timer.timeout.connect(self.check_results)
 
     def start(self):
@@ -36,7 +35,6 @@ class PPTWorker(QObject):
             
         try:
             latest_state = None
-            # Drain the queue of all pending updates to process ONLY the latest
             while not self.result_queue.empty():
                 try:
                     msg_type, data = self.result_queue.get_nowait()

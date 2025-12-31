@@ -23,8 +23,14 @@ rem /E  - copy subdirectories, including empty ones
 rem /XD - exclude directories
 rem /XF - exclude files
 robocopy "%ROOT%" "%PACK_DIR%" /E ^
-    /XD ".git" "build" "dist" "venv" "__pycache__" ^
+    /XD ".git" "build" "dist" "venv" "__pycache__" "translations" ^
     /XF ".gitignore" "*.pyc" "*.pyo" "Kazuha.spec" "*.spec" "_package_tmp" >nul
+
+echo [2.5/4] Copying translations...
+if exist "%ROOT%\translations" (
+    mkdir "%PACK_DIR%\translations"
+    copy "%ROOT%\translations\*.qm" "%PACK_DIR%\translations\" >nul
+)
 
 if %errorlevel% GEQ 8 (
     echo [ERROR] File copy failed with errorlevel %errorlevel%.

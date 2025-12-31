@@ -5,11 +5,13 @@ import traceback
 from dataclasses import dataclass
 from datetime import datetime
 
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt, QSize, QCoreApplication
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import QApplication, QDialog, QHBoxLayout, QLabel, QVBoxLayout
-from qfluentwidgets import BodyLabel, FluentIcon, PlainTextEdit, PrimaryPushButton, PushButton, TitleLabel
-from qfluentwidgets import isDarkTheme
+from qfluentwidgets import BodyLabel, FluentIcon, PlainTextEdit, PrimaryPushButton, PushButton, TitleLabel, isDarkTheme
+
+def tr(text: str) -> str:
+    return QCoreApplication.translate("CrashHandler", text)
 
 
 @dataclass(frozen=True)
@@ -106,12 +108,12 @@ class CrashWindow(QDialog):
                     icon_label.setPixmap(pm.scaled(icon_label.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
                 break
 
-        title = TitleLabel("Kazuha 崩溃啦！", self)
+        title = TitleLabel(tr("Kazuha 崩溃啦！"), self)
         title_row.addWidget(icon_label, 0, Qt.AlignmentFlag.AlignVCenter)
         title_row.addWidget(title, 0, Qt.AlignmentFlag.AlignVCenter)
         title_row.addStretch(1)
 
-        subtitle = BodyLabel("程序发生错误并已停止运行。你可以复制错误信息用于反馈。", self)
+        subtitle = BodyLabel(tr("程序发生错误并已停止运行。你可以复制错误信息用于反馈。"), self)
 
         self.details_edit = PlainTextEdit(self)
         self.details_edit.setReadOnly(True)
@@ -126,9 +128,9 @@ class CrashWindow(QDialog):
         btn_row.setContentsMargins(0, 0, 0, 0)
         btn_row.setSpacing(10)
 
-        self.exit_btn = PushButton("退出程序", self)
-        self.copy_btn = PushButton("复制错误日志", self)
-        self.restart_btn = PrimaryPushButton("重启程序", self)
+        self.exit_btn = PushButton(tr("退出程序"), self)
+        self.copy_btn = PushButton(tr("复制错误日志"), self)
+        self.restart_btn = PrimaryPushButton(tr("重启程序"), self)
         self.exit_btn.setIcon(_fluent_icon("POWER_BUTTON"))
         self.copy_btn.setIcon(_fluent_icon("COPY"))
         self.restart_btn.setIcon(_fluent_icon("SYNC"))
@@ -188,6 +190,38 @@ class CrashHandler:
             with open(self._log_path, "a", encoding="utf-8") as f:
                 f.write(details)
                 f.write("\n\n")
+        except Exception:
+            pass
+        try:
+            crash = CrashInfo(title=tr("Kazuha 崩溃啦！"), details=details)
+            app = QApplication.instance()
+            if app is None:
+                app = QApplication(sys.argv[:1])
+            
+            from main import install_translator
+            install_translator(app)
+            
+            win = CrashWindow(crash, parent=None)
+            handler = self
+
+            def do_exit():
+                try:
+                    app.quit()
+                finally:
+                    os._exit(1)
+
+            def do_copy():
+                clipboard = app.clipboard()
+                if clipboard is not None:
+                    clipboard.setText(win.details_text())
+
+            def do_restart():
+                handler.restart()
+
+            win.exit_btn.clicked.connect(do_exit)
+            win.copy_btn.clicked.connect(do_copy)
+            win.restart_btn.clicked.connect(do_restart)
+            win.exec()
         except Exception:
             pass
         try:
@@ -257,8 +291,8 @@ def run_watchdog_process(parent_pid: int, log_path: str | None = None):
         with open(log_path, "r", encoding="utf-8") as f:
             details = f.read()
     except Exception:
-        details = f"Process {parent_pid} exited with code {code}"
-    crash = CrashInfo(title="Kazuha 崩溃啦！", details=details)
+        details = tr("Process {pid} exited with code {code}").format(pid=parent_pid, code=code)
+    crash = CrashInfo(title=tr("Kazuha 崩溃啦！"), details=details)
     app = QApplication.instance()
     if app is None:
         app = QApplication(sys.argv[:1])

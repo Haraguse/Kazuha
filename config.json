@@ -13,7 +13,6 @@
         "EnableStartUp": true,
         "EnableSystemNotification": true,
         "Language": "Simplified Chinese",
-        "NativeWindowFrame": false,
         "NavPosition": "MiddleSides",
         "TimerPosition": "Center"
     },
