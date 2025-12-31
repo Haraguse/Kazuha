@@ -2,18 +2,25 @@ import sys
 import os
 import traceback
 import ctypes
+import multiprocessing
 from datetime import datetime
 from PyQt6.QtWidgets import QApplication
-from controllers.business_logic import BusinessLogicController, cfg
+from PyQt6.QtCore import QTranslator, QCoreApplication, Qt
+from PyQt6.QtGui import QFont
+from qfluentwidgets import SplashScreen
+
+from controllers.business_logic import BusinessLogicController, cfg, get_app_base_dir
 from ui.widgets import ToolBarWidget, PageNavWidget, SpotlightOverlay, ClockWidget
 from crash_handler import CrashAwareApplication, CrashHandler
+
+def tr(text):
+    return QCoreApplication.translate("Main", text)
 
 def setup_logging():
     try:
         base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(sys.argv[0])))
         log_path = os.path.join(base_dir, "debug.log")
         
-        # Reset log file
         with open(log_path, "w") as f:
             f.write(f"Session started at {datetime.now()}\n")
             
@@ -30,18 +37,57 @@ def log_message(msg):
     except:
         pass
 
+def install_translator(app):
+    translator = QTranslator(app)
+    try:
+        base_dir = get_app_base_dir()
+    except Exception:
+        base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+    language = cfg.language.value
+    if language == "English":
+        code = "en"
+    elif language == "Japanese":
+        code = "ja"
+    elif language == "Traditional Chinese":
+        code = "zh_TW"
+    elif language == "Tibetan":
+        code = "bo"
+    else:
+        code = "zh_CN"
+    trans_dir = base_dir / "translations"
+    if not trans_dir.exists():
+        trans_dir = base_dir / "resources" / "translations"
+    
+    file_path = trans_dir / f"kazuha_{code}.qm"
+    if translator.load(str(file_path)):
+        app.installTranslator(translator)
+        app._translator = translator
+
+def reload_translator():
+    app = QApplication.instance()
+    if app is None:
+        return
+    
+    cfg.save()
+    
+    old = getattr(app, "_translator", None)
+    if old is not None:
+        try:
+            app.removeTranslator(old)
+        except Exception:
+            pass
+    install_translator(app)
+
 def main():
     log_path = setup_logging()
     
-    # Enable high DPI scaling
-    from PyQt6.QtCore import Qt
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseDesktopOpenGL)
     QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
     
     try:
         try:
-            app_id = "万演 主程序通知"
+            app_id = tr("万演 主程序通知")
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
         except Exception:
             pass
@@ -51,22 +97,29 @@ def main():
         app = CrashAwareApplication(sys.argv, crash_handler)
         app.setQuitOnLastWindowClosed(False)
 
-        app.setApplicationName("Kazuha")
-        app.setApplicationDisplayName("Kazuha.Midori.Settings")
+        install_translator(app)
 
-        # Set global font
-        from PyQt6.QtGui import QFont
+        app.setApplicationName("Kazuha")
+        app.setApplicationDisplayName("Kazuha.Sou.Settings")
+
         font = QFont()
         font.setFamilies(["Bahnschrift", "Microsoft YaHei"])
         font.setPixelSize(14)
         font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
         app.setFont(font)
-        
+
+        try:
+            base_dir = get_app_base_dir()
+            splash_icon = base_dir / "resources" / "icons" / "trayicon.svg"
+            splash = SplashScreen(str(splash_icon))
+            splash.show()
+        except Exception:
+            splash = None
+
         log_message("Initializing Controller...")
         controller = BusinessLogicController()
         controller.set_font("Bahnschrift")
         
-        # Initialize UI components
         log_message("Initializing UI...")
         
         nav_pos = cfg.navPosition.value
@@ -79,14 +132,14 @@ def main():
         controller.clock_widget.apply_settings(cfg)
         controller.spotlight = SpotlightOverlay()
         
-        # Setup connections between UI and business logic
         log_message("Setting up connections...")
         controller.setup_connections()
         controller.setup_tray()
         
-        # Show the application
         log_message("Showing Controller...")
         controller.show()
+        if splash is not None:
+            splash.finish()
         
         log_message("Entering Event Loop...")
         sys.exit(app.exec())
@@ -106,6 +159,5 @@ def main():
         sys.exit(1)
 
 if __name__ == '__main__':
-    import multiprocessing
     multiprocessing.freeze_support()
     main()

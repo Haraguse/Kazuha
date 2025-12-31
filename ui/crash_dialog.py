@@ -1,19 +1,22 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QRadioButton, QCheckBox, QLineEdit, QButtonGroup
 from qfluentwidgets import MessageBoxBase, SubtitleLabel, LineEdit, PushButton, RadioButton
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QCoreApplication
+
+
+def tr(text: str) -> str:
+    return QCoreApplication.translate("CrashDialog", text)
+
 
 class CrashDialog(MessageBoxBase):
-    """ Crash Test Configuration Dialog """
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.titleLabel = SubtitleLabel("崩溃测试配置", self)
+        self.titleLabel = SubtitleLabel(tr("崩溃行为测试配置"), self)
 
         self.viewLayout.addWidget(self.titleLabel)
         
-        # Crash Type Radio Buttons
         self.radioGroup = QButtonGroup(self)
-        self.rbNormal = RadioButton("常规崩溃 (Raise Exception)", self)
-        self.rbStack = RadioButton("堆栈溢出 (Stack Overflow)", self)
+        self.rbNormal = RadioButton(tr("常规崩溃（抛出异常）"), self)
+        self.rbStack = RadioButton(tr("堆栈溢出（递归调用）"), self)
         
         self.radioGroup.addButton(self.rbNormal, 0)
         self.radioGroup.addButton(self.rbStack, 1)
@@ -22,19 +25,16 @@ class CrashDialog(MessageBoxBase):
         self.viewLayout.addWidget(self.rbNormal)
         self.viewLayout.addWidget(self.rbStack)
         
-        # Custom Text
         self.textEdit = LineEdit(self)
-        self.textEdit.setPlaceholderText("自定义崩溃文本 (仅常规崩溃有效)")
+        self.textEdit.setPlaceholderText(tr("自定义崩溃文本（仅在常规崩溃模式下生效）"))
         self.viewLayout.addWidget(self.textEdit)
         
-        # Countdown Checkbox
-        self.cbCountdown = QCheckBox("倒数 3 秒", self)
-        self.cbCountdown.setChecked(True) # Default checked as requested "Selectable"
+        self.cbCountdown = QCheckBox(tr("触发前倒计时 3 秒"), self)
+        self.cbCountdown.setChecked(True)
         self.viewLayout.addWidget(self.cbCountdown)
         
-        # Buttons are handled by MessageBoxBase (Yes/Cancel)
-        self.yesButton.setText("触发崩溃")
-        self.cancelButton.setText("取消")
+        self.yesButton.setText(tr("触发崩溃"))
+        self.cancelButton.setText(tr("取消"))
         
         self.widget.setMinimumWidth(350)
         

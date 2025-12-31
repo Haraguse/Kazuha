@@ -1,12 +1,14 @@
 import sys
 import os
+import hashlib
 from PyQt6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QButtonGroup, 
                              QLabel, QFrame, QPushButton, QGridLayout, QStackedWidget,
-                             QScrollArea, QSizePolicy)
+                             QScrollArea, QSizePolicy, QApplication)
 from PyQt6.QtCore import (Qt, QSize, pyqtSignal, QEvent, QRect, QPropertyAnimation, 
-                          QEasingCurve, QAbstractAnimation, QTimer, QSequentialAnimationGroup, QDateTime, 
-                          QPoint, QThread, pyqtProperty, QPointF)
-from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QPen, QRadialGradient, QFont, QRegion, QPainterPath
+                          QEasingCurve, QAbstractAnimation, QTimer, QSequentialAnimationGroup, 
+                          QDateTime, QPoint, QThread, pyqtProperty, QPointF)
+from PyQt6.QtGui import (QIcon, QPixmap, QPainter, QColor, QPen, QRadialGradient, 
+                         QFont, QRegion, QPainterPath, QTransform, QBrush, QPolygonF)
 from qfluentwidgets import (TransparentToolButton, ToolButton, SpinBox,
                             PrimaryPushButton, PushButton, TabWidget,
                             Flyout, FlyoutAnimationType,
@@ -14,8 +16,9 @@ from qfluentwidgets import (TransparentToolButton, ToolButton, SpinBox,
                             FluentIcon, StrongBodyLabel, TitleLabel, LargeTitleLabel,
                             BodyLabel, CaptionLabel, IndeterminateProgressRing,
                             SmoothScrollArea, FlowLayout, SwitchButton, MessageBox, MessageDialog,
-                            ComboBox)
+                            ComboBox, theme as get_theme)
 from qfluentwidgets.components.material import AcrylicFlyout
+
 HEIGHT_BAR = 60
 
 try:
@@ -26,15 +29,12 @@ except ImportError:
 def icon_path(name):
     if hasattr(sys, "_MEIPASS"):
         return os.path.join(sys._MEIPASS, "icons", name)
-    
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    # Return path to icons folder in parent directory
     return os.path.join(os.path.dirname(base_dir), "icons", name)
 
-_ICON_CACHE: dict[tuple[str, Theme, int], QIcon] = {}
+_ICON_CACHE = {}
 
 def get_icon(name, theme=Theme.DARK, rotation=0):
-    from PyQt6.QtGui import QIcon, QPixmap, QTransform
     key = (name, theme, int(rotation))
     cached = _ICON_CACHE.get(key)
     if cached is not None:
@@ -82,17 +82,12 @@ def get_icon(name, theme=Theme.DARK, rotation=0):
 
 class IconFactory:
     @staticmethod
-    def draw_cursor(color):#笔相关类
-        from PyQt6.QtGui import QPixmap, QPainter, QPen, QBrush, QColor
-        from PyQt6.QtCore import Qt, QPointF
-        from PyQt6.QtGui import QPolygonF
-        
+    def draw_cursor(color):
         pixmap = QPixmap(32, 32)
         pixmap.fill(Qt.GlobalColor.transparent)
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        # Draw a cursor arrow
         path = QPolygonF([
             QPointF(10, 6),
             QPointF(10, 26),
@@ -100,41 +95,16 @@ class IconFactory:
             QPointF(22, 28),
             QPointF(24, 26),
             QPointF(17, 19),
-            QPointF(24, 19)
+            QPointF(22, 19)
         ])
         
-        painter.setPen(QPen(QColor("white"), 1.5, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
-        painter.setBrush(QBrush(QColor(color)))
-        painter.drawPolygon(path)
-        
-        painter.end()
-        return QIcon(pixmap)
-
-    @staticmethod
-    def draw_arrow(color, direction='left'):#绘画托盘菜单里的箭头图标……
-        from PyQt6.QtGui import QPixmap, QPainter, QPen, QColor
-        from PyQt6.QtCore import Qt
-        
-        pixmap = QPixmap(32, 32)
-        pixmap.fill(Qt.GlobalColor.transparent)
-        painter = QPainter(pixmap)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
-        pen = QPen(QColor(color))
-        pen.setWidth(3)
-        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen = QPen(Qt.GlobalColor.white, 2)
         pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
         painter.setPen(pen)
-        
-        if direction == 'left':
-            points = [QPoint(20, 8), QPoint(12, 16), QPoint(20, 24)]
-            painter.drawPolyline(points) # type: ignore
-        elif direction == 'right':
-            points = [QPoint(12, 8), QPoint(20, 16), QPoint(12, 24)]
-            painter.drawPolyline(points) # type: ignore
-            
+        painter.setBrush(QBrush(color))
+        painter.drawPolygon(path)
         painter.end()
-        return QIcon(pixmap)
+        return pixmap
 
 
 class PenSettingsFlyout(QWidget):
@@ -142,16 +112,13 @@ class PenSettingsFlyout(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedSize(240, 200)
+        self.setFixedSize(220, 160)
         
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
         
-        title = StrongBodyLabel("墨迹颜色", self)
-        font = title.font()
-        font.setFamily("Meiryo UI")
-        title.setFont(font)
+        title = StrongBodyLabel("画笔颜色", self)
         layout.addWidget(title)
         
         self.grid_widget = QWidget()
@@ -160,42 +127,42 @@ class PenSettingsFlyout(QWidget):
         self.grid_layout.setSpacing(8)
         
         colors = [
-            (255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0),
-            (255, 0, 255), (0, 255, 255), (0, 0, 0), (255, 255, 255),
-            (255, 165, 0), (128, 0, 128)
+            (Qt.GlobalColor.red, "#FF0000"),
+            (Qt.GlobalColor.green, "#00FF00"),
+            (Qt.GlobalColor.blue, "#0000FF"),
+            (Qt.GlobalColor.yellow, "#FFFF00"),
+            (Qt.GlobalColor.black, "#000000"),
+            (Qt.GlobalColor.white, "#FFFFFF"),
+            (0xFFA500, "#FFA500"),
+            (0x800080, "#800080"),
+            (0xFF00FF, "#FF00FF"),
+            (0x00FFFF, "#00FFFF")
         ]
         
-        for i, rgb in enumerate(colors):
-            # Use ToolButton for hover effect and cleaner look
-            btn = ToolButton(self)
+        for i, (color_val, hex_code) in enumerate(colors):
+            btn = QPushButton()
             btn.setFixedSize(32, 32)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {hex_code};
+                    border: 2px solid rgba(128, 128, 128, 0.2);
+                    border-radius: 16px;
+                }}
+                QPushButton:hover {{
+                    border: 2px solid rgba(128, 128, 128, 0.5);
+                }}
+                QPushButton:pressed {{
+                    border: 2px solid rgba(128, 128, 128, 0.8);
+                }}
+            """)
             
-            color_hex = f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
-            ppt_color = rgb[0] + (rgb[1] << 8) + (rgb[2] << 16)
-            
-            # Create a circular icon for the color
-            pixmap = QPixmap(24, 24)
-            pixmap.fill(Qt.GlobalColor.transparent)
-            painter = QPainter(pixmap)
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            painter.setBrush(QColor(color_hex))
-            
-            # Add a subtle border for white/bright colors
-            if (rgb[0] > 240 and rgb[1] > 240 and rgb[2] > 240):
-                painter.setPen(QPen(QColor(0, 0, 0, 50), 1))
+            if isinstance(color_val, Qt.GlobalColor):
+                c_int = QColor(color_val).rgb()
             else:
-                painter.setPen(Qt.PenStyle.NoPen)
+                c_int = QColor(color_val).rgb()
                 
-            painter.drawEllipse(2, 2, 20, 20)
-            painter.end()
-            
-            btn.setIcon(QIcon(pixmap))
-            btn.setIconSize(QSize(24, 24))
-            
-            # Fluent style hover/pressed handled by ToolButton, but we can customize if needed
-            # We just set the click handler
-            btn.clicked.connect(lambda checked, c=ppt_color: self.on_color_clicked(c))
+            btn.clicked.connect(lambda checked, c=c_int: self.on_color_clicked(c))
             
             row = i // 5
             col = i % 5
@@ -239,8 +206,6 @@ class SlidePreviewCard(QFrame):
         self.index = index
         self.setFixedSize(140, 100) 
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        
-        # Use Fluent styling for card
         self.setObjectName("SlidePreviewCard")
         
         layout = QVBoxLayout(self)
@@ -248,7 +213,7 @@ class SlidePreviewCard(QFrame):
         layout.setSpacing(4)
         
         self.img_label = QLabel()
-        self.img_label.setFixedSize(130, 73) # 16:9 approx
+        self.img_label.setFixedSize(130, 73)
         self.img_label.setStyleSheet("background-color: rgba(128, 128, 128, 0.1); border-radius: 4px;")
         self.img_label.setScaledContents(True)
         if image_path and os.path.exists(image_path):
@@ -263,7 +228,6 @@ class SlidePreviewCard(QFrame):
         self._update_style()
 
     def _update_style(self):
-        # Determine theme
         theme = Theme.DARK if isDarkTheme() else Theme.LIGHT
         
         if theme == Theme.LIGHT:
@@ -298,8 +262,7 @@ class LoadingOverlay(QWidget):
         super().__init__(parent)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        from PyQt6.QtWidgets import QApplication
-        self.setGeometry(QApplication.primaryScreen().geometry()) # type: ignore
+        self.setGeometry(QApplication.primaryScreen().geometry())
         
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -363,14 +326,12 @@ class SlideSelectorFlyout(QWidget):
         self.loading_label.setStyleSheet("color: rgba(128, 128, 128, 0.8); font-style: italic;")
         layout.addWidget(self.loading_label)
         
-        # Chunked loading
         self.current_load_index = 1
         self.cache_dir = self.get_cache_dir(presentation_path)
         
         QTimer.singleShot(10, self.start_loading)
         
     def get_cache_dir(self, presentation_path):
-        import hashlib
         try:
             path_hash = hashlib.md5(presentation_path.encode('utf-8')).hexdigest()
         except:
@@ -396,7 +357,6 @@ class SlideSelectorFlyout(QWidget):
                 self.loading_label.hide()
                 return
 
-            # Process batch
             for _ in range(3):
                 if self.current_load_index > self.total_slides:
                     break
@@ -404,16 +364,11 @@ class SlideSelectorFlyout(QWidget):
                 i = self.current_load_index
                 thumb_path = os.path.join(self.cache_dir, f"slide_{i}.jpg")
                 
-                # Check cache
                 if os.path.exists(thumb_path):
                     card = SlidePreviewCard(i, thumb_path)
                     card.clicked.connect(self.on_card_clicked)
                     self.flow.addWidget(card)
                 else:
-                    # If not in cache, add a placeholder or skip?
-                    # For now, we only show what's in cache. 
-                    # If we skip, the numbers will be missing.
-                    # Better to show a placeholder card.
                     pass 
                 
                 self.current_load_index += 1
@@ -431,89 +386,67 @@ class AnnotationWidget(QWidget):
         super().__init__(parent)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        from PyQt6.QtWidgets import QApplication
-        self.setGeometry(QApplication.primaryScreen().geometry()) # type: ignore
+        self.setGeometry(QApplication.primaryScreen().geometry())
         
-        # 绘图属性
         self.drawing = False
         self.erasing = False
         self.last_point = None
         self.pen_color = Qt.GlobalColor.red
         self.pen_width = 3
         
-        # 存储绘制的线条
         self.lines = []
         self.current_line = None
         
-        # 缓存
         self._buffer_pixmap = None
         self._dirty = False
         
-        # 橡皮擦大小
         self.eraser_size = 20
-        
         self.current_theme = Theme.DARK
-        
-        # 工具栏
         self.setup_toolbar()
 
-    # ... (rest of init/toolbar code is fine) ...
-
     def clear_all(self):
-        """清除所有批注"""
         self.lines = []
         self._dirty = True
         self.update()
         
     def mousePressEvent(self, event):
-        from PyQt6.QtCore import Qt
         if event.button() == Qt.MouseButton.RightButton:
             self.close()
         elif event.button() == Qt.MouseButton.LeftButton:
             if self.drawing:
-                # 开始绘制新线条
                 self.current_line = {
                     'points': [event.pos()],
                     'color': self.pen_color,
                     'width': self.pen_width
                 }
             elif self.erasing:
-                # 开始橡皮擦操作
                 self.erase_at_point(event.pos())
                 
     def mouseMoveEvent(self, event):
         if self.drawing and self.current_line:
-            # 添加点到当前线条
             self.current_line['points'].append(event.pos())
             self.update()
         elif self.erasing:
-            # 橡皮擦操作
             self.erase_at_point(event.pos())
             
     def mouseReleaseEvent(self, event):
-        from PyQt6.QtCore import Qt, QPoint
         if event.button() == Qt.MouseButton.LeftButton:
             if self.drawing and self.current_line:
-                # 完成当前线条
                 if len(self.current_line['points']) > 1:
                     self.lines.append(self.current_line)
-                    self._dirty = True # 需要重绘缓存
+                    self._dirty = True
                 self.current_line = None
                 self.update()
                 
     def erase_at_point(self, point):
-        """在指定点进行擦除操作"""
-        # 简单实现：移除靠近点击点的线条
         lines_to_remove = []
         for line in self.lines:
             for p in line['points']:
-                # 计算点之间的距离
                 distance = ((p.x() - point.x()) ** 2 + (p.y() - point.y()) ** 2) ** 0.5
                 if distance < self.eraser_size:
                     lines_to_remove.append(line)
                     break
                     
-        # 移除需要擦除的线条
         if lines_to_remove:
             for line in lines_to_remove:
                 if line in self.lines:
@@ -527,16 +460,11 @@ class AnnotationWidget(QWidget):
         super().resizeEvent(event)
 
     def paintEvent(self, event):
-        from PyQt6.QtGui import QPainter, QPen
-        from PyQt6.QtCore import Qt
-        
-        # 1. 初始化或重建缓存
         if self._buffer_pixmap is None or self._buffer_pixmap.size() != self.size():
             self._buffer_pixmap = QPixmap(self.size())
             self._buffer_pixmap.fill(Qt.GlobalColor.transparent)
             self._dirty = True
             
-        # 2. 如果标记为 dirty，重绘所有静态线条到缓存
         if self._dirty:
             self._buffer_pixmap.fill(Qt.GlobalColor.transparent)
             p = QPainter(self._buffer_pixmap)
@@ -550,13 +478,11 @@ class AnnotationWidget(QWidget):
             p.end()
             self._dirty = False
             
-        # 3. 绘制缓存和当前正在画的线
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
         painter.drawPixmap(0, 0, self._buffer_pixmap)
         
-        # 绘制当前正在绘制的线条 (动态)
         if self.current_line and len(self.current_line['points']) > 1:
             pen = QPen(self.current_line['color'], self.current_line['width'], Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
             painter.setPen(pen)
@@ -564,47 +490,38 @@ class AnnotationWidget(QWidget):
                 painter.drawLine(self.current_line['points'][i], self.current_line['points'][i + 1])
 
     def setup_toolbar(self):
-        """设置工具栏"""
         toolbar_width = 40
         toolbar_height = 240
         margin = 20
         
-        # 创建工具栏容器
         self.toolbar = QWidget(self)
         self.toolbar.setGeometry(margin, margin, toolbar_width, toolbar_height)
         
-        # 工具栏布局
-        from PyQt6.QtWidgets import QVBoxLayout
         layout = QVBoxLayout(self.toolbar)
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(5)
         
-        # 笔工具按钮
         self.btn_pen = QPushButton()
         self.btn_pen.setIcon(get_icon("Pen.svg", self.current_theme))
         self.btn_pen.setFixedSize(30, 30)
         self.btn_pen.setCheckable(True)
         self.btn_pen.clicked.connect(self.set_pen_mode)
         
-        # 橡皮擦按钮
         self.btn_eraser = QPushButton()
         self.btn_eraser.setIcon(get_icon("Eraser.svg", self.current_theme))
         self.btn_eraser.setFixedSize(30, 30)
         self.btn_eraser.setCheckable(True)
         self.btn_eraser.clicked.connect(self.set_eraser_mode)
         
-        # 清除按钮
         self.btn_clear = QPushButton()
         self.btn_clear.setIcon(get_icon("Clear.svg", self.current_theme))
         self.btn_clear.setFixedSize(30, 30)
         self.btn_clear.clicked.connect(self.clear_all)
         
-        # 关闭按钮
         self.btn_close = QPushButton("X")
         self.btn_close.setFixedSize(30, 30)
         self.btn_close.clicked.connect(self.close)
         
-        # 颜色选择按钮
         self.btn_color_red = QPushButton()
         self.btn_color_red.setFixedSize(30, 30)
         self.btn_color_red.setStyleSheet("background-color: red; border-radius: 4px; border: none;")
@@ -620,7 +537,6 @@ class AnnotationWidget(QWidget):
         self.btn_color_green.setStyleSheet("background-color: green; border-radius: 4px; border: none;")
         self.btn_color_green.clicked.connect(lambda: self.set_pen_color(Qt.GlobalColor.green))
         
-        # 添加按钮到布局
         layout.addWidget(self.btn_pen)
         layout.addWidget(self.btn_eraser)
         layout.addWidget(self.btn_clear)
@@ -629,15 +545,28 @@ class AnnotationWidget(QWidget):
         layout.addWidget(self.btn_color_green)
         layout.addWidget(self.btn_close)
         
-        # 默认选择笔工具
         self.btn_pen.setChecked(True)
-        
         self.set_theme(Theme.DARK)
+
+    def set_pen_mode(self):
+        self.drawing = True
+        self.erasing = False
+        self.btn_pen.setChecked(True)
+        self.btn_eraser.setChecked(False)
+
+    def set_eraser_mode(self):
+        self.drawing = False
+        self.erasing = True
+        self.btn_pen.setChecked(False)
+        self.btn_eraser.setChecked(True)
+
+    def set_pen_color(self, color):
+        self.pen_color = color
+        self.set_pen_mode()
 
     def set_theme(self, theme):
         if theme == Theme.AUTO:
-            import qfluentwidgets
-            theme = qfluentwidgets.theme()
+            theme = get_theme()
             
         self.current_theme = theme
         
@@ -683,14 +612,10 @@ class AnnotationWidget(QWidget):
         self.btn_pen.setStyleSheet(btn_style)
         self.btn_eraser.setStyleSheet(btn_style)
 
-
-        
-        # Update icons
         self.btn_pen.setIcon(get_icon("Pen.svg", theme))
         self.btn_eraser.setIcon(get_icon("Eraser.svg", theme))
         self.btn_clear.setIcon(get_icon("Clear.svg", theme))
         
-        # Clear button style (reddish)
         self.btn_clear.setStyleSheet(f"""
             QPushButton {{
                 background-color: rgba(255, 50, 50, 0.3);
@@ -703,7 +628,6 @@ class AnnotationWidget(QWidget):
             }}
         """)
         
-        # Close button style
         self.btn_close.setStyleSheet(f"""
             QPushButton {{
                 background-color: rgba(255, 50, 50, 0.3);
@@ -716,11 +640,6 @@ class AnnotationWidget(QWidget):
                 background-color: rgba(255, 50, 50, 0.5);
             }}
         """)
-        
-
-
-
-
 
 
 class SpotlightOverlay(QWidget):
@@ -728,8 +647,7 @@ class SpotlightOverlay(QWidget):
         super().__init__(parent)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        from PyQt6.QtWidgets import QApplication
-        self.setGeometry(QApplication.primaryScreen().geometry()) # type: ignore
+        self.setGeometry(QApplication.primaryScreen().geometry())
         
         self.selection_rect = QRect()
         self.is_selecting = False
@@ -784,8 +702,7 @@ class SpotlightOverlay(QWidget):
             self.is_selecting = False
             self.has_selection = True
             normalized_rect = self.selection_rect.normalized()
-            from PyQt6.QtCore import QPoint as _QPoint
-            self.btn_close.move(normalized_rect.topRight() + _QPoint(10, -15))
+            self.btn_close.move(normalized_rect.topRight() + QPoint(10, -15))
             self.btn_close.show()
             self.update()
             
@@ -819,7 +736,6 @@ class RippleOverlay(QWidget):
         super().__init__(parent)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        from PyQt6.QtWidgets import QApplication
         screen = QApplication.primaryScreen().geometry()
         self.setGeometry(screen)
         self.center = QPoint(center.x() - screen.left(), center.y() - screen.top())
@@ -875,12 +791,8 @@ class PageNavWidget(QWidget):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
-        # Drag related removed
-        
         if self.orientation == Qt.Orientation.Vertical:
-            from PyQt6.QtWidgets import QVBoxLayout
             layout = QVBoxLayout()
-            # Reduce margins to 0 to allow full centering control
             layout.setContentsMargins(0, 10, 0, 10)
             layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         else:
@@ -893,7 +805,6 @@ class PageNavWidget(QWidget):
         self.container.setObjectName("Container")
         
         if self.orientation == Qt.Orientation.Vertical:
-            from PyQt6.QtWidgets import QVBoxLayout
             inner_layout = QVBoxLayout(self.container)
             inner_layout.setContentsMargins(0, 8, 0, 8)
             inner_layout.setSpacing(10)
@@ -915,7 +826,6 @@ class PageNavWidget(QWidget):
         self.btn_next.setIconSize(QSize(18, 18))
         self.btn_next.clicked.connect(self.next_clicked.emit)
         
-        # Optimize click response by allowing rapid clicks
         self.btn_prev.setAutoRepeat(True)
         self.btn_prev.setAutoRepeatDelay(400)
         self.btn_prev.setAutoRepeatInterval(150)
@@ -930,7 +840,6 @@ class PageNavWidget(QWidget):
         self.page_info_widget.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.page_info_widget.installEventFilter(self)
         
-        from PyQt6.QtWidgets import QVBoxLayout
         info_layout = QVBoxLayout(self.page_info_widget)
         info_layout.setContentsMargins(6, 0, 6, 0)
         info_layout.setSpacing(0)
@@ -939,9 +848,8 @@ class PageNavWidget(QWidget):
         self.lbl_page_num = QLabel("1/--")
         self.lbl_page_num.setAlignment(Qt.AlignmentFlag.AlignCenter)
         if self.orientation == Qt.Orientation.Vertical:
-             # Remove fixed width to allow layout to center it naturally
              self.lbl_page_num.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
-             self.lbl_page_num.setFixedWidth(50) # Force a width that matches container to ensure text centering works
+             self.lbl_page_num.setFixedWidth(50)
         else:
              self.lbl_page_num.setFixedWidth(80)
              
@@ -952,12 +860,10 @@ class PageNavWidget(QWidget):
         if self.orientation != Qt.Orientation.Vertical:
             info_layout.addWidget(self.lbl_page_text, 0, Qt.AlignmentFlag.AlignCenter)
         else:
-            self.lbl_page_text.hide() # Hide text in vertical mode to save space
+            self.lbl_page_text.hide()
         
-        # In vertical mode, ensure page info widget is centered in parent layout
         if self.orientation == Qt.Orientation.Vertical:
             self.page_info_widget.setFixedWidth(50)
-            # Remove any margins from info layout to be safe
             info_layout.setContentsMargins(0, 0, 0, 0)
         
         inner_layout.addWidget(self.btn_prev, 0, Qt.AlignmentFlag.AlignCenter)
@@ -1005,8 +911,7 @@ class PageNavWidget(QWidget):
         
     def set_theme(self, theme):
         if theme == Theme.AUTO:
-            import qfluentwidgets
-            theme = qfluentwidgets.theme()
+            theme = get_theme()
             
         self.current_theme = theme
         
@@ -1076,12 +981,10 @@ class PageNavWidget(QWidget):
 
     def style_nav_btn(self, btn, theme):
         if theme == Theme.LIGHT:
-            dot_color = "#D4A5A5"
             hover_bg = "rgba(212, 165, 165, 0.2)"
             pressed_bg = "rgba(212, 165, 165, 0.4)"
             text_color = "#333333"
         else:
-            dot_color = "#B38F8F"
             hover_bg = "rgba(179, 143, 143, 0.3)"
             pressed_bg = "rgba(179, 143, 143, 0.5)"
             text_color = "white"
@@ -1147,18 +1050,12 @@ class PageNavWidget(QWidget):
         win.destroyed.connect(self.on_slide_selector_closed)
         self.slide_selector_window = win
         
-        # Adjust position logic:
-        # Default show_at behavior usually centers or aligns based on parent.
-        # But for vertical nav (MiddleSides), we want it to the side.
-        
         pos_mode = DetachedFlyoutWindow.PositionMode.AUTOMATIC
         
         if self.orientation == Qt.Orientation.Vertical:
             if self.is_right:
-                # Right nav -> Show on Left of nav
                 pos_mode = DetachedFlyoutWindow.PositionMode.LEFT
             else:
-                # Left nav -> Show on Right of nav
                 pos_mode = DetachedFlyoutWindow.PositionMode.RIGHT
         
         win.show_at(self.page_info_widget, pos_mode=pos_mode)
@@ -1179,7 +1076,6 @@ class PageNavWidget(QWidget):
 
             if self.orientation == Qt.Orientation.Vertical:
                 self.lbl_page_num.blockSignals(True)
-                # Force alignment with a div wrapper
                 html = (
                     "<html><head/><body>"
                     "<div align='center' style='margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px;'>"
@@ -1190,8 +1086,6 @@ class PageNavWidget(QWidget):
                 self.lbl_page_num.setText(html)
                 self.lbl_page_num.blockSignals(False)
             else:
-                from PyQt6.QtCore import QPoint
-
                 html = f"<html><head/><body><p><span style='font-size:16pt;'>{current}</span><span style='font-size:10pt;'>/{total}</span></p></body></html>"
                 self.lbl_page_num.setText(html)
 
@@ -1226,9 +1120,6 @@ class PageNavWidget(QWidget):
                     else:
                         self.btn_next.setIcon(get_icon("Next.svg", self.current_theme))
         except Exception as e:
-            # Prevent freeze by ignoring errors in update_page, but try to report if possible
-            # We don't want to crash the main loop here if it's just a display update
-            import sys
             sys.excepthook(type(e), e, e.__traceback__)
     
     def apply_settings(self):
@@ -1357,7 +1248,6 @@ class ToolBarWidget(QWidget):
                     self.show_eraser_settings()
                     return True
             elif event.button() == Qt.MouseButton.LeftButton:
-                # If clicking Pen button while it is already checked -> Show settings
                 if obj == self.btn_pen and self.btn_pen.isChecked():
                     self.show_pen_settings()
                     return True
@@ -1420,14 +1310,10 @@ class ToolBarWidget(QWidget):
 
     def set_theme(self, theme):
         if theme == Theme.AUTO:
-            import qfluentwidgets
-            theme = qfluentwidgets.theme()
+            theme = get_theme()
             
         self.app_theme = theme
-        
-        # Check for window effect
-        # effect = self.property("windowEffect")
-        is_transparent = False # effect in ["Mica", "Acrylic"]
+        is_transparent = False 
         
         if theme == Theme.LIGHT:
             bg_color = "rgba(255, 255, 255, 240)" if not is_transparent else "rgba(255, 255, 255, 10)"
@@ -1453,7 +1339,6 @@ class ToolBarWidget(QWidget):
             if sep is not None:
                 sep.setStyleSheet(f"QWidget#ToolSeparator {{ background-color: {line_color}; margin: 0 4px; }}")
 
-        # Update icons and button styles
         for btn, icon_name in [
             (self.btn_arrow, "Mouse.svg"),
             (self.btn_pen, "Pen.svg"),
@@ -1463,7 +1348,6 @@ class ToolBarWidget(QWidget):
             (self.btn_timer, "timer.svg"),
             (self.btn_exit, "Minimaze.svg")
         ]:
-            # Force update icon for theme
             icon = get_icon(icon_name, theme)
             btn.setIcon(icon)
             self.style_tool_btn(btn, theme) if btn.isCheckable() else self.style_action_btn(btn, theme)
@@ -1487,7 +1371,6 @@ class ToolBarWidget(QWidget):
         btn.setIcon(get_icon(icon_name, self.app_theme))
         btn.setFixedSize(36, 36)
         btn.setIconSize(QSize(20, 20))
-        # Style will be set in set_theme
         return btn
     
     def style_tool_btn(self, btn, theme):
@@ -1566,7 +1449,6 @@ class ToolBarWidget(QWidget):
             
             c.setHsl(h, s, l)
         else:
-            # Achromatic
             s = 0
             l = 0 if self.app_theme == Theme.LIGHT else 255
             c.setHsl(0, s, l)
@@ -1576,18 +1458,13 @@ class ToolBarWidget(QWidget):
     def update_pen_display(self, color):
         self.current_pen_color = color
         
-        # Determine body color based on theme
         body_color = "white"
         if self.app_theme == Theme.LIGHT:
             body_color = "#333333"
             
-        # Convert selected color to hex for tip (using high contrast logic)
         tip_color = self.get_high_contrast_color(color)
         
-        # Path data split from original Pen.svg
-        # Path 1: Body
         path_body = "M16.996 2.34419L21.6823 7.00397C21.8941 7.23343 22 7.49819 22 7.79825C22 8.09831 21.8941 8.35425 21.6823 8.56606L10.8271 19.4212L4.57877 13.1994L15.4339 2.34419C15.6457 2.11473 15.9017 2 16.2018 2C16.5195 2 16.7842 2.11473 16.996 2.34419Z"
-        # Path 2: Tip
         path_tip = "M9.63571 20.5862L9.50333 20.6391L2.6725 21.9894C2.47834 22.0247 2.31066 21.9718 2.16946 21.8306C2.02825 21.707 1.97529 21.5481 2.01059 21.354L3.38736 14.5232C3.38736 14.4879 3.40502 14.4349 3.44032 14.3643L9.63571 20.5862Z"
         
         svg_content = f'''<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1595,8 +1472,6 @@ class ToolBarWidget(QWidget):
 <path d="{path_tip}" fill="{tip_color}"/>
 </svg>'''
         
-        # Create QIcon from SVG bytes
-        from PyQt6.QtGui import QPixmap
         pm = QPixmap()
         pm.loadFromData(svg_content.encode('utf-8'))
         
@@ -1627,7 +1502,6 @@ class ToolBarWidget(QWidget):
             
         color = "#D4A5A5" if self.app_theme == Theme.LIGHT else "#B38F8F"
         
-        # If Pen is selected and has a color
         if self.btn_pen.isChecked() and self.current_pen_color is not None:
             color = self.get_high_contrast_color(self.current_pen_color)
                 
@@ -1728,25 +1602,12 @@ class ClockWidget(QWidget):
         self.show_lunar = False
         
         layout = QHBoxLayout()
-        # Add margins similar to PageNavWidget to avoid clipping and allow shadow if needed
-        # But wait, PageNavWidget seems to have small margins in layout?
-        # PageNavWidget uses 0 margins in layout but container has 0 margins?
-        # Actually PageNavWidget uses:
-        # layout = QHBoxLayout()
-        # layout.setContentsMargins(0, 0, 0, 0)
-        # self.container = QWidget()
-        # ...
-        # layout.addWidget(self.container)
-        
-        # But wait, shadows usually require margins in parent widget.
-        # Let's use small margins just in case.
         layout.setContentsMargins(0, 0, 0, 0)
         
         self.container = QWidget()
         self.container.setObjectName("Container")
         self.container.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         
-        # Inner layout for text
         inner_layout = QHBoxLayout(self.container)
         inner_layout.setContentsMargins(16, 6, 16, 6)
         inner_layout.setSpacing(12)
@@ -1798,13 +1659,11 @@ class ClockWidget(QWidget):
         }
         w = weight_map.get(cfg.clockFontWeight.value, QFont.Weight.Bold)
         
-        # Time Label Font
         font = self.lbl_time.font()
         font.setWeight(w)
         font.setPixelSize(20)
         self.lbl_time.setFont(font)
         
-        # Date/Lunar/Extra Font
         small_font = self.lbl_date.font()
         small_font.setWeight(QFont.Weight.Normal)
         small_font.setPixelSize(12)
@@ -1838,7 +1697,6 @@ class ClockWidget(QWidget):
         else:
             self.lbl_date.setVisible(False)
             
-        # Use lunardate if zhdate is missing
         if self.show_lunar:
             try:
                 from zhdate import ZhDate
@@ -1879,27 +1737,20 @@ class ClockWidget(QWidget):
         self.lbl_extra.setText(text)
         self.lbl_extra.setVisible(bool(text))
     
-        # Calculate dynamic border radius based on height
-        # Use QTimer to delay the calculation until layout is done
         QTimer.singleShot(0, self._update_radius)
             
     def _update_radius(self):
-        # Ensure we get the correct height from container
         h = self.container.height()
         if h <= 0:
             h = self.container.sizeHint().height()
             
-        # Ensure minimum height for pill shape
         if h < 40: h = 40
             
         radius = int(h / 2)
         
-        # Apply theme with dynamic radius
         theme = self.current_theme
         
-        # Check for window effect
-        # effect = self.property("windowEffect")
-        is_transparent = False # effect in ["Mica", "Acrylic"]
+        is_transparent = False 
         
         if theme == Theme.LIGHT:
             bg_color = "rgba(255, 255, 255, 240)" if not is_transparent else "rgba(255, 255, 255, 10)"
@@ -1924,7 +1775,6 @@ class ClockWidget(QWidget):
             }}
         """)
 
-        # Explicitly update style and repaint
         self.container.style().unpolish(self.container)
         self.container.style().polish(self.container)
         self.container.update()
@@ -1948,8 +1798,7 @@ class ClockWidget(QWidget):
         
     def set_theme(self, theme):
         if theme == Theme.AUTO:
-            import qfluentwidgets
-            theme = qfluentwidgets.theme()
+            theme = get_theme()
             
         self.current_theme = theme
         self._update_radius()
@@ -1981,7 +1830,6 @@ class TimerWindow(QWidget):
         self.sound_effect = None
         self.drag_pos = None
         
-        # Main Container
         self.container = QWidget(self)
         self.container.setObjectName("Container")
         
@@ -1993,7 +1841,6 @@ class TimerWindow(QWidget):
         self.main_layout.setContentsMargins(20, 20, 20, 20)
         self.main_layout.setSpacing(15)
         
-        # Header
         header_layout = QHBoxLayout()
         self.title_label = TitleLabel("计时工具", self)
         self.close_btn = TransparentToolButton(FluentIcon.CLOSE, self)
@@ -2005,14 +1852,12 @@ class TimerWindow(QWidget):
         header_layout.addWidget(self.close_btn)
         self.main_layout.addLayout(header_layout)
         
-        # Segmented Widget for switching modes
         self.pivot = SegmentedWidget(self)
         self.pivot.addItem("up", "正计时")
         self.pivot.addItem("down", "倒计时")
         self.pivot.currentItemChanged.connect(self.on_pivot_changed)
         self.main_layout.addWidget(self.pivot)
         
-        # Content Stack
         self.stack = QStackedWidget(self)
         self.up_page = QWidget()
         self.down_page = QWidget()
@@ -2094,10 +1939,8 @@ class TimerWindow(QWidget):
     def on_completed_back(self):
         self.reset_down()
         self.stack.setCurrentWidget(self.down_page)
-        # Stop shaking if it was loop
         if hasattr(self, 'shake_anim'):
             self.shake_anim.stop()
-        # Signals for controller to stop sound/mask
         self.timer_reset.emit()
 
     def setup_down_page(self):
@@ -2105,7 +1948,6 @@ class TimerWindow(QWidget):
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.setSpacing(20)
         
-        # Time input area
         self.input_widget = QWidget()
         input_layout = QHBoxLayout(self.input_widget)
         input_layout.setContentsMargins(0, 0, 0, 0)
@@ -2115,7 +1957,7 @@ class TimerWindow(QWidget):
         self.down_min_spin.setRange(0, 999)
         self.down_min_spin.setSuffix(" 分")
         self.down_min_spin.setFixedWidth(140)
-        self.down_min_spin.setValue(5) # Default 5 mins
+        self.down_min_spin.setValue(5) 
         
         self.down_sec_spin = SpinBox()
         self.down_sec_spin.setRange(0, 59)
@@ -2131,27 +1973,23 @@ class TimerWindow(QWidget):
         self.down_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.down_label.hide()
         
-        # Strong reminder settings
         self.strong_reminder_switch = SwitchButton(self.down_page)
         self.strong_reminder_switch.setOnText("强提醒已开启")
         self.strong_reminder_switch.setOffText("强提醒已关闭")
         self.strong_reminder_switch.checkedChanged.connect(self.on_strong_reminder_toggled)
 
-        # Voice settings container (hidden by default)
         self.voice_settings_container = QWidget()
         voice_layout = QVBoxLayout(self.voice_settings_container)
         voice_layout.setContentsMargins(10, 5, 10, 5)
         voice_layout.setSpacing(10)
         self.voice_settings_container.hide()
 
-        # Separator line
         self.separator_line = QFrame()
         self.separator_line.setFrameShape(QFrame.Shape.HLine)
         self.separator_line.setFrameShadow(QFrame.Shadow.Sunken)
         self.separator_line.setStyleSheet("background-color: rgba(255, 255, 255, 0.1); max-height: 1px;")
         voice_layout.addWidget(self.separator_line)
 
-        # Pre-reminder settings
         pre_layout = QHBoxLayout()
         pre_layout.setContentsMargins(0,0,0,0)
         pre_label = BodyLabel("剩余播报:", self)
@@ -2171,7 +2009,6 @@ class TimerWindow(QWidget):
         pre_layout.addWidget(self.pre_rem_min)
         pre_layout.addWidget(self.pre_rem_sec)
 
-        # Post-reminder settings
         post_layout = QHBoxLayout()
         post_layout.setContentsMargins(0,0,0,0)
         post_label = BodyLabel("结束播报:", self)
@@ -2184,7 +2021,6 @@ class TimerWindow(QWidget):
         post_layout.addStretch()
         post_layout.addWidget(self.post_rem_switch)
         
-        # Ringtone settings
         ringtone_layout = QHBoxLayout()
         ringtone_layout.setContentsMargins(0,0,0,0)
         ringtone_label = BodyLabel("铃声:", self)
@@ -2230,14 +2066,10 @@ class TimerWindow(QWidget):
     def set_theme(self, theme):
         self.current_theme = theme
         
-        # Check for window effect
-        # effect = self.property("windowEffect")
-        is_transparent = False # effect in ["Mica", "Acrylic"]
+        is_transparent = False 
         
-        # Resolve AUTO theme
         if theme == Theme.AUTO:
-            import qfluentwidgets
-            actual_theme = qfluentwidgets.theme()
+            actual_theme = get_theme()
         else:
             actual_theme = theme
 
@@ -2289,10 +2121,8 @@ class TimerWindow(QWidget):
         original_pos = self.pos()
         offset = 10
         
-        # In strong reminder mode, loop indefinitely
         loop_count = -1 if self.strong_reminder_mode else 2
         
-        # Create one cycle of shake
         cycle_anim = QSequentialAnimationGroup(self)
         
         anim1 = QPropertyAnimation(self, b"pos")
@@ -2321,7 +2151,6 @@ class TimerWindow(QWidget):
             self.shake_anim.setLoopCount(-1) 
             self.shake_anim.addAnimation(cycle_anim)
         else:
-             # Add multiple cycles
              for _ in range(loop_count):
                  self.shake_anim.addAnimation(cycle_anim)
             
@@ -2331,8 +2160,6 @@ class TimerWindow(QWidget):
         self.ringtone_combo.clear()
         self.ringtone_combo.addItem("默认", "StrongTimerRing")
         
-        # Scan folder
-        import os
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         ring_dir = os.path.join(base_dir, "StrongTimerRingRingtones")
         if not os.path.exists(ring_dir):
@@ -2356,7 +2183,6 @@ class TimerWindow(QWidget):
             if w.exec():
                 self.strong_reminder_mode = True
                 self.voice_settings_container.show()
-                # Expand window slightly if needed, or let layout handle it
             else:
                 self.strong_reminder_switch.setChecked(False)
                 self.strong_reminder_mode = False
@@ -2372,7 +2198,6 @@ class TimerWindow(QWidget):
         self.down_timer = QTimer(self)
         self.down_timer.setInterval(1000)
         self.down_timer.timeout.connect(self.update_down)
-
 
     def emit_state(self):
         self.timer_state_changed.emit(self.up_seconds, self.up_running, self.down_remaining, self.down_running)
@@ -2421,7 +2246,6 @@ class TimerWindow(QWidget):
                 self.down_total_seconds = total
                 self.down_remaining = total
             
-            # Switch to label view
             self.input_widget.hide()
             self.down_label.show()
             self.down_label.setText(self.format_time(self.down_remaining))
@@ -2456,14 +2280,12 @@ class TimerWindow(QWidget):
             self.down_label.setText(self.format_time(self.down_remaining))
             self.emit_state()
             
-            # Pre-reminder logic
             if self.strong_reminder_mode:
                 rem_min = self.pre_rem_min.value()
                 rem_sec = self.pre_rem_sec.value()
                 total_rem = rem_min * 60 + rem_sec
                 if total_rem > 0 and self.down_remaining == total_rem:
                     msg = f"倒计时剩余{rem_min}分{rem_sec}秒" if rem_min > 0 else f"倒计时剩余{rem_sec}秒"
-                    # If seconds is 0, just say minutes
                     if rem_sec == 0 and rem_min > 0:
                         msg = f"倒计时剩余{rem_min}分钟"
                     self.pre_reminder_triggered.emit(msg)

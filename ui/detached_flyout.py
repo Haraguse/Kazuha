@@ -66,23 +66,18 @@ class DetachedFlyoutWindow(QWidget):
         
         x, y = 0, 0
         
-        # Calculate based on mode
         if pos_mode == self.PositionMode.LEFT:
-             # Left of target
              x = global_pos.x() - w - 10
              y = global_pos.y() + rect.height() // 2 - h // 2
         elif pos_mode == self.PositionMode.RIGHT:
-             # Right of target
              x = global_pos.x() + rect.width() + 10
              y = global_pos.y() + rect.height() // 2 - h // 2
         else:
-             # Default (Bottom/Top auto)
              x = global_pos.x() + rect.width() // 2 - w // 2
              y = global_pos.y() + rect.height() + 5
              if y + h > screen.bottom():
                  y = global_pos.y() - h - 5
                  
-        # Boundary checks
         if x < screen.left():
             x = screen.left() + 5
         if x + w > screen.right():

@@ -3,9 +3,50 @@ import sys
 import subprocess
 from datetime import datetime
 
+from PyQt6.QtCore import Qt, QCoreApplication, QTranslator
 from PyQt6.QtWidgets import QApplication
 
 from crash_handler import CrashInfo, CrashWindow, CrashHandler, _default_log_path
+
+
+def tr(text):
+    return QCoreApplication.translate("CrashHandler", text)
+
+
+def install_translator(app):
+    import json
+    translator = QTranslator(app)
+    base_dir = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(sys.argv[0])))
+    config_path = os.path.join(base_dir, "config", "config.json")
+    
+    language = "Simplified Chinese"
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                config_data = json.load(f)
+                language = config_data.get("General", {}).get("Language", "Simplified Chinese")
+        except Exception:
+            pass
+            
+    if language == "English":
+        code = "en"
+    elif language == "Japanese":
+        code = "ja"
+    elif language == "Traditional Chinese":
+        code = "zh_TW"
+    elif language == "Tibetan":
+        code = "bo"
+    else:
+        code = "zh_CN"
+        
+    trans_dir = os.path.join(base_dir, "translations")
+    if not os.path.exists(trans_dir):
+        trans_dir = os.path.join(base_dir, "resources", "translations")
+    
+    file_path = os.path.join(trans_dir, f"kazuha_{code}.qm")
+    if translator.load(file_path):
+        app.installTranslator(translator)
+        app._translator = translator
 
 
 def log_watchdog(msg):
@@ -40,13 +81,14 @@ def show_crash_window(exit_code):
             with open(log_path, "r", encoding="utf-8") as f:
                 details = f.read()
         else:
-            details = f"Process exited with code {exit_code}"
+            details = tr("程序异常退出，错误代码：{}").format(exit_code)
     except Exception:
-        details = f"Process exited with code {exit_code}"
-    crash = CrashInfo(title="Kazuha 崩溃啦！", details=details)
+        details = tr("程序异常退出，错误代码：{}").format(exit_code)
+    crash = CrashInfo(title=tr("Kazuha 崩溃啦！"), details=details)
     app = QApplication.instance()
     if app is None:
         app = QApplication(sys.argv[:1])
+    install_translator(app)
     win = CrashWindow(crash, parent=None)
     handler = CrashHandler(log_path=_default_log_path())
 

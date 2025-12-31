@@ -1,10 +1,14 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QGridLayout
-from PyQt6.QtCore import Qt, QRectF, QPoint, QPropertyAnimation, QEasingCurve, pyqtProperty
-from PyQt6.QtGui import QPainter, QColor, QPen, QBrush, QPainterPath
-from qfluentwidgets import OptionsSettingCard, Theme, isDarkTheme, themeColor, SettingCard, PushButton, PrimaryPushButton, BodyLabel, SpinBox, SwitchButton
+from PyQt6.QtCore import Qt, QRectF, QPropertyAnimation, QEasingCurve, pyqtProperty, QCoreApplication
+from PyQt6.QtGui import QPainter, QColor, QPen, QPainterPath
+from qfluentwidgets import OptionsSettingCard, Theme, isDarkTheme, themeColor, SettingCard, PushButton, BodyLabel, SpinBox, SwitchButton
+
+
+def tr(text: str) -> str:
+    return QCoreApplication.translate("CustomSettings", text)
+
 
 class SchematicOptionButton(QWidget):
-    """ Individual schematic option button with hover/press animations """
     def __init__(self, value, text, schematic_type, parent=None):
         super().__init__(parent)
         self.value = value
@@ -17,7 +21,6 @@ class SchematicOptionButton(QWidget):
         self._hover_progress = 0.0
         self._click_scale = 1.0
         
-        # Animations
         self.hover_anim = QPropertyAnimation(self, b"hoverProgress", self)
         self.hover_anim.setDuration(150)
         self.scale_anim = QPropertyAnimation(self, b"clickScale", self)
@@ -70,7 +73,6 @@ class SchematicOptionButton(QWidget):
             self.scale_anim.setEndValue(1.0)
             self.scale_anim.setEasingCurve(QEasingCurve.Type.OutElastic)
             self.scale_anim.start()
-            # Trigger click logic in parent or via signal
             if self.parent():
                 self.parent().on_option_clicked(self.value)
         super().mouseReleaseEvent(e)
@@ -79,17 +81,15 @@ class SchematicOptionButton(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        # Scale transform for click effect
         painter.translate(self.width() / 2, self.height() / 2)
         painter.scale(self._click_scale, self._click_scale)
         painter.translate(-self.width() / 2, -self.height() / 2)
         
-        rect = QRectF(5, 5, self.width() - 10, self.height() - 30) # Reserve bottom for text
+        rect = QRectF(5, 5, self.width() - 10, self.height() - 30)
         
         is_dark = isDarkTheme()
         accent = themeColor()
         
-        # 1. Background & Border
         bg_color = QColor(0, 0, 0, 0)
         border_color = QColor(255, 255, 255, 20) if is_dark else QColor(0, 0, 0, 10)
         border_width = 1.0
@@ -100,7 +100,6 @@ class SchematicOptionButton(QWidget):
             bg_color = QColor(accent)
             bg_color.setAlpha(20)
         elif self._hover_progress > 0.01:
-            # Interpolate hover background
             alpha = int(10 * self._hover_progress)
             bg_color = QColor(255, 255, 255, alpha) if is_dark else QColor(0, 0, 0, alpha)
             border_color = QColor(255, 255, 255, 50) if is_dark else QColor(0, 0, 0, 30)
@@ -112,20 +111,16 @@ class SchematicOptionButton(QWidget):
         painter.setBrush(bg_color)
         painter.drawPath(path)
         
-        # Draw border
         pen = QPen(border_color, border_width)
-        # Avoid clipping border
         if border_width > 1:
             pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
         painter.setPen(pen)
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawPath(path)
         
-        # 2. Schematic Content
         content_rect = rect.adjusted(4, 4, -4, -4)
         self.draw_content(painter, content_rect)
         
-        # 3. Text Label
         painter.setPen(QColor(255, 255, 255) if is_dark else QColor(0, 0, 0))
         font = painter.font()
         font.setPixelSize(13)
@@ -142,13 +137,14 @@ class SchematicOptionButton(QWidget):
             self.draw_nav_content(painter, rect)
         elif self.schematic_type == "toolbar_pos":
             self.draw_toolbar_content(painter, rect)
+        elif self.schematic_type == "language":
+            self.draw_language_content(painter, rect)
             
     def draw_theme_content(self, painter, rect):
         if self.value == "Light":
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QColor(243, 243, 243))
             painter.drawRoundedRect(rect, 4, 4)
-            # Lines
             painter.setBrush(QColor(0, 0, 0, 20))
             painter.drawRoundedRect(rect.adjusted(5, 5, -20, -rect.height()+10), 2, 2)
             painter.drawRoundedRect(rect.adjusted(5, 15, -10, -rect.height()+20), 2, 2)
@@ -157,7 +153,6 @@ class SchematicOptionButton(QWidget):
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QColor(32, 32, 32))
             painter.drawRoundedRect(rect, 4, 4)
-            # Lines
             painter.setBrush(QColor(255, 255, 255, 20))
             painter.drawRoundedRect(rect.adjusted(5, 5, -20, -rect.height()+10), 2, 2)
             painter.drawRoundedRect(rect.adjusted(5, 15, -10, -rect.height()+20), 2, 2)
@@ -168,12 +163,10 @@ class SchematicOptionButton(QWidget):
             painter.save()
             painter.setClipPath(path)
             
-            # Light half
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QColor(243, 243, 243))
             painter.drawRect(rect) 
             
-            # Dark half
             path_tri = QPainterPath()
             path_tri.moveTo(rect.topRight())
             path_tri.lineTo(rect.bottomRight())
@@ -257,23 +250,48 @@ class SchematicOptionButton(QWidget):
         
         painter.drawRoundedRect(QRectF(x, y, bar_w, bar_h), 3, 3)
 
+    def draw_language_content(self, painter, rect):
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        is_dark = isDarkTheme()
+        bg = QColor(32, 32, 32) if is_dark else QColor(243, 243, 243)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(bg)
+        painter.drawRoundedRect(rect, 4, 4)
+        if self.value == "Simplified Chinese":
+            code = "简"
+        elif self.value == "Traditional Chinese":
+            code = "繁"
+        elif self.value == "English":
+            code = "EN"
+        elif self.value == "Japanese":
+            code = "あ"
+        elif self.value == "Tibetan":
+            code = "བོད"
+        else:
+            code = "?"
+        painter.setPen(QColor(255, 255, 255) if is_dark else QColor(0, 0, 0))
+        font = painter.font()
+        font.setPixelSize(20)
+        font.setBold(True)
+        painter.setFont(font)
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, code)
+        painter.restore()
+
 
 class SchematicWidget(QWidget):
-    """ Container for schematic option buttons """
     def __init__(self, schematic_type="theme", configItem=None, parent=None):
         super().__init__(parent)
         self.schematic_type = schematic_type
         self.configItem = configItem
         
-        # Adjust height based on type
         if schematic_type == "toolbar_pos":
-            self.setFixedHeight(260) # Increased height for grid layout
+            self.setFixedHeight(260)
         else:
             self.setFixedHeight(140)
             
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
-        # Use QGridLayout for toolbar_pos, QHBoxLayout for others
         if schematic_type == "toolbar_pos":
             self.layout = QGridLayout(self)
             self.layout.setContentsMargins(0, 0, 0, 0)
@@ -290,37 +308,50 @@ class SchematicWidget(QWidget):
         
     def setup_options(self):
         if self.schematic_type == "theme":
-            options = [("Light", "浅色"), ("Dark", "深色"), ("Auto", "跟随系统")]
+            options = [
+                ("Light", tr("浅色主题")),
+                ("Dark", tr("深色主题")),
+                ("Auto", tr("跟随系统主题")),
+            ]
             for val, text in options:
                 btn = SchematicOptionButton(val, text, self.schematic_type, self)
                 self.layout.addWidget(btn)
                 self.buttons.append(btn)
                 
         elif self.schematic_type == "nav_pos":
-            options = [("BottomSides", "底部两端"), ("MiddleSides", "中部两侧")]
+            options = [
+                ("BottomSides", tr("底部两端")),
+                ("MiddleSides", tr("中部两侧")),
+            ]
             for val, text in options:
                 btn = SchematicOptionButton(val, text, self.schematic_type, self)
                 self.layout.addWidget(btn)
                 self.buttons.append(btn)
                 
         elif self.schematic_type == "toolbar_pos":
-            # Grid layout for toolbar position
-            # Row 0: MiddleLeft, Empty, MiddleRight
-            # Row 1: BottomLeft, BottomCenter, BottomRight
-            
-            # (value, text, row, col)
             grid_options = [
-                ("MiddleLeft", "中部左侧", 0, 0),
-                # ("MiddleCenter", "中部居中", 0, 1), # Not supported/allowed
-                ("MiddleRight", "中部右侧", 0, 2),
-                ("BottomLeft", "底部左侧", 1, 0),
-                ("BottomCenter", "底部居中", 1, 1),
-                ("BottomRight", "底部右侧", 1, 2),
+                ("MiddleLeft", tr("中部左侧"), 0, 0),
+                ("MiddleRight", tr("中部右侧"), 0, 2),
+                ("BottomLeft", tr("底部左侧"), 1, 0),
+                ("BottomCenter", tr("底部居中"), 1, 1),
+                ("BottomRight", tr("底部右侧"), 1, 2),
             ]
             
             for val, text, row, col in grid_options:
                 btn = SchematicOptionButton(val, text, self.schematic_type, self)
                 self.layout.addWidget(btn, row, col)
+                self.buttons.append(btn)
+        elif self.schematic_type == "language":
+            options = [
+                ("Simplified Chinese", tr("简体中文")),
+                ("Traditional Chinese", tr("繁體中文")),
+                ("English", tr("English")),
+                ("Japanese", tr("日本語")),
+                ("Tibetan", tr("བོད་ཡིག")),
+            ]
+            for val, text in options:
+                btn = SchematicOptionButton(val, text, self.schematic_type, self)
+                self.layout.addWidget(btn)
                 self.buttons.append(btn)
             
         self.update_state()
@@ -330,7 +361,6 @@ class SchematicWidget(QWidget):
             return
             
         current_value = self.configItem.value
-        # Handle Enum conversion
         if hasattr(current_value, "value"):
             current_value = current_value.value
         if isinstance(current_value, Theme):
@@ -339,13 +369,17 @@ class SchematicWidget(QWidget):
             elif current_value == Theme.AUTO: current_value = "Auto"
             
         for btn in self.buttons:
-            btn.setChecked(btn.value == current_value)
+            try:
+                if btn and not btn.parent():
+                    pass
+                btn.setChecked(btn.value == current_value)
+            except RuntimeError:
+                continue
             
     def on_option_clicked(self, val):
         if not self.configItem:
             return
             
-        # Determine the target value type based on current config value type
         current = self.configItem.value
         final_val = val
         
@@ -355,11 +389,12 @@ class SchematicWidget(QWidget):
                 elif val == "Dark": final_val = Theme.DARK
                 elif val == "Auto": final_val = Theme.AUTO
             else:
-                # Assume string if not Enum
                 final_val = val
             
         if self.configItem.value != final_val:
             self.configItem.value = final_val
+            from controllers.business_logic import cfg
+            cfg.save()
             self.update_state()
 
     def update(self):
@@ -368,25 +403,38 @@ class SchematicWidget(QWidget):
 
 
 class SchematicOptionsSettingCard(OptionsSettingCard):
-    """ OptionsSettingCard with a schematic illustration """
     def __init__(self, configItem, icon, title, content, texts, schematic_type="theme", parent=None):
         super().__init__(configItem, icon, title, content, texts, parent)
-        # Pass configItem to widget
         self.schematic = SchematicWidget(schematic_type, configItem, self)
         
-        # Connect signal to update schematic when value changes externally
-        configItem.valueChanged.connect(lambda v: self.schematic.update())
+        self._config_item = configItem
+        self._config_item.valueChanged.connect(self._on_config_changed)
         
-        # Insert schematic at the top of the expanded view layout
         self.viewLayout.insertWidget(0, self.schematic)
         self.viewLayout.insertSpacing(1, 10)
         
-        # Hide original radio buttons
         for i in range(self.viewLayout.count()):
             item = self.viewLayout.itemAt(i)
             widget = item.widget()
             if widget and widget != self.schematic:
                 widget.hide()
+
+    def _on_config_changed(self, v):
+        try:
+            if hasattr(self, "schematic") and self.schematic:
+                self.schematic.update()
+        except RuntimeError:
+            try:
+                self._config_item.valueChanged.disconnect(self._on_config_changed)
+            except Exception:
+                pass
+
+    def closeEvent(self, event):
+        try:
+            self._config_item.valueChanged.disconnect(self._on_config_changed)
+        except Exception:
+            pass
+        super().closeEvent(event)
 
 
 class ScreenPaddingPreview(QWidget):
@@ -480,7 +528,7 @@ class ScreenPaddingPreview(QWidget):
 class ScreenPaddingSettingCard(SettingCard):
     def __init__(self, icon, title, content, parent=None):
         super().__init__(icon, title, content, parent)
-        self.configBtn = PushButton("调整", self)
+        self.configBtn = PushButton(tr("调整边距"), self)
         self.configBtn.setFixedWidth(120)
         self.configBtn.clicked.connect(self._show_config_overlay)
         self.hBoxLayout.addWidget(self.configBtn, 0, Qt.AlignmentFlag.AlignRight)
@@ -495,7 +543,7 @@ class ScreenPaddingSettingCard(SettingCard):
         class PaddingConfigDialog(MessageBoxBase):
             def __init__(self, parent=None):
                 super().__init__(parent)
-                title_label = SubtitleLabel("组件屏幕边距", self)
+                title_label = SubtitleLabel(tr("组件屏幕边距"), self)
                 self.viewLayout.addWidget(title_label)
                 container = QWidget(self)
                 c_layout = QVBoxLayout(container)
@@ -509,10 +557,10 @@ class ScreenPaddingSettingCard(SettingCard):
                 controls = QGridLayout()
                 controls.setHorizontalSpacing(12)
                 controls.setVerticalSpacing(8)
-                top_label = BodyLabel("上", container)
-                bottom_label = BodyLabel("下", container)
-                left_label = BodyLabel("左", container)
-                right_label = BodyLabel("右", container)
+                top_label = BodyLabel(tr("上边距"), container)
+                bottom_label = BodyLabel(tr("下边距"), container)
+                left_label = BodyLabel(tr("左边距"), container)
+                right_label = BodyLabel(tr("右边距"), container)
                 self.spin_top = SpinBox(container)
                 self.spin_bottom = SpinBox(container)
                 self.spin_left = SpinBox(container)
@@ -521,8 +569,8 @@ class ScreenPaddingSettingCard(SettingCard):
                     s.setRange(0, 200)
                     s.setFixedWidth(80)
                 self.lockSwitch = SwitchButton(container)
-                self.lockSwitch.setOnText("锁定相同")
-                self.lockSwitch.setOffText("锁定相同")
+                self.lockSwitch.setOnText(tr("锁定四个边距相同"))
+                self.lockSwitch.setOffText(tr("锁定四个边距相同"))
                 controls.addWidget(top_label, 0, 0)
                 controls.addWidget(self.spin_top, 0, 1)
                 controls.addWidget(bottom_label, 0, 2)
@@ -535,10 +583,10 @@ class ScreenPaddingSettingCard(SettingCard):
                 c_layout.addLayout(controls)
                 preset_row = QHBoxLayout()
                 preset_row.setSpacing(12)
-                preset_row.addWidget(BodyLabel("预设", container))
-                self.btn_small = PushButton("小", container)
-                self.btn_medium = PushButton("中", container)
-                self.btn_large = PushButton("大", container)
+                preset_row.addWidget(BodyLabel(tr("快速预设"), container))
+                self.btn_small = PushButton(tr("小边距"), container)
+                self.btn_medium = PushButton(tr("中等边距"), container)
+                self.btn_large = PushButton(tr("大边距"), container)
                 for b in (self.btn_small, self.btn_medium, self.btn_large):
                     b.setFixedWidth(60)
                 preset_row.addWidget(self.btn_small)
@@ -565,8 +613,8 @@ class ScreenPaddingSettingCard(SettingCard):
                 self.btn_small.clicked.connect(lambda: self._apply_preset(10))
                 self.btn_medium.clicked.connect(lambda: self._apply_preset(20))
                 self.btn_large.clicked.connect(lambda: self._apply_preset(40))
-                self.cancelButton.setText("取消")
-                self.yesButton.setText("应用")
+                self.cancelButton.setText(tr("取消"))
+                self.yesButton.setText(tr("应用当前设置"))
                 self.yesButton.clicked.connect(self._apply_and_close)
 
             def _sync_preview(self):

@@ -1,15 +1,16 @@
 import multiprocessing
 import queue
 import time
+import os
+import sys
+from datetime import datetime
+from dataclasses import dataclass
+
 import win32com.client
 import pythoncom
 import win32api
 import win32gui
 import win32con
-import os
-import sys
-from datetime import datetime
-from dataclasses import dataclass
 
 @dataclass
 class PPTState:
@@ -24,10 +25,9 @@ class PPTState:
 class PPTClient:
     def __init__(self):
         self.app = None
-        self.app_type = None # 'office' or 'wps'
+        self.app_type = None
 
     def connect(self):
-        """尝试连接到 PowerPoint 或 WPS"""
         self.app = None
         self.app_type = None
         
@@ -36,7 +36,6 @@ class PPTClient:
         except:
             pass
 
-        # 尝试连接 Office PowerPoint
         try:
             self.app = win32com.client.GetActiveObject("PowerPoint.Application")
             self.app_type = 'office'
@@ -44,7 +43,6 @@ class PPTClient:
         except Exception as e:
             pass
 
-        # 尝试连接 WPS Presentation
         wps_prog_ids = ["Kwpp.Application", "Wpp.Application"]
         for prog_id in wps_prog_ids:
             try:
@@ -241,16 +239,13 @@ class PPTClient:
             if slide.Shapes.Count == 0:
                 return False
             for shape in slide.Shapes:
-                if shape.Type == 22: # msoInk
+                if shape.Type == 22:
                     return True
             return False
         except:
             return True
 
 def ppt_worker_process(cmd_queue, result_queue):
-    """
-    Independent process function for handling PPT COM automation.
-    """
     pythoncom.CoInitialize()
     client = PPTClient()
     
@@ -271,7 +266,7 @@ def ppt_worker_process(cmd_queue, result_queue):
         except queue.Empty:
             continue
             
-        if task is None: # Poison pill
+        if task is None:
             worker_log("Exiting")
             break
             

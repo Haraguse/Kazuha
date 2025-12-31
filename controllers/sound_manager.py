@@ -1,7 +1,7 @@
-from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
-from PyQt6.QtCore import QUrl
 import os
 import win32com.client
+from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
+from PyQt6.QtCore import QUrl
 
 class SoundManager:
     def __init__(self, resource_dir):
@@ -14,12 +14,6 @@ class SoundManager:
             self.speaker = None
 
     def play(self, sound_name, loop=False, custom_path=None):
-        """
-        Play a sound effect.
-        :param sound_name: The name of the sound file (e.g., 'Switch' or 'Switch.ogg')
-        :param loop: Whether to loop the sound
-        :param custom_path: Optional absolute path to override resource_dir
-        """
         if custom_path:
             full_path = custom_path
             key = custom_path
@@ -63,13 +57,11 @@ class SoundManager:
     def speak(self, text):
         if self.speaker:
             try:
-                # 1 = SVSFlagsAsync
                 self.speaker.Speak(text, 1)
             except Exception as e:
                 print(f"TTS Error: {e}")
 
     def cleanup(self):
-        """Clean up all media players and resources."""
         for key in list(self.players.keys()):
             try:
                 player = self.players[key]
