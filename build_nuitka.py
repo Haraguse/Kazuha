@@ -25,7 +25,7 @@ def run():
         "--onefile",
         "--windowed",
         "--name",
-        "KazuhaRemake",
+        "Kazuha",
         "--add-data",
         "version.json;.",
         "--add-data",
@@ -49,7 +49,7 @@ def run():
         shutil.rmtree(dist_dir, ignore_errors=True)
     if os.path.isdir(build_dir):
         shutil.rmtree(build_dir, ignore_errors=True)
-    spec_path = os.path.join(root_dir, "KazuhaRemake.spec")
+    spec_path = os.path.join(root_dir, "Kazuha.spec")
     if os.path.exists(spec_path):
         os.remove(spec_path)
 
@@ -57,7 +57,7 @@ def run():
     env["PYINSTALLER_HIDE_PKGRES"] = "1"
     subprocess.check_call(cmd, cwd=root_dir, env=env)
 
-    exe_name = "KazuhaRemake.exe"
+    exe_name = "Kazuha.exe"
     src_exe = os.path.join(dist_dir, exe_name)
     dst_exe = os.path.join(root_dir, exe_name)
 

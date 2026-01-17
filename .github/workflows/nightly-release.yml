@@ -21,13 +21,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set nightly tag
-        id: set_tag
-        shell: pwsh
-        run: |
-          $tag = "nightly-{0:yyyyMMdd}" -f (Get-Date).ToUniversalTime()
-          Add-Content -Path $env:GITHUB_ENV -Value "TAG=$tag"
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -46,50 +39,49 @@ jobs:
         shell: pwsh
         run: |
           python -m pip install --upgrade pip
-          if (Test-Path -Path 'requirements.txt') {
-            pip install -r requirements.txt
-          }
-          pip install pyinstaller
+          pip install PySide6 qfluentwidgets PyInstaller
+
+      - name: Update version.json
+        shell: pwsh
+        run: |
+          $date = Get-Date -Format "yyyy.MM.dd"
+          $version = "$date-nightly.1"
+          $json = Get-Content -Path version.json | ConvertFrom-Json
+          $json.version = $version
+          $json | ConvertTo-Json | Set-Content -Path version.json
+          Write-Host "Updated version.json to $version"
+          Add-Content -Path $env:GITHUB_ENV -Value "VERSION=$version"
 
       - name: Build exe
         shell: pwsh
         run: |
-          # clean previous build artifacts to avoid stale files
-          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue build,dist || $null
-          # Use single quotes around add-data to avoid PowerShell semicolon parsing issues
-          pyinstaller --noconfirm --noconsole --onefile --name Kazuha main.py --add-data 'icons;icons' --add-data 'ui/timer_ring.ogg;ui'
-
-      - name: List dist contents
-        shell: pwsh
-        run: |
-          if (Test-Path -Path dist) {
-            Write-Host "dist contents:"
-            Get-ChildItem -Path dist -Recurse | Format-Table -AutoSize
-          } else {
-            Write-Error "dist directory not found. Build may have failed."
-          }
+          python build_nuitka.py
 
       - name: Verify built exe exists
         id: verify_asset
         shell: pwsh
         run: |
-          $exe = Get-ChildItem -Path dist -Filter *.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $exe) {
-            Write-Error "No .exe found in dist. Failing the job."
+          if (Test-Path -Path "Kazuha.exe") {
+            Write-Host "Found asset: Kazuha.exe"
+            Add-Content -Path $env:GITHUB_ENV -Value "ASSET_PATH=Kazuha.exe"
+          } else {
+            Write-Error "Kazuha.exe not found. Build may have failed."
             exit 1
           }
-          Write-Host "Found asset: $($exe.FullName)"
-          Add-Content -Path $env:GITHUB_ENV -Value ("ASSET_PATH=" + $exe.FullName)
 
       - name: Create nightly release and upload asset
-        # Using ncipollo/release-action which creates a release and uploads files in one step
         uses: ncipollo/release-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag: ${{ env.TAG }}
-          name: ${{ env.TAG }}
-          body: Nightly build ${{ env.TAG }}
+          allowUpdates: true
+          tag: nightly
+          name: Nightly Build (${{ env.VERSION }})
+          body: |
+            Kazuha Nightly Build
+            构建日期: ${{ env.VERSION }}
+            
+            这是自动构建的开发版本，不保证稳定性。
           prerelease: true
           draft: false
+          makeLatest: true
           files: ${{ env.ASSET_PATH }}
+          token: ${{ secrets.GITHUB_TOKEN }}
