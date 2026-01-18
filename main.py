@@ -29,7 +29,7 @@ from ppt_assistant.ui.overlay import OverlayWindow
 from plugins.builtins.settings.plugin import SettingsPlugin
 from plugins.builtins.timer.plugin import TimerPlugin
 from ppt_assistant.ui.tray import SystemTray
-from ppt_assistant.core.config import cfg, SETTINGS_PATH, reload_cfg, _apply_theme_and_color
+from ppt_assistant.core.config import cfg, SETTINGS_PATH, reload_cfg, _apply_theme_and_color, Theme, qconfig
 from ppt_assistant.core.timer_manager import TimerManager
 from ppt_assistant.core.i18n import t
 
@@ -176,36 +176,42 @@ class StartupSplash(QWidget):
 
         self._version_text, self._code_name_en, self._code_name_cn = _load_version_info()
         self._language = _get_current_language()
+        
+        # 确定主题
+        theme_val = cfg.themeMode.value
+        if theme_val == Theme.AUTO:
+            from qfluentwidgets import isDarkTheme
+            self._is_dark = isDarkTheme()
+        else:
+            self._is_dark = theme_val == Theme.DARK
 
         self._build_ui()
         self._apply_styles()
         self._center_on_screen()
 
-        # self._progress_timer = QTimer(self)
-        # self._progress_timer.timeout.connect(self._advance_progress)
-        # self._progress_timer.start(30)
-        
         self.set_progress(0, "initializing")
 
         if _is_dev_preview_version(self._version_text):
-            self._dev_watermark = QLabel(self)
+            self._dev_watermark = QLabel(self._container)
             tmpl = SPLASH_I18N.get(self._language, SPLASH_I18N["zh-CN"]).get("dev_watermark", "")
             self._dev_watermark.setText(tmpl.format(version=self._version_text))
             font = QFont()
             font.setPixelSize(11)
             self._dev_watermark.setFont(font)
             self._dev_watermark.setAlignment(Qt.AlignRight | Qt.AlignBottom)
-            self._dev_watermark.setStyleSheet(
-                "color: rgba(255, 255, 255, 100);"
-            )
+            
+            watermark_color = "rgba(255, 255, 255, 100)" if self._is_dark else "rgba(0, 0, 0, 100)"
+            self._dev_watermark.setStyleSheet(f"color: {watermark_color};")
+            
             self._dev_watermark.resize(320, 36)
-            self._dev_watermark.move(self.width() - self._dev_watermark.width() - 16,
-                                     self.height() - self._dev_watermark.height() - 12)
+            self._dev_watermark.move(self._container.width() - self._dev_watermark.width() - 16,
+                                     self._container.height() - self._dev_watermark.height() - 12)
 
     def _build_ui(self):
         # Redesigned based on QML spec
         # Width: 678, Height: 255
         self._container.setFixedSize(678, 255)
+        self._container.move(24, 16) # Offset for shadow
         
         # Logo (kZHTXT_2.png equivalent) - x: 38, y: 37
         self._icon_label = QLabel(self._container)
@@ -229,24 +235,18 @@ class StartupSplash(QWidget):
         self._brand_label.move(38, 111)
 
         # Version Info Container - x: 38, y: 143
-        # Combines Version, Code Name EN, and Code Name CN into a single rich text label
-        # This handles dynamic spacing better than absolute positioning
         self._version_info_label = QLabel(self._container)
-        
-        # Construct HTML string
-        # QML x offsets: 38 -> 83 (+45) -> 174 (+91)
-        # Assuming these are just sequential. 
-        # Version: 1.0.107.0 (approx 45px width?)
-        # Momoka Kawaragi (approx 91px?)
-        # Spacing seems to be about 5-10px.
         
         ver_text = self._version_text or ""
         en_text = self._code_name_en or ""
         
+        ver_color = "#FFFFFF" if self._is_dark else "#000000"
+        en_color = "rgba(255, 255, 255, 0.47)" if self._is_dark else "rgba(0, 0, 0, 0.47)"
+        
         html = f"""
         <div style="line-height: 20px;">
-            <span style="font-family: 'MiSans'; font-size: 11px; font-weight: 500; color: #FFFFFF;">{ver_text}</span>
-            <span style="font-family: 'MiSans'; font-size: 11px; font-weight: 300; color: rgba(255, 255, 255, 0.47); margin-left: 2px;">{en_text}</span>
+            <span style="font-family: 'MiSans'; font-size: 11px; font-weight: 500; color: {ver_color};">{ver_text}</span>
+            <span style="font-family: 'MiSans'; font-size: 11px; font-weight: 300; color: {en_color}; margin-left: 2px;">{en_text}</span>
         </div>
         """
         
@@ -255,7 +255,8 @@ class StartupSplash(QWidget):
         self._version_info_label.move(38, 143) 
 
         # Loading Spinner (Vector) - x: 38, y: 199
-        self._spinner = IndeterminateSpinner(self._container)
+        spinner_color = QColor("#d9d9d9") if self._is_dark else QColor("#666666")
+        self._spinner = IndeterminateSpinner(self._container, color=spinner_color)
         self._spinner.move(38, 199)
         self._spinner.start()
 
@@ -268,29 +269,17 @@ class StartupSplash(QWidget):
         self._percent_label.setFont(percent_font)
         self._percent_label.setFixedWidth(221)
         self._percent_label.setFixedHeight(24)
-        self._percent_label.setStyleSheet("color: #d9d9d9;")
         self._percent_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self._percent_label.move(76, 200)
 
-        # Progress Bar Background (rectangle_30) - x: 271, y: 247, w: 407, h: 8
-        self._progress_bg = QFrame(self._container)
-        self._progress_bg.setFixedSize(407, 8)
-        self._progress_bg.move(271, 247)
-        self._progress_bg.setStyleSheet("background-color: #29454545; border: none;")
-
-        # Progress Bar Foreground (rectangle_31) - y: 247, h: 8, w: 641, color: #3275f5
-        # Using QProgressBar to simulate this
+        # Progress Bar Foreground (rectangle_31) - y: 247, h: 8, w: 678
         self._progress = QProgressBar(self._container)
         self._progress.setRange(0, 100)
         self._progress.setValue(0)
         self._progress.setTextVisible(False)
         self._progress.setFixedHeight(8)
-        self._progress.setFixedWidth(641) 
+        self._progress.setFixedWidth(678) 
         self._progress.move(0, 247)
-        self._progress.setStyleSheet(
-            "QProgressBar { background: transparent; border: none; }"
-            "QProgressBar::chunk { background-color: #3275f5; }"
-        )
 
         shadow = QGraphicsDropShadowEffect(self)
         shadow.setBlurRadius(24)
@@ -299,20 +288,22 @@ class StartupSplash(QWidget):
         self._container.setGraphicsEffect(shadow)
 
     def _apply_styles(self):
-        # Forced Dark Theme colors from QML
-        bg_color = "rgba(47, 47, 47, 240)" # Semi-transparent background (approx 94% opacity)
-        border_color = "rgba(255, 255, 255, 0.15)" # Inner light stroke
-        
-        brand_color = "#ffffff"
-        percent_color = "#d9d9d9"
-        
-        # rectangle_30 color #29454545 -> Bg of progress?
-        # rectangle_31 color #3275f5 -> Fg of progress
-        progress_bg = "#454545" 
-        chunk_color = "#3275f5"
+        if self._is_dark:
+            bg_color = "rgba(47, 47, 47, 240)"
+            border_color = "rgba(255, 255, 255, 0.15)"
+            brand_color = "#ffffff"
+            percent_color = "#d9d9d9"
+            progress_bg = "#454545" 
+            chunk_color = "#E1EBFF" 
+        else:
+            bg_color = "rgba(255, 255, 255, 240)"
+            border_color = "rgba(0, 0, 0, 0.08)"
+            brand_color = "#000000"
+            percent_color = "#666666"
+            progress_bg = "#e5e5e5"
+            chunk_color = "#3275F5"
 
-        self.resize(678, 255)
-        self.setMask(QRegion(0, 0, 678, 255)) # Simple rect mask if needed, but frameless handles it
+        self.resize(678 + 48, 255 + 48) # Increased for shadow
         
         self._container.setStyleSheet(
             f"QFrame#splashContainer {{"
@@ -322,16 +313,19 @@ class StartupSplash(QWidget):
             "}"
         )
         self._brand_label.setStyleSheet(f"color: {brand_color};")
-        
         self._percent_label.setStyleSheet(f"color: {percent_color};")
         
         self._progress.setStyleSheet(
             "QProgressBar {"
             f"background-color: {progress_bg};"
             "border: none;"
+            "border-bottom-left-radius: 8px;"
+            "border-bottom-right-radius: 8px;"
             "}"
             "QProgressBar::chunk {"
             f"background-color: {chunk_color};"
+            "border-bottom-left-radius: 8px;"
+            "border-bottom-right-radius: 8px;"
             "}"
         )
 
@@ -364,10 +358,11 @@ class StartupSplash(QWidget):
         QTimer.singleShot(250, self.close)
 
 class IndeterminateSpinner(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, color=QColor("#d9d9d9")):
         super().__init__(parent)
         self.setFixedSize(27, 27)
         self._angle = 0
+        self._color = color
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._rotate)
         self._timer.start(16) # ~60 FPS
@@ -390,10 +385,8 @@ class IndeterminateSpinner(QWidget):
         rect = self.rect()
         cx, cy = rect.center().x(), rect.center().y()
         
-        # Outer ring (static) - #d9d9d9 stroke ~3px based on image
-        # The image shows a thick grey ring
-        ring_color = QColor("#d9d9d9")
-        pen = QPen(ring_color)
+        # Outer ring (static)
+        pen = QPen(self._color)
         pen.setWidth(3)
         painter.setPen(pen)
         painter.setBrush(Qt.NoBrush)
@@ -403,20 +396,16 @@ class IndeterminateSpinner(QWidget):
         painter.drawEllipse(QPoint(cx, cy), ring_radius, ring_radius)
         
         # Inner rotating dot
-        # The image shows a solid dot INSIDE the ring, rotating along the inner edge
-        # The dot seems to be about 1/3 the diameter of the hole
-        
         painter.save()
         painter.translate(cx, cy)
         painter.rotate(self._angle)
         
         # Draw small circle on the orbit
-        # Orbit radius should be smaller than ring_radius - pen_width/2 - dot_radius
         dot_radius = 2.5
         orbit_radius = ring_radius - 3 - dot_radius + 1 # Fine tuned visual position
         
         painter.setPen(Qt.NoPen)
-        painter.setBrush(QBrush(ring_color))
+        painter.setBrush(QBrush(self._color))
         painter.drawEllipse(QPoint(0, -orbit_radius), dot_radius, dot_radius)
         
         painter.restore()
