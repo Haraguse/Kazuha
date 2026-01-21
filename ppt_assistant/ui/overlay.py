@@ -260,6 +260,20 @@ def _get_app_version():
         return ""
 
 
+def _format_version_display(version: str) -> str:
+    if not version:
+        return ""
+    parts = str(version).strip().split(".")
+    if len(parts) < 2:
+        return str(version).strip()
+    suffix = parts[-1]
+    if suffix in ["5", "6", "7"]:
+        patch_num = int(suffix) - 4
+        base = ".".join(parts[:-1])
+        return f"{base} Patch {patch_num}"
+    return str(version).strip()
+
+
 def _is_dev_preview_version(version: str) -> bool:
     if not version:
         return False
@@ -1191,12 +1205,14 @@ class SlidePreviewPopup(FluentWidget):
         return super().event(e)
 
 class IndeterminateSpinner(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, color=QColor("#d9d9d9"), size=27):
         super().__init__(parent)
         self._angle = 0
+        self._color = color
+        self._size = int(size)
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._tick)
-        self.setFixedSize(27, 27)
+        self.setFixedSize(self._size, self._size)
 
     def start(self):
         if not self._timer.isActive():
@@ -1225,17 +1241,17 @@ class IndeterminateSpinner(QWidget):
         center_x = self.width() / 2
         center_y = self.height() / 2
 
-        ring_color = QColor("#d9d9d9")
+        ring_color = self._color if isinstance(self._color, QColor) else QColor(self._color)
         pen = QPen(ring_color)
         pen.setWidth(3)
         pen.setCapStyle(Qt.RoundCap)
         painter.setPen(pen)
         painter.setBrush(Qt.NoBrush)
 
-        ring_radius = 10
+        ring_radius = int(self._size * 0.37)
         painter.drawEllipse(QPoint(int(center_x), int(center_y)), ring_radius, ring_radius)
 
-        dot_radius = 2.5
+        dot_radius = ring_radius * 0.25
         orbit_radius = ring_radius - 3 - dot_radius + 1
         angle_rad = math.radians(self._angle)
         dot_x = center_x + orbit_radius * math.cos(angle_rad)
@@ -1243,7 +1259,30 @@ class IndeterminateSpinner(QWidget):
 
         painter.setPen(Qt.NoPen)
         painter.setBrush(QBrush(ring_color))
-        painter.drawEllipse(QPoint(int(dot_x), int(dot_y)), dot_radius, dot_radius)
+        painter.drawEllipse(QPoint(int(dot_x), int(dot_y)), int(dot_radius), int(dot_radius))
+
+class UiBlockWatchdog(QThread):
+    blocked_changed = Signal(bool)
+
+    def __init__(self, get_last_ping, threshold_ms=800, interval_ms=100, parent=None):
+        super().__init__(parent)
+        self._get_last_ping = get_last_ping
+        self._threshold = max(0.1, float(threshold_ms) / 1000.0)
+        self._interval = max(0.05, float(interval_ms) / 1000.0)
+        self._blocked = False
+
+    def run(self):
+        while not self.isInterruptionRequested():
+            try:
+                last = float(self._get_last_ping())
+            except Exception:
+                last = time.monotonic()
+            now = time.monotonic()
+            blocked = (now - last) >= self._threshold
+            if blocked != self._blocked:
+                self._blocked = blocked
+                self.blocked_changed.emit(blocked)
+            time.sleep(self._interval)
 
 class ReloadMask(QWidget):
     def __init__(self, parent=None):
@@ -1268,7 +1307,8 @@ class ReloadMask(QWidget):
         card_layout.setSpacing(12)
         card_layout.setAlignment(Qt.AlignCenter)
 
-        self.spinner = IndeterminateSpinner(card)
+        spinner_color = _parse_color(_p("mask_text_fg", is_light) or "rgba(255, 255, 255, 0.92)")
+        self.spinner = IndeterminateSpinner(card, color=spinner_color, size=27)
         card_layout.addWidget(self.spinner, 0, Qt.AlignCenter)
 
         self.label = QLabel("正在重载页面", card)
@@ -1289,7 +1329,7 @@ class OverlayWindow(QWidget):
     
     def __init__(self):
         super().__init__()
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowDoesNotAcceptFocus)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_NoSystemBackground, True)
         self.setAttribute(Qt.WA_PaintOnScreen, False)
@@ -1314,12 +1354,23 @@ class OverlayWindow(QWidget):
         self._wheel_acc = 0 # For OverlayWindow scroll handling
         self._reload_mask = None
         self._pending_timers = []
+        self._mask_reasons = set()
+        self._mask_texts = {"reload": "正在重载页面", "blocked": "请稍后"}
+        self._ui_last_ping = time.monotonic()
+        self._ui_heartbeat_timer = QTimer(self)
+        self._ui_heartbeat_timer.setInterval(100)
+        self._ui_heartbeat_timer.timeout.connect(self._mark_ui_alive)
+        self._ui_heartbeat_timer.start()
+        self._block_watchdog = UiBlockWatchdog(lambda: self._ui_last_ping, threshold_ms=800, interval_ms=100, parent=self)
+        self._block_watchdog.blocked_changed.connect(self._on_ui_blocked_changed)
+        self._block_watchdog.start()
         version = _get_app_version()
         if _is_dev_preview_version(version):
             label = QLabel(self)
             suffix = version.split(".")[-1]
             w_type = _t(f"watermark.{suffix}")
-            label.setText(_t("overlay.dev_watermark").format(type=w_type, version=version))
+            display_version = _format_version_display(version)
+            label.setText(_t("overlay.dev_watermark").format(type=w_type, version=display_version))
             font = QFont()
             font.setPixelSize(11)
             label.setFont(font)
@@ -1358,19 +1409,50 @@ class OverlayWindow(QWidget):
             self.status_bar.set_monitor(monitor)
         self.bind_monitor_signals()
 
-    def show_reload_mask(self, text="正在重载页面"):
+    def _mark_ui_alive(self):
+        self._ui_last_ping = time.monotonic()
+
+    def _ensure_reload_mask(self):
         if self._reload_mask is None:
             self._reload_mask = ReloadMask(self)
             self._reload_mask.setGeometry(self.rect())
+
+    def _select_mask_text(self):
+        if "blocked" in self._mask_reasons:
+            return self._mask_texts.get("blocked", "请稍后")
+        if "reload" in self._mask_reasons:
+            return self._mask_texts.get("reload", "正在重载页面")
+        return ""
+
+    def _update_mask_visibility(self):
+        if self._mask_reasons:
+            self._ensure_reload_mask()
+            text = self._select_mask_text()
+            if text:
+                self._reload_mask.label.setText(str(text))
+            self._reload_mask.show()
+            self._reload_mask.raise_()
+            self._reload_mask.activateWindow()
+        elif self._reload_mask is not None:
+            self._reload_mask.hide()
+
+    def _set_mask_reason(self, reason, active, text=None):
         if text:
-            self._reload_mask.label.setText(str(text))
-        self._reload_mask.show()
-        self._reload_mask.raise_()
-        self._reload_mask.activateWindow()
+            self._mask_texts[reason] = str(text)
+        if active:
+            self._mask_reasons.add(reason)
+        else:
+            self._mask_reasons.discard(reason)
+        self._update_mask_visibility()
+
+    def _on_ui_blocked_changed(self, blocked):
+        self._set_mask_reason("blocked", blocked)
+
+    def show_reload_mask(self, text="正在重载页面"):
+        self._set_mask_reason("reload", True, text=text)
 
     def hide_reload_mask(self):
-        if self._reload_mask is not None:
-            self._reload_mask.hide()
+        self._set_mask_reason("reload", False)
 
     def _defer(self, callback):
         t = QTimer(self)
@@ -1584,6 +1666,11 @@ class OverlayWindow(QWidget):
     def cleanup(self):
         if hasattr(self, 'status_bar') and self.status_bar:
             self.status_bar.cleanup()
+        if hasattr(self, "_ui_heartbeat_timer") and self._ui_heartbeat_timer.isActive():
+            self._ui_heartbeat_timer.stop()
+        if hasattr(self, "_block_watchdog") and self._block_watchdog.isRunning():
+            self._block_watchdog.requestInterruption()
+            self._block_watchdog.wait()
     
     def _on_status_bar_visibility_changed(self, visible: bool):
         if visible and getattr(self, "_has_status_plugin", False):

@@ -873,6 +873,8 @@
   <script>
     const I18N = {
       "zh-CN": {
+        "app.timer": "计时器",
+        "app.name": "Kazuha",
         "nav.stopwatch": "秒表",
         "nav.timer": "计时",
         "nav.clock": "时钟",
@@ -891,6 +893,8 @@
         "general.devWatermark": "开发中版本/技术预览版本\n不保证最终品质 （{version}）"
       },
       "zh-TW": {
+        "app.timer": "計時器",
+        "app.name": "Kazuha",
         "nav.stopwatch": "秒錶",
         "nav.timer": "計時",
         "nav.clock": "時鐘",
@@ -909,6 +913,8 @@
         "general.devWatermark": "開發中版本/技術預覽版本\n不保證最終品質 （{version}）"
       },
       "ja-JP": {
+        "app.timer": "タイマー",
+        "app.name": "Kazuha",
         "nav.stopwatch": "ストップウォッチ",
         "nav.timer": "タイマー",
         "nav.clock": "時計",
@@ -927,6 +933,8 @@
         "general.devWatermark": "開発中バージョン/テクニカルプレビュー\n品質は保証されません （{version}）"
       },
       "en-US": {
+        "app.timer": "Timer",
+        "app.name": "Kazuha",
         "nav.stopwatch": "Stopwatch",
         "nav.timer": "Timer",
         "nav.clock": "Clock",
@@ -945,6 +953,8 @@
         "general.devWatermark": "In-Development/Technical Preview\nFinal quality not guaranteed ({version})"
       },
       "ug-CN": {
+        "app.timer": "ۋاقىت بەلگىلىگۈچ",
+        "app.name": "Kazuha",
         "nav.stopwatch": "سۇۋقاچ",
         "nav.timer": "ۋاقىت بەلگىلەش",
         "nav.clock": "سائەت",
@@ -996,6 +1006,25 @@
       return (typeof v === "string" && v.trim()) ? v.trim() : "";
     }
 
+    function buildWindowTitle(titleKey) {
+      const pageText = getText(titleKey) || "";
+      const appText = getText("app.timer") || "计时器";
+      const appName = getText("app.name") || "Kazuha";
+      const parts = [];
+      if (pageText) parts.push(pageText);
+      parts.push(appText);
+      parts.push(appName);
+      return parts.join(" - ");
+    }
+
+    function updateWindowTitleFromActive() {
+      if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.set_title) return;
+      const activeNav = document.querySelector(".nav-item.active");
+      const key = activeNav ? (activeNav.dataset.titleKey || "title.stopwatch") : "title.stopwatch";
+      const title = buildWindowTitle(key);
+      if (title) window.pywebview.api.set_title(title);
+    }
+
     function applyLanguageFont() {
       const base = getDefaultFontStack(currentLanguage);
       const selected = getSelectedWebFont(currentLanguage);
@@ -1037,6 +1066,7 @@
         const text = getText(key);
         if (text) pageTitle.textContent = text;
       }
+      updateWindowTitleFromActive();
     }
 
     const exitDialog = document.getElementById('exitDialog');
@@ -1151,6 +1181,7 @@
         const titleKey = item.dataset.titleKey || "title.stopwatch";
         const text = getText(titleKey);
         pageTitle.textContent = text || pageTitle.textContent;
+        updateWindowTitleFromActive();
 
         updateButtonState();
       });
@@ -1436,6 +1467,16 @@
       updateButtonState();
     }
 
+    const ringAudio = new Audio('timer_ring.ogg');
+
+    function playTimerRing() {
+      ringAudio.currentTime = 0;
+      const res = ringAudio.play();
+      if (res && res.catch) {
+        res.catch(e => console.error('Audio play error:', e));
+      }
+    }
+
     function finishCountdown() {
       clearInterval(tmInterval);
       tmRemaining = 0;
@@ -1454,12 +1495,7 @@
       countdownUI.classList.remove('active');
       bellUI.style.display = 'flex';
 
-      if (window.pywebview && window.pywebview.api.get_assets_path) {
-        window.pywebview.api.get_assets_path().then(path => {
-          const audio = new Audio('file:///' + path.replace(/\\/g, '/'));
-          audio.play().catch(e => console.error('Audio play error:', e));
-        });
-      }
+      playTimerRing();
 
       updateButtonState();
     }

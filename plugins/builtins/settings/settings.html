@@ -640,6 +640,32 @@
       transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
+    .layout.dir-switch-rtl {
+      animation: rtlSlide 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .layout.dir-switch-ltr {
+      animation: ltrSlide 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    @keyframes rtlSlide {
+      from {
+        transform: translateX(16px);
+      }
+      to {
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes ltrSlide {
+      from {
+        transform: translateX(-16px);
+      }
+      to {
+        transform: translateX(0);
+      }
+    }
+
     .sidebar-mini {
       width: 0;
       opacity: 0;
@@ -3729,12 +3755,17 @@
                 </div>
                 <div class="switch" id="sw-Update-AutoCheck"></div>
               </div>
-              <div class="settings-item" onclick="toggleSwitch('Update', 'BetaProgram')">
+              <div class="settings-item">
                 <div class="item-info">
-                  <div class="item-label" data-i18n="update.settings.beta.label">预览版计划</div>
-                  <div class="item-desc" data-i18n="update.settings.beta.desc">获取最新的预览版功能，可能存在不稳定性</div>
+                  <div class="item-label" data-i18n="update.settings.source.label">更新源</div>
+                  <div class="item-desc" data-i18n="update.settings.source.desc">在 GitHub 与 bgithub 镜像间切换，改善大陆网络更新体验</div>
                 </div>
-                <div class="switch" id="sw-Update-BetaProgram"></div>
+                <div class="item-state">
+                  <select class="styled-select" id="sel-Update-Source" onchange="setUpdateSource(this.value)">
+                    <option value="github" data-i18n="update.settings.source.github">GitHub</option>
+                    <option value="bgithub" data-i18n="update.settings.source.bgithub">bgithub 镜像</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -3848,6 +3879,8 @@
 <script>
   const I18N = {
     "zh-CN": {
+      "app.settings": "设置",
+      "app.name": "Kazuha",
       "nav.main": "常规",
       "nav.theme": "主题",
       "nav.fonts": "全局应用字体",
@@ -3991,8 +4024,10 @@
       "update.download": "下载更新",
       "update.settings.autoCheck.label": "自动检查更新",
       "update.settings.autoCheck.desc": "启动时自动检查是否有新版本",
-      "update.settings.beta.label": "预览版计划",
-      "update.settings.beta.desc": "获取最新的预览版功能，可能存在不稳定性",
+      "update.settings.source.label": "更新源",
+      "update.settings.source.desc": "在 GitHub 与 bgithub 镜像间切换，改善大陆网络更新体验",
+      "update.settings.source.github": "GitHub",
+      "update.settings.source.bgithub": "bgithub 镜像",
       "toolbar.clear": "清屏",
       "toolbar.end_show": "结束放映",
       "about.version.label": "软件版本",
@@ -4017,6 +4052,8 @@
       "debug.rotateTest.desc": "以窗口中心持续旋转设置页"
     },
     "zh-TW": {
+      "app.settings": "設定",
+      "app.name": "Kazuha",
       "nav.main": "一般",
       "nav.theme": "主題",
       "nav.fonts": "全域字型",
@@ -4157,8 +4194,10 @@
       "update.download": "下載更新",
       "update.settings.autoCheck.label": "自動檢查更新",
       "update.settings.autoCheck.desc": "啟動時自動檢查是否有新版本",
-      "update.settings.beta.label": "預覽版計劃",
-      "update.settings.beta.desc": "獲取最新的預覽版功能，可能存在不穩定性",
+      "update.settings.source.label": "更新來源",
+      "update.settings.source.desc": "在 GitHub 與 bgithub 鏡像間切換，改善大陸網路更新體驗",
+      "update.settings.source.github": "GitHub",
+      "update.settings.source.bgithub": "bgithub 鏡像",
       "about.version.label": "軟體版本",
       "about.version.copyright": "COPYRIGHT 2025-2026 Seirai Haraguchi / YunoFactory │ 本程式依據 GNU General Public License 3 授權",
       "about.version.github": "GitHub 儲存庫",
@@ -4181,6 +4220,8 @@
       "debug.rotateTest.desc": "以視窗中心持續旋轉設定頁"
     },
     "ja-JP": {
+      "app.settings": "設定",
+      "app.name": "Kazuha",
       "nav.main": "一般",
       "nav.theme": "テーマ",
       "nav.fonts": "グローバルフォント",
@@ -4326,8 +4367,10 @@
       "update.download": "更新をダウンロード",
       "update.settings.autoCheck.label": "自動更新確認",
       "update.settings.autoCheck.desc": "起動時に自動で新しいバージョンを確認します",
-      "update.settings.beta.label": "ベータ版プログラム",
-      "update.settings.beta.desc": "最新のベータ版機能を利用できます（不安定な場合があります）",
+      "update.settings.source.label": "更新元",
+      "update.settings.source.desc": "GitHub と bgithub ミラーを切り替えて更新の取得性を改善します",
+      "update.settings.source.github": "GitHub",
+      "update.settings.source.bgithub": "bgithub ミラー",
       "about.version.label": "ソフトウェアバージョン",
       "about.version.copyright": "copyright 2025-2026 Seirai Haraguchi / YunoFactory │ 本プログラムは GNU General Public License 3 に基づきライセンスされています",
       "about.version.github": "GitHub リポジトリ",
@@ -4350,6 +4393,8 @@
       "debug.rotateTest.desc": "ウィンドウ中心で設定ページを回転"
     },
     "en-US": {
+      "app.settings": "Settings",
+      "app.name": "Kazuha",
       "nav.main": "General",
       "nav.theme": "Theme",
       "nav.fonts": "Global Fonts",
@@ -4492,8 +4537,10 @@
       "update.download": "Download Update",
       "update.settings.autoCheck.label": "Auto-check for updates",
       "update.settings.autoCheck.desc": "Automatically check for new versions on startup",
-      "update.settings.beta.label": "Beta Program",
-      "update.settings.beta.desc": "Get latest beta features, which may be unstable",
+      "update.settings.source.label": "Update Source",
+      "update.settings.source.desc": "Switch between GitHub and bgithub mirror for better access",
+      "update.settings.source.github": "GitHub",
+      "update.settings.source.bgithub": "bgithub Mirror",
       "about.version.label": "Software version",
       "about.version.copyright": "copyright 2025-2026 Seirai Haraguchi / YunoFactory │ Licensed under the GNU General Public License 3",
       "about.version.github": "GitHub repository",
@@ -4517,6 +4564,8 @@
       "general.language.warning": "The currently selected language is not Simplified Chinese. For the best experience, it is recommended to use Simplified Chinese. Other languages may have incomplete translations or layout issues."
     },
     "ug-CN": {
+      "app.settings": "تەڭشەك",
+      "app.name": "Kazuha",
       "nav.main": "ئاساسىي",
       "nav.theme": "ئۇسلۇب",
       "nav.fonts": "خەت نۇسخىسى",
@@ -4559,6 +4608,7 @@
 
   let pendingFontChange = null;
   let rtlTestEnabled = false;
+  let lastIsRtl = null;
   let rotateTestEnabled = false;
   let rotateTestRaf = 0;
   let rotateTestStart = 0;
@@ -4982,9 +5032,51 @@
     document.querySelectorAll(".font-dropdown.open, .custom-select-container.open").forEach(dd => dd.classList.remove("open"));
   });
 
+  function animateLayoutDirectionSwitch(prevIsRtl, nextIsRtl) {
+    if (prevIsRtl === nextIsRtl) return;
+    const layout = document.getElementById("layout");
+    if (!layout) return;
+    layout.classList.remove("dir-switch-rtl", "dir-switch-ltr");
+    void layout.offsetWidth;
+    layout.classList.add(nextIsRtl ? "dir-switch-rtl" : "dir-switch-ltr");
+    const onEnd = () => {
+      layout.classList.remove("dir-switch-rtl", "dir-switch-ltr");
+      layout.removeEventListener("animationend", onEnd);
+    };
+    layout.addEventListener("animationend", onEnd);
+  }
+
+  function buildWindowTitle(sectionKey) {
+    const sectionText = getText("section." + sectionKey) || "";
+    const appText = getText("app.settings") || "设置";
+    const appName = getText("app.name") || "Kazuha";
+    const parts = [];
+    if (sectionText) parts.push(sectionText);
+    parts.push(appText);
+    parts.push(appName);
+    return parts.join(" - ");
+  }
+
+  function updateWindowTitle(sectionKey) {
+    if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.set_title) return;
+    const title = buildWindowTitle(sectionKey);
+    if (title) window.pywebview.api.set_title(title);
+  }
+
+  function updateWindowTitleFromActive() {
+    const activeItem = document.querySelector(".sidebar-item.active");
+    if (!activeItem) return;
+    const sectionKey = activeItem.getAttribute("data-section") || "about";
+    updateWindowTitle(sectionKey);
+  }
+
   function applyI18n() {
     document.documentElement.lang = currentLanguage;
     const isRtl = rtlTestEnabled ? true : currentLanguage === "ug-CN";
+    if (lastIsRtl !== null) {
+      animateLayoutDirectionSwitch(lastIsRtl, isRtl);
+    }
+    lastIsRtl = isRtl;
     document.documentElement.dir = isRtl ? "rtl" : "ltr";
     document.documentElement.classList.toggle("rtl", isRtl);
     applyLanguageFont();
@@ -5026,6 +5118,7 @@
       }
     });
     ThemeSystem.renderThemeGallery("theme-gallery", settings.Appearance?.ThemeId || "default", settings.Appearance?.ThemeMode || "Light");
+    updateWindowTitleFromActive();
   }
 
   function initNav() {
@@ -5080,6 +5173,7 @@
           }
           title.style.display = (key === "about" || key === "plugins") ? "none" : "block";
         }
+        updateWindowTitle(key);
       });
     });
   }
@@ -5099,7 +5193,7 @@
     Overlay: { ShowStatusBar: true },
     Toolbar: { ShowClear: true, ShowToolbarText: true },
     Debug: { ShowLog: false, RtlTest: false, RotateTest: false },
-    Update: { AutoCheck: true, BetaProgram: false },
+    Update: { AutoCheck: true, Source: "github" },
     Appearance: { ThemeMode: "Light", ThemeId: "default" }
   };
 
@@ -5269,7 +5363,6 @@
     setSwitch("Debug", "RtlTest");
     setSwitch("Debug", "RotateTest");
     setSwitch("Update", "AutoCheck");
-    setSwitch("Update", "BetaProgram");
     setSwitch("Fonts", "CustomFont");
 
     // Ranges
@@ -5277,6 +5370,13 @@
     initRange("Overlay", "Scale", 1.0, "x", 2);
 
     renderFontSelects();
+
+    const updateSource = settings.Update?.Source || "github";
+    const updateSourceEl = document.getElementById("sel-Update-Source");
+    if (updateSourceEl) {
+        updateSourceEl.value = updateSource;
+        refreshCustomSelect(updateSourceEl);
+    }
 
     // Overlay Screen
     const overlayScreen = settings.Overlay?.OverlayScreen || "Auto";
@@ -5346,6 +5446,7 @@
     }
 
     applyI18n();
+    UpdateManager.applyPersistedState();
     FontManager.switchTab(currentLanguage);
     renderFontSelects();
     loadToolbarApps();
@@ -5987,6 +6088,14 @@
       }
   }
 
+  function setUpdateSource(value) {
+    if (!settings.Update) settings.Update = {};
+    settings.Update.Source = value;
+    if (window.pywebview && window.pywebview.api.save_setting) {
+      window.pywebview.api.save_setting("Update", "Source", value);
+    }
+  }
+
   function updateAccentColor() { }
 
   // Update Manager - Handles all update checking logic
@@ -5994,6 +6103,8 @@
     latestReleaseUrl: "https://github.com/Yunofactory/Kazuha/releases/latest",
     appVersion: "",
     currentReleaseData: null,
+    currentState: "idle",
+    lastCheckTime: "",
 
     // State management
     setState(state) {
@@ -6002,6 +6113,7 @@
         const el = document.getElementById(`update-state-${s}`);
         if (el) el.style.display = s === state ? 'block' : 'none';
       });
+      this.currentState = state;
     },
 
     // Update status bar
@@ -6018,11 +6130,75 @@
     },
 
     // Update last check time
-    updateLastCheckTime() {
-      const now = new Date();
-      const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+    updateLastCheckTime(timeStr) {
+      const finalTime = timeStr || this.getNowTimeString();
       const timeValueEl = document.getElementById('last-check-time-value');
-      if (timeValueEl) timeValueEl.textContent = timeStr;
+      if (timeValueEl) timeValueEl.textContent = finalTime;
+      this.lastCheckTime = finalTime;
+      return finalTime;
+    },
+
+    getNowTimeString() {
+      const now = new Date();
+      return now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+    },
+
+    getSource() {
+      const source = settings.Update?.Source || "github";
+      return source === "bgithub" ? "bgithub" : "github";
+    },
+
+    wrapMirrorUrl(url) {
+      if (!url) return "";
+      if (this.getSource() === "bgithub") return `https://bgithub.xyz/${url}`;
+      return url;
+    },
+
+    getApiUrl() {
+      const apiUrl = "https://api.github.com/repos/Yunofactory/Kazuha/releases/latest";
+      return this.wrapMirrorUrl(apiUrl);
+    },
+
+    saveUpdateSetting(key, value) {
+      if (!settings.Update) settings.Update = {};
+      settings.Update[key] = value;
+      if (window.pywebview && window.pywebview.api.save_setting) {
+        window.pywebview.api.save_setting("Update", key, value);
+      }
+    },
+
+    persistState(data, persist = true) {
+      if (!persist) return;
+      if (data.state) this.saveUpdateSetting("LastState", data.state);
+      if (data.lastCheckTime) this.saveUpdateSetting("LastCheckTime", data.lastCheckTime);
+      if (data.currentVersion !== undefined) this.saveUpdateSetting("LastCurrentVersion", data.currentVersion);
+      if (data.latestVersion !== undefined) this.saveUpdateSetting("LastLatestVersion", data.latestVersion);
+      if (data.changelog !== undefined) this.saveUpdateSetting("LastChangelog", data.changelog);
+      if (data.releaseUrl !== undefined) this.saveUpdateSetting("LastReleaseUrl", data.releaseUrl);
+      if (data.errorMessage !== undefined) this.saveUpdateSetting("LastError", data.errorMessage);
+    },
+
+    applyPersistedState() {
+      if (this.currentState === "loading") return;
+      const update = settings.Update || {};
+      const lastTime = update.LastCheckTime;
+      if (lastTime) this.updateLastCheckTime(lastTime);
+      const state = update.LastState || "idle";
+      if (state === "latest") {
+        this.latestReleaseUrl = update.LastReleaseUrl || this.latestReleaseUrl;
+        this.showUpToDate(update.LastCurrentVersion || this.appVersion, update.LastChangelog || "", false);
+        return;
+      }
+      if (state === "available") {
+        this.latestReleaseUrl = update.LastReleaseUrl || this.latestReleaseUrl;
+        this.showNewVersion(update.LastCurrentVersion || this.appVersion, update.LastLatestVersion || "", update.LastChangelog || "", false);
+        return;
+      }
+      if (state === "error") {
+        this.showError(update.LastError || (getText("update.error.desc") || ""), false);
+        return;
+      }
+      this.showReady(false);
     },
 
     // Set header actions
@@ -6073,10 +6249,8 @@
       );
 
       try {
-        let apiUrl = 'https://api.github.com/repos/Yunofactory/Kazuha/releases/latest';
-        if (settings.Update && settings.Update.BetaProgram) {
-          apiUrl = 'https://api.github.com/repos/Yunofactory/Kazuha/releases';
-        }
+        const checkTime = this.updateLastCheckTime();
+        const apiUrl = this.getApiUrl();
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
@@ -6090,8 +6264,7 @@
         const release = Array.isArray(data) ? data[0] : data;
 
         this.currentReleaseData = release;
-        this.latestReleaseUrl = release.html_url;
-        this.updateLastCheckTime();
+        this.latestReleaseUrl = this.wrapMirrorUrl(release.html_url || this.latestReleaseUrl);
 
         // Version comparison
         const latestVersion = release.tag_name || '';
@@ -6114,19 +6287,20 @@
 
         // If latest <= current, we are up to date (or newer)
         if (compare(latestV, currentV) <= 0 || !latestVersion) {
-          this.showUpToDate(currentV, release ? release.body : '');
+          this.showUpToDate(currentV, release ? release.body : '', true, checkTime);
         } else {
-          this.showNewVersion(currentV, latestVersion, release.body || '');
+          this.showNewVersion(currentV, latestVersion, release.body || '', true, checkTime);
         }
 
       } catch (error) {
         console.error("Check update failed:", error);
-        this.showError(error.message);
+        const checkTime = this.updateLastCheckTime();
+        this.showError(error.message, true, checkTime);
       }
     },
 
     // Show up-to-date state
-    showUpToDate(version, changelog) {
+    showUpToDate(version, changelog, persist = true, checkTime = "") {
       this.setState('latest');
       this.setActions('check');
       this.updateStatusBar(
@@ -6148,10 +6322,18 @@
           changelogEl.textContent = content;
         }
       }
+      this.persistState({
+        state: "latest",
+        lastCheckTime: checkTime || this.lastCheckTime,
+        currentVersion: version,
+        latestVersion: "",
+        changelog: changelog || "",
+        releaseUrl: this.latestReleaseUrl
+      }, persist);
     },
 
     // Show new version available
-    showNewVersion(currentVersion, latestVersion, changelog) {
+    showNewVersion(currentVersion, latestVersion, changelog, persist = true, checkTime = "") {
       this.setState('available');
       this.setActions('download');
 
@@ -6178,10 +6360,18 @@
           changelogEl.textContent = changelog || (getText("update.noChangelog") || "暂无更新日志");
         }
       }
+      this.persistState({
+        state: "available",
+        lastCheckTime: checkTime || this.lastCheckTime,
+        currentVersion,
+        latestVersion,
+        changelog: changelog || "",
+        releaseUrl: this.latestReleaseUrl
+      }, persist);
     },
 
     // Show error state
-    showError(errorMessage) {
+    showError(errorMessage, persist = true, checkTime = "") {
       this.setState('error');
       this.setActions('retry');
       this.updateStatusBar(
@@ -6198,6 +6388,11 @@
       if (errorMsgEl && errorMessage) {
         errorMsgEl.textContent = errorMessage;
       }
+      this.persistState({
+        state: "error",
+        lastCheckTime: checkTime || this.lastCheckTime,
+        errorMessage: errorMessage || ""
+      }, persist);
     },
 
     // Switch between tabs

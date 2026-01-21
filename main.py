@@ -173,6 +173,20 @@ def _load_version_info():
     return version, code_name, code_name_cn
 
 
+def _format_version_display(version: str) -> str:
+    if not version:
+        return ""
+    parts = str(version).strip().split(".")
+    if len(parts) < 2:
+        return str(version).strip()
+    suffix = parts[-1]
+    if suffix in ["5", "6", "7"]:
+        patch_num = int(suffix) - 4
+        base = ".".join(parts[:-1])
+        return f"{base} Patch {patch_num}"
+    return str(version).strip()
+
+
 def _is_dev_preview_version(version: str) -> bool:
     if not version:
         return False
@@ -193,7 +207,8 @@ class StartupSplash(QWidget):
         self._container = QFrame(self)
         self._container.setObjectName("splashContainer")
 
-        self._version_text, self._code_name_en, self._code_name_cn = _load_version_info()
+        self._version_raw, self._code_name_en, self._code_name_cn = _load_version_info()
+        self._version_text = _format_version_display(self._version_raw)
         self._language = _get_current_language()
         
         # 确定主题
@@ -210,10 +225,10 @@ class StartupSplash(QWidget):
 
         self.set_progress(0, "initializing")
 
-        if _is_dev_preview_version(self._version_text):
+        if _is_dev_preview_version(self._version_raw):
             self._dev_watermark = QLabel(self._container)
             i18n_table = SPLASH_I18N.get(self._language, SPLASH_I18N["zh-CN"])
-            suffix = self._version_text.split(".")[-1]
+            suffix = self._version_raw.split(".")[-1]
             w_type = i18n_table.get(f"watermark.{suffix}", "")
             tmpl = i18n_table.get("dev_watermark", "")
             self._dev_watermark.setText(tmpl.format(type=w_type, version=self._version_text))
