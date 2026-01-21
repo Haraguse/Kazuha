@@ -21,8 +21,101 @@ except Exception:
 # Windows 11 DWM Attributes
 DWMWA_WINDOW_CORNER_PREFERENCE = 33
 DWMWCP_ROUND = 2
+DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19
+DWMWA_BORDER_COLOR = 34
+DWMWA_CAPTION_COLOR = 35
+DWMWA_TEXT_COLOR = 36
 
-def apply_win11_aesthetics(window):
+def _get_windows_dark_mode():
+    if sys.platform != "win32":
+        return False
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize") as key:
+            val, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+            return int(val) == 0
+    except Exception:
+        return False
+
+def _resolve_theme_dark(theme_mode):
+    mode = str(theme_mode or "").lower()
+    if mode == "dark":
+        return True
+    if mode == "light":
+        return False
+    if mode == "auto":
+        return _get_windows_dark_mode()
+    return False
+
+def _try_get_proc(dll, ordinal):
+    try:
+        kernel32 = ctypes.windll.kernel32
+        addr = kernel32.GetProcAddress(dll._handle, ordinal)
+        if addr:
+            return addr
+    except Exception:
+        return None
+    return None
+
+def _set_preferred_app_mode(is_dark):
+    if sys.platform != "win32":
+        return
+    try:
+        uxtheme = ctypes.WinDLL("uxtheme")
+        addr = _try_get_proc(uxtheme, 135)
+        if not addr:
+            return
+        func = ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.c_int)(addr)
+        mode = 2 if is_dark else 3
+        func(mode)
+    except Exception:
+        pass
+
+def _allow_dark_for_window(hwnd, is_dark):
+    if sys.platform != "win32" or not hwnd:
+        return
+    try:
+        uxtheme = ctypes.WinDLL("uxtheme")
+        addr = _try_get_proc(uxtheme, 133)
+        if not addr:
+            return
+        func = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_bool)(addr)
+        func(ctypes.c_void_p(hwnd), bool(is_dark))
+    except Exception:
+        pass
+
+def _apply_window_theme(hwnd, is_dark):
+    if sys.platform != "win32" or not hwnd:
+        return
+    try:
+        dwmapi = ctypes.windll.dwmapi
+        uxtheme = ctypes.windll.uxtheme
+        user32 = ctypes.windll.user32
+        _set_preferred_app_mode(is_dark)
+        _allow_dark_for_window(hwnd, is_dark)
+        val = ctypes.c_int(1 if is_dark else 0)
+        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ctypes.byref(val), ctypes.sizeof(val))
+        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, ctypes.byref(val), ctypes.sizeof(val))
+        if is_dark:
+            border = ctypes.c_int(0x00202020)
+            caption = ctypes.c_int(0x00202020)
+            text = ctypes.c_int(0x00FFFFFF)
+        else:
+            border = ctypes.c_int(-1)
+            caption = ctypes.c_int(-1)
+            text = ctypes.c_int(-1)
+        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ctypes.byref(border), ctypes.sizeof(border))
+        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, ctypes.byref(caption), ctypes.sizeof(caption))
+        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_TEXT_COLOR, ctypes.byref(text), ctypes.sizeof(text))
+        theme = "DarkMode_Explorer" if is_dark else "Explorer"
+        uxtheme.SetWindowTheme(hwnd, ctypes.c_wchar_p(theme), None)
+        flags = 0x0001 | 0x0002 | 0x0004 | 0x0020
+        user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, flags)
+    except Exception:
+        pass
+
+def apply_win11_aesthetics(window, theme_mode=None):
     if sys.platform == "win32":
         try:
             hwnd = window.native
@@ -35,6 +128,7 @@ def apply_win11_aesthetics(window):
                 ctypes.byref(corner_preference), 
                 ctypes.sizeof(corner_preference)
             )
+            _apply_window_theme(hwnd, _resolve_theme_dark(theme_mode))
             
             # Set Window Icon (WM_SETICON)
             root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -68,6 +162,17 @@ class Api:
             self._window.evaluate_js(
                 f"if (typeof updateTheme === 'function') updateTheme({json.dumps(theme_mode)}, {json.dumps(theme_id)})"
             )
+            try:
+                _apply_window_theme(self._window.native, _resolve_theme_dark(theme_mode))
+            except Exception:
+                pass
+
+    def set_title(self, title):
+        if self._window:
+            try:
+                self._window.set_title(str(title))
+            except Exception:
+                pass
 
     def get_settings(self):
         return self.settings
@@ -487,9 +592,6 @@ class Api:
             self._window.destroy()
         sys.exit(0)
 
-    def get_assets_path(self):
-        return os.environ.get("ASSETS_PATH", "")
-
     def get_timer_state(self):
         return {
             "remaining": int(os.environ.get("TIMER_REMAINING", 0)),
@@ -670,7 +772,7 @@ def main():
         if not os.path.exists(storage_path):
             try: os.makedirs(storage_path)
             except: pass
-        webview.start(apply_win11_aesthetics, (window,), gui='edgechromium', storage_path=storage_path)
+        webview.start(apply_win11_aesthetics, (window, dialog_data.get("theme", default_theme)), gui='edgechromium', storage_path=storage_path)
         return
 
     if len(sys.argv) < 5:
@@ -759,7 +861,8 @@ def main():
         try: os.makedirs(storage_path)
         except: pass
     
-    webview.start(apply_win11_aesthetics, (window,), gui='edgechromium', debug=False, storage_path=storage_path)
+    theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
+    webview.start(apply_win11_aesthetics, (window, theme_mode), gui='edgechromium', debug=False, storage_path=storage_path)
 
 if __name__ == "__main__":
     main()

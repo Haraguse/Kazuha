@@ -570,10 +570,17 @@
             const version = v.version || "";
             const wm = document.getElementById("dev-watermark");
             if (wm && version) {
-              const parts = String(version).trim().split(".");
-              if (parts.length >= 2 && parts[parts.length - 1] === "1") {
-                const tmpl = getText("general.devWatermark") || "开发中版本/技术预览版本\n不保证最终品质 （{version}）";
-                wm.textContent = tmpl.replace("{version}", version);
+            const parts = String(version).trim().split(".");
+            const suffix = parts[parts.length - 1];
+            const isDev = parts.length >= 2 && ["1", "2", "3", "4"].includes(suffix);
+            let displayVersion = String(version).trim();
+            if (["5", "6", "7"].includes(suffix)) {
+              const patchNum = Number(suffix) - 4;
+              displayVersion = parts.slice(0, -1).join(".") + " Patch " + patchNum;
+            }
+            if (isDev) {
+              const tmpl = getText("general.devWatermark") || "开发中版本/技术预览版本\n不保证最终品质 （{version}）";
+              wm.textContent = tmpl.replace("{version}", displayVersion);
                 wm.style.display = "block";
               } else {
                 wm.style.display = "none";
