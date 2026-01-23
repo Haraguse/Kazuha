@@ -11,6 +11,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineSettings
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QObject, Slot, QUrl, QFile, QIODevice, Qt, QTimer
+from PySide6.QtGui import QColor
 
 DWMWA_WINDOW_CORNER_PREFERENCE = 33
 DWMWCP_ROUND = 2
@@ -549,6 +550,7 @@ class MainWindow(QWebEngineView):
         self.resize(width, height)
         self._center_on_screen()
         self._theme_mode = theme_mode
+        self._apply_page_background()
         settings = self.page().settings()
         settings.setAttribute(QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, True)
@@ -597,6 +599,13 @@ class MainWindow(QWebEngineView):
         self.loadFinished.connect(lambda *_: self._schedule_backdrop_apply())
         self._schedule_backdrop_apply()
 
+    def _apply_page_background(self):
+        is_dark = _resolve_theme_dark(self._theme_mode)
+        if is_dark:
+            self.page().setBackgroundColor(QColor(24, 24, 24))
+        else:
+            self.page().setBackgroundColor(QColor(255, 255, 255))
+
     def _center_on_screen(self):
         screen = QApplication.primaryScreen()
         if not screen:
@@ -618,6 +627,7 @@ class MainWindow(QWebEngineView):
 
     def update_theme_mode(self, theme_mode):
         self._theme_mode = theme_mode
+        self._apply_page_background()
         self._schedule_backdrop_apply()
 
     def showEvent(self, event):

@@ -4733,6 +4733,10 @@
     if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
       window.pywebview.api.save_setting("Fonts", "CustomFont", true);
     }
+    
+    if (!systemFontsLoaded || systemFonts.length === 0) {
+      requestSystemFonts(true);
+    }
     renderFontSelects();
   }
 
@@ -4850,16 +4854,23 @@
     return "";
   }
 
-  function requestSystemFonts() {
-    if (systemFontsLoaded) return;
-    if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.get_system_fonts) return;
+  function requestSystemFonts(force = false) {
+    if (systemFontsLoaded && !force) return;
+    if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.get_system_fonts) {
+      console.warn("pywebview api not ready for fonts");
+      return;
+    }
+    
+    console.log("Requesting system fonts...");
     window.pywebview.api.get_system_fonts().then(res => {
+      console.log("Got system fonts:", res ? res.length : 0);
       systemFonts = Array.isArray(res) ? res.filter(s => typeof s === "string" && s.trim()) : [];
       systemFontsLoaded = true;
       renderFontSelects();
-    }).catch(() => {
+    }).catch(err => {
+      console.error("Failed to load system fonts:", err);
       systemFonts = [];
-      systemFontsLoaded = true;
+      systemFontsLoaded = false; // Allow retry
       renderFontSelects();
     });
   }
@@ -4909,9 +4920,16 @@
         const detail = getDefaultFontLabel(lang, scene);
         const defaultLabel = detail ? `${baseLabel} (${detail})` : baseLabel;
         const options = [{ value: "", label: defaultLabel }];
-        (systemFonts || []).forEach(name => {
-          options.push({ value: name, label: name });
-        });
+        
+        if (!systemFontsLoaded) {
+            options.push({ value: "__STATUS__", label: "Loading fonts..." });
+        } else if (!systemFonts || systemFonts.length === 0) {
+            options.push({ value: "__STATUS__", label: "No system fonts found" });
+        } else {
+            (systemFonts || []).forEach(name => {
+              options.push({ value: name, label: name });
+            });
+        }
         el.innerHTML = "";
         el.classList.remove("open");
         const toggle = document.createElement("div");
@@ -4944,22 +4962,29 @@
           item.dataset.value = opt.value;
           item.dataset.label = opt.label.toLowerCase();
           if (index === 0) item.dataset.default = "1";
-          if (opt.value === selected) {
-            item.classList.add("active");
-            setFontDropdownLabel(labelSpan, opt.label);
-          }
-          item.addEventListener("click", () => {
-            if (!isCustomEnabled) return;
+          
+          if (opt.value === "__STATUS__") {
+              item.style.opacity = "0.5";
+              item.style.cursor = "default";
+              item.style.pointerEvents = "none";
+          } else {
+              if (opt.value === selected) {
+                item.classList.add("active");
+                setFontDropdownLabel(labelSpan, opt.label);
+              }
+              item.addEventListener("click", () => {
+                if (!isCustomEnabled) return;
 
-            const all = menu.querySelectorAll(".font-dropdown-option");
-            all.forEach(x => x.classList.remove("active"));
-            item.classList.add("active");
-            setFontDropdownLabel(labelSpan, opt.label);
-            el.dataset.value = opt.value;
-            
-            setFontProfile(lang, scene, opt.value, opt.label);
-            el.classList.remove("open");
-          });
+                const all = menu.querySelectorAll(".font-dropdown-option");
+                all.forEach(x => x.classList.remove("active"));
+                item.classList.add("active");
+                setFontDropdownLabel(labelSpan, opt.label);
+                el.dataset.value = opt.value;
+                
+                setFontProfile(lang, scene, opt.value, opt.label);
+                el.classList.remove("open");
+              });
+          }
           menu.appendChild(item);
         });
         if (!labelInner.textContent) {
@@ -5294,7 +5319,7 @@
     applySettingsToUI();
   }
 
-  window.addEventListener('pywebviewready', () => {
+  const onPywebviewReady = () => {
     if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.get_settings) return;
 
     requestSystemFonts();
@@ -5312,7 +5337,13 @@
       console.error("Failed to get settings:", err);
       applySettingsToUI();
     });
-  });
+  };
+
+  if (window.pywebview) {
+    onPywebviewReady();
+  } else {
+    window.addEventListener('pywebviewready', onPywebviewReady);
+  }
 
   function convertNativeSelectsToCustom() {
     const selects = document.querySelectorAll('select.styled-select:not([data-converted])');
