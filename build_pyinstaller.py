@@ -9,33 +9,48 @@ def run():
     dist_dir = os.path.join(root_dir, "dist")
     build_dir = os.path.join(root_dir, "build")
 
-    python_exe = sys.executable
+    venv_python = os.path.join(root_dir, ".venv", "Scripts", "python.exe")
+    if not os.path.exists(venv_python):
+        raise FileNotFoundError("未找到 .venv\\Scripts\\python.exe")
+    python_exe = venv_python
 
     icons_dir = os.path.join(root_dir, "icons")
     logo_ico = os.path.join(icons_dir, "logo.ico")
 
+    data_sep = os.pathsep
+    add_data = [
+        f"version.json{data_sep}.",
+        f"config{data_sep}config",
+        f"plugins{data_sep}plugins",
+        f"icons{data_sep}icons",
+        f"ppt_assistant{data_sep}ppt_assistant",
+        f"fonts{data_sep}fonts",
+    ]
+
     cmd = [
         python_exe,
         "-m",
-        "nuitka",
+        "PyInstaller",
+        "--noconfirm",
+        "--clean",
+        "--exclude-module",
+        "PyQt5",
+        "--exclude-module",
+        "setuptools",
+        "--exclude-module",
+        "pkg_resources",
+        "--hidden-import",
+        "PySide6.QtXml",
         "--onefile",
-        "--windows-console-mode=disable",
-        "--output-dir=dist",
-        "--output-filename=Kazuha",
-        "--enable-plugin=pyside6",
-        "--include-module=PySide6.QtXml",
-        "--nofollow-import-to=PyQt5,setuptools,pkg_resources",
-        "--include-data-file=version.json=version.json",
-        "--include-data-dir=config=config",
-        "--include-data-dir=plugins=plugins",
-        "--include-data-dir=icons=icons",
-        "--include-data-dir=ppt_assistant=ppt_assistant",
-        "--include-data-dir=fonts=fonts",
-        "main.py",
+        "--windowed",
+        "--name",
+        "Kazuha",
     ]
-
     if os.path.exists(logo_ico):
-        cmd.insert(-1, f"--windows-icon-from-ico={logo_ico}")
+        cmd += ["--icon", logo_ico]
+    for entry in add_data:
+        cmd += ["--add-data", entry]
+    cmd += ["main.py"]
 
     if os.path.isdir(dist_dir):
         shutil.rmtree(dist_dir, ignore_errors=True)
@@ -44,14 +59,17 @@ def run():
     for extra in [
         "main.build",
         "main.dist",
-        "main.onefile-build",
         "Kazuha.build",
         "Kazuha.dist",
-        "Kazuha.onefile-build",
     ]:
         extra_path = os.path.join(root_dir, extra)
         if os.path.isdir(extra_path):
             shutil.rmtree(extra_path, ignore_errors=True)
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if local_app_data:
+        pyinstaller_cache = os.path.join(local_app_data, "pyinstaller")
+        if os.path.isdir(pyinstaller_cache):
+            shutil.rmtree(pyinstaller_cache, ignore_errors=True)
 
     subprocess.check_call(cmd, cwd=root_dir)
 
@@ -71,10 +89,8 @@ def run():
     for extra in [
         "main.build",
         "main.dist",
-        "main.onefile-build",
         "Kazuha.build",
         "Kazuha.dist",
-        "Kazuha.onefile-build",
     ]:
         extra_path = os.path.join(root_dir, extra)
         if os.path.isdir(extra_path):
