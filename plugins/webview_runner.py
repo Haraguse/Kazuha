@@ -322,6 +322,7 @@ class Api(QObject):
             "eraser": "Eraser.svg",
             "clear": "Clear.svg",
             "spotlight": "spotlight.svg",
+            "board_in_board": "board-in-board.svg",
             "timer": "timer.svg",
             "exit": "Minimize.svg"
         }
@@ -826,7 +827,7 @@ class Api(QObject):
         return screens
 
 class MainWindow(QWebEngineView):
-    def __init__(self, title, url, api, width, height, theme_mode="auto", custom_border=False):
+    def __init__(self, title, url, api, width, height, theme_mode="auto", custom_border=False, defer_load=False):
         super().__init__()
         self.setWindowTitle(title)
         self.resize(width, height)
@@ -838,6 +839,8 @@ class MainWindow(QWebEngineView):
             self._center_on_screen()
         self._theme_mode = theme_mode
         self._custom_border = custom_border
+        self._defer_load = defer_load
+        self._pending_url = None
         self._apply_page_background()
         settings = self.page().settings()
         settings.setAttribute(QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, True)
@@ -892,7 +895,11 @@ class MainWindow(QWebEngineView):
         self.page().scripts().insert(preview_script)
         if self._custom_border:
             self._inject_custom_border()
-        self.load(QUrl.fromUserInput(url))
+        target_url = QUrl.fromUserInput(url)
+        if self._defer_load:
+            self._pending_url = target_url
+        else:
+            self.load(target_url)
         self.loadFinished.connect(lambda *_: self._schedule_backdrop_apply())
         self._schedule_backdrop_apply()
 
@@ -954,6 +961,9 @@ body {
 
     def showEvent(self, event):
         super().showEvent(event)
+        if self._pending_url is not None:
+            self.load(self._pending_url)
+            self._pending_url = None
         self._schedule_backdrop_apply()
 
 def apply_win11_aesthetics(window, theme_mode=None):
@@ -1048,13 +1058,15 @@ def main():
         else:
             win_width = 650
             win_height = 500
+        defer_load = os.environ.get("DEFER_WEBENGINE_LOAD", "").strip().lower() in ["1", "true", "yes", "on"]
         window = MainWindow(
             dialog_data.get("title", "Dialog"),
             html_path,
             api,
             win_width,
             win_height,
-            dialog_data.get("theme", default_theme)
+            dialog_data.get("theme", default_theme),
+            defer_load=defer_load
         )
         window.show()
     elif len(sys.argv) >= 5:
@@ -1090,7 +1102,8 @@ def main():
         except Exception:
             api.version = {}
         theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
-        window = MainWindow(title, url, api, width, height, theme_mode, custom_border)
+        defer_load = os.environ.get("DEFER_WEBENGINE_LOAD", "").strip().lower() in ["1", "true", "yes", "on"]
+        window = MainWindow(title, url, api, width, height, theme_mode, custom_border, defer_load)
         if title == "Settings":
             window.setMinimumWidth(1099)
         window.show()

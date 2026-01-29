@@ -10,6 +10,7 @@ ICON_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.
 
 class SystemTray(QObject):
     show_settings = Signal()
+    show_board = Signal()
     show_timer = Signal()
     restart_app = Signal()
     exit_app = Signal()
@@ -29,6 +30,10 @@ class SystemTray(QObject):
         self.act_settings.triggered.connect(self.show_settings.emit)
         self.menu.addAction(self.act_settings)
         
+        self.act_board = Action(QIcon(os.path.join(ICON_DIR, "board-in-board.svg")), t("tray.board"), self.menu)
+        self.act_board.triggered.connect(self.show_board.emit)
+        self.menu.addAction(self.act_board)
+
         self.act_timer = Action(QIcon(os.path.join(ICON_DIR, "Timer.svg")), t("tray.timer"), self.menu)
         self.act_timer.triggered.connect(self.show_timer.emit)
         self.menu.addAction(self.act_timer)

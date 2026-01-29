@@ -34,6 +34,7 @@ class Config(QConfig):
 
     showClear = ConfigItem("Toolbar", "ShowClear", True, BoolValidator())
     showSpotlight = ConfigItem("Toolbar", "ShowSpotlight", True, BoolValidator())
+    showBoardInBoard = ConfigItem("Toolbar", "ShowBoardInBoard", True, BoolValidator())
     showTimer = ConfigItem("Toolbar", "ShowTimer", True, BoolValidator())
     showToolbarText = ConfigItem("Toolbar", "ShowToolbarText", False, BoolValidator())
 
@@ -63,7 +64,7 @@ class Config(QConfig):
     splashEndTime = ConfigItem("General", "SplashEndTime", "20:00", restart=False)
 
     quickLaunchApps = ConfigItem("Toolbar", "QuickLaunchApps", [], restart=False)
-    toolbarOrder = ConfigItem("Toolbar", "ToolbarOrder", ["select", "pen", "eraser", "spotlight", "timer", "clear", "apps"], restart=False)
+    toolbarOrder = ConfigItem("Toolbar", "ToolbarOrder", ["select", "pen", "eraser", "spotlight", "board_in_board", "timer", "clear", "apps"], restart=False)
 
 
 cfg = Config()

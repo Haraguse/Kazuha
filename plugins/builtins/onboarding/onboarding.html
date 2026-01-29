@@ -3400,8 +3400,8 @@
     .hero-screen {
       position: absolute;
       inset: 0;
-      background: var(--hero-bg);
-      color: var(--hero-fg);
+      background: var(--bg-app);
+      color: var(--text-primary);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -3462,11 +3462,8 @@
     }
 
     .hero-footer {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 32px 40px;
+      position: relative;
+      width: 100%;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -3629,6 +3626,24 @@
     }
     .setup-screen.active .card {
       transform: none;
+    }
+
+    .hero-screen .card {
+      margin: 24px;
+      width: calc(100% - 48px);
+      height: calc(100% - 48px);
+      box-sizing: border-box;
+      position: relative;
+      padding: 48px;
+    }
+
+    #screen-hero .card {
+      justify-content: space-between;
+    }
+
+    #screen-finish .card {
+      justify-content: center;
+      align-items: center;
     }
     
     /* Card Animations */
@@ -3808,38 +3823,109 @@ html, body {
 }
 
 /* Animation for Final Step */
-.finish-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
+    .finish-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      gap: 0;
+    }
+    
+    .finish-icon {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 24px;
+      animation: fadeIn 0.8s ease-out;
+    }
 
-#finish-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 10;
-}
+    .finish-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-align: center;
+      line-height: 1.2;
+      margin-bottom: 4px;
+      animation: fadeIn 0.8s ease-out;
+    }
 
-.finish-subtitle {
-  position: absolute;
-  bottom: 30%;
-  left: 0;
-  width: 100%;
-  text-align: center;
-  font-size: 18px;
-  color: var(--text-secondary);
-  opacity: 0;
-  transition: opacity 1s ease-in-out;
-  z-index: 20;
-  pointer-events: none;
-}
+    .finish-desc {
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 7px;
+      animation: fadeIn 0.8s ease-out 0.1s backwards;
+    }
+
+    .finish-subtitle {
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-secondary);
+      max-width: 600px;
+      line-height: 1.5;
+      margin-bottom: 32px;
+      animation: fadeIn 0.8s ease-out 0.2s backwards;
+    }
+    
+    .finish-hint {
+      margin-top: 12px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-secondary);
+      animation: fadeIn 0.8s ease-out 0.4s backwards;
+    }
+    
+    .finish-btn-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      height: 64px;
+      margin-bottom: 8px; /* Give some space before hint */
+    }
+
+    .hero-btn.small-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      opacity: 0;
+      transform: scale(0.5);
+      pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    
+    .hero-btn.small-btn:hover {
+      background: var(--bg-surface-hover);
+      transform: scale(1.1);
+    }
+
+    .hero-btn.small-btn.show {
+      opacity: 1;
+      transform: scale(1);
+      pointer-events: auto;
+    }
+
+    .hero-btn.small-btn svg {
+      width: 24px;
+      height: 24px;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 </style>
 </head>
 <body>
@@ -3847,33 +3933,35 @@ html, body {
     <!-- Screen 1: Hero -->
     <div id="screen-hero" class="hero-screen">
       <div class="hyperos-bg"></div>
-      <div class="hero-content" id="hero-content">
-        <img src="../../../icons/logo.svg" class="hero-logo" alt="Logo">
-        <div class="hero-elements-fade">
-          <div class="hero-title">Kazuha</div>
-          <div class="hero-btn" id="btn-hero-next">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
+      <div class="card">
+        <div class="hero-content" id="hero-content" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+          <img src="../../../icons/logo.svg" class="hero-logo" alt="Logo">
+          <div class="hero-elements-fade">
+            <div class="hero-title">Kazuha</div>
+            <div class="hero-btn" id="btn-hero-next">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="hero-footer" id="hero-footer">
-        <div class="version" id="app-version"></div>
-        <div class="hero-lang">
-            <div class="custom-select-container" id="lang-select-container">
-              <div class="custom-select-toggle" onclick="toggleLangSelect()">
-                <div class="custom-select-label" id="current-lang-label">简体中文</div>
-                <div class="custom-select-icon"></div>
+        <div class="hero-footer" id="hero-footer" style="width: 100%;">
+          <div class="version" id="app-version"></div>
+          <div class="hero-lang">
+              <div class="custom-select-container" id="lang-select-container">
+                <div class="custom-select-toggle" onclick="toggleLangSelect()">
+                  <div class="custom-select-label" id="current-lang-label">简体中文</div>
+                  <div class="custom-select-icon"></div>
+                </div>
+                <div class="custom-select-menu" id="lang-select-menu">
+                  <!-- Options populated by JS -->
+                </div>
               </div>
-              <div class="custom-select-menu" id="lang-select-menu">
-                <!-- Options populated by JS -->
-              </div>
-            </div>
-        </div>
-        <div class="hero-links">
-          <a id="link-gpl">查看 GPL 证书</a>
-          <a id="link-import">从外部导入配置</a>
+          </div>
+          <div class="hero-links">
+            <a id="link-gpl">查看 GPL 证书</a>
+            <a id="link-import">从外部导入配置</a>
+          </div>
         </div>
       </div>
     </div>
@@ -3903,9 +3991,59 @@ html, body {
         </div>
       </div>
     </div>
+
+    <!-- Screen 3: Finish -->
+    <div id="screen-finish" class="hero-screen fade-out" style="z-index: 20;">
+      <div class="card">
+        <div class="finish-container">
+          <img src="../../../icons/finishedemoji.png" class="finish-icon" alt="Finished">
+          <div class="finish-title" id="finish-title"></div>
+          <div class="finish-desc" id="finish-desc"></div>
+          <div class="finish-subtitle" id="finish-subtitle"></div>
+          
+          <div class="finish-btn-wrapper">
+            <!-- Previous Step -->
+            <div class="hero-btn small-btn" id="btn-finish-prev" title="上一步">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                   <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+
+            <!-- Main Finish Button -->
+            <div class="hero-btn" id="btn-finish">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+
+            <!-- Restart -->
+            <div class="hero-btn small-btn" id="btn-finish-restart" title="重来">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                   <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+          </div>
+
+          <div class="finish-hint" id="finish-hint"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="dev-watermark" class="dev-watermark" style="display: none;"></div>
+
+  <!-- License Modal -->
+  <div class="modal-overlay" id="license-modal">
+    <div class="modal-dialog" style="width: 600px; height: 70vh; max-height: 800px;">
+      <div class="modal-title">GNU General Public License v3.0</div>
+      <div class="modal-island" style="flex: 1; overflow-y: auto; padding: 16px; font-family: monospace; font-size: 12px; white-space: pre-wrap; user-select: text;">
+        <div class="modal-text" id="license-text"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-confirm" onclick="closeLicenseModal()">Close</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     // Resources
@@ -3932,7 +4070,7 @@ html, body {
           popWindowScale: "弹窗缩放",
           safeArea: "屏幕边距"
         },
-        finish: { title: "准备就绪", sub: "快来体验激动人心的 Kazuha 吧！" },
+        finish: { title: "恭喜！", desc: "你已完成了全部的基本设置", sub: "如需后续更改配置，请点击任务栏托盘图标访问“设置”。若要立即开始，请关闭此窗口并在 PowerPoint 中打开任意演示文稿。", hint: "单击上方的“✓”，即可结束设置向导。", hintExpanded: "上一步   •   完成   •   重来" },
         btn: { next: "下一步", prev: "返回", finish: "完成" },
         watermark: {
           1: "开发中版本",
@@ -3956,7 +4094,7 @@ html, body {
           "orange-wish": "橙色"
         },
         startup: { title: "啟動設定", desc: "設定應用程式的啟動行為", label: "開機自動啟動", sub: "登入 Windows 後自動啟動應用程式", taskbar: "將 Kazuha 釘選到 Windows 工作列", start: "將 Kazuha 釘選到 Windows 開始畫面" },
-        finish: { title: "準備就緒", sub: "快來體驗激動人心的 Kazuha 吧！" },
+        finish: { title: "恭喜！", desc: "您已完成了全部的基本設定", sub: "如需後續更改設定，請點擊工作列系統匣圖示並選擇「設定」。若要立即開始，請關閉此視窗並在 PowerPoint 中開啟任意簡報。", hint: "點擊上方的「✓」，即可結束設定精靈。", hintExpanded: "上一步   •   完成   •   重來" },
         btn: { next: "下一步", prev: "返回", finish: "完成" },
         watermark: {
           1: "開發中版本",
@@ -3980,7 +4118,7 @@ html, body {
           "orange-wish": "Orange"
         },
         startup: { title: "Startup", desc: "Configure startup behavior", label: "Run at Startup", sub: "Automatically start when you log in", taskbar: "Pin Kazuha to Windows Taskbar", start: "Pin Kazuha to Windows Start" },
-        finish: { title: "Ready", sub: "Experience the exciting Kazuha!" },
+        finish: { title: "Congratulations!", desc: "You have completed all basic settings.", sub: "To change settings later, click the tray icon and select 'Settings'. To start, close this window and open any presentation in PowerPoint.", hint: "Click the \"✓\" above to finish the setup wizard.", hintExpanded: "Back   •   Finish   •   Restart" },
         btn: { next: "Next", prev: "Back", finish: "Finish" },
         watermark: {
           1: "In-Development",
@@ -4012,7 +4150,7 @@ html, body {
           popWindowScale: "ポップアップスケール",
           safeArea: "セーフエリア"
         },
-        finish: { title: "完了", sub: "エキサイティングなKazuhaを体験しましょう！" },
+        finish: { title: "おめでとうございます！", desc: "基本設定がすべて完了しました", sub: "設定を変更するには、タスクトレイアイコンから「設定」を選択してください。開始するには、このウィンドウを閉じてPowerPointでプレゼンテーションを開いてください。", hint: "上の「✓」をクリックして、セットアップウィザードを終了します。", hintExpanded: "戻る   •   完了   •   最初から" },
         btn: { next: "次へ", prev: "戻る", finish: "完了" },
         watermark: {
           1: "開発中バージョン",
@@ -4032,8 +4170,6 @@ html, body {
         theme: "Light",
         themeId: "default",
         runAtStartup: false,
-        pinToTaskbar: false,
-        pinToStart: false,
         scale: 1.0,
         popWindowScale: 1.0,
         safeArea: 0
@@ -4061,7 +4197,13 @@ html, body {
       langMenu: document.getElementById("lang-select-menu"),
       langLabel: document.getElementById("current-lang-label"),
       stepTitle: document.getElementById("step-title"),
-      stepDesc: document.getElementById("step-desc")
+      stepDesc: document.getElementById("step-desc"),
+      screenFinish: document.getElementById("screen-finish"),
+      finishTitle: document.getElementById("finish-title"),
+      finishDesc: document.getElementById("finish-desc"),
+      finishSubtitle: document.getElementById("finish-subtitle"),
+      finishHint: document.getElementById("finish-hint"),
+      btnFinish: document.getElementById("btn-finish")
     };
 
     // Theme Definitions
@@ -4115,24 +4257,6 @@ html, body {
                  <div class="switch-handle"></div>
               </div>
             </div>
-            
-            <div class="settings-item" onclick="togglePinToTaskbar()" style="cursor: pointer;">
-              <div class="item-info">
-                <div class="item-label">${t.startup.taskbar}</div>
-              </div>
-              <div class="switch ${state.config.pinToTaskbar ? 'active' : ''}" style="pointer-events:none;">
-                 <div class="switch-handle"></div>
-              </div>
-            </div>
-
-            <div class="settings-item" onclick="togglePinToStart()" style="cursor: pointer;">
-              <div class="item-info">
-                <div class="item-label">${t.startup.start}</div>
-              </div>
-              <div class="switch ${state.config.pinToStart ? 'active' : ''}" style="pointer-events:none;">
-                 <div class="switch-handle"></div>
-              </div>
-            </div>
           </div>
         `
       },
@@ -4175,9 +4299,9 @@ html, body {
       { // 4
         id: "finish",
         render: (t) => `
-          <div class="finish-container" id="finish-container">
-            <canvas id="finish-canvas"></canvas>
-            <div id="finish-subtitle" class="finish-subtitle"></div>
+          <div class="finish-container">
+            <div class="finish-title">${t.finish.title}</div>
+            <div class="finish-subtitle">${t.finish.sub}</div>
           </div>
         `
       }
@@ -4271,250 +4395,8 @@ html, body {
       applyTheme();
     };
 
-    // --- Particle Animation System ---
-    let animId = null;
-    
-    class Particle {
-      constructor(x, y, color) {
-        this.x = x;
-        this.y = y;
-        this.color = color;
-        this.targetX = null;
-        this.targetY = null;
-        this.vx = (Math.random() - 0.5) * 4;
-        this.vy = (Math.random() - 0.5) * 4;
-        this.life = 1.0;
-        this.delay = 0;
-        this.isSpark = false;
-      }
-      
-      update() {
-        if (this.isSpark) {
-           this.x += this.vx;
-           this.y += this.vy;
-           this.vx *= 0.9;
-           this.vy *= 0.9;
-           this.life -= 0.03;
-           return;
-        }
-
-        if (this.delay > 0) {
-           this.delay--;
-           this.x += this.vx;
-           this.y += this.vy;
-           this.vx *= 0.92;
-           this.vy *= 0.92;
-        } else {
-           if (this.targetX !== null) {
-              const dx = this.targetX - this.x;
-              const dy = this.targetY - this.y;
-              this.x += dx * 0.08;
-              this.y += dy * 0.08;
-           }
-        }
-      }
-      
-      draw(ctx) {
-         if (this.life <= 0) return;
-         ctx.globalAlpha = this.life;
-         ctx.fillStyle = this.color;
-         ctx.fillRect(this.x, this.y, 2, 2);
-      }
-    }
-
-    function startParticleAnimation(t) {
-      const canvas = document.getElementById('finish-canvas');
-      const subEl = document.getElementById('finish-subtitle');
-      if (!canvas) return;
-      
-      // Reset subtitle
-      if (subEl) {
-        subEl.textContent = t.finish.sub;
-        subEl.style.opacity = '0';
-      }
-
-      const dpr = window.devicePixelRatio || 1;
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      
-      const ctx = canvas.getContext('2d');
-      ctx.scale(dpr, dpr);
-      
-      const width = rect.width;
-      const height = rect.height;
-      const cx = width / 2;
-      const cy = height / 2;
-      
-      const colors = ['#ff0055', '#0055ff', '#00dd88', '#ffcc00', '#aa00ff', '#00ffff'];
-      const ribbonCount = 12;
-      const ribbons = [];
-
-      function getTextPoints() {
-         const tmpCanvas = document.createElement('canvas');
-         tmpCanvas.width = width;
-         tmpCanvas.height = height;
-         const tCtx = tmpCanvas.getContext('2d');
-         
-         const fontFamily = getComputedStyle(document.body).fontFamily;
-         
-         tCtx.textAlign = 'center';
-         tCtx.textBaseline = 'middle';
-         tCtx.fillStyle = '#fff';
-         
-         tCtx.font = `800 80px ${fontFamily}`;
-         tCtx.fillText(t.finish.title, width/2, height/2 - 40);
-         
-         const imgData = tCtx.getImageData(0, 0, width, height).data;
-         const points = [];
-         for (let y = 0; y < height; y += 4) {
-            for (let x = 0; x < width; x += 4) {
-               const alpha = imgData[(y * width + x) * 4 + 3];
-               if (alpha > 128) {
-                  points.push({x, y});
-               }
-            }
-         }
-         for (let i = points.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [points[i], points[j]] = [points[j], points[i]];
-         }
-         return points;
-      }
-      
-      const textPoints = getTextPoints();
-      const pointsPerRibbon = Math.ceil(textPoints.length / ribbonCount);
-
-      for (let i = 0; i < ribbonCount; i++) {
-         const isLeft = i < ribbonCount / 2;
-         const startX = isLeft 
-            ? Math.random() * (width * 0.3) 
-            : width - Math.random() * (width * 0.3);
-         const startY = height + 100; 
-         
-         const endX = cx + (Math.random() - 0.5) * 200;
-         const endY = cy + (Math.random() - 0.5) * 100;
-         
-         const cp1x = startX + (isLeft ? 150 : -150) + (Math.random() - 0.5) * 100;
-         const cp1y = height * 0.7;
-         
-         const cp2x = endX + (isLeft ? -50 : 50) + (Math.random() - 0.5) * 100;
-         const cp2y = height * 0.5;
-         
-         const color = colors[i % colors.length];
-         
-         const sliceStart = i * pointsPerRibbon;
-         const sliceEnd = Math.min((i + 1) * pointsPerRibbon, textPoints.length);
-         const myPoints = textPoints.slice(sliceStart, sliceEnd);
-
-         ribbons.push({
-            start: {x: startX, y: startY},
-            cp1: {x: cp1x, y: cp1y},
-            cp2: {x: cp2x, y: cp2y},
-            end: {x: endX, y: endY},
-            color: color,
-            progress: 0,
-            speed: 0.008 + Math.random() * 0.008,
-            width: 4 + Math.random() * 3,
-            exploded: false,
-            points: myPoints
-         });
-      }
-      
-      let particles = [];
-      let subtitleShown = false;
-      
-      function getBezierPoint(t, p0, p1, p2, p3) {
-         const k = 1 - t;
-         return {
-            x: k*k*k*p0.x + 3*k*k*t*p1.x + 3*k*t*t*p2.x + t*t*t*p3.x,
-            y: k*k*k*p0.y + 3*k*k*t*p1.y + 3*k*t*t*p2.y + t*t*t*p3.y
-         };
-      }
-      
-      function loop() {
-        ctx.clearRect(0, 0, width, height);
-        
-        let anyRibbonActive = false;
-        ribbons.forEach(r => {
-           if (r.progress < 1) {
-              anyRibbonActive = true;
-              r.progress += r.speed;
-              if (r.progress >= 1) r.progress = 1;
-              
-              const currentPos = getBezierPoint(r.progress, r.start, r.cp1, r.cp2, r.end);
-              
-              ctx.beginPath();
-              ctx.arc(currentPos.x, currentPos.y, r.width, 0, Math.PI*2);
-              ctx.fillStyle = r.color;
-              ctx.shadowBlur = 20;
-              ctx.shadowColor = r.color;
-              ctx.fill();
-              ctx.shadowBlur = 0;
-              
-              if (r.progress > 0.01) {
-                 const tailPos = getBezierPoint(Math.max(0, r.progress - 0.04), r.start, r.cp1, r.cp2, r.end);
-                 ctx.beginPath();
-                 ctx.moveTo(tailPos.x, tailPos.y);
-                 ctx.lineTo(currentPos.x, currentPos.y);
-                 ctx.strokeStyle = r.color;
-                 ctx.lineWidth = r.width;
-                 ctx.lineCap = 'round';
-                 ctx.stroke();
-              }
-           } else if (!r.exploded) {
-              r.exploded = true;
-              const origin = r.end;
-              r.points.forEach(pt => {
-                 const p = new Particle(origin.x, origin.y, r.color);
-                 p.targetX = pt.x;
-                 p.targetY = pt.y;
-                 p.vx = (Math.random() - 0.5) * 8; 
-                 p.vy = (Math.random() - 0.5) * 8;
-                 p.life = 1; 
-                 p.delay = 10 + Math.random() * 20;
-                 particles.push(p);
-              });
-              
-              for(let k=0; k<30; k++) {
-                 const p = new Particle(origin.x, origin.y, r.color);
-                 p.vx = (Math.random() - 0.5) * 12;
-                 p.vy = (Math.random() - 0.5) * 12;
-                 p.isSpark = true; 
-                 particles.push(p);
-              }
-           }
-        });
-        
-        particles.forEach(p => {
-           p.update();
-           p.draw(ctx);
-        });
-        
-        if (!anyRibbonActive && !subtitleShown && particles.length > 0) {
-           subtitleShown = true;
-           if (subEl) setTimeout(() => { subEl.style.opacity = '1'; }, 500);
-        }
-        
-        animId = requestAnimationFrame(loop);
-      }
-      
-      if (animId) cancelAnimationFrame(animId);
-      loop();
-    }
-
     window.toggleStartup = () => {
       state.config.runAtStartup = !state.config.runAtStartup;
-      renderStep();
-    };
-
-    window.togglePinToTaskbar = () => {
-      state.config.pinToTaskbar = !state.config.pinToTaskbar;
-      renderStep();
-    };
-
-    window.togglePinToStart = () => {
-      state.config.pinToStart = !state.config.pinToStart;
       renderStep();
     };
 
@@ -4522,20 +4404,24 @@ html, body {
       if (state.step === 0) {
         els.screenHero.classList.remove("fade-out");
         els.screenSetup.classList.remove("active");
+        if (els.screenFinish) els.screenFinish.classList.add("fade-out");
+      } else if (state.step === steps.length - 1) {
+        els.screenHero.classList.add("fade-out");
+        els.screenSetup.classList.remove("active");
+        if (els.screenFinish) els.screenFinish.classList.remove("fade-out");
       } else {
         els.screenHero.classList.add("fade-out");
         els.screenSetup.classList.add("active");
+        if (els.screenFinish) els.screenFinish.classList.add("fade-out");
         renderStep(direction);
       }
     }
 
     function renderStep(direction) {
-      if (animId) {
-        cancelAnimationFrame(animId);
-        animId = null;
-      }
       const s = steps[state.step];
       if (!s) return;
+      if (s.id === 'finish') return;
+
       const t = langResources[state.config.language] || langResources["zh-CN"];
       
       // Render Pivot
@@ -4563,11 +4449,6 @@ html, body {
         const themeSelect = els.stepContent.querySelector('.theme-select');
         if (themeSelect) {
            requestAnimationFrame(() => updateSelectSlider(themeSelect));
-        }
-        
-        // Start fireworks if finish step
-        if (s.id === 'finish') {
-           requestAnimationFrame(() => startParticleAnimation(t));
         }
       }
       
@@ -4630,6 +4511,11 @@ html, body {
       if (els.linkGpl) els.linkGpl.textContent = t.gpl;
       if (els.linkImport) els.linkImport.textContent = t.import;
       if (els.pivotTip) els.pivotTip.textContent = t.pivotTip;
+
+      if (els.finishTitle) els.finishTitle.textContent = t.finish.title;
+      if (els.finishDesc) els.finishDesc.textContent = t.finish.desc;
+      if (els.finishSubtitle) els.finishSubtitle.textContent = t.finish.sub;
+      if (els.finishHint) els.finishHint.textContent = t.finish.hint;
       
       updateWatermark();
       applyLanguageFont();
@@ -4669,8 +4555,6 @@ html, body {
         window.pywebview.api.save_setting("Appearance", "ThemeMode", state.config.theme);
         window.pywebview.api.save_setting("Appearance", "ThemeId", state.config.themeId);
         window.pywebview.api.save_setting("General", "RunAtStartup", state.config.runAtStartup);
-        window.pywebview.api.save_setting("General", "PinToTaskbar", state.config.pinToTaskbar);
-        window.pywebview.api.save_setting("General", "PinToStart", state.config.pinToStart);
         window.pywebview.api.save_setting("Overlay", "Scale", state.config.scale);
         window.pywebview.api.save_setting("Overlay", "PopWindowScale", state.config.popWindowScale);
         window.pywebview.api.save_setting("Overlay", "SafeArea", state.config.safeArea);
@@ -4741,7 +4625,7 @@ html, body {
         setTimeout(() => {
           els.heroContent.classList.remove("intro-state");
           els.heroFooter.classList.remove("intro-hidden");
-        }, 2500); // 2.5s delay
+        }, 250); // 2.5s delay
       });
 
       if (settings) {
@@ -4751,8 +4635,6 @@ html, body {
         if (settings.Appearance?.ThemeMode) state.config.theme = settings.Appearance.ThemeMode;
         if (settings.Appearance?.ThemeId) state.config.themeId = settings.Appearance.ThemeId;
         if (typeof settings.General?.RunAtStartup === "boolean") state.config.runAtStartup = settings.General.RunAtStartup;
-        if (typeof settings.General?.PinToTaskbar === "boolean") state.config.pinToTaskbar = settings.General.PinToTaskbar;
-        if (typeof settings.General?.PinToStart === "boolean") state.config.pinToStart = settings.General.PinToStart;
         if (settings.Overlay?.Scale) state.config.scale = settings.Overlay.Scale;
         if (settings.Overlay?.PopWindowScale) state.config.popWindowScale = settings.Overlay.PopWindowScale;
         if (settings.Overlay?.SafeArea) state.config.safeArea = settings.Overlay.SafeArea;
@@ -4789,9 +4671,282 @@ html, body {
     els.btnNext.addEventListener("click", next);
     els.btnPrev.addEventListener("click", prev);
     
+    // Finish button long press logic
+    const btnFinishPrev = document.getElementById("btn-finish-prev");
+    const btnFinishRestart = document.getElementById("btn-finish-restart");
+    let longPressTimer;
+    let isLongPress = false;
+    
+    if (els.btnFinish) {
+        els.btnFinish.addEventListener("mousedown", (e) => {
+            if (e.button !== 0) return;
+            isLongPress = false;
+            longPressTimer = setTimeout(() => {
+                isLongPress = true;
+                if (btnFinishPrev) btnFinishPrev.classList.add("show");
+                if (btnFinishRestart) btnFinishRestart.classList.add("show");
+                
+                // Update hint text
+                const t = langResources[state.config.language] || langResources["zh-CN"];
+                if (els.finishHint && t.finish.hintExpanded) {
+                    els.finishHint.textContent = t.finish.hintExpanded;
+                    els.finishHint.style.opacity = 1;
+                }
+            }, 500);
+        });
+        
+        els.btnFinish.addEventListener("touchstart", (e) => {
+             isLongPress = false;
+             longPressTimer = setTimeout(() => {
+                isLongPress = true;
+                if (btnFinishPrev) btnFinishPrev.classList.add("show");
+                if (btnFinishRestart) btnFinishRestart.classList.add("show");
+            }, 500);
+        }, {passive: true});
+
+        const clearTimer = () => clearTimeout(longPressTimer);
+        els.btnFinish.addEventListener("mouseup", clearTimer);
+        els.btnFinish.addEventListener("mouseleave", clearTimer);
+        els.btnFinish.addEventListener("touchend", clearTimer);
+
+        els.btnFinish.addEventListener("click", (e) => {
+            if (isLongPress) {
+                e.preventDefault();
+                e.stopPropagation();
+                isLongPress = false;
+                return;
+            }
+            finish();
+        });
+    }
+    
+    if (btnFinishPrev) {
+        btnFinishPrev.addEventListener("click", () => {
+            btnFinishPrev.classList.remove("show");
+            btnFinishRestart.classList.remove("show");
+            // Reset hint
+            const t = langResources[state.config.language] || langResources["zh-CN"];
+            if (els.finishHint) els.finishHint.textContent = t.finish.hint;
+            
+            prev();
+        });
+    }
+    if (btnFinishRestart) {
+        btnFinishRestart.addEventListener("click", () => {
+             btnFinishPrev.classList.remove("show");
+             btnFinishRestart.classList.remove("show");
+             // Reset hint
+             const t = langResources[state.config.language] || langResources["zh-CN"];
+             if (els.finishHint) els.finishHint.textContent = t.finish.hint;
+             
+             state.step = 0;
+             updateStep("prev");
+        });
+    }
+    
     // els.langSelect listener removed, replaced by custom logic
 
-    els.linkGpl.addEventListener("click", () => window.pywebview?.api?.open_license?.());
+    els.linkGpl.addEventListener("click", () => {
+        const modal = document.getElementById('license-modal');
+        const textContainer = document.getElementById('license-text');
+        if (modal && textContainer) {
+            if (!textContainer.textContent) {
+                textContainer.textContent = LICENSE_TEXT;
+            }
+            modal.classList.add('active');
+        }
+    });
+
+    window.closeLicenseModal = () => {
+        document.getElementById('license-modal')?.classList.remove('active');
+    };
+
+    document.getElementById('license-modal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'license-modal') {
+            closeLicenseModal();
+        }
+    });
+
+    const LICENSE_TEXT = `                    GNU GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2007
+
+ Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+                            Preamble
+
+  The GNU General Public License is a free, copyleft license for
+software and other kinds of works.
+
+  The licenses for most software and other practical works are designed
+to take away your freedom to share and change the works.  By contrast,
+the GNU General Public License is intended to guarantee your freedom to
+share and change all versions of a program--to make sure it remains free
+software for all its users.  We, the Free Software Foundation, use the
+GNU General Public License for most of our software; it applies also to
+any other work released this way by its authors.  You can apply it to
+your programs, too.
+
+  When we speak of free software, we are referring to freedom, not
+price.  Our General Public Licenses are designed to make sure that you
+have the freedom to distribute copies of free software (and charge for
+them if you wish), that you receive source code or can get it if you
+want it, that you can change the software or use pieces of it in new
+free programs, and that you know you can do these things.
+
+  To protect your rights, we need to prevent others from denying you
+these rights or asking you to surrender the rights.  Therefore, you have
+certain responsibilities if you distribute copies of the software, or if
+you modify it: responsibilities to respect the freedom of others.
+
+  For example, if you distribute copies of such a program, whether
+gratis or for a fee, you must pass on to the recipients the same
+freedoms that you received.  You must make sure that they, too, receive
+or can get the source code.  And you must show them these terms so they
+know their rights.
+
+  Developers that use the GNU GPL protect your rights with two steps:
+(1) assert copyright on the software, and (2) offer you this License
+giving you legal permission to copy, distribute and/or modify it.
+
+  For the developers' and authors' protection, the GPL clearly explains
+that there is no warranty for this free software.  For both users' and
+authors' sake, the GPL requires that modified versions be marked as
+changed, so that their problems will not be attributed erroneously to
+authors of previous versions.
+
+  Some devices are designed to deny users access to install or run
+modified versions of the software inside them, although the manufacturer
+can do so.  This is fundamentally incompatible with the aim of
+protecting users' freedom to change the software.  The systematic
+pattern of such abuse occurs in the area of products for individuals to
+use, which is precisely where it is most unacceptable.  Therefore, we
+have designed this version of the GPL to prohibit the practice for those
+products.  If such problems arise substantially in other domains, we
+stand ready to extend this provision to those domains in future versions
+of the GPL, as needed to protect the freedom of users.
+
+  Finally, every program is threatened constantly by software patents.
+States should not allow patents to restrict development and use of
+software on general-purpose computers, but in those that do, we wish to
+avoid the special danger that patents applied to a free program could
+make it effectively proprietary.  To prevent this, the GPL assures that
+patents cannot be used to render the program non-free.
+
+  The precise terms and conditions for copying, distribution and
+modification follow.
+
+                       TERMS AND CONDITIONS
+
+  0. Definitions.
+
+  "This License" refers to version 3 of the GNU General Public License.
+
+  "Copyright" also means copyright-like laws that apply to other kinds of
+works, such as semiconductor masks.
+
+  "The Program" refers to any copyrightable work licensed under this
+License.  Each licensee is addressed as "you".  "Licensees" and
+"recipients" may be individuals or organizations.
+
+  To "modify" a work means to copy from or adapt all or part of the work
+in a fashion requiring copyright permission, other than the making of an
+exact copy.  The resulting work is called a "modified version" of the
+earlier work or a work "based on" the earlier work.
+
+  A "covered work" means either the unmodified Program or a work based
+on the Program.
+
+  To "propagate" a work means to do anything with it that, without
+permission, would make you directly or secondarily liable for
+infringement under applicable copyright law, except executing it on a
+computer or modifying a private copy.  Propagation includes copying,
+distribution (with or without modification), making available to the
+public, and in some countries other activities as well.
+
+  To "convey" a work means any kind of propagation that enables other
+parties to make or receive copies.  Mere interaction with a user through
+a computer network, with no transfer of a copy, is not conveying.
+
+  An interactive user interface displays "Appropriate Legal Notices"
+to the extent that it includes a convenient and prominently visible
+feature that (1) displays an appropriate copyright notice, and (2)
+tells the user that there is no warranty for the work (except to the
+extent that warranties are provided), that licensees may convey the
+work under this License, and how to view a copy of this License.  If
+the interface presents a list of user commands or options, such as a
+menu, a prominent item in the list meets this criterion.
+
+  1. Source Code.
+
+  The "source code" for a work means the preferred form of the work
+for making modifications to it.  "Object code" means any non-source
+form of a work.
+
+  A "Standard Interface" means an interface that either is an official
+standard defined by a recognized standards body, or, in the case of
+interfaces specified for a particular programming language, one that
+is widely used among developers working in that language.
+
+  The "System Libraries" of an executable work include anything, other
+than the work as a whole, that (a) is included in the normal form of
+packaging a Major Component, but which is not part of that Major
+Component, and (b) serves only to enable use of the work with that
+Major Component, or to implement a Standard Interface for which an
+implementation is available to the public in source code form.  A
+"Major Component", in this context, means a major essential component
+(kernel, window system, and so on) of the specific operating system
+(if any) on which the executable work runs, or a compiler used to
+produce the work, or an object code interpreter used to run it.
+
+  The "Corresponding Source" for a work in object code form means all
+the source code needed to generate, install, and (for an executable
+work) run the object code and to modify the work, including scripts to
+control those activities.  However, it does not include the work's
+System Libraries, or general-purpose tools or generally available free
+programs which are used unmodified in performing those activities but
+which are not part of the work.  For example, Corresponding Source
+includes interface definition files associated with source files for
+the work, and the source code for shared libraries and dynamically
+linked subprograms that the work is specifically designed to require,
+such as by intimate data communication or control flow between those
+subprograms and other parts of the work.
+
+  The Corresponding Source need not include anything that users
+can regenerate automatically from other parts of the Corresponding
+Source.
+
+  The Corresponding Source for a work in source code form is that
+same work.
+
+  2. Basic Permissions.
+
+  All rights granted under this License are granted for the term of
+copyright on the Program, and are irrevocable provided the stated
+conditions are met.  This License explicitly affirms your unlimited
+permission to run the unmodified Program.  The output from running a
+covered work is covered by this License only if the output, given its
+content, constitutes a covered work.  This License acknowledges your
+rights of fair use or other equivalent, as provided by copyright law.
+
+  You may make, run and propagate covered works that you do not
+convey, without conditions so long as your license otherwise remains
+in force.  You may convey covered works to others for the sole purpose
+of having them make modifications exclusively for you, or provide you
+with facilities for running those works, provided that you comply with
+the terms of this License in conveying all material for which you do
+not control copyright.  Those thus making or running the covered works
+for you must do so exclusively on your behalf, under your direction
+and control, on terms that prohibit them from making any copies of
+your copyrighted material outside their relationship with you.
+
+  Conveying under any other circumstances is permitted solely under
+the conditions stated below.  Sublicensing is not allowed; section 10
+makes it unnecessary.
+
+  (Full text available at https://www.gnu.org/licenses/gpl-3.0.txt)
+`;
     els.linkImport.addEventListener("click", async () => {
       if (window.pywebview?.api?.import_settings) {
         await window.pywebview.api.import_settings();

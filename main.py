@@ -7,6 +7,7 @@ import json
 import importlib
 import importlib.util
 import time
+import warnings
 
 # Delay heavy imports or move them inside if __name__ == "__main__" logic
 # to allow --webview-runner to start fast and clean.
@@ -221,6 +222,7 @@ class StartupSplash(QWidget):
         self._version_raw, self._code_name_en, self._code_name_cn = _load_version_info()
         self._version_text = _format_version_display(self._version_raw)
         self._language = _get_current_language()
+        self._is_first_run = FIRST_RUN
         
         # 确定主题
         theme_val = cfg.themeMode.value
@@ -236,7 +238,7 @@ class StartupSplash(QWidget):
 
         self.set_progress(0, "initializing")
 
-        if _is_dev_preview_version(self._version_raw):
+        if not self._is_first_run and _is_dev_preview_version(self._version_raw):
             self._dev_watermark = QLabel(self._container)
             i18n_table = SPLASH_I18N.get(self._language, SPLASH_I18N["zh-CN"])
             suffix = self._version_raw.split(".")[-1]
@@ -256,6 +258,25 @@ class StartupSplash(QWidget):
                                      self._container.height() - self._dev_watermark.height() - 12)
 
     def _build_ui(self):
+        if self._is_first_run:
+            self._container.setFixedSize(960, 540)
+            self._container.move(0, 0)
+            
+            # Center Logo (120x120)
+            self._icon_label = QLabel(self._container)
+            self._icon_label.setFixedSize(120, 120)
+            icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons", "logo.svg")
+            if os.path.exists(icon_path):
+                icon = QIcon(icon_path)
+                pix = icon.pixmap(120, 120)
+                self._icon_label.setPixmap(pix)
+            
+            # Center it
+            cx = (960 - 120) // 2
+            cy = (540 - 120) // 2
+            self._icon_label.move(cx, cy)
+            return
+
         # Redesigned based on QML spec
         # Width: 678, Height: 255
         self._container.setFixedSize(678, 255)
@@ -336,6 +357,22 @@ class StartupSplash(QWidget):
         self._container.setGraphicsEffect(shadow)
 
     def _apply_styles(self):
+        if self._is_first_run:
+            self.resize(960, 540)
+            if self._is_dark:
+                bg_color = "#121212"
+            else:
+                bg_color = "#f2f3f5"
+            
+            self._container.setStyleSheet(
+                f"QFrame#splashContainer {{"
+                f"background-color: {bg_color};"
+                f"border: none;"
+                f"border-radius: 0px;"
+                f"}}"
+            )
+            return
+
         if self._is_dark:
             bg_color = "rgba(47, 47, 47, 240)"
             border_color = "rgba(255, 255, 255, 0.15)"
@@ -389,6 +426,11 @@ class StartupSplash(QWidget):
         self.move(x, y)
 
     def set_progress(self, value, text_key="initializing"):
+        # For first run splash (simple logo), we don't show progress
+        if not hasattr(self, '_progress') or not hasattr(self, '_percent_label'):
+            QApplication.processEvents()
+            return
+
         value = min(max(value, 0), 100)
         self._progress.setValue(value)
         
@@ -399,8 +441,10 @@ class StartupSplash(QWidget):
         QApplication.processEvents()
 
     def finish(self):
-        self._progress.setValue(100)
-        self._percent_label.setText("初始化完成 100%")
+        if hasattr(self, '_progress'):
+            self._progress.setValue(100)
+        if hasattr(self, '_percent_label'):
+            self._percent_label.setText("初始化完成 100%")
         if hasattr(self, '_spinner'):
             self._spinner.stop()
         QTimer.singleShot(250, self.close)
@@ -670,10 +714,22 @@ class PPTAssistantApp:
             if FIRST_RUN and hasattr(self, "onboarding_plugin"):
                 p = self.onboarding_plugin
                 p.execute(preview=False)
+                
+                # Wait for onboarding window to appear (heuristic delay)
+                start_wait = time.time()
+                while time.time() - start_wait < 1.5:
+                     QApplication.processEvents()
+                     time.sleep(0.05)
+                
+                # Hide splash screen to handoff focus to onboarding
+                if self._splash:
+                    self._splash.hide()
+
                 while p.process and p.process.poll() is None:
                     QApplication.processEvents()
                     time.sleep(0.1)
                 reload_cfg()
+                self.restart()
         except Exception:
             pass
         
@@ -714,6 +770,7 @@ class PPTAssistantApp:
         builtin_plugins = [
             "plugins.builtins.settings.plugin.SettingsPlugin",
             "plugins.builtins.onboarding.plugin.OnboardingPlugin",
+            "plugins.builtins.board.plugin.BoardPlugin",
             "plugins.builtins.timer.plugin.TimerPlugin",
             "plugins.builtins.spotlight.plugin.SpotlightPlugin",
             "plugins.builtins.app_launcher.plugin.AppLauncherPlugin"
@@ -733,6 +790,8 @@ class PPTAssistantApp:
                     self.settings_plugin = plugin
                 elif cls_name == "OnboardingPlugin":
                     self.onboarding_plugin = plugin
+                elif cls_name == "BoardPlugin":
+                    self.board_plugin = plugin
                 elif cls_name == "TimerPlugin":
                     self.timer_plugin = plugin
             except Exception as e:
@@ -802,6 +861,7 @@ class PPTAssistantApp:
         self.overlay.request_pen_color.connect(self.monitor.set_pen_color)
 
         self.tray.show_settings.connect(self.settings_plugin.execute)
+        self.tray.show_board.connect(self.board_plugin.execute)
         self.tray.show_timer.connect(self.timer_plugin.execute)
         self.tray.restart_app.connect(self.restart)
         self.tray.exit_app.connect(self.app.quit)
@@ -958,14 +1018,16 @@ class PPTAssistantApp:
             new_overlay.request_pen_color.connect(self.monitor.set_pen_color)
             
             # Disconnect old overlay slots before connecting new ones
-            try:
-                self.monitor.slide_changed.disconnect(self.overlay.update_page_info)
-            except Exception:
-                pass
-            try:
-                self.monitor.window_geometry_changed.disconnect(self.overlay.update_geometry)
-            except Exception:
-                pass
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                try:
+                    self.monitor.slide_changed.disconnect(self.overlay.update_page_info)
+                except Exception:
+                    pass
+                try:
+                    self.monitor.window_geometry_changed.disconnect(self.overlay.update_geometry)
+                except Exception:
+                    pass
             self.monitor.slide_changed.connect(new_overlay.update_page_info)
             self.monitor.window_geometry_changed.connect(new_overlay.update_geometry)
             

@@ -1780,6 +1780,11 @@
       -webkit-mask-image: url('../../../icons/spotlight.svg');
     }
 
+    .toolbar-preview-btn-icon.icon-board_in_board::before {
+      mask-image: url('../../../icons/board-in-board.svg');
+      -webkit-mask-image: url('../../../icons/board-in-board.svg');
+    }
+
     .toolbar-preview-btn-icon.icon-timer::before {
       mask-image: url('../../../icons/timer.svg');
       -webkit-mask-image: url('../../../icons/timer.svg');
@@ -3671,6 +3676,12 @@
             </div>
             <div class="switch" id="sw-Toolbar-ShowSpotlight"></div>
           </div>
+          <div class="settings-item" onclick="toggleSwitch('Toolbar', 'ShowBoardInBoard')">
+            <div class="item-info">
+              <span class="item-label" data-i18n="interaction.showBoardInBoard.label">显示板中板</span>
+            </div>
+            <div class="switch" id="sw-Toolbar-ShowBoardInBoard"></div>
+          </div>
           <div class="settings-item" onclick="toggleSwitch('Toolbar', 'ShowTimer')">
             <div class="item-info">
               <span class="item-label" data-i18n="interaction.showTimer.label">显示计时器</span>
@@ -4197,15 +4208,15 @@
       "appearance.theme.desc": "选择一个主题并预览效果",
       "appearance.theme.default": "默认",
       "appearance.theme.default.desc": "Kazuha 默认主题",
-      "appearance.theme.materialYou": "紫色心情",
+      "appearance.theme.materialYou": "紫色",
       "appearance.theme.materialYou.desc": "柔和紫色与轻盈氛围",
-      "appearance.theme.redSunrise": "红日东升",
+      "appearance.theme.redSunrise": "红色",
       "appearance.theme.redSunrise.desc": "旭日暖红与温柔光晕",
-      "appearance.theme.emptinessColor": "空即是色",
+      "appearance.theme.emptinessColor": "灰色",
       "appearance.theme.emptinessColor.desc": "清净留白与柔和灰阶",
-      "appearance.theme.mungBean": "绿豆冰沙",
+      "appearance.theme.mungBean": "绿色",
       "appearance.theme.mungBean.desc": "清新薄荷与凉感绿意",
-      "appearance.theme.orangeWish": "心想事橙",
+      "appearance.theme.orangeWish": "橙色",
       "appearance.theme.orangeWish.desc": "柑橘微甜与活力暖色",
       "appearance.theme.monet": "动态取色",
       "appearance.theme.monet.desc": "从桌面壁纸提取颜色",
@@ -4274,6 +4285,7 @@
       "overlay.rebuild.action": "立即重建",
       "interaction.showClear.label": "显示清屏",
       "interaction.showSpotlight.label": "显示聚光灯",
+      "interaction.showBoardInBoard.label": "显示板中板",
       "interaction.showTimer.label": "显示计时器",
       "interaction.showToolbarText.label": "工具栏文字",
       "interaction.showToolbarText.desc": "在工具栏图标下方显示功能名称",
@@ -4289,6 +4301,7 @@
       "toolbar.pen": "画笔",
       "toolbar.eraser": "橡皮擦",
       "toolbar.spotlight": "聚光灯",
+      "toolbar.board_in_board": "板中板",
       "toolbar.timer": "计时器",
       "update.status.ready": "准备检查更新",
       "update.status.latest": "你使用的是最新版本",
@@ -4329,7 +4342,7 @@
       "about.credits.libraries": "第三方库",
       "about.checkUpdate.label": "检查更新",
       "debug.createDialog.label": "创建 Dialog",
-      "debug.createDialog.desc": "测试全新的 Dialog 设计风格",
+      "debug.createDialog.desc": "测试 Dialog",
       "debug.triggerCrash.label": "触发测试崩溃",
       "debug.triggerCrash.desc": "手动触发一个 RuntimeError 以测试崩溃处理器的表现",
       "debug.showLogs.label": "显示日志",
@@ -4464,6 +4477,7 @@
       "overlay.rebuild.action": "立即重建",
       "interaction.showClear.label": "顯示清屏",
       "interaction.showSpotlight.label": "顯示聚光燈",
+      "interaction.showBoardInBoard.label": "顯示板中板",
       "interaction.showTimer.label": "顯示計時器",
       "interaction.toolbar.customization.label": "工具列固定項",
       "interaction.toolbar.customization.desc": "管理工具列上的快速啟動項",
@@ -4476,6 +4490,7 @@
       "toolbar.pen": "畫筆",
       "toolbar.eraser": "橡皮擦",
       "toolbar.spotlight": "聚光燈",
+      "toolbar.board_in_board": "板中板",
       "toolbar.timer": "計時器",
       "toolbar.clear": "清屏",
       "toolbar.end_show": "結束放映",
@@ -4578,17 +4593,17 @@
       "appearance.theme.desc": "テーマを選択してプレビューします",
       "appearance.theme.default": "デフォルト",
       "appearance.theme.default.desc": "Kazuha のデフォルトテーマ",
-      "appearance.theme.materialYou": "紫色心情",
+      "appearance.theme.materialYou": "紫",
       "appearance.theme.materialYou.desc": "柔らかな紫と軽い雰囲気",
-      "appearance.theme.redSunrise": "紅日東昇",
+      "appearance.theme.redSunrise": "紅",
       "appearance.theme.redSunrise.desc": "朝日の暖色と柔らかな光",
       "appearance.theme.emptinessColor": "空即是色",
       "appearance.theme.emptinessColor.desc": "静かな余白と柔らかなグレー",
-      "appearance.theme.mungBean": "緑豆氷沙",
+      "appearance.theme.mungBean": "若草色",
       "appearance.theme.mungBean.desc": "ミントの清涼感と若草色",
-      "appearance.theme.orangeWish": "心想事橙",
+      "appearance.theme.orangeWish": "柑橘",
       "appearance.theme.orangeWish.desc": "柑橘の甘さと温かい色味",
-      "appearance.theme.monet": "动态取色",
+      "appearance.theme.monet": "デスクトップの壁紙から色を抽出",
       "appearance.theme.monet.desc": "デスクトップの壁紙から色を抽出",
       "appearance.theme.monet.source.title": "取色元を選択",
       "appearance.theme.monet.source.desc": "壁紙またはローカル画像から配色を取得します",
@@ -4654,6 +4669,7 @@
       "overlay.rebuild.action": "今すぐ再作成",
       "interaction.showClear.label": "クリアを表示",
       "interaction.showSpotlight.label": "スポットライトを表示",
+      "interaction.showBoardInBoard.label": "ボードインボードを表示",
       "interaction.showTimer.label": "タイマーを表示",
       "interaction.toolbar.layout.label": "ツールバーレイアウト",
       "interaction.toolbar.layout.horizontal": "水平配置",
@@ -4668,6 +4684,7 @@
       "toolbar.pen": "ペン",
       "toolbar.eraser": "消しゴム",
       "toolbar.spotlight": "スポットライト",
+      "toolbar.board_in_board": "ボードインボード",
       "toolbar.timer": "タイマー",
       "toolbar.clear": "クリア",
       "toolbar.end_show": "スライドショー終了",
@@ -4846,6 +4863,7 @@
       "overlay.rebuild.action": "Rebuild Now",
       "interaction.showClear.label": "Show Clear",
       "interaction.showSpotlight.label": "Show Spotlight",
+      "interaction.showBoardInBoard.label": "Show Board in Board",
       "interaction.showTimer.label": "Show Timer",
       "interaction.toolbar.customization.label": "Toolbar fixed program",
       "interaction.toolbar.customization.desc": "Manage quick launch applications on the toolbar",
@@ -6371,6 +6389,7 @@
     setSwitch("Overlay", "ShowStatusBar");
     setSwitch("Toolbar", "ShowClear");
     setSwitch("Toolbar", "ShowSpotlight");
+    setSwitch("Toolbar", "ShowBoardInBoard");
     setSwitch("Toolbar", "ShowTimer");
     setSwitch("Toolbar", "ShowToolbarText");
     setSwitch("Debug", "ShowLog");
@@ -6837,6 +6856,11 @@
         const showSpotlight = !!(settings.Toolbar && settings.Toolbar.ShowSpotlight);
         if (showSpotlight) {
           preview.appendChild(createBtn("toolbar.spotlight", "聚光灯", "spotlight", "spotlight"));
+        }
+      } else if (itemId === "board_in_board") {
+        const showBoardInBoard = !!(settings.Toolbar && settings.Toolbar.ShowBoardInBoard);
+        if (showBoardInBoard) {
+          preview.appendChild(createBtn("toolbar.board_in_board", "板中板", "board_in_board", "board_in_board"));
         }
       } else if (itemId === "timer") {
         const showTimer = !!(settings.Toolbar && settings.Toolbar.ShowTimer);

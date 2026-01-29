@@ -62,6 +62,7 @@ class TimerPlugin(AssistantPlugin):
         env["ASSETS_PATH"] = assets_path
         env["TIMER_REMAINING"] = str(self._timer_manager.remaining_seconds)
         env["TIMER_IS_RUNNING"] = "true" if self._timer_manager.is_running else "false"
+        env["DEFER_WEBENGINE_LOAD"] = "1"
 
         if getattr(sys, "frozen", False):
             cmd = [

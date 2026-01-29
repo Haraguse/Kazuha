@@ -13,7 +13,7 @@ import math
 import shiboken6
 from ppt_assistant.core.config import cfg, SETTINGS_PATH
 from ppt_assistant.core.timer_manager import TimerManager
-from qfluentwidgets import FluentWidget, FluentIcon as FIF, BodyLabel, IconWidget, themeColor, Theme, isDarkTheme
+from qfluentwidgets import FluentWidget, FluentIcon as FIF, BodyLabel, IconWidget, themeColor, Theme, isDarkTheme, qconfig
 from ppt_assistant.core.theme_data import THEMES
 
 try:
@@ -284,6 +284,7 @@ _TRANSLATIONS = {
         "toolbar.pen": "画笔",
         "toolbar.eraser": "橡皮",
         "toolbar.spotlight": "聚光灯",
+        "toolbar.board_in_board": "板中板",
         "toolbar.timer": "计时器",
         "toolbar.clear": "清屏",
         "toolbar.end_show": "结束放映",
@@ -303,6 +304,7 @@ _TRANSLATIONS = {
         "toolbar.pen": "畫筆",
         "toolbar.eraser": "橡皮擦",
         "toolbar.spotlight": "聚光燈",
+        "toolbar.board_in_board": "板中板",
         "toolbar.timer": "計時器",
         "toolbar.clear": "清屏",
         "toolbar.end_show": "結束播放",
@@ -322,6 +324,7 @@ _TRANSLATIONS = {
         "toolbar.pen": "ペン",
         "toolbar.eraser": "消しゴム",
         "toolbar.spotlight": "スポットライト",
+        "toolbar.board_in_board": "ボードインボード",
         "toolbar.timer": "タイマー",
         "toolbar.clear": "クリア",
         "toolbar.end_show": "スライド終了",
@@ -341,6 +344,7 @@ _TRANSLATIONS = {
         "toolbar.pen": "Pen",
         "toolbar.eraser": "Eraser",
         "toolbar.spotlight": "Spotlight",
+        "toolbar.board_in_board": "Board in Board",
         "toolbar.timer": "Timer",
         "toolbar.clear": "Clear",
         "toolbar.end_show": "End Show",
@@ -2072,6 +2076,19 @@ class ToolbarWidget(QWidget):
         shadow.setOffset(0, 4)
         self.setGraphicsEffect(shadow)
         
+        # Migration: Ensure board_in_board is in toolbarOrder
+        current_order = cfg.toolbarOrder.value
+        if "board_in_board" not in current_order:
+            new_order = list(current_order)
+            if "spotlight" in new_order:
+                idx = new_order.index("spotlight") + 1
+                new_order.insert(idx, "board_in_board")
+            else:
+                # Default position if spotlight is missing
+                insert_idx = min(4, len(new_order))
+                new_order.insert(insert_idx, "board_in_board")
+            qconfig.set(cfg.toolbarOrder, new_order)
+
         self.init_ui()
         self.update_layout_style()
         
@@ -2232,6 +2249,9 @@ class ToolbarWidget(QWidget):
         self.btn_spotlight = CustomToolButton("spotlight.svg", _t("toolbar.spotlight"), self, text=_t("toolbar.spotlight"))
         self.btn_spotlight.clicked.connect(lambda: self._execute_plugin_by_name("聚光灯"))
 
+        self.btn_board_in_board = CustomToolButton("board-in-board.svg", _t("toolbar.board_in_board"), self, tool_name="board_in_board", text=_t("toolbar.board_in_board"))
+        self.btn_board_in_board.clicked.connect(lambda: self._execute_plugin_by_name("板中板"))
+
         self.btn_timer = CustomToolButton("timer.svg", _t("toolbar.timer"), self, text=_t("toolbar.timer"))
         self.btn_timer.clicked.connect(lambda: self._execute_plugin_by_name("计时器"))
 
@@ -2257,6 +2277,7 @@ class ToolbarWidget(QWidget):
         # Connect signals
         cfg.showClear.valueChanged.connect(self._on_toolbar_visibility_changed)
         cfg.showSpotlight.valueChanged.connect(self._on_toolbar_visibility_changed)
+        cfg.showBoardInBoard.valueChanged.connect(self._on_toolbar_visibility_changed)
         cfg.showTimer.valueChanged.connect(self._on_toolbar_visibility_changed)
         cfg.toolbarOrder.valueChanged.connect(self.update_toolbar_layout)
 
@@ -2272,6 +2293,7 @@ class ToolbarWidget(QWidget):
         order = cfg.toolbarOrder.value
         has_clear = cfg.showClear.value
         has_spotlight = cfg.showSpotlight.value
+        has_board_in_board = cfg.showBoardInBoard.value
         has_timer = cfg.showTimer.value
         clear_added = False
 
@@ -2292,6 +2314,10 @@ class ToolbarWidget(QWidget):
                 self.btn_spotlight.setVisible(has_spotlight)
                 if has_spotlight:
                     self.layout.addWidget(self.btn_spotlight)
+            elif item_id == "board_in_board":
+                self.btn_board_in_board.setVisible(has_board_in_board)
+                if has_board_in_board:
+                    self.layout.addWidget(self.btn_board_in_board)
             elif item_id == "timer":
                 self.btn_timer.setVisible(has_timer)
                 if has_timer:
@@ -2330,7 +2356,7 @@ class ToolbarWidget(QWidget):
                 app_launcher = plugin
                 continue
 
-            if name in ["聚光灯", "计时器"]:
+            if name in ["聚光灯", "计时器", "板中板"]:
                 continue
 
             if isinstance(plugin_type, str) and plugin_type.startswith("toolbar"):

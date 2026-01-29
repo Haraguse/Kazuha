@@ -1,0 +1,9 @@
+{
+    "name": "板中板 - Kazuha",
+    "version": "1.0.0",
+    "description": "自由书写的黑板",
+    "entry": "plugin.BoardPlugin",
+    "icon": "board-in-board.svg",
+    "type": "window",
+    "author": "Kazuha"
+}
