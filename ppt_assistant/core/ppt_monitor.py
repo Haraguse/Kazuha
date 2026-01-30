@@ -643,6 +643,20 @@ class PPTMonitor(QObject):
         display_screen = None
         if target_mode == "Primary":
             display_screen = QGuiApplication.primaryScreen()
+        elif isinstance(target_mode, str) and target_mode and not target_mode.startswith("Screen ") and target_mode != "Auto":
+            try:
+                for s in screens:
+                    if s.name() == target_mode:
+                        display_screen = s
+                        break
+                if display_screen is None:
+                    cleaned = target_mode.replace("\x00", "").strip()
+                    for s in screens:
+                        if s.name().replace("\x00", "").strip() == cleaned:
+                            display_screen = s
+                            break
+            except Exception:
+                pass
         elif target_mode.startswith("Screen "):
             try:
                 idx = int(target_mode.split(" ")[1]) - 1

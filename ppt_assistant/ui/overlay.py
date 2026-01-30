@@ -1533,7 +1533,14 @@ class OverlayWindow(QWidget):
                 if self.windowHandle():
                     self.windowHandle().setScreen(target_screen)
                 self.setGeometry(geo)
+        if hasattr(self, "_layout_updating"):
+            self._layout_updating = False
         QTimer.singleShot(0, self.update_layout)
+        QTimer.singleShot(60, self.update_layout)
+        QTimer.singleShot(250, self.update_layout)
+        QTimer.singleShot(0, self._force_repaint)
+        QTimer.singleShot(80, self._force_repaint)
+        QTimer.singleShot(300, self._force_repaint)
 
     def set_monitor(self, monitor):
         self.monitor = monitor
@@ -1922,8 +1929,11 @@ class OverlayWindow(QWidget):
                 geo = w.geometry()
                 # Expand for shadow (approximate)
                 geo.adjust(-margin, -margin, margin, margin)
+                geo = geo.normalized()
                 # Intersect with window rect to avoid UpdateLayeredWindowIndirect failure (Invalid Parameter)
                 geo = geo.intersected(self.rect())
+                if geo.isEmpty() or geo.width() <= 0 or geo.height() <= 0:
+                    return
                 # In PySide6/Qt6, unite is deprecated/removed in favor of united or using += operator
                 # QRegion.united returns a new region, it does not modify in-place
                 nonlocal region
@@ -1946,6 +1956,23 @@ class OverlayWindow(QWidget):
             pass
             
         self.setMask(region)
+
+    def _force_repaint(self):
+        if not self.isVisible():
+            return
+        self.update()
+        self.repaint()
+        try:
+            if sys.platform == "win32":
+                import ctypes
+
+                hwnd = int(self.winId())
+                RDW_INVALIDATE = 0x0001
+                RDW_UPDATENOW = 0x0100
+                RDW_ALLCHILDREN = 0x0080
+                ctypes.windll.user32.RedrawWindow(hwnd, 0, 0, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN)
+        except Exception:
+            pass
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

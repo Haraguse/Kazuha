@@ -45,13 +45,7 @@ class Config(QConfig):
 
     autoHandleInk = ConfigItem("PPT", "AutoHandleInk", True, BoolValidator())
 
-    overlayScreen = OptionsConfigItem(
-    "Overlay",
-    "OverlayScreen",
-    "Auto",
-    OptionsValidator(["Auto", "Primary"] + [f"Screen {i}" for i in range(1, 21)]),
-    restart=False,
-)
+    overlayScreen = ConfigItem("Overlay", "OverlayScreen", "Auto", restart=False)
 
     splashMode = OptionsConfigItem(
         "General",
