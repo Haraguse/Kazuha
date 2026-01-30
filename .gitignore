@@ -26,3 +26,4 @@ ppt_assistant/core/__pycache__/i18n.cpython-313.pyc
 ppt_assistant/core/__pycache__/ppt_monitor.cpython-313.pyc
 ppt_assistant/core/__pycache__/theme_data.cpython-313.pyc
 ppt_assistant/core/__pycache__/timer_manager.cpython-313.pyc
+*.pyc
