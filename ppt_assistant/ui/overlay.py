@@ -1922,6 +1922,8 @@ class OverlayWindow(QWidget):
                 geo = w.geometry()
                 # Expand for shadow (approximate)
                 geo.adjust(-margin, -margin, margin, margin)
+                # Intersect with window rect to avoid UpdateLayeredWindowIndirect failure (Invalid Parameter)
+                geo = geo.intersected(self.rect())
                 # In PySide6/Qt6, unite is deprecated/removed in favor of united or using += operator
                 # QRegion.united returns a new region, it does not modify in-place
                 nonlocal region

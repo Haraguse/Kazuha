@@ -5300,8 +5300,10 @@
             el.classList.remove("open");
           }
         });
-        el.appendChild(toggle);
-        el.appendChild(menu);
+        if (el) {
+          el.appendChild(toggle);
+          el.appendChild(menu);
+        }
       });
     });
   }
@@ -6346,6 +6348,8 @@
         const autoText = getText("general.overlayScreen.auto") || "自动识别";
         const primaryText = getText("general.overlayScreen.primary") || "主显示器";
         
+        // Final check before clearing
+        if (!sel) return;
         sel.innerHTML = "";
         
         const createOpt = (v, t, k) => {
@@ -6846,6 +6850,7 @@
     };
 
     order.forEach(itemId => {
+      if (!preview) return;
       if (itemId === "select") {
         preview.appendChild(createBtn("toolbar.select", "选择", "select", "select"));
       } else if (itemId === "pen") {
@@ -6951,6 +6956,7 @@
     }
 
     toolbarApps.forEach(app => {
+      if (!list) return;
       const row = document.createElement("div");
       const isSelected = selectedToolbarAppPaths.includes(app.path);
       row.className = "toolbar-app-row" + (isSelected ? " selected" : "");

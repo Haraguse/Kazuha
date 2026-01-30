@@ -32,6 +32,7 @@ class PPTWorker(QObject):
     overlay_visibility_changed = Signal(bool)
     video_state_changed = Signal(float, float, float) # ratio, pos, length
     thumbnail_generated = Signal(int, str) # index, path
+    finished = Signal()
 
     def __init__(self):
         super().__init__()
@@ -61,9 +62,15 @@ class PPTWorker(QObject):
     def stop(self):
         if self._timer:
             self._timer.stop()
+            self._timer.deleteLater()
+            self._timer = None
         if self._com_initialized:
-            pythoncom.CoUninitialize()
+            try:
+                pythoncom.CoUninitialize()
+            except Exception:
+                pass
             self._com_initialized = False
+        self.finished.emit()
 
     def _get_active_app(self):
         # Helper to get the currently tracked app
@@ -325,7 +332,7 @@ class PPTWorker(QObject):
                 wx, wy, ww, wh = rect
                 wr = wx + ww
                 wb = wy + wh
-                tol = 8
+                tol = 40
                 visible = (
                     abs(wx - ml) <= tol
                     and abs(wy - mt) <= tol
@@ -492,8 +499,8 @@ class PPTMonitor(QObject):
     _req_goto = Signal(int)
     _req_export = Signal(int, str)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self._thread = QThread()
         self._worker = PPTWorker()
         self._worker.moveToThread(self._thread)
@@ -507,6 +514,8 @@ class PPTMonitor(QObject):
         self._worker.video_state_changed.connect(self.video_state_changed)
         self._worker.video_state_changed.connect(self._update_local_video_state)
         self._worker.thumbnail_generated.connect(self.thumbnail_generated)
+        self._worker.finished.connect(self._thread.quit)
+        self._thread.finished.connect(self._worker.deleteLater)
 
         # Wire up requests (Self -> Worker)
         self._req_start.connect(self._worker.start)
@@ -526,16 +535,23 @@ class PPTMonitor(QObject):
         self._video_ratio = 0.0
         self._video_pos = 0.0
         self._video_len = 0.0
+        self._last_rect_raw = None
         
         self._thread.start()
+
+    def __del__(self):
+        self.stop_monitoring()
 
     def start_monitoring(self):
         self._req_start.emit()
 
     def stop_monitoring(self):
-        self._req_stop.emit()
-        self._thread.quit()
-        self._thread.wait()
+        if self._thread.isRunning():
+            self._req_stop.emit()
+            self._thread.wait(2000) # Wait for worker to stop and thread to quit
+            if self._thread.isRunning():
+                self._thread.terminate()
+                self._thread.wait()
 
     # --- Public API (Async) ---
     def go_next(self):
@@ -563,10 +579,10 @@ class PPTMonitor(QObject):
         self._req_export.emit(index, path)
         
     def force_update_geometry(self):
-        # We can't force update easily from main thread without roundtrip
-        # But we can re-emit last known if we cached it.
-        # For now, ignore or implement caching if critical.
-        pass
+        rect = self._last_rect_raw
+        if rect is None or rect.isEmpty():
+            return
+        self._on_geometry_changed(QRect(rect), None)
 
     # --- State Handling ---
     def _on_slide_changed(self, current, total):
@@ -575,6 +591,8 @@ class PPTMonitor(QObject):
         self.slide_changed.emit(current, total)
 
     def _on_geometry_changed(self, rect_raw, _):
+        if rect_raw and not rect_raw.isEmpty():
+            self._last_rect_raw = QRect(rect_raw)
         x, y, w, h = rect_raw.x(), rect_raw.y(), rect_raw.width(), rect_raw.height()
         cx, cy = x + w // 2, y + h // 2
         
@@ -589,11 +607,33 @@ class PPTMonitor(QObject):
             m_info = win32api.GetMonitorInfo(hmonitor)
             m_name = m_info['Device']
             ppt_p_origin = (m_info['Monitor'][0], m_info['Monitor'][1])
+            m_width = m_info['Monitor'][2] - m_info['Monitor'][0]
+            m_height = m_info['Monitor'][3] - m_info['Monitor'][1]
             
+            # 1. Try Name Match
             for s in screens:
                 if s.name() == m_name:
                     ppt_screen = s
                     break
+            
+            # 1.1 Try Fuzzy Name Match
+            if not ppt_screen:
+                for s in screens:
+                    s_name = s.name().replace('\x00', '').strip()
+                    m_name_clean = m_name.replace('\x00', '').strip()
+                    if s_name == m_name_clean:
+                        ppt_screen = s
+                        break
+
+            # 2. Try Dimension Match (Fallback)
+            if not ppt_screen:
+                for s in screens:
+                    dpr = s.devicePixelRatio()
+                    sw = s.geometry().width() * dpr
+                    sh = s.geometry().height() * dpr
+                    if abs(sw - m_width) < 10 and abs(sh - m_height) < 10:
+                        ppt_screen = s
+                        break
         except Exception:
             pass
 
@@ -644,4 +684,3 @@ class PPTMonitor(QObject):
         
     def get_video_progress(self):
         return self._video_ratio, self._video_pos, self._video_len
-

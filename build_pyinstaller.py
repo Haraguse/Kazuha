@@ -44,10 +44,15 @@ def run():
     dist_dir = os.path.join(root_dir, "dist")
     build_dir = os.path.join(root_dir, "build")
 
-    venv_python = os.path.join(root_dir, ".venv", "Scripts", "python.exe")
-    if not os.path.exists(venv_python):
-        raise FileNotFoundError("未找到 .venv\\Scripts\\python.exe")
-    python_exe = venv_python
+    python_exe = sys.executable
+    if not os.path.exists(python_exe):
+        # Fallback for some reason if sys.executable is weird, though unlikely
+        venv_python = os.path.join(root_dir, ".venv", "Scripts", "python.exe")
+        if os.path.exists(venv_python):
+            python_exe = venv_python
+        else:
+             # Just try 'python' from PATH
+            python_exe = "python"
 
     icons_dir = os.path.join(root_dir, "icons")
     logo_ico = os.path.join(icons_dir, "logo.ico")

@@ -933,12 +933,18 @@ class PPTAssistantApp:
             old_toolbar_order = cfg.toolbarOrder.value
             old_safe_area = cfg.safeArea.value
             old_scale = cfg.scale.value
+            old_overlay_screen = cfg.overlayScreen.value
             old_rebuild_at = getattr(self, "_overlay_rebuild_at", None)
             # old_layout_mode = cfg.toolbarLayout.value
 
             reload_cfg()
 
             data = _load_settings_json()
+            if cfg.overlayScreen.value != old_overlay_screen:
+                try:
+                    self.monitor.force_update_geometry()
+                except Exception:
+                    pass
 
             new_lang = (data.get("General", {}) or {}).get("Language", "zh-CN")
             profiles = (data.get("Fonts", {}) or {}).get("Profiles", {}) or {}

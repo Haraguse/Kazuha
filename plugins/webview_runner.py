@@ -11,8 +11,8 @@ from PySide6.QtWidgets import QApplication, QFileDialog
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineSettings
 from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtCore import QObject, Slot, QUrl, QFile, QIODevice, Qt, QTimer, QBuffer, QByteArray
-from PySide6.QtGui import QColor, QImage
+from PySide6.QtCore import QObject, Slot, QUrl, QFile, QIODevice, Qt, QTimer, QBuffer, QByteArray, QJsonValue
+from PySide6.QtGui import QColor, QImage, QGuiApplication
 
 DWMWA_WINDOW_CORNER_PREFERENCE = 33
 DWMWCP_ROUND = 2
@@ -276,16 +276,26 @@ class Api(QObject):
     def set_window(self, window):
         self._window = window
 
-    @Slot("QVariant")
+    @Slot(QJsonValue)
     def update_settings(self, settings):
+        if hasattr(settings, "toVariant"):
+            settings = settings.toVariant()
+        
         if not isinstance(settings, dict):
             try:
-                settings = settings.toPython()
+                # Handle possible other wrappers
+                if hasattr(settings, "toPython"):
+                    settings = settings.toPython()
             except Exception:
                 try:
-                    settings = json.loads(settings)
+                    if isinstance(settings, str):
+                        settings = json.loads(settings)
                 except Exception:
                     settings = {}
+        
+        if not isinstance(settings, dict):
+            settings = {}
+            
         self.settings = settings
         theme_mode = settings.get("Appearance", {}).get("ThemeMode", "Light")
         theme_id = settings.get("Appearance", {}).get("ThemeId", "default")
@@ -498,7 +508,7 @@ class Api(QObject):
         except Exception:
             return self.get_quick_launch_apps()
 
-    @Slot(str, str, "QVariant")
+    @Slot(str, str, QJsonValue)
     def save_setting(self, category, key, value):
         preview_mode = os.environ.get("ONBOARDING_PREVIEW", "").lower() == "true"
         if preview_mode:
@@ -506,7 +516,10 @@ class Api(QObject):
         if not isinstance(category, str) or not isinstance(key, str):
             return
         try:
-            value = value.toPython()
+            if hasattr(value, "toVariant"):
+                value = value.toVariant()
+            elif hasattr(value, "toPython"):
+                value = value.toPython()
         except Exception:
             pass
         settings_path = os.environ.get("SETTINGS_PATH")
@@ -754,8 +767,10 @@ class Api(QObject):
         print("TIMER_FINISH")
         sys.stdout.flush()
 
-    @Slot("QVariant")
+    @Slot(QJsonValue)
     def select_item(self, item):
+        if hasattr(item, "toVariant"):
+            item = item.toVariant()
         print(f"SELECTED_ITEM:{json.dumps(item, ensure_ascii=False)}")
         sys.stdout.flush()
         if self._window:
@@ -784,15 +799,18 @@ class Api(QObject):
             try:
                 import ctypes
                 from ctypes import wintypes
+
                 user32 = ctypes.windll.user32
+
                 class MONITORINFOEXW(ctypes.Structure):
                     _fields_ = [
                         ("cbSize", wintypes.DWORD),
                         ("rcMonitor", wintypes.RECT),
                         ("rcWork", wintypes.RECT),
                         ("dwFlags", wintypes.DWORD),
-                        ("szDevice", wintypes.WCHAR * 32)
+                        ("szDevice", wintypes.WCHAR * 32),
                     ]
+
                 class DISPLAY_DEVICEW(ctypes.Structure):
                     _fields_ = [
                         ("cb", wintypes.DWORD),
@@ -800,28 +818,49 @@ class Api(QObject):
                         ("DeviceString", wintypes.WCHAR * 128),
                         ("StateFlags", wintypes.DWORD),
                         ("DeviceID", wintypes.WCHAR * 128),
-                        ("DeviceKey", wintypes.WCHAR * 128)
+                        ("DeviceKey", wintypes.WCHAR * 128),
                     ]
+
+                device_name_map = {}
                 monitor_infos = []
+
                 def monitor_enum_proc(hMonitor, hdcMonitor, lprcMonitor, dwData):
                     mi = MONITORINFOEXW()
                     mi.cbSize = ctypes.sizeof(MONITORINFOEXW)
                     if user32.GetMonitorInfoW(hMonitor, ctypes.byref(mi)):
                         monitor_infos.append(mi)
                     return True
-                MONITORENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p, ctypes.POINTER(wintypes.RECT), ctypes.c_double)
+
+                MONITORENUMPROC = ctypes.WINFUNCTYPE(
+                    ctypes.c_int,
+                    ctypes.c_void_p,
+                    ctypes.c_void_p,
+                    ctypes.POINTER(wintypes.RECT),
+                    ctypes.c_double,
+                )
                 user32.EnumDisplayMonitors(0, 0, MONITORENUMPROC(monitor_enum_proc), 0)
-                for i, mi in enumerate(monitor_infos):
-                    name = f"Display {i+1}"
+
+                for mi in monitor_infos:
+                    key = (mi.szDevice or "").replace("\x00", "").strip()
+                    if not key:
+                        continue
                     dd = DISPLAY_DEVICEW()
                     dd.cb = ctypes.sizeof(DISPLAY_DEVICEW)
                     if user32.EnumDisplayDevicesW(mi.szDevice, 0, ctypes.byref(dd), 0):
-                        name = dd.DeviceString
-                    screens.append({
-                        "id": i,
-                        "name": name,
-                        "is_primary": (mi.dwFlags & 1) != 0
-                    })
+                        device_name_map[key] = (dd.DeviceString or "").replace("\x00", "").strip()
+
+                qt_screens = QGuiApplication.screens() or []
+                primary = QGuiApplication.primaryScreen()
+                for i, s in enumerate(qt_screens):
+                    key = (s.name() or "").replace("\x00", "").strip()
+                    name = device_name_map.get(key) or f"Display {i + 1}"
+                    screens.append(
+                        {
+                            "id": i,
+                            "name": name,
+                            "is_primary": (primary is not None and s == primary),
+                        }
+                    )
             except Exception as e:
                 print(f"Error getting screens: {e}", file=sys.stderr)
         return screens
@@ -926,7 +965,9 @@ body {
 (function() {{
     const style = document.createElement('style');
     style.textContent = {json.dumps(css)};
-    document.documentElement.appendChild(style);
+    if (document.documentElement) {{
+        document.documentElement.appendChild(style);
+    }}
 }})();
 """
         script = QWebEngineScript()
