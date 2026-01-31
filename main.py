@@ -34,6 +34,7 @@ from ppt_assistant.ui.tray import SystemTray
 from ppt_assistant.core.config import cfg, SETTINGS_PATH, PLUGINS_DIR, reload_cfg, _apply_theme_and_color, Theme, qconfig, FIRST_RUN
 from ppt_assistant.core.timer_manager import TimerManager
 from ppt_assistant.core.i18n import t
+from ppt_assistant.core.win_focus_watcher import WindowsFocusWatcher
 
 
 SPLASH_I18N = {
@@ -657,9 +658,13 @@ class PPTAssistantApp:
         self.app.setQuitOnLastWindowClosed(False)
         self._splash = splash
         self._timer_manager = TimerManager()
+        self._focus_watcher = WindowsFocusWatcher(self.app)
+        self._focus_watcher.start()
         self._last_timer_notify_at = 0.0
         self._reloading_overlay = False
         self._slideshow_running = False
+        self._last_slideshow_rect = None
+        self._last_slideshow_screen = None
         self._reload_timer = QTimer()
         self._reload_timer.setSingleShot(True)
         self._reload_timer.setInterval(150)
@@ -849,6 +854,10 @@ class PPTAssistantApp:
     def _connect_signals(self):
         self.monitor.slideshow_started.connect(self.on_slideshow_start)
         self.monitor.slideshow_ended.connect(self.on_slideshow_end)
+        self.monitor.slideshow_started.connect(lambda: self._focus_watcher.set_slideshow_running(True))
+        self.monitor.slideshow_ended.connect(lambda: self._focus_watcher.set_slideshow_running(False))
+        self.monitor.slideshow_hwnd_changed.connect(self._focus_watcher.set_slideshow_hwnd)
+        self._focus_watcher.focus_on_slideshow_changed.connect(self._on_focus_on_slideshow_changed)
 
         self.overlay.request_next.connect(self.monitor.go_next)
         self.overlay.request_prev.connect(self.monitor.go_previous)
@@ -870,7 +879,8 @@ class PPTAssistantApp:
 
         self.monitor.slide_changed.connect(self.overlay.update_page_info)
         self.monitor.window_geometry_changed.connect(self.overlay.update_geometry)
-        self.monitor.overlay_visibility_changed.connect(self._on_overlay_visibility_changed)
+        self.monitor.window_geometry_changed.connect(self._cache_slideshow_geometry)
+        self.monitor.slideshow_hwnd_changed.connect(self.overlay.set_slideshow_hwnd)
 
     @Slot()
     def _on_timer_finished(self):
@@ -891,27 +901,46 @@ class PPTAssistantApp:
                 shutil.rmtree(temp_dir)
             except Exception:
                 pass
-
-        if cfg.autoShowOverlay.value:
-            self.overlay.show()
-            self.overlay.raise_()
-            self.tray.show_message("PPT Assistant", "Slideshow detected. Overlay active.")
+        try:
+            self._focus_watcher.set_slideshow_running(True)
+        except Exception:
+            pass
     
     @Slot()
     def on_slideshow_end(self):
         self._slideshow_running = False
-        self.overlay.hide()
+        try:
+            self.overlay.set_active_on_slideshow(False, animate=False)
+        except Exception:
+            pass
+        try:
+            self._focus_watcher.set_slideshow_running(False)
+        except Exception:
+            pass
+
+    @Slot(object, object)
+    def _cache_slideshow_geometry(self, rect, screen):
+        try:
+            if rect is not None and hasattr(rect, "isEmpty") and not rect.isEmpty():
+                self._last_slideshow_rect = rect
+                self._last_slideshow_screen = screen
+        except Exception:
+            pass
 
     @Slot(bool)
-    def _on_overlay_visibility_changed(self, visible: bool):
-        if not self._slideshow_running or not cfg.autoShowOverlay.value:
-            self.overlay.hide()
-            return
-        if visible:
-            self.overlay.show()
-            self.overlay.raise_()
-        else:
-            self.overlay.hide()
+    def _on_focus_on_slideshow_changed(self, focused: bool):
+        try:
+            if not self._slideshow_running or not cfg.autoShowOverlay.value:
+                self.overlay.set_active_on_slideshow(False, animate=True)
+                return
+            if focused and self._last_slideshow_rect is not None:
+                try:
+                    self.overlay.update_geometry(self._last_slideshow_rect, self._last_slideshow_screen)
+                except Exception:
+                    pass
+            self.overlay.set_active_on_slideshow(bool(focused), animate=True)
+        except Exception:
+            pass
 
     def _check_settings_changed(self):
         if not os.path.exists(SETTINGS_PATH):
@@ -1034,8 +1063,13 @@ class PPTAssistantApp:
                     self.monitor.window_geometry_changed.disconnect(self.overlay.update_geometry)
                 except Exception:
                     pass
+                try:
+                    self.monitor.slideshow_hwnd_changed.disconnect(self.overlay.set_slideshow_hwnd)
+                except Exception:
+                    pass
             self.monitor.slide_changed.connect(new_overlay.update_page_info)
             self.monitor.window_geometry_changed.connect(new_overlay.update_geometry)
+            self.monitor.slideshow_hwnd_changed.connect(new_overlay.set_slideshow_hwnd)
             
             # Swap overlay
             old_overlay = self.overlay
@@ -1072,6 +1106,11 @@ class PPTAssistantApp:
         """Cleanup app resources and terminate subprocesses."""
         if hasattr(self, 'monitor'):
             self.monitor.stop_monitoring()
+        try:
+            if hasattr(self, "_focus_watcher") and self._focus_watcher:
+                self._focus_watcher.stop()
+        except Exception:
+            pass
         if hasattr(self, 'settings_plugin'):
             self.settings_plugin.terminate()
         if hasattr(self, 'overlay'):

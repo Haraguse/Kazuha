@@ -33,6 +33,7 @@ class PPTWorker(QObject):
     video_state_changed = Signal(float, float, float) # ratio, pos, length
     thumbnail_generated = Signal(int, str) # index, path
     finished = Signal()
+    slideshow_hwnd_changed = Signal(int)
 
     def __init__(self):
         super().__init__()
@@ -47,6 +48,8 @@ class PPTWorker(QObject):
         self._overlay_visible = None
         self._timer = None
         self._com_initialized = False
+        self._slideshow_hwnd = 0
+        self._slideshow_started_at = 0.0
 
     @Slot()
     def start(self):
@@ -124,6 +127,14 @@ class PPTWorker(QObject):
                         if not self._running:
                             self._running = True
                             self._active_kind = "ppt"
+                            try:
+                                hwnd = int(getattr(ss_win, "HWND", 0) or 0)
+                                if hwnd and hwnd != self._slideshow_hwnd:
+                                    self._slideshow_hwnd = hwnd
+                                    self.slideshow_hwnd_changed.emit(hwnd)
+                            except Exception:
+                                pass
+                            self._slideshow_started_at = time.monotonic()
                             self.slideshow_started.emit()
                         
                         try:
@@ -195,6 +206,14 @@ class PPTWorker(QObject):
                     if not self._running:
                         self._running = True
                         self._active_kind = "wps"
+                        try:
+                            hwnd = int(getattr(ss_win, "HWND", 0) or 0)
+                            if hwnd and hwnd != self._slideshow_hwnd:
+                                self._slideshow_hwnd = hwnd
+                                self.slideshow_hwnd_changed.emit(hwnd)
+                        except Exception:
+                            pass
+                        self._slideshow_started_at = time.monotonic()
                         self.slideshow_started.emit()
 
                     try:
@@ -226,6 +245,10 @@ class PPTWorker(QObject):
             if self._overlay_visible is not False:
                 self._overlay_visible = False
                 self.overlay_visibility_changed.emit(False)
+            if self._slideshow_hwnd:
+                self._slideshow_hwnd = 0
+                self.slideshow_hwnd_changed.emit(0)
+            self._slideshow_started_at = 0.0
 
     def _update_window_rect(self, ss_win):
         try:
@@ -278,6 +301,13 @@ class PPTWorker(QObject):
                     pass
 
             if success:
+                try:
+                    hwnd = int(getattr(ss_win, "HWND", 0) or 0)
+                    if hwnd and hwnd != self._slideshow_hwnd:
+                        self._slideshow_hwnd = hwnd
+                        self.slideshow_hwnd_changed.emit(hwnd)
+                except Exception:
+                    pass
                 if final_rect != self._last_win_rect:
                     self._last_win_rect = final_rect
                     # We send RAW rect (x, y, w, h). Main thread converts to QRect and finds Screen.
@@ -300,7 +330,8 @@ class PPTWorker(QObject):
                     if pid:
                         handle = win32api.OpenProcess(0x1000, False, pid)
                         exe = win32process.GetModuleFileNameEx(handle, 0) or ""
-                        if exe.lower().endswith("powerpnt.exe"):
+                        exe_lower = exe.lower()
+                        if exe_lower.endswith("powerpnt.exe") or exe_lower.endswith("wpp.exe") or exe_lower.endswith("kwpp.exe"):
                             return True
                 except Exception:
                     pass
@@ -321,24 +352,7 @@ class PPTWorker(QObject):
             hwnd = getattr(ss_win, "HWND", 0)
             if not hwnd:
                 return
-            hwnd = int(hwnd)
-            fg = win32gui.GetForegroundWindow()
-            if not fg or int(fg) != hwnd or not self._is_foreground_presentation():
-                visible = False
-            else:
-                monitor = win32api.MonitorFromWindow(hwnd, win32con.MONITOR_DEFAULTTONEAREST)
-                info = win32api.GetMonitorInfo(monitor)
-                ml, mt, mr, mb = info["Monitor"]
-                wx, wy, ww, wh = rect
-                wr = wx + ww
-                wb = wy + wh
-                tol = 40
-                visible = (
-                    abs(wx - ml) <= tol
-                    and abs(wy - mt) <= tol
-                    and abs(wr - mr) <= tol
-                    and abs(wb - mb) <= tol
-                )
+            visible = True
             if visible != self._overlay_visible:
                 self._overlay_visible = visible
                 self.overlay_visibility_changed.emit(bool(visible))
@@ -484,6 +498,7 @@ class PPTMonitor(QObject):
     slide_changed = Signal(int, int)
     window_geometry_changed = Signal(object, object)
     overlay_visibility_changed = Signal(bool)
+    slideshow_hwnd_changed = Signal(int)
     video_state_changed = Signal(float, float, float)
     thumbnail_generated = Signal(int, str)
     
@@ -511,6 +526,7 @@ class PPTMonitor(QObject):
         self._worker.slide_changed.connect(self._on_slide_changed)
         self._worker.window_geometry_changed.connect(self._on_geometry_changed)
         self._worker.overlay_visibility_changed.connect(self.overlay_visibility_changed)
+        self._worker.slideshow_hwnd_changed.connect(self.slideshow_hwnd_changed)
         self._worker.video_state_changed.connect(self.video_state_changed)
         self._worker.video_state_changed.connect(self._update_local_video_state)
         self._worker.thumbnail_generated.connect(self.thumbnail_generated)
@@ -643,6 +659,20 @@ class PPTMonitor(QObject):
         display_screen = None
         if target_mode == "Primary":
             display_screen = QGuiApplication.primaryScreen()
+        elif isinstance(target_mode, str) and target_mode and not target_mode.startswith("Screen ") and target_mode != "Auto":
+            try:
+                for s in screens:
+                    if s.name() == target_mode:
+                        display_screen = s
+                        break
+                if display_screen is None:
+                    cleaned = target_mode.replace("\x00", "").strip()
+                    for s in screens:
+                        if s.name().replace("\x00", "").strip() == cleaned:
+                            display_screen = s
+                            break
+            except Exception:
+                pass
         elif target_mode.startswith("Screen "):
             try:
                 idx = int(target_mode.split(" ")[1]) - 1

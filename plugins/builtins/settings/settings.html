@@ -6493,14 +6493,43 @@
         sel.appendChild(createOpt("Auto", autoText, "general.overlayScreen.auto"));
         sel.appendChild(createOpt("Primary", primaryText, "general.overlayScreen.primary"));
         
+        const nameCounts = {};
         screens.forEach(s => {
-            const val = `Screen ${s.id + 1}`;
-            const name = s.name || `Display ${s.id + 1}`;
-            const label = s.name ? `${s.name} (${val})` : val;
-            sel.appendChild(createOpt(val, label));
+          const name = s && s.name ? String(s.name) : "";
+          if (!name) return;
+          nameCounts[name] = (nameCounts[name] || 0) + 1;
         });
-        
-        sel.value = currentVal;
+
+        screens.forEach(s => {
+            const key = (s && s.key) ? String(s.key) : "";
+            const name = (s && s.name) ? String(s.name) : "";
+            const fallbackName = `Display ${((s && s.id) != null ? (s.id + 1) : "")}`;
+            const base = name || key || fallbackName;
+            const label = nameCounts[base] > 1 && key ? `${base} (${key})` : base;
+            sel.appendChild(createOpt(key || `Screen ${s.id + 1}`, label));
+        });
+
+        let resolvedVal = currentVal;
+        if (typeof resolvedVal === "string" && resolvedVal.startsWith("Screen ")) {
+          const idx = Number(resolvedVal.split(" ")[1]) - 1;
+          if (Number.isFinite(idx) && idx >= 0 && idx < screens.length) {
+            const key = screens[idx] && screens[idx].key ? String(screens[idx].key) : "";
+            if (key) resolvedVal = key;
+          }
+        }
+
+        sel.value = resolvedVal;
+        if (sel.value !== resolvedVal) {
+          sel.value = "Auto";
+        }
+
+        if (resolvedVal !== currentVal) {
+          if (!settings.Overlay) settings.Overlay = {};
+          settings.Overlay.OverlayScreen = resolvedVal;
+          if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+            window.pywebview.api.save_setting("Overlay", "OverlayScreen", resolvedVal);
+          }
+        }
         
         if (sel.nextSibling && sel.nextSibling.classList.contains("custom-select-container")) {
             sel.nextSibling.remove();

@@ -1,5 +1,5 @@
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QFrame, QApplication, QLabel, QPushButton, QSwipeGesture, QGestureEvent, QGridLayout, QStyleOption, QStyle, QGraphicsDropShadowEffect, QMenu
-from PySide6.QtCore import Qt, Signal, QSize, QPoint, QEvent, QTimer, QTime, QDateTime, QLocale, QThread, QObject, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QRect
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QFrame, QApplication, QLabel, QPushButton, QSwipeGesture, QGestureEvent, QGridLayout, QStyleOption, QStyle, QGraphicsDropShadowEffect, QGraphicsOpacityEffect, QMenu
+from PySide6.QtCore import Qt, Signal, QSize, QPoint, QEvent, QTimer, QTime, QDateTime, QLocale, QThread, QObject, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QRect, Slot
 from PySide6.QtGui import QColor, QIcon, QPainter, QBrush, QPen, QPixmap, QGuiApplication, QFont, QPalette, QLinearGradient, QAction, QRegion
 from PySide6.QtSvg import QSvgRenderer
 import os
@@ -23,6 +23,15 @@ except ImportError:
 
 ICON_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "icons")
 PLUGIN_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "plugins", "builtins")
+
+def _allow_drop_shadow(widget) -> bool:
+    if sys.platform != "win32":
+        return True
+    try:
+        w = widget.window()
+        return not (hasattr(w, "set_active_on_slideshow") and hasattr(w, "_apply_win32_slideshow_binding"))
+    except Exception:
+        return False
 
 
 def _load_language():
@@ -980,11 +989,12 @@ class CustomToolButton(QFrame):
         self.update_style(False)
         self.set_icon_color(False)
 
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(20)
-        shadow.setColor(QColor(0, 0, 0, 80))
-        shadow.setOffset(0, 4)
-        self.setGraphicsEffect(shadow)
+        if _allow_drop_shadow(self):
+            shadow = QGraphicsDropShadowEffect(self)
+            shadow.setBlurRadius(20)
+            shadow.setColor(QColor(0, 0, 0, 80))
+            shadow.setOffset(0, 4)
+            self.setGraphicsEffect(shadow)
 
     def update_size(self):
         show_text = cfg.showToolbarText.value and bool(self.text)
@@ -1445,10 +1455,15 @@ class OverlayWindow(QWidget):
     
     def __init__(self):
         super().__init__()
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowDoesNotAcceptFocus)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_NoSystemBackground, True)
         self.setAttribute(Qt.WA_PaintOnScreen, False)
+        self._slideshow_hwnd = 0
+        self._active_on_slideshow = False
+        self._hide_after_fade_timer = QTimer(self)
+        self._hide_after_fade_timer.setSingleShot(True)
+        self._hide_after_fade_timer.timeout.connect(self._hide_if_inactive)
         
         scr = QGuiApplication.primaryScreen()
         if scr:
@@ -1528,12 +1543,121 @@ class OverlayWindow(QWidget):
             target_screen = QGuiApplication.primaryScreen()
 
         if target_screen:
-            geo = target_screen.geometry()
-            if not geo.isEmpty():
+            geo = rect if rect and not rect.isEmpty() else target_screen.geometry()
+            if geo and not geo.isEmpty():
                 if self.windowHandle():
                     self.windowHandle().setScreen(target_screen)
                 self.setGeometry(geo)
+        if hasattr(self, "_layout_updating"):
+            self._layout_updating = False
         QTimer.singleShot(0, self.update_layout)
+        QTimer.singleShot(60, self.update_layout)
+        QTimer.singleShot(250, self.update_layout)
+        QTimer.singleShot(0, self._force_repaint)
+        QTimer.singleShot(80, self._force_repaint)
+        QTimer.singleShot(300, self._force_repaint)
+
+    @Slot(int)
+    def set_slideshow_hwnd(self, hwnd):
+        try:
+            hwnd = int(hwnd or 0)
+        except Exception:
+            hwnd = 0
+        self._slideshow_hwnd = hwnd
+        if self._active_on_slideshow:
+            self._apply_win32_slideshow_binding(True)
+
+    def set_active_on_slideshow(self, active: bool, animate: bool = True):
+        active = bool(active)
+        self._active_on_slideshow = active
+        try:
+            self._hide_after_fade_timer.stop()
+        except Exception:
+            pass
+
+        if not active:
+            try:
+                self.set_toolbar_visible(False, animate=animate)
+            except Exception:
+                pass
+            self._apply_win32_slideshow_binding(False)
+            try:
+                delay = 180 if animate else 0
+                if delay <= 0:
+                    self._hide_if_inactive()
+                else:
+                    self._hide_after_fade_timer.start(delay)
+            except Exception:
+                self._hide_if_inactive()
+            return
+
+        try:
+            self.show()
+            self.raise_()
+        except Exception:
+            pass
+        self._apply_win32_slideshow_binding(True)
+        try:
+            self.set_toolbar_visible(True, animate=animate)
+        except Exception:
+            pass
+
+    def _hide_if_inactive(self):
+        if self._active_on_slideshow:
+            return
+        try:
+            self.hide()
+        except Exception:
+            pass
+
+    def _apply_win32_slideshow_binding(self, active: bool):
+        if sys.platform != "win32":
+            return
+        try:
+            import ctypes
+
+            overlay_hwnd = int(self.winId())
+            if not overlay_hwnd:
+                return
+
+            user32 = ctypes.windll.user32
+            GWLP_HWNDPARENT = -8
+
+            try:
+                set_parent = user32.SetWindowLongPtrW
+            except AttributeError:
+                set_parent = user32.SetWindowLongW
+
+            set_parent.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p]
+            set_parent.restype = ctypes.c_void_p
+
+            owner = int(self._slideshow_hwnd or 0) if active else 0
+            set_parent(overlay_hwnd, GWLP_HWNDPARENT, ctypes.c_void_p(owner))
+
+            HWND_TOPMOST = -1
+            HWND_NOTOPMOST = -2
+            SWP_NOSIZE = 0x0001
+            SWP_NOMOVE = 0x0002
+            SWP_NOACTIVATE = 0x0010
+            SWP_FRAMECHANGED = 0x0020
+            SWP_SHOWWINDOW = 0x0040
+
+            z_order = HWND_TOPMOST if active else HWND_NOTOPMOST
+            flags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED
+            if active and self.isVisible():
+                flags |= SWP_SHOWWINDOW
+
+            user32.SetWindowPos(
+                ctypes.c_void_p(overlay_hwnd),
+                ctypes.c_void_p(z_order),
+                0,
+                0,
+                0,
+                0,
+                flags,
+            )
+        except Exception:
+            pass
 
     def set_monitor(self, monitor):
         self.monitor = monitor
@@ -1564,7 +1688,6 @@ class OverlayWindow(QWidget):
                 self._reload_mask.label.setText(str(text))
             self._reload_mask.show()
             self._reload_mask.raise_()
-            self._reload_mask.activateWindow()
         elif self._reload_mask is not None:
             self._reload_mask.hide()
 
@@ -1629,7 +1752,6 @@ class OverlayWindow(QWidget):
             self.slide_preview.move(x, y)
         self.slide_preview.show()
         self.slide_preview.raise_()
-        self.slide_preview.setFocus()
 
     def load_plugins(self):
         if not os.path.exists(PLUGIN_DIR):
@@ -1689,6 +1811,11 @@ class OverlayWindow(QWidget):
         self.toolbar.eraser_clicked.connect(self.request_ptr_eraser.emit)
         self.toolbar.pen_color_changed.connect(self.request_pen_color.emit)
         self.toolbar.update_style(self._is_light)
+        self._toolbar_opacity_effect = QGraphicsOpacityEffect(self.toolbar)
+        self._toolbar_opacity_effect.setOpacity(1.0)
+        self.toolbar.setGraphicsEffect(self._toolbar_opacity_effect)
+        self._toolbar_opacity_anim = None
+        self._toolbar_target_visible = True
         
         self._init_flippers()
         if hasattr(self, "left_flipper"):
@@ -1697,6 +1824,85 @@ class OverlayWindow(QWidget):
             self.right_flipper.update_style(self._is_light)
         
         self.update_layout()
+
+    def set_toolbar_visible(self, visible: bool, animate: bool = True):
+        if not hasattr(self, "toolbar") or self.toolbar is None:
+            return
+        visible = bool(visible)
+        try:
+            self.setAttribute(Qt.WA_TransparentForMouseEvents, not visible)
+        except Exception:
+            pass
+
+        eff = getattr(self, "_toolbar_opacity_effect", None)
+        if eff is None:
+            eff = QGraphicsOpacityEffect(self.toolbar)
+            eff.setOpacity(1.0 if visible else 0.0)
+            self.toolbar.setGraphicsEffect(eff)
+            self._toolbar_opacity_effect = eff
+            self._toolbar_opacity_anim = None
+
+        if getattr(self, "_toolbar_target_visible", None) == visible and (not animate):
+            return
+        self._toolbar_target_visible = visible
+
+        if not animate:
+            try:
+                if visible:
+                    self.toolbar.show()
+                    eff.setOpacity(1.0)
+                else:
+                    eff.setOpacity(0.0)
+                    self.toolbar.hide()
+            except Exception:
+                pass
+            return
+
+        try:
+            anim = getattr(self, "_toolbar_opacity_anim", None)
+            if anim and anim.state() == QPropertyAnimation.Running:
+                anim.stop()
+        except Exception:
+            pass
+
+        start_opacity = 1.0
+        try:
+            start_opacity = float(eff.opacity())
+        except Exception:
+            start_opacity = 1.0
+
+        anim = QPropertyAnimation(eff, b"opacity", self)
+        anim.setDuration(160)
+        if visible:
+            try:
+                self.toolbar.show()
+            except Exception:
+                pass
+            if start_opacity <= 0.05:
+                start_opacity = 0.0
+            anim.setStartValue(start_opacity)
+            anim.setEndValue(1.0)
+            anim.setEasingCurve(QEasingCurve.OutCubic)
+        else:
+            if start_opacity >= 0.95:
+                start_opacity = 1.0
+            anim.setStartValue(start_opacity)
+            anim.setEndValue(0.0)
+            anim.setEasingCurve(QEasingCurve.InCubic)
+            anim.finished.connect(self._hide_toolbar_if_needed)
+        self._toolbar_opacity_anim = anim
+        anim.start()
+
+    def _hide_toolbar_if_needed(self):
+        if getattr(self, "_toolbar_target_visible", True):
+            return
+        try:
+            eff = getattr(self, "_toolbar_opacity_effect", None)
+            if eff is not None:
+                eff.setOpacity(0.0)
+            self.toolbar.hide()
+        except Exception:
+            pass
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -1922,8 +2128,11 @@ class OverlayWindow(QWidget):
                 geo = w.geometry()
                 # Expand for shadow (approximate)
                 geo.adjust(-margin, -margin, margin, margin)
+                geo = geo.normalized()
                 # Intersect with window rect to avoid UpdateLayeredWindowIndirect failure (Invalid Parameter)
                 geo = geo.intersected(self.rect())
+                if geo.isEmpty() or geo.width() <= 0 or geo.height() <= 0:
+                    return
                 # In PySide6/Qt6, unite is deprecated/removed in favor of united or using += operator
                 # QRegion.united returns a new region, it does not modify in-place
                 nonlocal region
@@ -1946,6 +2155,23 @@ class OverlayWindow(QWidget):
             pass
             
         self.setMask(region)
+
+    def _force_repaint(self):
+        if not self.isVisible():
+            return
+        self.update()
+        self.repaint()
+        try:
+            if sys.platform == "win32":
+                import ctypes
+
+                hwnd = int(self.winId())
+                RDW_INVALIDATE = 0x0001
+                RDW_UPDATENOW = 0x0100
+                RDW_ALLCHILDREN = 0x0080
+                ctypes.windll.user32.RedrawWindow(hwnd, 0, 0, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN)
+        except Exception:
+            pass
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -2072,12 +2298,6 @@ class ToolbarWidget(QWidget):
         self.indicator.setObjectName("Indicator")
         self.indicator.hide()
         
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(20)
-        shadow.setColor(QColor(0, 0, 0, 80))
-        shadow.setOffset(0, 4)
-        self.setGraphicsEffect(shadow)
-        
         # Migration: Ensure board_in_board is in toolbarOrder
         current_order = cfg.toolbarOrder.value
         if "board_in_board" not in current_order:
@@ -2144,12 +2364,6 @@ class ToolbarWidget(QWidget):
                     border-radius: {radius}px;
                 }}
             """)
-
-            shadow = QGraphicsDropShadowEffect(self)
-            shadow.setBlurRadius(40)
-            shadow.setColor(shadow_color)
-            shadow.setOffset(0, 8)
-            self.setGraphicsEffect(shadow)
             self.update()
 
             p = self.parent()
@@ -2613,8 +2827,9 @@ class PageFlipWidget(QFrame):
             btn.update_icon_color(QColor(fg))
 
         # Shadow
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(40)
-        shadow.setColor(shadow_color)
-        shadow.setOffset(0, 8)
-        self.setGraphicsEffect(shadow)
+        if _allow_drop_shadow(self):
+            shadow = QGraphicsDropShadowEffect(self)
+            shadow.setBlurRadius(40)
+            shadow.setColor(shadow_color)
+            shadow.setOffset(0, 8)
+            self.setGraphicsEffect(shadow)

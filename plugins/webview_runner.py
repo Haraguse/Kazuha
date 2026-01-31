@@ -810,66 +810,26 @@ class Api(QObject):
 
         if sys.platform == "win32":
             try:
-                import ctypes
-                from ctypes import wintypes
-
-                user32 = ctypes.windll.user32
-
-                class MONITORINFOEXW(ctypes.Structure):
-                    _fields_ = [
-                        ("cbSize", wintypes.DWORD),
-                        ("rcMonitor", wintypes.RECT),
-                        ("rcWork", wintypes.RECT),
-                        ("dwFlags", wintypes.DWORD),
-                        ("szDevice", wintypes.WCHAR * 32),
-                    ]
-
-                class DISPLAY_DEVICEW(ctypes.Structure):
-                    _fields_ = [
-                        ("cb", wintypes.DWORD),
-                        ("DeviceName", wintypes.WCHAR * 32),
-                        ("DeviceString", wintypes.WCHAR * 128),
-                        ("StateFlags", wintypes.DWORD),
-                        ("DeviceID", wintypes.WCHAR * 128),
-                        ("DeviceKey", wintypes.WCHAR * 128),
-                    ]
-
-                device_name_map = {}
-                monitor_infos = []
-
-                def monitor_enum_proc(hMonitor, hdcMonitor, lprcMonitor, dwData):
-                    mi = MONITORINFOEXW()
-                    mi.cbSize = ctypes.sizeof(MONITORINFOEXW)
-                    if user32.GetMonitorInfoW(hMonitor, ctypes.byref(mi)):
-                        monitor_infos.append(mi)
-                    return True
-
-                MONITORENUMPROC = ctypes.WINFUNCTYPE(
-                    ctypes.c_int,
-                    ctypes.c_void_p,
-                    ctypes.c_void_p,
-                    ctypes.POINTER(wintypes.RECT),
-                    ctypes.c_double,
-                )
-                user32.EnumDisplayMonitors(0, 0, MONITORENUMPROC(monitor_enum_proc), 0)
-
-                for mi in monitor_infos:
-                    key = (mi.szDevice or "").replace("\x00", "").strip()
-                    if not key:
-                        continue
-                    dd = DISPLAY_DEVICEW()
-                    dd.cb = ctypes.sizeof(DISPLAY_DEVICEW)
-                    if user32.EnumDisplayDevicesW(mi.szDevice, 0, ctypes.byref(dd), 0):
-                        device_name_map[key] = (dd.DeviceString or "").replace("\x00", "").strip()
-
                 qt_screens = QGuiApplication.screens() or []
                 primary = QGuiApplication.primaryScreen()
                 for i, s in enumerate(qt_screens):
                     key = (s.name() or "").replace("\x00", "").strip()
-                    name = device_name_map.get(key) or f"Display {i + 1}"
+                    name = ""
+                    try:
+                        manufacturer = (s.manufacturer() or "").replace("\x00", "").strip()
+                        model = (s.model() or "").replace("\x00", "").strip()
+                        if manufacturer or model:
+                            name = f"{manufacturer} {model}".strip()
+                        else:
+                            name = (s.name() or "").replace("\x00", "").strip()
+                    except Exception:
+                        name = (s.name() or "").replace("\x00", "").strip()
+                    if not name:
+                        name = f"Display {i + 1}"
                     screens.append(
                         {
                             "id": i,
+                            "key": key,
                             "name": name,
                             "is_primary": (primary is not None and s == primary),
                         }
