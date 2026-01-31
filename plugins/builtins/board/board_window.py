@@ -52,6 +52,32 @@ def _load_language():
         return "zh-CN"
     return "zh-CN"
 
+def _read_board_settings():
+    position = "bottom"
+    background_color = "#202020"
+    try:
+        if os.path.exists(SETTINGS_PATH):
+            with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            board = data.get("BoardInBoard", {}) or {}
+            pos = board.get("ToolbarPosition", position)
+            if pos in ("top", "bottom"):
+                position = pos
+            color = board.get("BackgroundColor", background_color)
+            if isinstance(color, str) and len(color) == 7 and color.startswith("#"):
+                try:
+                    int(color[1:], 16)
+                    background_color = color
+                except Exception:
+                    background_color = "#202020"
+    except Exception:
+        return position, background_color
+    return position, background_color
+
+def _load_board_toolbar_position():
+    position, _ = _read_board_settings()
+    return position
+
 _TRANSLATIONS = {
     "zh-CN": {
         "watermark.1": "开发中版本",
@@ -181,8 +207,14 @@ class BoardWindow(QQuickView):
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
         icons_dir = os.path.join(base_dir, "icons")
         icons_url = QUrl.fromLocalFile(icons_dir).toString() + "/"
+        self._settings_path = SETTINGS_PATH
+        self._settings_mtime = None
+        self._board_toolbar_position, self._board_background_color = _read_board_settings()
+
         self.rootContext().setContextProperty("iconsDir", icons_url)
         self.rootContext().setContextProperty("showToolText", cfg.showToolbarText.value)
+        self.rootContext().setContextProperty("boardToolbarPosition", self._board_toolbar_position)
+        self.rootContext().setContextProperty("boardBackgroundColor", self._board_background_color)
         self.rootContext().setContextProperty("penText", _t("toolbar.pen"))
         self.rootContext().setContextProperty("eraserText", _t("toolbar.eraser"))
         self.rootContext().setContextProperty("clearText", _t("toolbar.clear"))
@@ -236,6 +268,29 @@ class BoardWindow(QQuickView):
         # Strokes path
         self.strokes_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "board_strokes.json")
         self.statusChanged.connect(self._on_status_changed)
+        self._settings_watch_timer = QTimer(self)
+        self._settings_watch_timer.setInterval(400)
+        self._settings_watch_timer.timeout.connect(self._sync_board_settings)
+        self._settings_watch_timer.start()
+
+    def _sync_board_settings(self):
+        try:
+            mtime = os.path.getmtime(self._settings_path)
+        except Exception:
+            return
+        if self._settings_mtime == mtime:
+            return
+        self._settings_mtime = mtime
+        position, background_color = _read_board_settings()
+        root = self.rootObject()
+        if position != self._board_toolbar_position:
+            self._board_toolbar_position = position
+            if root:
+                root.setProperty("toolbarPosition", position)
+        if background_color != self._board_background_color:
+            self._board_background_color = background_color
+            if root:
+                root.setProperty("backgroundColor", background_color)
 
     def _on_status_changed(self, status):
         if status == QQuickView.Ready:

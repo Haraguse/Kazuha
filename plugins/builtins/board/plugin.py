@@ -32,6 +32,8 @@ class BoardPlugin(AssistantPlugin):
             # We can expose a signal from backend or just rely on re-show.
         
         self.window.show()
+        self.window.raise_()
+        self.window.requestActivate()
 
     def terminate(self):
         if self.window:

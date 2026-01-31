@@ -44,6 +44,57 @@ def show_webview_dialog(title, text, confirm_text="确认", cancel_text="取消"
     proc = subprocess.Popen([sys.executable, runner_path, "--dialog", temp_path], stdout=subprocess.PIPE, text=True)
     return proc
 
+def show_webview_input_dialog(title, text, confirm_text="确认", cancel_text="取消", input_type="password", placeholder="", hide_cancel=False):
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = current_dir
+    while project_root and not os.path.exists(os.path.join(project_root, "main.py")):
+        parent = os.path.dirname(project_root)
+        if parent == project_root: break
+        project_root = parent
+    
+    runner_path = os.path.join(project_root, "plugins", "webview_runner.py")
+    
+    theme = "auto"
+    accent = "#3275F5"
+    try:
+        from ppt_assistant.core.config import cfg
+        theme = cfg.themeMode.value.lower() if hasattr(cfg.themeMode, 'value') else "auto"
+        accent = cfg.themeColor.value if hasattr(cfg.themeColor, 'value') else "#3275F5"
+    except:
+        pass
+
+    dialog_data = {
+        "code": "password_verify",
+        "title": title,
+        "text": text,
+        "confirmText": confirm_text,
+        "cancelText": cancel_text,
+        "hideCancel": hide_cancel,
+        "theme": theme,
+        "accentColor": accent[:7] if accent.startswith("#") else "#3275F5",
+        "inputType": input_type,
+        "inputPlaceholder": placeholder
+    }
+
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8') as f:
+        json.dump(dialog_data, f)
+        temp_path = f.name
+
+    proc = subprocess.Popen([sys.executable, runner_path, "--dialog", temp_path], stdout=subprocess.PIPE, text=True)
+    stdout, _ = proc.communicate()
+    if "DIALOG_CONFIRMED" not in stdout:
+        return None
+    value = None
+    for line in stdout.splitlines():
+        if line.startswith("DIALOG_VALUE:"):
+            raw = line[len("DIALOG_VALUE:"):]
+            try:
+                value = json.loads(raw)
+            except Exception:
+                value = raw
+            break
+    return value
+
 class CustomDialog:
     """Wrapper class for compatibility with existing code."""
     def __init__(self, title, text, icon_path=None, parent=None, is_error=False):

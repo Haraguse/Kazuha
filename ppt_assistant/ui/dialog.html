@@ -118,6 +118,28 @@
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
     }
 
+    .input-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .dialog-input {
+      width: 100%;
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 10px;
+      border: 1px solid var(--divider);
+      background: rgba(255, 255, 255, 0.6);
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+    }
+
+    [data-theme="dark"] .dialog-input {
+      background: rgba(30, 30, 30, 0.6);
+    }
+
     [data-theme="dark"] .content-container {
       background: var(--bg-app);
       border: 1px solid rgba(255, 255, 255, 0.06);
@@ -214,6 +236,55 @@
       z-index: 9999;
     }
 
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      backdrop-filter: blur(6px);
+    }
+
+    .loading-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 18px 22px;
+      background: var(--bg-app);
+      border-radius: 12px;
+      border: 1px solid var(--divider);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+      color: var(--text-primary);
+      font-size: 13px;
+    }
+
+    .loading-spinner {
+      width: 28px;
+      height: 28px;
+    }
+
+    .loading-spinner svg {
+      width: 100%;
+      height: 100%;
+      transform-origin: center;
+      animation: spin-rotate 1s linear infinite;
+    }
+
+    .loading-spinner circle {
+      fill: none;
+      stroke: var(--accent-blue);
+      stroke-width: 2;
+      stroke-linecap: round;
+    }
+
+    @keyframes spin-rotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
     /* Scrollbar */
     ::-webkit-scrollbar {
       width: 6px;
@@ -238,10 +309,23 @@
       <div class="content-container">
         <div id="text-content" class="text-content"></div>
         <div id="error-card" class="error-card" style="display: none;"></div>
+        <div id="input-wrapper" class="input-wrapper" style="display: none;">
+          <input id="dialog-input" class="dialog-input" type="password" />
+        </div>
       </div>
       <div class="footer">
         <button id="btn-cancel" class="btn btn-cancel" onclick="onCancel()">取消</button>
         <button id="btn-confirm" class="btn btn-confirm" onclick="onConfirm()">确认</button>
+      </div>
+    </div>
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+      <div class="loading-card">
+        <div class="loading-spinner">
+          <svg viewBox="0 0 32 32">
+            <circle cx="16" cy="16" r="12"></circle>
+          </svg>
+        </div>
+        <div id="loading-text"></div>
       </div>
     </div>
   </div>
@@ -254,6 +338,10 @@
     const errorEl = document.getElementById('error-card');
     const btnCancel = document.getElementById('btn-cancel');
     const btnConfirm = document.getElementById('btn-confirm');
+    const inputWrapper = document.getElementById('input-wrapper');
+    const inputEl = document.getElementById('dialog-input');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingText = document.getElementById('loading-text');
 
     const I18N = {
       "zh-CN": {
@@ -272,6 +360,11 @@
         "dialog.fontWarning.title": "自定义字体风险提示",
         "dialog.fontWarning.text": "启用自定义字体可能会导致以下问题：\n\n1. 文本排版错乱、控件被撑破或换行异常\n2. 部分字符、符号或多语言内容缺少字形，显示为方块/问号\n3. 在不同 DPI / 缩放比例下出现渲染模糊或对齐不齐\n4. 在特定系统环境或 PowerPoint 版本中表现与开发环境不一致\n\n因使用自定义字体导致的显示异常、崩溃或演示事故，开发者概不负责，也不提供针对性的技术支持。",
         "dialog.fontWarning.confirm": "我已知晓并愿意自行承担风险",
+        "dialog.password.title": "验证设置密码",
+        "dialog.password.text": "请输入设置密码后继续。",
+        "dialog.password.confirm": "验证",
+        "dialog.password.placeholder": "请输入密码",
+        "dialog.password.loading": "正在验证密码...",
         "general.devWatermark": "开发中版本/技术预览版本\n不保证最终品质 （{version}）"
       },
       "zh-TW": {
@@ -290,6 +383,11 @@
         "dialog.fontWarning.title": "自訂字型風險提示",
         "dialog.fontWarning.text": "啟用自訂字型可能會導致以下問題：\n\n1. 文字排版錯亂、控制項被撐破或換行異常\n2. 部分字元、符號或多語言內容缺少字形，顯示為方塊／問號\n3. 在不同 DPI／縮放比例下出現渲染模糊或對齊不齊\n4. 在特定系統環境或 PowerPoint 版本中表現與開發環境不一致\n\n因使用自訂字型所造成的顯示異常、當機或簡報事故，開發者概不負責，也不提供個別的技術支援。",
         "dialog.fontWarning.confirm": "我已知曉並願意自行承擔風險",
+        "dialog.password.title": "驗證設定密碼",
+        "dialog.password.text": "請輸入設定密碼後繼續。",
+        "dialog.password.confirm": "驗證",
+        "dialog.password.placeholder": "請輸入密碼",
+        "dialog.password.loading": "正在驗證密碼...",
         "general.devWatermark": "開發中版本/技術預覽版本\n不保證最終品質 （{version}）"
       },
       "ja-JP": {
@@ -308,6 +406,11 @@
         "dialog.fontWarning.title": "カスタムフォントに関する注意",
         "dialog.fontWarning.text": "カスタムフォントを有効にすると、次のような問題が発生する可能性があります。\n\n1. 文字のレイアウトが崩れ、コントロールがはみ出したり改行がおかしくなる\n2. 一部の文字・記号・多言語テキストにグリフがなく、四角や「?」として表示される\n3. DPI や表示スケールの違いにより、文字がにじんだり位置がずれたりする\n4. 特定のシステム環境や PowerPoint バージョンでは、開発環境と表示結果が一致しない\n\nカスタムフォントの使用によって生じた表示異常・クラッシュ・プレゼンテーション上のトラブルについて、開発者は一切の責任を負わず、個別の技術サポートも提供しません。",
         "dialog.fontWarning.confirm": "内容を理解し、自己責任で続行します",
+        "dialog.password.title": "設定パスワードの確認",
+        "dialog.password.text": "設定パスワードを入力してください。",
+        "dialog.password.confirm": "確認",
+        "dialog.password.placeholder": "パスワードを入力",
+        "dialog.password.loading": "パスワードを確認中...",
         "general.devWatermark": "開発中バージョン/テクニカルプレビュー\n品質は保証されません （{version}）"
       },
       "en-US": {
@@ -326,6 +429,11 @@
         "dialog.fontWarning.title": "Custom Font Risk Notice",
         "dialog.fontWarning.text": "Enabling custom fonts may cause the following issues:\n\n1. Broken layout, overflowing controls, or unexpected line breaks\n2. Missing glyphs for some characters, symbols, or languages, shown as squares or question marks\n3. Blurry or misaligned text under different DPI or display scaling\n4. Behavior that differs from the developer environment on certain systems or PowerPoint versions\n\nThe developer is not responsible for any visual glitches, crashes, or presentation incidents caused by custom fonts and does not provide dedicated support for such issues.",
         "dialog.fontWarning.confirm": "I understand and accept these risks",
+        "dialog.password.title": "Verify Settings Password",
+        "dialog.password.text": "Enter the settings password to continue.",
+        "dialog.password.confirm": "Verify",
+        "dialog.password.placeholder": "Enter password",
+        "dialog.password.loading": "Verifying password...",
         "general.devWatermark": "In-Development/Technical Preview\nFinal quality not guaranteed ({version})"
       },
       "ug-CN": {
@@ -344,12 +452,19 @@
         "dialog.fontWarning.title": "خەت نۇسخىسى خەۋپ ئاگاھلاندۇرۇشى",
         "dialog.fontWarning.text": "خاس خەت نۇسخىسىنى قوزغىتىش تۆۋەندىكى مەسىلىلەرنى كەلتۈرۈپ چىقىرىشى مۇمكىن:\n\n1. لايىھە بۇزۇلۇشى ياكى قىسىلىپ كېتىشى\n2. بەزى ھەرپ-بەلگىلەرنىڭ يوقاپ كېتىشى\n3. DPI ياكى كۆرۈنۈش دەرىجىسىگە باغلىق سۈپەت پەرقى\n4. مەلۇم سىستېمىلاردا باشقا نەتىجە كۆرۈنۈشى\n\nبۇنىڭدىن كېلىپ چىققان مەسىلىلەرگە تەرەققىيات تەرەپ مەسئۇلىيەت ئالمايدۇ.",
         "dialog.fontWarning.confirm": "خەۋپنى چۈشەندىم",
+        "dialog.password.title": "تەڭشەك پارولى دەلىللەش",
+        "dialog.password.text": "داۋاملاشتۇرۇش ئۈچۈن پارولنى كىرگۈزۈڭ.",
+        "dialog.password.confirm": "دەلىللەش",
+        "dialog.password.placeholder": "پارولنى كىرگۈزۈڭ",
+        "dialog.password.loading": "پارول دەلىللەنمەكتە...",
         "general.devWatermark": "تېخنىكىلىق ئالدىن كۆرۈش نۇسخىسى\nسۈپەت كاپالەتلەنمەيدۇ ({version})"
       }
     };
 
     let currentLanguage = "zh-CN";
     let settings = {};
+    let inputMode = false;
+    let confirmPending = false;
 
     function updateLanguageAndSettings(s) {
       if (s && typeof s === "object") {
@@ -411,6 +526,7 @@
       const isMulti = data.code === "multi_instance";
       const isTest = data.code === "test_dialog";
       const isFontWarning = data.code === "font_warning";
+      const isPassword = data.code === "password_verify";
 
       // If it's a font warning, we might want to preview a specific language's font
       if (isFontWarning && data.targetLang) {
@@ -429,6 +545,8 @@
           data.title = getText("testDialog.title") || "测试对话框";
         } else if (isFontWarning) {
           data.title = getText("dialog.fontWarning.title") || "自定义字体风险提示";
+        } else if (isPassword) {
+          data.title = getText("dialog.password.title") || "验证设置密码";
         }
       }
 
@@ -437,6 +555,8 @@
           data.text = getText("dialog.multiInstance.text");
         } else if (isFontWarning) {
           data.text = getText("dialog.fontWarning.text");
+        } else if (isPassword) {
+          data.text = getText("dialog.password.text");
         }
       }
 
@@ -449,6 +569,8 @@
           data.confirmText = getText("testDialog.confirm") || getText("dialog.generic.ok");
         } else if (isFontWarning) {
           data.confirmText = getText("dialog.fontWarning.confirm") || getText("dialog.generic.ok");
+        } else if (isPassword) {
+          data.confirmText = getText("dialog.password.confirm") || getText("dialog.generic.ok");
         } else {
           data.confirmText = getText("dialog.generic.ok") || "确认";
         }
@@ -476,6 +598,17 @@
       if (data.confirmText) btnConfirm.innerText = data.confirmText;
       if (data.cancelText) btnCancel.innerText = data.cancelText;
       if (data.hideCancel) btnCancel.style.display = 'none';
+
+      if (data.inputType || isPassword) {
+        inputMode = true;
+        inputWrapper.style.display = 'flex';
+        inputEl.type = data.inputType || 'password';
+        inputEl.placeholder = data.inputPlaceholder || getText("dialog.password.placeholder");
+        setTimeout(() => inputEl.focus(), 0);
+      } else {
+        inputMode = false;
+        inputWrapper.style.display = 'none';
+      }
       
       let mode = data.theme || 'light';
       if (mode === 'auto') {
@@ -488,8 +621,18 @@
     }
 
     function onConfirm() {
+      if (confirmPending) return;
       if (window.pywebview && window.pywebview.api) {
-        window.pywebview.api.on_confirm();
+        if (inputMode && window.pywebview.api.on_confirm_with_value) {
+          confirmPending = true;
+          loadingText.textContent = getText("dialog.password.loading") || "";
+          loadingOverlay.style.display = "flex";
+          btnConfirm.disabled = true;
+          btnCancel.disabled = true;
+          window.pywebview.api.on_confirm_with_value(inputEl.value || "");
+        } else {
+          window.pywebview.api.on_confirm();
+        }
       } else {
         window.close();
       }
@@ -590,6 +733,14 @@
         }
       }
     });
+
+    if (inputEl) {
+      inputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          onConfirm();
+        }
+      });
+    }
   </script>
 </body>
 </html>

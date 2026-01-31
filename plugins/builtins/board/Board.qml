@@ -7,13 +7,28 @@ Rectangle {
     id: root
     color: "transparent"
     focus: true
+    property string toolbarPosition: typeof boardToolbarPosition !== "undefined" ? boardToolbarPosition : "bottom"
+    property string backgroundColor: typeof boardBackgroundColor !== "undefined" ? boardBackgroundColor : "#202020"
+    property bool darkBackground: isDarkColor(backgroundColor)
     Keys.onEscapePressed: backend.closeWindow()
+
+    function isDarkColor(value) {
+        if (!value || value.length < 6) return true;
+        var hex = value.charAt(0) === "#" ? value.slice(1) : value;
+        if (hex.length !== 6) return true;
+        var r = parseInt(hex.slice(0, 2), 16);
+        var g = parseInt(hex.slice(2, 4), 16);
+        var b = parseInt(hex.slice(4, 6), 16);
+        if (isNaN(r) || isNaN(g) || isNaN(b)) return true;
+        var luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+        return luminance < 128;
+    }
     
     // Main Content Area
     Rectangle {
         id: board
         anchors.fill: parent
-        color: "#202020"
+        color: backgroundColor
         clip: true
         
         Canvas {
@@ -23,7 +38,7 @@ Rectangle {
             renderTarget: Canvas.FramebufferObject
             renderStrategy: Canvas.Threaded
             
-            property color drawColor: "white"
+            property color drawColor: darkBackground ? "white" : "black"
             property int lineWidth: 3
             property bool isEraser: false
             
@@ -113,7 +128,7 @@ Rectangle {
         anchors.rightMargin: 15
         anchors.bottomMargin: 10
         text: typeof watermarkText !== "undefined" ? watermarkText : ""
-        color: Qt.rgba(1, 1, 1, 0.3)
+        color: darkBackground ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(0, 0, 0, 0.3)
         font.pixelSize: 12
         horizontalAlignment: Text.AlignRight
         visible: typeof showWatermark !== "undefined" ? showWatermark : false
@@ -124,16 +139,24 @@ Rectangle {
     Popup {
         id: colorPopup
         parent: root
-        x: (root.width - width) / 2
-        y: root.height - toolbar.height - height - 30
+        x: toolbarPosition === "left"
+            ? toolbar.x + toolbar.width + 20
+            : toolbarPosition === "right"
+                ? toolbar.x - width - 20
+                : (root.width - width) / 2
+        y: toolbarPosition === "top"
+            ? toolbar.y + toolbar.height + 20
+            : toolbarPosition === "bottom"
+                ? toolbar.y - height - 30
+                : toolbar.y + (toolbar.height - height) / 2
         width: 260
         height: 160
         padding: 12
         
         background: Rectangle {
-            color: "#202020"
+            color: darkBackground ? "#202020" : "#FFFFFF"
             radius: 12
-            border.color: Qt.rgba(1, 1, 1, 0.1)
+            border.color: darkBackground ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.1)
             border.width: 1
         }
         
@@ -142,7 +165,7 @@ Rectangle {
             
             Text {
                 text: themeColorsText
-                color: "white"
+                color: darkBackground ? "white" : "black"
                 font.pixelSize: 12
                 opacity: 0.8
             }
@@ -184,7 +207,7 @@ Rectangle {
             
             Text {
                 text: standardColorsText
-                color: "white"
+                color: darkBackground ? "white" : "black"
                 font.pixelSize: 12
                 opacity: 0.8
             }
@@ -229,10 +252,12 @@ Rectangle {
     // Floating Toolbar
     Rectangle {
         id: toolbar
+        property bool isVertical: toolbarPosition === "left" || toolbarPosition === "right"
         property real itemHeight: showToolText ? 56 : 36
-        width: row.width + (height - itemHeight)
-        height: showToolText ? 76 : 50
-        radius: height / 2
+        property real capThickness: showToolText ? 76 : 50
+        width: isVertical ? capThickness : grid.implicitWidth + (capThickness - itemHeight)
+        height: isVertical ? grid.implicitHeight + (capThickness - itemHeight) : capThickness
+        radius: isVertical ? width / 2 : height / 2
         color: Qt.rgba(0.2, 0.2, 0.2, 0.9)
         border.color: Qt.rgba(1, 1, 1, 0.2)
         border.width: 1
@@ -240,10 +265,74 @@ Rectangle {
         anchors.bottomMargin: 20
         anchors.horizontalCenter: parent.horizontalCenter
         
-        Row {
-            id: row
+        states: [
+            State {
+                name: "top"
+                when: toolbarPosition === "top"
+                AnchorChanges {
+                    target: toolbar
+                    anchors.top: parent.top
+                    anchors.bottom: undefined
+                    anchors.left: undefined
+                    anchors.right: undefined
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.verticalCenter: undefined
+                }
+                PropertyChanges {
+                    target: toolbar
+                    anchors.topMargin: 20
+                    anchors.bottomMargin: 0
+                    anchors.leftMargin: 0
+                    anchors.rightMargin: 0
+                }
+            },
+            State {
+                name: "left"
+                when: toolbarPosition === "left"
+                AnchorChanges {
+                    target: toolbar
+                    anchors.left: parent.left
+                    anchors.right: undefined
+                    anchors.top: undefined
+                    anchors.bottom: undefined
+                    anchors.horizontalCenter: undefined
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                PropertyChanges {
+                    target: toolbar
+                    anchors.leftMargin: 20
+                    anchors.rightMargin: 0
+                    anchors.topMargin: 0
+                    anchors.bottomMargin: 0
+                }
+            },
+            State {
+                name: "right"
+                when: toolbarPosition === "right"
+                AnchorChanges {
+                    target: toolbar
+                    anchors.right: parent.right
+                    anchors.left: undefined
+                    anchors.top: undefined
+                    anchors.bottom: undefined
+                    anchors.horizontalCenter: undefined
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                PropertyChanges {
+                    target: toolbar
+                    anchors.rightMargin: 20
+                    anchors.leftMargin: 0
+                    anchors.topMargin: 0
+                    anchors.bottomMargin: 0
+                }
+            }
+        ]
+
+        Grid {
+            id: grid
             anchors.centerIn: parent
             spacing: 4
+            columns: isVertical ? 1 : 999
             
             // Pen
             Item {
