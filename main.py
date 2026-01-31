@@ -881,6 +881,7 @@ class PPTAssistantApp:
         self.monitor.window_geometry_changed.connect(self.overlay.update_geometry)
         self.monitor.window_geometry_changed.connect(self._cache_slideshow_geometry)
         self.monitor.slideshow_hwnd_changed.connect(self.overlay.set_slideshow_hwnd)
+        self.monitor.restrictions_changed.connect(self.overlay.set_ppt_restrictions)
 
     @Slot()
     def _on_timer_finished(self):
@@ -894,6 +895,10 @@ class PPTAssistantApp:
     @Slot()
     def on_slideshow_start(self):
         self._slideshow_running = True
+        try:
+            self.overlay.on_slideshow_start_cleanup()
+        except Exception:
+            pass
         # Cleanup slide thumbnails from previous session
         temp_dir = os.path.join(tempfile.gettempdir(), "kazuha_ppt_thumbs")
         if os.path.exists(temp_dir):
@@ -909,6 +914,10 @@ class PPTAssistantApp:
     @Slot()
     def on_slideshow_end(self):
         self._slideshow_running = False
+        try:
+            self.overlay.on_slideshow_end_cleanup()
+        except Exception:
+            pass
         try:
             self.overlay.set_active_on_slideshow(False, animate=False)
         except Exception:

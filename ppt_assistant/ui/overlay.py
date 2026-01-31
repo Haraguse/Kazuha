@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QFrame, QApplication, QLabel, QPushButton, QSwipeGesture, QGestureEvent, QGridLayout, QStyleOption, QStyle, QGraphicsDropShadowEffect, QGraphicsOpacityEffect, QMenu
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QFrame, QApplication, QLabel, QPushButton, QSwipeGesture, QGestureEvent, QGridLayout, QStyleOption, QStyle, QGraphicsDropShadowEffect, QGraphicsOpacityEffect, QMenu, QProgressBar
 from PySide6.QtCore import Qt, Signal, QSize, QPoint, QEvent, QTimer, QTime, QDateTime, QLocale, QThread, QObject, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QRect, Slot
 from PySide6.QtGui import QColor, QIcon, QPainter, QBrush, QPen, QPixmap, QGuiApplication, QFont, QPalette, QLinearGradient, QAction, QRegion
 from PySide6.QtSvg import QSvgRenderer
@@ -1414,12 +1414,15 @@ class ReloadMask(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAttribute(Qt.WA_StyledBackground, True)
+        self._reasons = set()
         font_stack = _get_overlay_font_stack()
         is_light = _resolve_is_light()
         self.setStyleSheet(
             f"ReloadMask {{ background-color: {_p('mask_overlay_bg', is_light) or 'rgba(0, 0, 0, 110)'}; }}"
             f"QFrame {{ background-color: {_p('mask_card_bg', is_light) or 'rgba(30, 30, 30, 220)'}; border-radius: 16px; }}"
             f"QLabel {{ color: {_p('mask_text_fg', is_light) or 'rgba(255, 255, 255, 0.92)'}; font-size: 14px; font-weight: 500; font-family: {font_stack}; }}"
+            f"QProgressBar {{ background: rgba(255, 255, 255, 0.14); border: 0px; border-radius: 2px; height: 4px; padding: 0px; }}"
+            f"QProgressBar::chunk {{ background: {_p('mask_text_fg', is_light) or 'rgba(255, 255, 255, 0.92)'}; border-radius: 2px; }}"
         )
 
         outer = QVBoxLayout(self)
@@ -1428,20 +1431,69 @@ class ReloadMask(QWidget):
         outer.setAlignment(Qt.AlignCenter)
 
         card = QFrame(self)
+        self._card = card
         card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(22, 18, 22, 18)
-        card_layout.setSpacing(12)
-        card_layout.setAlignment(Qt.AlignCenter)
+        card_layout.setContentsMargins(0, 0, 0, 0)
+        card_layout.setSpacing(0)
 
         spinner_color = _parse_color(_p("mask_text_fg", is_light) or "rgba(255, 255, 255, 0.92)")
-        self.spinner = IndeterminateSpinner(card, color=spinner_color, size=27)
-        card_layout.addWidget(self.spinner, 0, Qt.AlignCenter)
+        content = QWidget(card)
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(22, 18, 22, 14)
+        content_layout.setSpacing(12)
+        content_layout.setAlignment(Qt.AlignCenter)
 
-        self.label = QLabel("正在重载页面", card)
+        self.spinner = IndeterminateSpinner(content, color=spinner_color, size=27)
+        content_layout.addWidget(self.spinner, 0, Qt.AlignCenter)
+
+        self.label = QLabel("正在重载页面", content)
         self.label.setAlignment(Qt.AlignCenter)
-        card_layout.addWidget(self.label, 0, Qt.AlignCenter)
+        content_layout.addWidget(self.label, 0, Qt.AlignCenter)
+
+        card_layout.addWidget(content)
+
+        progress_wrap = QWidget(card)
+        progress_wrap_layout = QHBoxLayout(progress_wrap)
+        progress_wrap_layout.setContentsMargins(14, 0, 14, 0)
+        progress_wrap_layout.setSpacing(0)
+
+        self.progress = QProgressBar(card)
+        self.progress.setTextVisible(False)
+        self.progress.setRange(0, 1000)
+        self.progress.setValue(1000)
+        self.progress.setFixedHeight(4)
+        self.progress.hide()
+        progress_wrap_layout.addWidget(self.progress)
+        card_layout.addWidget(progress_wrap)
 
         outer.addWidget(card, 0, Qt.AlignCenter)
+
+    def set_active_reasons(self, reasons):
+        try:
+            self._reasons = set(reasons or [])
+        except Exception:
+            self._reasons = set()
+
+    def mousePressEvent(self, event):
+        try:
+            if event.button() == Qt.LeftButton:
+                pos = event.position().toPoint()
+                card_geo = self._card.geometry() if hasattr(self, "_card") and self._card else QRect()
+                if not card_geo.contains(pos):
+                    if "ppt_restricted" in self._reasons and not (self._reasons - {"ppt_restricted"}):
+                        parent = self.parent()
+                        if parent and hasattr(parent, "_set_mask_reason") and hasattr(parent, "_stop_ppt_restriction_mask"):
+                            try:
+                                parent._stop_ppt_restriction_mask()
+                            except Exception:
+                                pass
+                            try:
+                                parent._set_mask_reason("ppt_restricted", False)
+                            except Exception:
+                                pass
+        except Exception:
+            pass
+        super().mousePressEvent(event)
 
 class OverlayWindow(QWidget):
     request_next = Signal()
@@ -1461,6 +1513,7 @@ class OverlayWindow(QWidget):
         self.setAttribute(Qt.WA_PaintOnScreen, False)
         self._slideshow_hwnd = 0
         self._active_on_slideshow = False
+        self._force_visible_mask = False
         self._hide_after_fade_timer = QTimer(self)
         self._hide_after_fade_timer.setSingleShot(True)
         self._hide_after_fade_timer.timeout.connect(self._hide_if_inactive)
@@ -1486,7 +1539,12 @@ class OverlayWindow(QWidget):
         self._reload_mask = None
         self._pending_timers = []
         self._mask_reasons = set()
-        self._mask_texts = {"reload": "正在重载页面", "blocked": "请稍后"}
+        self._mask_texts = {"reload": "正在重载页面", "blocked": "请稍后", "ppt_restricted": "PPT 处于受限状态"}
+        self._ppt_restriction_end_at = 0.0
+        self._ppt_restriction_duration_ms = 0
+        self._ppt_restriction_tick = QTimer(self)
+        self._ppt_restriction_tick.setInterval(16)
+        self._ppt_restriction_tick.timeout.connect(self._tick_ppt_restriction_mask)
         self._ui_last_ping = time.monotonic()
         self._ui_heartbeat_timer = QTimer(self)
         self._ui_heartbeat_timer.setInterval(100)
@@ -1567,6 +1625,123 @@ class OverlayWindow(QWidget):
         if self._active_on_slideshow:
             self._apply_win32_slideshow_binding(True)
 
+    @Slot(bool, bool)
+    def set_ppt_restrictions(self, protected_view: bool, presentation_readonly: bool):
+        protected_view = bool(protected_view)
+        presentation_readonly = bool(presentation_readonly)
+        if protected_view:
+            self._show_ppt_restriction_mask(
+                6500,
+                "PPT 处于受保护视图，部分功能受限；如需完整功能请在 PowerPoint 点击“启用编辑”",
+            )
+        elif presentation_readonly:
+            self._show_ppt_restriction_mask(5000, "PPT 处于只读模式，部分功能受限")
+        else:
+            self._set_mask_reason("ppt_restricted", False)
+            self._stop_ppt_restriction_mask()
+
+    def _show_ppt_restriction_mask(self, duration_ms: int, text: str):
+        duration_ms = max(0, int(duration_ms or 0))
+        self._ppt_restriction_duration_ms = duration_ms
+        self._ppt_restriction_end_at = time.monotonic() + (duration_ms / 1000.0 if duration_ms else 0.0)
+        self._force_visible_mask = True
+        try:
+            self._hide_after_fade_timer.stop()
+        except Exception:
+            pass
+        try:
+            self.show()
+            self.raise_()
+        except Exception:
+            pass
+        self._set_mask_reason("ppt_restricted", True, text=text)
+        self._ensure_reload_mask()
+        try:
+            self._reload_mask.progress.show()
+            self._reload_mask.progress.setValue(1000)
+        except Exception:
+            pass
+        self._ppt_restriction_tick.start()
+
+    def _stop_ppt_restriction_mask(self):
+        try:
+            self._ppt_restriction_tick.stop()
+        except Exception:
+            pass
+        try:
+            if self._reload_mask is not None:
+                self._reload_mask.progress.hide()
+        except Exception:
+            pass
+        self._ppt_restriction_end_at = 0.0
+        self._ppt_restriction_duration_ms = 0
+        if not self._mask_reasons:
+            self._force_visible_mask = False
+
+    def on_slideshow_start_cleanup(self):
+        try:
+            self._stop_ppt_restriction_mask()
+        except Exception:
+            pass
+        try:
+            self._mask_reasons.clear()
+        except Exception:
+            pass
+        try:
+            if self._reload_mask is not None:
+                self._reload_mask.hide()
+        except Exception:
+            pass
+        self._force_visible_mask = False
+
+    def on_slideshow_end_cleanup(self):
+        try:
+            self._hide_after_fade_timer.stop()
+        except Exception:
+            pass
+        try:
+            self._stop_ppt_restriction_mask()
+        except Exception:
+            pass
+        try:
+            self._mask_reasons.clear()
+        except Exception:
+            pass
+        try:
+            if self._reload_mask is not None:
+                self._reload_mask.hide()
+        except Exception:
+            pass
+        self._force_visible_mask = False
+        try:
+            self._apply_win32_slideshow_binding(False)
+        except Exception:
+            pass
+        try:
+            self.hide()
+        except Exception:
+            pass
+
+    def _tick_ppt_restriction_mask(self):
+        if "ppt_restricted" not in self._mask_reasons:
+            self._stop_ppt_restriction_mask()
+            return
+        if not self._ppt_restriction_end_at or not self._ppt_restriction_duration_ms:
+            self._stop_ppt_restriction_mask()
+            self._set_mask_reason("ppt_restricted", False)
+            return
+        remaining = self._ppt_restriction_end_at - time.monotonic()
+        if remaining <= 0:
+            self._stop_ppt_restriction_mask()
+            self._set_mask_reason("ppt_restricted", False)
+            return
+        frac = max(0.0, min(1.0, remaining / (self._ppt_restriction_duration_ms / 1000.0)))
+        try:
+            self._ensure_reload_mask()
+            self._reload_mask.progress.setValue(int(frac * 1000))
+        except Exception:
+            pass
+
     def set_active_on_slideshow(self, active: bool, animate: bool = True):
         active = bool(active)
         self._active_on_slideshow = active
@@ -1576,6 +1751,8 @@ class OverlayWindow(QWidget):
             pass
 
         if not active:
+            if not self._mask_reasons:
+                self._force_visible_mask = False
             try:
                 self.set_toolbar_visible(False, animate=animate)
             except Exception:
@@ -1604,6 +1781,8 @@ class OverlayWindow(QWidget):
 
     def _hide_if_inactive(self):
         if self._active_on_slideshow:
+            return
+        if getattr(self, "_force_visible_mask", False):
             return
         try:
             self.hide()
@@ -1678,18 +1857,32 @@ class OverlayWindow(QWidget):
             return self._mask_texts.get("blocked", "请稍后")
         if "reload" in self._mask_reasons:
             return self._mask_texts.get("reload", "正在重载页面")
+        if "ppt_restricted" in self._mask_reasons:
+            return self._mask_texts.get("ppt_restricted", "PPT 处于受限状态")
         return ""
 
     def _update_mask_visibility(self):
         if self._mask_reasons:
+            self._force_visible_mask = True
             self._ensure_reload_mask()
+            try:
+                self._reload_mask.set_active_reasons(self._mask_reasons)
+            except Exception:
+                pass
             text = self._select_mask_text()
             if text:
                 self._reload_mask.label.setText(str(text))
+            try:
+                self.show()
+                self.raise_()
+            except Exception:
+                pass
             self._reload_mask.show()
             self._reload_mask.raise_()
         elif self._reload_mask is not None:
             self._reload_mask.hide()
+            self._force_visible_mask = False
+            self._hide_if_inactive()
 
     def _set_mask_reason(self, reason, active, text=None):
         if text:

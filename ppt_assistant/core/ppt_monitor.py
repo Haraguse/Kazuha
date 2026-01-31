@@ -34,6 +34,7 @@ class PPTWorker(QObject):
     thumbnail_generated = Signal(int, str) # index, path
     finished = Signal()
     slideshow_hwnd_changed = Signal(int)
+    restrictions_changed = Signal(bool, bool) # protected_view, presentation_readonly
 
     def __init__(self):
         super().__init__()
@@ -50,6 +51,219 @@ class PPTWorker(QObject):
         self._com_initialized = False
         self._slideshow_hwnd = 0
         self._slideshow_started_at = 0.0
+        self._protected_view = False
+        self._presentation_readonly = False
+        self._control_mode = "com"
+        self._last_error_by_key = {}
+        self._degraded_current = 0
+        self._degraded_total = 0
+
+    def _update_restrictions(self, protected_view: bool, presentation_readonly: bool):
+        protected_view = bool(protected_view)
+        presentation_readonly = bool(presentation_readonly)
+        if protected_view == self._protected_view and presentation_readonly == self._presentation_readonly:
+            return
+        self._protected_view = protected_view
+        self._presentation_readonly = presentation_readonly
+        self.restrictions_changed.emit(protected_view, presentation_readonly)
+
+    def _find_ppt_slideshow_hwnd(self) -> int:
+        if not win32gui:
+            return 0
+        try:
+            fg = int(win32gui.GetForegroundWindow() or 0)
+        except Exception:
+            fg = 0
+
+        def _is_ppt_slideshow(hwnd: int) -> bool:
+            try:
+                if not hwnd:
+                    return False
+                if not win32gui.IsWindowVisible(int(hwnd)):
+                    return False
+                if win32gui.GetClassName(int(hwnd)) != "screenClass":
+                    return False
+                if win32process and win32api:
+                    try:
+                        _, pid = win32process.GetWindowThreadProcessId(int(hwnd))
+                        if not pid:
+                            return False
+                        handle = win32api.OpenProcess(0x1000, False, pid)
+                        exe = win32process.GetModuleFileNameEx(handle, 0) or ""
+                        if not exe.lower().endswith("powerpnt.exe"):
+                            return False
+                    except Exception:
+                        return False
+                return True
+            except Exception:
+                return False
+
+        if _is_ppt_slideshow(fg):
+            return fg
+
+        found = 0
+
+        def _enum_cb(hwnd, _):
+            nonlocal found
+            if found:
+                return
+            if _is_ppt_slideshow(int(hwnd)):
+                found = int(hwnd)
+
+        try:
+            win32gui.EnumWindows(_enum_cb, None)
+        except Exception:
+            return 0
+        return int(found or 0)
+
+    def _update_window_rect_hwnd(self, hwnd: int):
+        try:
+            if not win32gui:
+                return
+            hwnd = int(hwnd or 0)
+            if not hwnd:
+                return
+            left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+            w, h = right - left, bottom - top
+            final_rect = (left, top, w, h)
+            if final_rect != self._last_win_rect:
+                self._last_win_rect = final_rect
+                self.window_geometry_changed.emit(QRect(*final_rect), None)
+            if self._overlay_visible is not True:
+                self._overlay_visible = True
+                self.overlay_visibility_changed.emit(True)
+        except Exception:
+            pass
+
+    def _send_vk_to_slideshow(self, vk: int) -> bool:
+        try:
+            if not win32api or not win32con:
+                return False
+            hwnd = int(self._slideshow_hwnd or 0)
+            if not hwnd:
+                hwnd = self._find_ppt_slideshow_hwnd()
+                if hwnd:
+                    self._slideshow_hwnd = hwnd
+                    self.slideshow_hwnd_changed.emit(hwnd)
+            if not hwnd:
+                return False
+            if win32gui:
+                try:
+                    win32gui.SetForegroundWindow(int(hwnd))
+                except Exception:
+                    pass
+            win32api.keybd_event(int(vk), 0, 0, 0)
+            win32api.keybd_event(int(vk), 0, win32con.KEYEVENTF_KEYUP, 0)
+            return True
+        except Exception:
+            return False
+
+    def _note_error(self, key: str, exc: Exception):
+        try:
+            now = time.monotonic()
+            last = float(self._last_error_by_key.get(key, 0.0) or 0.0)
+            if now - last < 2.0:
+                return
+            self._last_error_by_key[key] = now
+            try:
+                print(f"[ppt_monitor] {key} failed: {type(exc).__name__}: {exc}")
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _try_emit_page_info_from_ppt_app(self):
+        app = self.ppt_app
+        if not app:
+            return
+
+        current = 0
+        total = 0
+        pres = None
+
+        try:
+            pres = getattr(app, "ActivePresentation", None)
+            if pres is not None:
+                total = int(getattr(getattr(pres, "Slides", None), "Count", 0) or 0)
+        except Exception:
+            pass
+
+        if not total:
+            try:
+                pv_windows = getattr(app, "ProtectedViewWindows", None)
+                if pv_windows is not None and int(getattr(pv_windows, "Count", 0) or 0) > 0:
+                    pv = pv_windows(1)
+                    pres = getattr(pv, "Presentation", None)
+                    if pres is not None:
+                        total = int(getattr(getattr(pres, "Slides", None), "Count", 0) or 0)
+            except Exception:
+                pass
+
+        try:
+            if pres is not None:
+                ss_win = getattr(pres, "SlideShowWindow", None)
+                ss_view = getattr(ss_win, "View", None) if ss_win is not None else None
+                if ss_view is not None:
+                    current = int(getattr(ss_view, "CurrentShowPosition", 0) or 0)
+        except Exception:
+            pass
+
+        try:
+            active_win = getattr(app, "ActiveWindow", None)
+            view = getattr(active_win, "View", None) if active_win is not None else None
+            slide = getattr(view, "Slide", None) if view is not None else None
+            if not current:
+                current = int(getattr(slide, "SlideIndex", 0) or 0) if slide is not None else 0
+        except Exception:
+            pass
+
+        if not total:
+            total = int(self._total_slides or 0)
+
+        if current > 0 and total > 0:
+            if current != self._current_slide or total != self._total_slides:
+                self._current_slide = current
+                self._total_slides = total
+                self.slide_changed.emit(current, total)
+
+        if total > 0:
+            self._degraded_total = total
+        if current > 0:
+            self._degraded_current = current
+
+    def _init_degraded_page_info(self):
+        total = 0
+        try:
+            app = self.ppt_app
+            if app is None:
+                return
+            pres = getattr(app, "ActivePresentation", None)
+            if pres is not None:
+                try:
+                    total = int(getattr(getattr(pres, "Slides", None), "Count", 0) or 0)
+                except Exception:
+                    total = 0
+            if not total:
+                pv_windows = getattr(app, "ProtectedViewWindows", None)
+                if pv_windows is not None and int(getattr(pv_windows, "Count", 0) or 0) > 0:
+                    pv = pv_windows(1)
+                    pres = getattr(pv, "Presentation", None)
+                    if pres is not None:
+                        try:
+                            total = int(getattr(getattr(pres, "Slides", None), "Count", 0) or 0)
+                        except Exception:
+                            total = 0
+        except Exception:
+            return
+
+        if total > 0:
+            self._degraded_total = total
+            if self._degraded_current <= 0:
+                self._degraded_current = 1
+            if self._degraded_current != self._current_slide or total != self._total_slides:
+                self._current_slide = self._degraded_current
+                self._total_slides = total
+                self.slide_changed.emit(self._degraded_current, total)
 
     @Slot()
     def start(self):
@@ -94,6 +308,15 @@ class PPTWorker(QObject):
                 self._handle_stop("ppt")
                 return
 
+            try:
+                protected_view = False
+                pv_windows = getattr(self.ppt_app, "ProtectedViewWindows", None)
+                if pv_windows is not None:
+                    protected_view = int(getattr(pv_windows, "Count", 0) or 0) > 0
+                self._update_restrictions(protected_view, self._presentation_readonly)
+            except Exception:
+                pass
+
             if self.ppt_app.SlideShowWindows.Count > 0:
                 try:
                     # Find the best slide show window (avoiding Presenter View if possible)
@@ -127,6 +350,7 @@ class PPTWorker(QObject):
                         if not self._running:
                             self._running = True
                             self._active_kind = "ppt"
+                            self._control_mode = "com"
                             try:
                                 hwnd = int(getattr(ss_win, "HWND", 0) or 0)
                                 if hwnd and hwnd != self._slideshow_hwnd:
@@ -137,16 +361,41 @@ class PPTWorker(QObject):
                             self._slideshow_started_at = time.monotonic()
                             self.slideshow_started.emit()
                         
+                        current = 0
+                        total = 0
+                        presentation = None
                         try:
-                            current = view.Slide.SlideIndex
-                            presentation = ss_win.Presentation
-                            total = presentation.Slides.Count
-                            
-                            if current != self._current_slide or total != self._total_slides:
-                                self._current_slide = current
-                                self._total_slides = total
-                                self.slide_changed.emit(current, total)
-                            
+                            current = int(getattr(view, "CurrentShowPosition", 0) or 0)
+                        except Exception:
+                            current = 0
+                        if not current:
+                            try:
+                                current = int(getattr(getattr(view, "Slide", None), "SlideIndex", 0) or 0)
+                            except Exception:
+                                current = 0
+                        try:
+                            presentation = getattr(ss_win, "Presentation", None)
+                        except Exception:
+                            presentation = None
+                        if presentation is not None:
+                            try:
+                                total = int(getattr(getattr(presentation, "Slides", None), "Count", 0) or 0)
+                            except Exception:
+                                total = 0
+                            try:
+                                pres_readonly = bool(getattr(presentation, "ReadOnly", False))
+                                self._update_restrictions(self._protected_view, pres_readonly)
+                            except Exception:
+                                pass
+                        if not total:
+                            total = int(self._total_slides or 0)
+                        if current > 0 and total > 0 and (current != self._current_slide or total != self._total_slides):
+                            self._current_slide = current
+                            self._total_slides = total
+                            self.slide_changed.emit(current, total)
+                            self._degraded_current = current
+                            self._degraded_total = total
+                        try:
                             self._update_window_rect(ss_win)
                             self._update_video_state(ss_win)
                         except Exception:
@@ -156,7 +405,22 @@ class PPTWorker(QObject):
                 except Exception:
                     pass
             else:
-                self._handle_stop("ppt")
+                hwnd = self._find_ppt_slideshow_hwnd()
+                if hwnd:
+                    if not self._running:
+                        self._running = True
+                        self._active_kind = "ppt"
+                        self._control_mode = "win32"
+                        if hwnd != self._slideshow_hwnd:
+                            self._slideshow_hwnd = int(hwnd)
+                            self.slideshow_hwnd_changed.emit(int(hwnd))
+                        self._slideshow_started_at = time.monotonic()
+                        self.slideshow_started.emit()
+                        self._init_degraded_page_info()
+                    self._update_window_rect_hwnd(hwnd)
+                    self._try_emit_page_info_from_ppt_app()
+                else:
+                    self._handle_stop("ppt")
 
         except Exception:
             pass
@@ -216,16 +480,33 @@ class PPTWorker(QObject):
                         self._slideshow_started_at = time.monotonic()
                         self.slideshow_started.emit()
 
+                    current = 0
+                    total = 0
                     try:
-                        current = view.Slide.SlideIndex
-                        presentation = ss_win.Presentation
-                        total = presentation.Slides.Count
+                        current = int(getattr(view, "CurrentShowPosition", 0) or 0)
+                    except Exception:
+                        current = 0
+                    if not current:
+                        try:
+                            current = int(getattr(getattr(view, "Slide", None), "SlideIndex", 0) or 0)
+                        except Exception:
+                            current = 0
+                    try:
+                        presentation = getattr(ss_win, "Presentation", None)
+                        total = int(getattr(getattr(presentation, "Slides", None), "Count", 0) or 0) if presentation is not None else 0
+                    except Exception:
+                        total = 0
 
-                        if current != self._current_slide or total != self._total_slides:
-                            self._current_slide = current
-                            self._total_slides = total
-                            self.slide_changed.emit(current, total)
+                    if not total:
+                        total = int(self._total_slides or 0)
+                    if current > 0 and total > 0 and (current != self._current_slide or total != self._total_slides):
+                        self._current_slide = current
+                        self._total_slides = total
+                        self.slide_changed.emit(current, total)
+                        self._degraded_current = current
+                        self._degraded_total = total
 
+                    try:
                         self._update_window_rect(ss_win)
                         self._update_video_state(ss_win)
                     except Exception:
@@ -242,6 +523,12 @@ class PPTWorker(QObject):
             self._running = False
             self._active_kind = None
             self.slideshow_ended.emit()
+            try:
+                self._update_restrictions(False, False)
+            except Exception:
+                pass
+            self._degraded_current = 0
+            self._degraded_total = 0
             if self._overlay_visible is not False:
                 self._overlay_visible = False
                 self.overlay_visibility_changed.emit(False)
@@ -397,6 +684,22 @@ class PPTWorker(QObject):
             app = self._get_active_app()
             if app and app.SlideShowWindows.Count > 0:
                 app.SlideShowWindows(1).View.Next()
+                self._control_mode = "com"
+                return
+        except Exception as e:
+            self._note_error("go_next_com", e)
+        try:
+            self._control_mode = "win32"
+            ok = self._send_vk_to_slideshow(win32con.VK_NEXT if win32con else 0x22)
+            if ok and self._degraded_total > 0:
+                if self._degraded_current <= 0:
+                    self._degraded_current = 1
+                if self._degraded_current < self._degraded_total:
+                    self._degraded_current += 1
+                if self._degraded_current != self._current_slide or self._degraded_total != self._total_slides:
+                    self._current_slide = self._degraded_current
+                    self._total_slides = self._degraded_total
+                    self.slide_changed.emit(self._degraded_current, self._degraded_total)
         except Exception:
             pass
 
@@ -406,6 +709,22 @@ class PPTWorker(QObject):
             app = self._get_active_app()
             if app and app.SlideShowWindows.Count > 0:
                 app.SlideShowWindows(1).View.Previous()
+                self._control_mode = "com"
+                return
+        except Exception as e:
+            self._note_error("go_previous_com", e)
+        try:
+            self._control_mode = "win32"
+            ok = self._send_vk_to_slideshow(win32con.VK_PRIOR if win32con else 0x21)
+            if ok and self._degraded_total > 0:
+                if self._degraded_current <= 0:
+                    self._degraded_current = 1
+                if self._degraded_current > 1:
+                    self._degraded_current -= 1
+                if self._degraded_current != self._current_slide or self._degraded_total != self._total_slides:
+                    self._current_slide = self._degraded_current
+                    self._total_slides = self._degraded_total
+                    self.slide_changed.emit(self._degraded_current, self._degraded_total)
         except Exception:
             pass
 
@@ -428,6 +747,22 @@ class PPTWorker(QObject):
                         win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)
                     except Exception:
                         pass
+                self._control_mode = "com"
+                return
+        except Exception as e:
+            self._note_error("clear_screen_com", e)
+        try:
+            self._control_mode = "win32"
+            hwnd = int(self._slideshow_hwnd or 0) or self._find_ppt_slideshow_hwnd()
+            if hwnd and win32gui:
+                try:
+                    win32gui.SetForegroundWindow(int(hwnd))
+                except Exception:
+                    pass
+            if win32api and win32con:
+                vk = ord("E")
+                win32api.keybd_event(vk, 0, 0, 0)
+                win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)
         except Exception:
             pass
 
@@ -445,6 +780,13 @@ class PPTWorker(QObject):
                 if cfg.autoHandleInk.value and self._active_kind == "ppt":
                     try: app.DisplayAlerts = -1
                     except: pass
+                self._control_mode = "com"
+                return
+        except Exception as e:
+            self._note_error("end_show_com", e)
+        try:
+            self._control_mode = "win32"
+            self._send_vk_to_slideshow(win32con.VK_ESCAPE if win32con else 0x1B)
         except Exception:
             pass
 
@@ -454,8 +796,8 @@ class PPTWorker(QObject):
             app = self._get_active_app()
             if app and app.SlideShowWindows.Count > 0:
                 app.SlideShowWindows(1).View.PointerType = pointer_type
-        except Exception:
-            pass
+        except Exception as e:
+            self._note_error("set_pointer_type", e)
 
     @Slot(int, int, int)
     def set_pen_color(self, r, g, b):
@@ -464,8 +806,8 @@ class PPTWorker(QObject):
             if app and app.SlideShowWindows.Count > 0:
                 rgb = r + (g << 8) + (b << 16)
                 app.SlideShowWindows(1).View.PointerColor.RGB = rgb
-        except Exception:
-            pass
+        except Exception as e:
+            self._note_error("set_pen_color", e)
 
     @Slot(int)
     def go_to_slide(self, index):
@@ -473,6 +815,16 @@ class PPTWorker(QObject):
             app = self._get_active_app()
             if app and app.SlideShowWindows.Count > 0:
                 app.SlideShowWindows(1).View.GotoSlide(index)
+        except Exception as e:
+            self._note_error("go_to_slide", e)
+        try:
+            index = int(index)
+            if self._control_mode == "win32" and self._degraded_total > 0 and 1 <= index <= self._degraded_total:
+                self._degraded_current = index
+                if self._degraded_current != self._current_slide or self._degraded_total != self._total_slides:
+                    self._current_slide = self._degraded_current
+                    self._total_slides = self._degraded_total
+                    self.slide_changed.emit(self._degraded_current, self._degraded_total)
         except Exception:
             pass
             
@@ -485,8 +837,8 @@ class PPTWorker(QObject):
                 if 1 <= index <= pres.Slides.Count:
                     pres.Slides(index).Export(path, "PNG", 320, 180)
                     self.thumbnail_generated.emit(index, path)
-        except Exception:
-            pass
+        except Exception as e:
+            self._note_error("export_slide_thumbnail", e)
 
 
 class PPTMonitor(QObject):
@@ -501,6 +853,7 @@ class PPTMonitor(QObject):
     slideshow_hwnd_changed = Signal(int)
     video_state_changed = Signal(float, float, float)
     thumbnail_generated = Signal(int, str)
+    restrictions_changed = Signal(bool, bool)
     
     # Internal signals to worker
     _req_start = Signal()
@@ -530,6 +883,7 @@ class PPTMonitor(QObject):
         self._worker.video_state_changed.connect(self.video_state_changed)
         self._worker.video_state_changed.connect(self._update_local_video_state)
         self._worker.thumbnail_generated.connect(self.thumbnail_generated)
+        self._worker.restrictions_changed.connect(self.restrictions_changed)
         self._worker.finished.connect(self._thread.quit)
         self._thread.finished.connect(self._worker.deleteLater)
 
@@ -617,6 +971,8 @@ class PPTMonitor(QObject):
         
         ppt_screen = None
         ppt_p_origin = (0, 0)
+        m_width = 0
+        m_height = 0
         
         try:
             hmonitor = win32api.MonitorFromPoint((cx, cy), win32con.MONITOR_DEFAULTTONEAREST)
@@ -686,13 +1042,29 @@ class PPTMonitor(QObject):
 
         if display_screen and ppt_screen:
             if display_screen == ppt_screen:
-                dpr = ppt_screen.devicePixelRatio()
+                dpr = float(ppt_screen.devicePixelRatio() or 1.0)
                 geo = ppt_screen.geometry()
-                lx = geo.x() + (x - ppt_p_origin[0]) / dpr
-                ly = geo.y() + (y - ppt_p_origin[1]) / dpr
-                lw = w / dpr
-                lh = h / dpr
-                rect_logical = QRect(int(lx), int(ly), int(lw), int(lh))
+
+                raw_is_logical = False
+                if dpr > 1.05 and m_width > 0 and m_height > 0:
+                    diff_physical = abs(w - m_width) + abs(h - m_height)
+                    diff_logical = abs((w * dpr) - m_width) + abs((h * dpr) - m_height)
+                    raw_is_logical = diff_logical + 8 < diff_physical
+
+                if raw_is_logical:
+                    rect_logical = QRect(int(x), int(y), int(w), int(h))
+                    if rect_logical.isEmpty() or geo.intersected(rect_logical).isEmpty():
+                        lx = geo.x() + (x - ppt_p_origin[0]) / dpr
+                        ly = geo.y() + (y - ppt_p_origin[1]) / dpr
+                        lw = w / dpr
+                        lh = h / dpr
+                        rect_logical = QRect(int(lx), int(ly), int(lw), int(lh))
+                else:
+                    lx = geo.x() + (x - ppt_p_origin[0]) / dpr
+                    ly = geo.y() + (y - ppt_p_origin[1]) / dpr
+                    lw = w / dpr
+                    lh = h / dpr
+                    rect_logical = QRect(int(lx), int(ly), int(lw), int(lh))
             else:
                 rect_logical = display_screen.geometry()
             
