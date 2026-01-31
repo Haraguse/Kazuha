@@ -6,3 +6,4 @@ KazuhaRemake.spec
 build_pyinstaller.py
 _pycache_/
 *.pyc
+ppt_assistant/core/__pycache__/ppt_monitor.cpython-313.pyc
