@@ -71,12 +71,38 @@ def _apply_window_theme(hwnd, is_dark):
     except Exception:
         pass
 
+def _maybe_add_vxkex_path():
+    if not _is_windows7():
+        return
+    candidates = [
+        r"C:\Program Files\VxKex\Kex64",
+        r"C:\Program Files\VxKex\Kex86",
+        r"C:\Program Files (x86)\VxKex\Kex64",
+        r"C:\Program Files (x86)\VxKex\Kex86",
+    ]
+    existing = os.environ.get("PATH", "")
+    for path in candidates:
+        dll_path = os.path.join(path, "KxNt.dll")
+        if os.path.exists(dll_path):
+            if path not in existing.split(os.pathsep):
+                os.environ["PATH"] = path + os.pathsep + existing
+            break
+
+
 def _apply_chromium_flags():
+    _maybe_add_vxkex_path()
     flags = [
         "--enable-gpu",
         "--ignore-gpu-blocklist",
         "--enable-zero-copy"
     ]
+    if _is_windows7():
+        flags = [
+            "--disable-gpu",
+            "--disable-gpu-compositing",
+            "--use-angle=d3d9",
+            "--disable-features=DirectComposition"
+        ]
     current = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
     if current:
         merged = current.split()
@@ -86,6 +112,15 @@ def _apply_chromium_flags():
         os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(merged)
     else:
         os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(flags)
+
+def _is_windows7():
+    if sys.platform != "win32":
+        return False
+    try:
+        v = sys.getwindowsversion()
+        return v.major == 6 and v.minor == 1
+    except Exception:
+        return False
 
 def _get_wallpaper_path():
     if sys.platform != "win32":
@@ -855,8 +890,9 @@ class MainWindow(QWebEngineView):
         self._pending_url = None
         self._apply_page_background()
         settings = self.page().settings()
-        settings.setAttribute(QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, True)
-        settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, True)
+        allow_gpu = not _is_windows7()
+        settings.setAttribute(QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, allow_gpu)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, allow_gpu)
         settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.ScrollAnimatorEnabled, True)

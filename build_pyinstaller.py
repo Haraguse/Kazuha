@@ -58,14 +58,18 @@ def run():
     logo_ico = os.path.join(icons_dir, "logo.ico")
 
     data_sep = os.pathsep
-    add_data = [
-        f"version.json{data_sep}.",
-        f"config{data_sep}config",
-        f"plugins{data_sep}plugins",
-        f"icons{data_sep}icons",
-        f"ppt_assistant{data_sep}ppt_assistant",
-        f"fonts{data_sep}fonts",
+    data_entries = [
+        ("version.json", "."),
+        ("config", "config"),
+        ("plugins", "plugins"),
+        ("icons", "icons"),
+        ("ppt_assistant", "ppt_assistant"),
+        ("fonts", "fonts"),
     ]
+    add_data = []
+    for src, dst in data_entries:
+        if os.path.exists(os.path.join(root_dir, src)):
+            add_data.append(f"{src}{data_sep}{dst}")
 
     cmd = [
         python_exe,

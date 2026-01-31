@@ -23,7 +23,7 @@ if __name__ == "__main__":
         sys.exit(0)
 
 from PySide6.QtWidgets import QApplication, QDialog, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFrame, QGraphicsDropShadowEffect, QProgressBar
-from PySide6.QtCore import Qt, QTimer, Slot, QSize, QPoint
+from PySide6.QtCore import Qt, QTimer, Slot, QSize, QPoint, QCoreApplication
 from PySide6.QtGui import QFontDatabase, QFont, QColor, QIcon, QRegion, QPainter, QPen, QBrush
 
 from ppt_assistant.core.ppt_monitor import PPTMonitor
@@ -107,6 +107,55 @@ SPLASH_I18N = {
         "dev_watermark": "{type}\nFinal quality not guaranteed ({version})"
     }
 }
+
+
+def _is_windows7():
+    if sys.platform != "win32":
+        return False
+    try:
+        v = sys.getwindowsversion()
+        return v.major == 6 and v.minor == 1
+    except Exception:
+        return False
+
+
+def _apply_win7_graphics_fallback():
+    if not _is_windows7():
+        return
+    candidates = [
+        r"C:\Program Files\VxKex\Kex64",
+        r"C:\Program Files\VxKex\Kex86",
+        r"C:\Program Files (x86)\VxKex\Kex64",
+        r"C:\Program Files (x86)\VxKex\Kex86",
+    ]
+    existing = os.environ.get("PATH", "")
+    for path in candidates:
+        dll_path = os.path.join(path, "KxNt.dll")
+        if os.path.exists(dll_path):
+            if path not in existing.split(os.pathsep):
+                os.environ["PATH"] = path + os.pathsep + existing
+            break
+    os.environ.setdefault("QT_OPENGL", "software")
+    os.environ.setdefault("QT_QUICK_BACKEND", "software")
+    flags = [
+        "--disable-gpu",
+        "--disable-gpu-compositing",
+        "--use-angle=d3d9",
+        "--disable-features=DirectComposition",
+    ]
+    current = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
+    if current:
+        merged = current.split()
+        for flag in flags:
+            if flag not in merged:
+                merged.append(flag)
+        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(merged)
+    else:
+        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(flags)
+    try:
+        QCoreApplication.setAttribute(Qt.AA_UseSoftwareOpenGL, True)
+    except Exception:
+        pass
 
 
 def _load_settings_json():
@@ -1131,6 +1180,7 @@ class PPTAssistantApp:
 
 
 if __name__ == "__main__":
+    _apply_win7_graphics_fallback()
     app = QApplication(sys.argv)
     _apply_global_font(app)
     crash_handler = CrashHandler(app)

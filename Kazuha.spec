@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('version.json', '.'), ('config', 'config'), ('plugins', 'plugins'), ('icons', 'icons'), ('ppt_assistant', 'ppt_assistant'), ('fonts', 'fonts')],
+    datas=[('version.json', '.'), ('plugins', 'plugins'), ('icons', 'icons'), ('ppt_assistant', 'ppt_assistant'), ('fonts', 'fonts')],
     hiddenimports=['PySide6.QtXml'],
     hookspath=[],
     hooksconfig={},
@@ -32,7 +32,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['d:\\Documents\\Kazuha\\icons\\logo.ico'],
+    icon=['h:\\Dev\\Kazuha\\icons\\logo.ico'],
 )
 coll = COLLECT(
     exe,
