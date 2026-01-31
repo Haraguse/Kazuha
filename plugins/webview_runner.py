@@ -600,7 +600,7 @@ class Api(QObject):
 
     @Slot()
     def create_dialog(self):
-        msg = "君不见，黄河之水天上来，奔流到海不复回！君不见，高堂明镜悲白发，朝如青丝暮成雪！\n人生得意须尽欢，莫使金樽空对月。\n天生我材必有用，千金散尽还复来。\n烹羊宰牛且为乐，会须一饮三百杯。\n岑夫子，丹丘生。将进酒，君莫停。\n与君歌一曲，请君为我倾耳听。\n钟鼓馔玉不足贵，但愿长醉不复醒。\n古来圣贤皆寂寞，惟有饮者留其名。\n陈王昔时宴平乐，斗酒十千恣欢谑。\n主人何为言少钱？径须沽取对君酌。\n五花马，千金裘。呼儿将出换美酒，与尔同销万古愁。"
+        msg = "傳說中你為愛甘心被擱淺\n我也可以為你潛入海裡面\n怎麼忍心斷絕 忘記我不變的誓言?\n我眼淚斷了線\n現實裡有了我對你的眷戀\n我願意化作雕像 等你出現\n再見 再也不見 心碎了飄蕩在海邊\n你抬頭就看見"
         theme_mode = self.settings.get("Appearance", {}).get("ThemeMode", "Light")
         theme_lower = str(theme_mode).lower()
         if theme_lower == "dark":
@@ -666,6 +666,19 @@ class Api(QObject):
 
     @Slot()
     def on_confirm(self):
+        print("DIALOG_CONFIRMED")
+        sys.stdout.flush()
+        if self._window:
+            self._window.close()
+        sys.exit(0)
+
+    @Slot(str)
+    def on_confirm_with_value(self, value):
+        try:
+            payload = json.dumps(value, ensure_ascii=False)
+        except Exception:
+            payload = json.dumps(str(value), ensure_ascii=False)
+        print(f"DIALOG_VALUE:{payload}")
         print("DIALOG_CONFIRMED")
         sys.stdout.flush()
         if self._window:

@@ -2188,6 +2188,16 @@
         background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ccc"><path d="M7 10l5 5 5-5z"/></svg>');
     }
 
+    .color-input {
+      width: 44px;
+      height: 32px;
+      padding: 2px;
+      border-radius: 8px;
+      border: 1px solid var(--divider);
+      background: var(--bg-surface);
+      cursor: pointer;
+    }
+
     .font-dropdown {
       position: relative;
       min-width: 220px;
@@ -3312,6 +3322,12 @@
         </svg>
         <span data-i18n="nav.plugins">插件</span>
       </div>
+      <div class="sidebar-item" data-section="board-in-board">
+        <svg class="sidebar-icon" viewBox="0 0 24 24">
+          <path d="M11.1238 18.5229H4.1697C3.68755 18.5229 3.27029 18.356 2.91795 18.0223C2.58415 17.6885 2.41724 17.2805 2.41724 16.7983V6.33936H1.10988C0.75754 6.33936 0.451569 6.20955 0.191949 5.94993C-0.0491264 5.69031 -0.169678 5.38433 -0.169678 5.03198C-0.169678 4.67964 -0.0491264 4.37366 0.191949 4.11404C0.451569 3.85442 0.75754 3.72461 1.10988 3.72461H22.8623C23.2332 3.72461 23.5392 3.85442 23.7803 4.11404C24.0399 4.35512 24.1697 4.6611 24.1697 5.03198C24.1697 5.38433 24.0399 5.69031 23.7803 5.94993C23.5392 6.20955 23.2332 6.33936 22.8623 6.33936H21.555V16.7983C21.555 17.2619 21.3881 17.6699 21.0543 18.0223C20.7205 18.356 20.3125 18.5229 19.8303 18.5229H12.8484V20.2476H11.1238V18.5229ZM15.4632 20.2476C15.7042 20.2476 15.9082 20.3403 16.0751 20.5257C16.242 20.6926 16.3254 20.8966 16.3254 21.1377C16.3254 21.3788 16.242 21.5828 16.0751 21.7497C15.9082 21.9166 15.7042 22 15.4632 22H8.50905C8.26797 22 8.064 21.9166 7.89711 21.7497C7.73021 21.5828 7.64676 21.3788 7.64676 21.1377C7.64676 20.8966 7.73021 20.6926 7.89711 20.5257C8.064 20.3403 8.26797 20.2476 8.50905 20.2476H15.4632ZM11.9305 3.72461H11.1238V2.83449C11.1238 2.59341 11.2073 2.38942 11.3742 2.22253C11.5411 2.05563 11.745 1.97218 11.9861 1.97218C12.2272 1.97218 12.4312 2.05563 12.5981 2.22253C12.765 2.38942 12.8484 2.59341 12.8484 2.83449V3.72461H11.9305Z" />
+        </svg>
+        <span data-i18n="nav.boardInBoard">板中板</span>
+      </div>
       <div class="sidebar-item" data-section="about">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="10" />
@@ -3392,6 +3408,33 @@
                     <span data-i18n="general.splashMode.timeRange.end" style="font-size: 13px; color: var(--text-secondary);">结束</span>
                     <input type="time" id="splash-end-time" class="styled-input" onchange="setSplashTime('End', this.value)">
                 </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="group-title" data-i18n="group.security">安全</div>
+        <div class="settings-group">
+          <div class="settings-item" id="security-password-toggle" onclick="toggleSecurityPasswordExpander()">
+            <div class="item-info">
+              <span class="item-label" data-i18n="security.password.enable.label">设置密码保护</span>
+              <span class="item-desc" data-i18n="security.password.enable.desc">启用后打开设置需要输入密码</span>
+            </div>
+            <div class="item-state">
+              <div class="switch" id="sw-Security-EnablePassword" onclick="event.stopPropagation(); toggleSecurityPassword();"></div>
+              <svg class="chevron" viewBox="0 0 24 24">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </div>
+          </div>
+          <div class="version-expander" id="security-password-expander">
+            <div class="version-expander-inner">
+              <div class="settings-item" style="flex-direction: column; align-items: stretch; gap: 10px;">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="security.password.value.label">设置密码</span>
+                  <span class="item-desc" data-i18n="security.password.value.desc">密码将以明文保存在 settings.json 中</span>
+                </div>
+                <input id="input-security-password" class="styled-input" type="password" style="width: 100%;" data-i18n-placeholder="security.password.value.placeholder" oninput="setSecurityPassword(this.value)" />
+              </div>
             </div>
           </div>
         </div>
@@ -3655,6 +3698,33 @@
         </div>
       </div>
 
+      <div class="section" id="section-board-in-board">
+        <div class="group-title" data-i18n="group.boardInBoard">板中板</div>
+        <div class="settings-group">
+          <div class="settings-item">
+            <div class="item-info">
+              <span class="item-label" data-i18n="boardInBoard.toolbarPosition.label">工具栏位置</span>
+              <span class="item-desc" data-i18n="boardInBoard.toolbarPosition.desc">选择板中板工具栏停靠的位置</span>
+            </div>
+            <div class="item-state">
+              <select class="styled-select" id="sel-BoardInBoard-ToolbarPosition" onchange="setBoardInBoardToolbarPosition(this.value)">
+                <option value="top" data-i18n="boardInBoard.toolbarPosition.top">顶部</option>
+                <option value="bottom" data-i18n="boardInBoard.toolbarPosition.bottom">底部</option>
+              </select>
+            </div>
+          </div>
+          <div class="settings-item">
+            <div class="item-info">
+              <span class="item-label" data-i18n="boardInBoard.backgroundColor.label">黑板背景</span>
+              <span class="item-desc" data-i18n="boardInBoard.backgroundColor.desc">选择板中板黑板的背景颜色</span>
+            </div>
+            <div class="item-state">
+              <input type="color" class="color-input" id="color-BoardInBoard-Background" onchange="setBoardInBoardBackgroundColor(this.value)">
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="section" id="section-plugins">
         <div class="toolbar-preview-hero">
           <div class="toolbar-preview-hero-inner">
@@ -3763,6 +3833,7 @@
                   <span>Haraguse</span>
                   <span>hujinming0722</span>
                   <span>IsHPDuwu</span>
+                  <span>Evan0148</span>
                 </div>
               </div>
               <div class="credits-section">
@@ -4169,11 +4240,13 @@
       "nav.plugins": "工具栏",
       "nav.debug": "调试",
       "nav.back": "返回",
+      "nav.boardInBoard": "板中板",
       "section.main": "常规",
       "section.theme": "主题",
       "section.fonts": "全局应用字体",
       "section.overlay": "放映",
       "section.plugins": "工具栏",
+      "section.board-in-board": "板中板",
       "section.about": "关于",
       "section.debug": "调试",
       "group.language": "语言",
@@ -4183,6 +4256,7 @@
       "group.presentation": "放映",
       "group.overlayUi": "顶层窗口",
       "group.toolbar.display": "工具栏显示",
+      "group.boardInBoard": "板中板",
       "group.debugOptions": "调试选项",
       "fonts.scene.web.label": "网页界面",
       "fonts.scene.web.desc": "设置 / 计时器 / Dialog",
@@ -4286,6 +4360,14 @@
       "interaction.showClear.label": "显示清屏",
       "interaction.showSpotlight.label": "显示聚光灯",
       "interaction.showBoardInBoard.label": "显示板中板",
+      "boardInBoard.toolbarPosition.label": "工具栏位置",
+      "boardInBoard.toolbarPosition.desc": "选择板中板工具栏停靠的位置",
+      "boardInBoard.toolbarPosition.top": "顶部",
+      "boardInBoard.toolbarPosition.bottom": "底部",
+      "boardInBoard.toolbarPosition.left": "左侧",
+      "boardInBoard.toolbarPosition.right": "右侧",
+      "boardInBoard.backgroundColor.label": "黑板背景",
+      "boardInBoard.backgroundColor.desc": "选择板中板黑板的背景颜色",
       "interaction.showTimer.label": "显示计时器",
       "interaction.showToolbarText.label": "工具栏文字",
       "interaction.showToolbarText.desc": "在工具栏图标下方显示功能名称",
@@ -4363,6 +4445,7 @@
       "nav.overlay": "放映",
       "nav.about": "關於",
       "nav.plugins": "工具列",
+      "nav.boardInBoard": "板中板",
       "nav.debug": "偵錯",
       "nav.back": "返回",
       "section.main": "一般",
@@ -4370,6 +4453,7 @@
       "section.fonts": "全域字型",
       "section.overlay": "放映",
       "section.plugins": "工具列",
+      "section.board-in-board": "板中板",
       "section.about": "關於",
       "section.debug": "偵錯",
       "group.language": "語言",
@@ -4379,6 +4463,7 @@
       "group.presentation": "放映",
       "group.overlayUi": "頂層視窗",
       "group.toolbar.display": "工具列顯示",
+      "group.boardInBoard": "板中板",
       "group.debugOptions": "偵錯選項",
       "fonts.scene.web.label": "網頁介面",
       "fonts.scene.web.desc": "設定 / 計時器 / 對話框",
@@ -4478,6 +4563,14 @@
       "interaction.showClear.label": "顯示清屏",
       "interaction.showSpotlight.label": "顯示聚光燈",
       "interaction.showBoardInBoard.label": "顯示板中板",
+      "boardInBoard.toolbarPosition.label": "工具列位置",
+      "boardInBoard.toolbarPosition.desc": "選擇板中板工具列停靠的位置",
+      "boardInBoard.toolbarPosition.top": "上方",
+      "boardInBoard.toolbarPosition.bottom": "下方",
+      "boardInBoard.toolbarPosition.left": "左側",
+      "boardInBoard.toolbarPosition.right": "右側",
+      "boardInBoard.backgroundColor.label": "黑板背景",
+      "boardInBoard.backgroundColor.desc": "選擇板中板黑板的背景顏色",
       "interaction.showTimer.label": "顯示計時器",
       "interaction.toolbar.customization.label": "工具列固定項",
       "interaction.toolbar.customization.desc": "管理工具列上的快速啟動項",
@@ -4552,6 +4645,7 @@
       "nav.overlay": "プレゼン",
       "nav.about": "情報",
       "nav.plugins": "ツールバー",
+      "nav.boardInBoard": "ボードインボード",
       "nav.debug": "デバッグ",
       "nav.back": "戻る",
       "section.main": "一般",
@@ -4559,6 +4653,7 @@
       "section.fonts": "グローバルフォント",
       "section.overlay": "プレゼン",
       "section.plugins": "ツールバー",
+      "section.board-in-board": "ボードインボード",
       "section.about": "情報",
       "section.debug": "デバッグ",
       "group.language": "言語",
@@ -4568,6 +4663,7 @@
       "group.presentation": "プレゼン",
       "group.overlayUi": "オーバーレイ UI",
       "group.toolbar.display": "ツールバー表示",
+      "group.boardInBoard": "ボードインボード",
       "group.debugOptions": "デバッグオプション",
       "fonts.scene.web.label": "ウェブインターフェース",
       "fonts.scene.web.desc": "設定 / タイマー / ダイアログ",
@@ -4670,6 +4766,14 @@
       "interaction.showClear.label": "クリアを表示",
       "interaction.showSpotlight.label": "スポットライトを表示",
       "interaction.showBoardInBoard.label": "ボードインボードを表示",
+      "boardInBoard.toolbarPosition.label": "ツールバー位置",
+      "boardInBoard.toolbarPosition.desc": "板中板のツールバー位置を選択します",
+      "boardInBoard.toolbarPosition.top": "上",
+      "boardInBoard.toolbarPosition.bottom": "下",
+      "boardInBoard.toolbarPosition.left": "左",
+      "boardInBoard.toolbarPosition.right": "右",
+      "boardInBoard.backgroundColor.label": "黒板の背景",
+      "boardInBoard.backgroundColor.desc": "ボードインボードの黒板背景色を選択します",
       "interaction.showTimer.label": "タイマーを表示",
       "interaction.toolbar.layout.label": "ツールバーレイアウト",
       "interaction.toolbar.layout.horizontal": "水平配置",
@@ -4746,6 +4850,7 @@
       "nav.overlay": "Presentation",
       "nav.about": "About",
       "nav.plugins": "Toolbar",
+      "nav.boardInBoard": "Board in Board",
       "nav.debug": "Debug",
       "nav.back": "Back",
       "section.main": "General",
@@ -4753,6 +4858,7 @@
       "section.fonts": "Global Fonts",
       "section.overlay": "Presentation",
       "section.plugins": "Toolbar",
+      "section.board-in-board": "Board in Board",
       "section.about": "About",
       "section.debug": "Debug",
       "group.language": "Language",
@@ -4762,6 +4868,7 @@
       "group.presentation": "Presentation",
       "group.overlayUi": "Overlay UI",
       "group.toolbar.display": "Toolbar Display",
+      "group.boardInBoard": "Board in Board",
       "group.debugOptions": "Debug Options",
       "fonts.scene.web.label": "Web Interface",
       "fonts.scene.web.desc": "Settings / Timers / Dialogs",
@@ -4864,6 +4971,12 @@
       "interaction.showClear.label": "Show Clear",
       "interaction.showSpotlight.label": "Show Spotlight",
       "interaction.showBoardInBoard.label": "Show Board in Board",
+      "boardInBoard.toolbarPosition.label": "Toolbar Position",
+      "boardInBoard.toolbarPosition.desc": "Choose where the Board in Board toolbar docks",
+      "boardInBoard.toolbarPosition.top": "Top",
+      "boardInBoard.toolbarPosition.bottom": "Bottom",
+      "boardInBoard.backgroundColor.label": "Blackboard Background",
+      "boardInBoard.backgroundColor.desc": "Choose the blackboard background color",
       "interaction.showTimer.label": "Show Timer",
       "interaction.toolbar.customization.label": "Toolbar fixed program",
       "interaction.toolbar.customization.desc": "Manage quick launch applications on the toolbar",
@@ -6031,6 +6144,31 @@
     }
   }
 
+  function setBoardInBoardToolbarPosition(value) {
+    if (value !== "top" && value !== "bottom") {
+      value = "bottom";
+    }
+    if (!settings.BoardInBoard) settings.BoardInBoard = {};
+    settings.BoardInBoard.ToolbarPosition = value;
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+      window.pywebview.api.save_setting("BoardInBoard", "ToolbarPosition", value);
+    }
+  }
+
+  function setBoardInBoardBackgroundColor(value) {
+    if (!value || typeof value !== "string") {
+      value = "#202020";
+    }
+    if (!/^#([0-9a-fA-F]{6})$/.test(value)) {
+      value = "#202020";
+    }
+    if (!settings.BoardInBoard) settings.BoardInBoard = {};
+    settings.BoardInBoard.BackgroundColor = value;
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+      window.pywebview.api.save_setting("BoardInBoard", "BackgroundColor", value);
+    }
+  }
+
   function rebuildOverlay() {
     if (!settings.Overlay) settings.Overlay = {};
     const stamp = Date.now();
@@ -6220,8 +6358,10 @@
     PPT: { AutoHandleInk: true },
     Overlay: { ShowStatusBar: true },
     Toolbar: { ShowClear: true, ShowToolbarText: true },
+    BoardInBoard: { ToolbarPosition: "bottom", BackgroundColor: "#202020" },
     Debug: { ShowLog: false, RtlTest: false, RotateTest: false },
     Update: { AutoCheck: true, Source: "github" },
+    Security: { EnablePassword: false, Password: "" },
     Appearance: { ThemeMode: "Light", ThemeId: "default", MonetPalette: null }
   };
 
@@ -6430,6 +6570,7 @@
     setSwitch("Debug", "RotateTest");
     setSwitch("Update", "AutoCheck");
     setSwitch("Fonts", "CustomFont");
+    setSwitch("Security", "EnablePassword");
 
     // Ranges
     initRange("Overlay", "SafeArea", 0, "px");
@@ -6468,6 +6609,25 @@
         refreshCustomSelect(updateSourceEl);
     }
 
+    let boardToolbarPosition = settings.BoardInBoard?.ToolbarPosition || "bottom";
+    if (boardToolbarPosition !== "top" && boardToolbarPosition !== "bottom") {
+        boardToolbarPosition = "bottom";
+    }
+    const boardToolbarEl = document.getElementById("sel-BoardInBoard-ToolbarPosition");
+    if (boardToolbarEl) {
+        boardToolbarEl.value = boardToolbarPosition;
+        refreshCustomSelect(boardToolbarEl);
+    }
+
+    let boardBackgroundColor = settings.BoardInBoard?.BackgroundColor || "#202020";
+    if (!/^#([0-9a-fA-F]{6})$/.test(boardBackgroundColor)) {
+        boardBackgroundColor = "#202020";
+    }
+    const boardBackgroundEl = document.getElementById("color-BoardInBoard-Background");
+    if (boardBackgroundEl) {
+        boardBackgroundEl.value = boardBackgroundColor;
+    }
+
     // Layout mode UI setup removed
 
     const lang = settings.General && settings.General.Language;
@@ -6484,6 +6644,11 @@
 
     renderToolbarPreview();
     applyDebugSettings();
+    const passwordEl = document.getElementById("input-security-password");
+    if (passwordEl) {
+      passwordEl.value = settings.Security?.Password || "";
+    }
+    syncSecurityPasswordExpander();
 
     if (window.pywebview && window.pywebview.api && window.pywebview.api.get_version) {
       window.pywebview.api.get_version().then(v => {
@@ -6566,6 +6731,47 @@
     if (el) {
       if (val) el.classList.add('active');
       else el.classList.remove('active');
+    }
+  }
+
+  function toggleSecurityPassword() {
+    if (!settings.Security) settings.Security = {};
+    const current = !!settings.Security.EnablePassword;
+    const next = !current;
+    settings.Security.EnablePassword = next;
+    setSwitch("Security", "EnablePassword");
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+      window.pywebview.api.save_setting("Security", "EnablePassword", next);
+    }
+    syncSecurityPasswordExpander();
+  }
+
+  function setSecurityPassword(value) {
+    if (!settings.Security) settings.Security = {};
+    settings.Security.Password = value || "";
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+      window.pywebview.api.save_setting("Security", "Password", settings.Security.Password);
+    }
+  }
+
+  function syncSecurityPasswordExpander() {
+    const enabled = !!settings.Security?.EnablePassword;
+    const item = document.getElementById("security-password-toggle");
+    const expander = document.getElementById("security-password-expander");
+    if (item && !enabled) item.classList.remove("active");
+    if (expander && !enabled) expander.classList.remove("active");
+  }
+
+  function toggleSecurityPasswordExpander() {
+    if (!settings.Security?.EnablePassword) return;
+    const expander = document.getElementById("security-password-expander");
+    if (!expander) return;
+    const item = document.getElementById("security-password-toggle");
+    const isActive = expander.classList.toggle("active");
+    if (item) item.classList.toggle("active", isActive);
+    if (isActive) {
+      const inputEl = document.getElementById("input-security-password");
+      if (inputEl) inputEl.focus();
     }
   }
 
