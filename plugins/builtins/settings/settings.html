@@ -3414,19 +3414,28 @@
 
         <div class="group-title" data-i18n="group.security">安全</div>
         <div class="settings-group">
-          <div class="settings-item" onclick="toggleSecurityPassword()">
+          <div class="settings-item" id="security-password-toggle" onclick="toggleSecurityPasswordExpander()">
             <div class="item-info">
               <span class="item-label" data-i18n="security.password.enable.label">设置密码保护</span>
               <span class="item-desc" data-i18n="security.password.enable.desc">启用后打开设置需要输入密码</span>
             </div>
-            <div class="switch" id="sw-Security-EnablePassword"></div>
-          </div>
-          <div class="settings-item" style="flex-direction: column; align-items: stretch; gap: 10px;">
-            <div class="item-info">
-              <span class="item-label" data-i18n="security.password.value.label">设置密码</span>
-              <span class="item-desc" data-i18n="security.password.value.desc">密码将以明文保存在 settings.json 中</span>
+            <div class="item-state">
+              <div class="switch" id="sw-Security-EnablePassword" onclick="event.stopPropagation(); toggleSecurityPassword();"></div>
+              <svg class="chevron" viewBox="0 0 24 24">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
             </div>
-            <input id="input-security-password" class="styled-input" type="password" style="width: 100%;" data-i18n-placeholder="security.password.value.placeholder" oninput="setSecurityPassword(this.value)" />
+          </div>
+          <div class="version-expander" id="security-password-expander">
+            <div class="version-expander-inner">
+              <div class="settings-item" style="flex-direction: column; align-items: stretch; gap: 10px;">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="security.password.value.label">设置密码</span>
+                  <span class="item-desc" data-i18n="security.password.value.desc">密码将以明文保存在 settings.json 中</span>
+                </div>
+                <input id="input-security-password" class="styled-input" type="password" style="width: 100%;" data-i18n-placeholder="security.password.value.placeholder" oninput="setSecurityPassword(this.value)" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -3824,6 +3833,7 @@
                   <span>Haraguse</span>
                   <span>hujinming0722</span>
                   <span>IsHPDuwu</span>
+                  <span>Evan0148</span>
                 </div>
               </div>
               <div class="credits-section">
@@ -6638,6 +6648,7 @@
     if (passwordEl) {
       passwordEl.value = settings.Security?.Password || "";
     }
+    syncSecurityPasswordExpander();
 
     if (window.pywebview && window.pywebview.api && window.pywebview.api.get_version) {
       window.pywebview.api.get_version().then(v => {
@@ -6732,6 +6743,7 @@
     if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
       window.pywebview.api.save_setting("Security", "EnablePassword", next);
     }
+    syncSecurityPasswordExpander();
   }
 
   function setSecurityPassword(value) {
@@ -6739,6 +6751,27 @@
     settings.Security.Password = value || "";
     if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
       window.pywebview.api.save_setting("Security", "Password", settings.Security.Password);
+    }
+  }
+
+  function syncSecurityPasswordExpander() {
+    const enabled = !!settings.Security?.EnablePassword;
+    const item = document.getElementById("security-password-toggle");
+    const expander = document.getElementById("security-password-expander");
+    if (item && !enabled) item.classList.remove("active");
+    if (expander && !enabled) expander.classList.remove("active");
+  }
+
+  function toggleSecurityPasswordExpander() {
+    if (!settings.Security?.EnablePassword) return;
+    const expander = document.getElementById("security-password-expander");
+    if (!expander) return;
+    const item = document.getElementById("security-password-toggle");
+    const isActive = expander.classList.toggle("active");
+    if (item) item.classList.toggle("active", isActive);
+    if (isActive) {
+      const inputEl = document.getElementById("input-security-password");
+      if (inputEl) inputEl.focus();
     }
   }
 
