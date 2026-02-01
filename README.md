@@ -4,7 +4,8 @@
 > 如果您对此类项目有固有的排斥感，请无视此项目，谢谢。
 ---
 
-<img width="1000" height="480" alt="Kazuha Banner 0 5x" src="https://github.com/user-attachments/assets/7d41199d-7d10-4b05-9492-a70ff0bee3c2" />
+<img width="1157" height="628" alt="banner" src="https://github.com/user-attachments/assets/dc507a97-b73c-446e-80d9-fc14da3792e7" />
+
 
 
     
