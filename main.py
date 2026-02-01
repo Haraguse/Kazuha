@@ -363,9 +363,15 @@ class StartupSplash(QWidget):
             self._icon_label.setPixmap(pix)
         self._icon_label.move(38, 37)
 
-        # Brand Name (kazuha) - x: 38, y: 111
-        self._brand_label = QLabel("Kazuha", self._container)
-        brand_font = QFont("HarmonyOS Sans SC")
+        brand_name_map = {
+            "zh-CN": "万演",
+            "zh-TW": "万演",
+            "ja-JP": "カズハ",
+            "en-US": "Kazuha",
+        }
+        brand_name = brand_name_map.get(self._language, "Kazuha")
+        self._brand_label = QLabel(brand_name, self._container)
+        brand_font = QFont("Yu Gothic UI")
         brand_font.setPixelSize(32)
         brand_font.setWeight(QFont.Black) 
         self._brand_label.setFont(brand_font)

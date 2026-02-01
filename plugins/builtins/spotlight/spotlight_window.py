@@ -2,10 +2,10 @@ import sys
 from PySide6.QtWidgets import (
     QWidget, QApplication, QVBoxLayout, QHBoxLayout, 
     QFrame, QLabel, QToolButton, QSlider, QGraphicsDropShadowEffect,
-    QStyleOption, QStyle
+    QStyleOption, QStyle, QFileDialog
 )
 from PySide6.QtCore import (
-    Qt, QRect, QPoint, QSize, Signal, Property, 
+    Qt, QRect, QPoint, QSize, Signal, Property, QStandardPaths,
     QEasingCurve, QPropertyAnimation
 )
 from PySide6.QtGui import (
@@ -16,6 +16,7 @@ from qfluentwidgets import (
     Slider, setTheme, Theme, qconfig, FluentIcon as FIF
 )
 import os
+import time
 from ppt_assistant.core.app_icon import load_app_icon
 
 class SpotlightToolButton(QFrame):
@@ -76,6 +77,7 @@ class SpotlightControlPanel(QFrame):
     mode_changed = Signal(str)
     lights_off_toggled = Signal(bool)
     opacity_changed = Signal(int)
+    save_requested = Signal()
     close_requested = Signal()
 
     def __init__(self, parent=None):
@@ -122,7 +124,10 @@ class SpotlightControlPanel(QFrame):
         self.opacity_slider.valueChanged.connect(self.opacity_changed)
         self.layout.addWidget(self.opacity_slider)
 
-        # 关闭
+        self.btn_save = SpotlightToolButton(FIF.SAVE, "保存选区截图", self)
+        self.btn_save.clicked.connect(self.save_requested)
+        self.layout.addWidget(self.btn_save)
+
         self.btn_close = SpotlightToolButton(FIF.CLOSE, "关闭", self)
         self.btn_close.clicked.connect(self.close_requested)
         self.layout.addWidget(self.btn_close)
@@ -195,6 +200,7 @@ class SpotlightWindow(QWidget):
         self.control_panel.mode_changed.connect(self.set_mode)
         self.control_panel.lights_off_toggled.connect(self.set_lights_off)
         self.control_panel.opacity_changed.connect(self.set_opacity)
+        self.control_panel.save_requested.connect(self.save_selection)
         self.control_panel.close_requested.connect(self.close)
         
         # 全屏覆盖
@@ -298,6 +304,38 @@ class SpotlightWindow(QWidget):
     def set_opacity(self, value):
         self.dim_opacity = value
         self.update()
+
+    def _default_save_path(self):
+        base_dir = QStandardPaths.writableLocation(QStandardPaths.PicturesLocation)
+        if not base_dir:
+            base_dir = os.getcwd()
+        filename = f"Kazuha_Spotlight_{time.strftime('%Y%m%d_%H%M%S')}.png"
+        return os.path.join(base_dir, filename)
+
+    def save_selection(self):
+        if self.selection_rect.isEmpty():
+            return
+        rect = self.selection_rect.intersected(self.rect())
+        if rect.isEmpty():
+            return
+        self.setWindowOpacity(0)
+        self.control_panel.hide()
+        QApplication.processEvents()
+        self.capture_screen()
+        self.update()
+        if not self.full_screen_pixmap:
+            return
+        pixmap = self.full_screen_pixmap.copy(rect)
+        if pixmap.isNull():
+            return
+        default_path = self._default_save_path()
+        self.close()
+        file_path, _ = QFileDialog.getSaveFileName(None, "保存截图", default_path, "PNG 图片 (*.png)")
+        if not file_path:
+            return
+        if not os.path.splitext(file_path)[1]:
+            file_path += ".png"
+        pixmap.save(file_path, "PNG")
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
