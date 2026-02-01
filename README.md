@@ -1,8 +1,3 @@
-> [!IMPORTANT]
-> **温馨提示**：本项目有部分成分由**氛围编程 (Vibe Coding)** 方式编写。
-> 
-> 如果您对此类项目有固有的排斥感，请无视此项目，谢谢。
----
 
 <img width="1157" height="628" alt="banner" src="https://github.com/user-attachments/assets/dc507a97-b73c-446e-80d9-fc14da3792e7" />
 
@@ -16,6 +11,13 @@
 [![Open Issues](https://img.shields.io/github/issues-raw/TCYKyousen/Kazuha?style=for-the-badge&color=red)](https://github.com/TCYKyousen/Kazuha/issues)
 
 </div>
+
+---
+> [!IMPORTANT]
+> **温馨提示**：本项目有部分成分由**氛围编程 (Vibe Coding)** 方式编写。
+> 
+> 如果您对此类项目有固有的排斥感，请无视此项目，谢谢。
+---
 
 ## 核心功能
 
