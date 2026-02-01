@@ -1,6 +1,4 @@
-
 <img width="1157" height="628" alt="banner" src="https://github.com/user-attachments/assets/dc507a97-b73c-446e-80d9-fc14da3792e7" />
-
 
 
     
@@ -16,40 +14,40 @@
 
 ---
 > [!IMPORTANT]
-> **温馨提示**：本项目有部分成分由**氛围编程 (Vibe Coding)** 方式编写。
+> **Note**: This project includes parts created via **Vibe Coding**.
 > 
-> 如果您对此类项目有固有的排斥感，请无视此项目，谢谢。
+> If you have a strong dislike for such projects, please ignore this project. Thanks.
 ---
 
-## 核心功能
+## Core Features
 
-Kazuha 致力于提供简洁、高效的演示体验，特别针对课堂教学和远程会议场景。
+Kazuha focuses on a clean and efficient presentation experience, especially for classrooms and remote meetings.
 
-### 屏幕批注
+### Screen Annotation
 
-具备所有演示助手工具的核心能力，允许您在演示软件上实时进行标记、绘画和书写。
+Provides the core capabilities of presentation assistants, allowing real-time marking, drawing, and writing on presentation software.
 
-* **自由绘制：** 通过 COM 接口调用 PowerPoint 的批注功能，以支持自由地进行批注。
-* **颜色选择：** 拥有便捷的颜色选择工具。
+* **Free drawing:** Calls PowerPoint annotation features via COM to support freehand markup.
+* **Color picker:** Convenient color selection tools.
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/65562ae8-a616-44f7-914e-86ee16b646f6" />
 
 
 
-### 重点框选
+### Spotlight
 
-聚焦模式，帮助观众或学生将注意力集中在关键信息上。
+Focus mode helps audiences or students concentrate on key information.
 
-* **聚焦：** 框选屏幕区域后，重点区域以外的内容将自动被**压暗**。
-* **教学辅助：** 极其适用于课堂中要求学生记录知识点时，便于学生方便地找出何处应该记录。
+* **Focus:** After selecting a screen region, areas outside the focus are automatically **dimmed**.
+* **Teaching aid:** Ideal for classrooms when students need to note down key points.
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/3923f9c1-2275-41e0-b1a4-4e94498cc302" />
 
 
 
-### 3. 高度自定义
+### 3. Highly Customizable
 
-Kazuha 提供了灵活的自定义义项，您可以根据个人习惯和演示需求调整。
+Kazuha provides flexible customization options so you can tailor it to your habits and presentation needs.
 <img width="580" height="477" alt="image" src="https://github.com/user-attachments/assets/1a9711d9-ef4b-431c-b9b1-edbd52a59bdf" />
 <img width="580" height="477" alt="image" src="https://github.com/user-attachments/assets/27916137-1183-4fe0-aaff-c67aa04df291" />
 
@@ -58,7 +56,7 @@ Kazuha 提供了灵活的自定义义项，您可以根据个人习惯和演示�
 
 ---
 
-## 项目概况
+## Project Overview
 
 <div align="center">
     <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=TCYKyousen&repo=Kazuha&layout=compact&theme=vision-friendly-light&hide_border=true" alt="Top Languages Chart" />
@@ -66,18 +64,18 @@ Kazuha 提供了灵活的自定义义项，您可以根据个人习惯和演示�
 
 ---
 
-## 下载与社区
+## Downloads and Community
 
-Kazuha 处于长期 **不稳定阶段**，请通过下方二维码加入 **QQ 群** 或访问我们的 [Release 页面](https://github.com/TCYKyousen/Kazuha/releases) 获取最新版本。
+Kazuha is in a long-term **unstable stage**. Join the **QQ group** via the QR code below or visit our [Release page](https://github.com/TCYKyousen/Kazuha/releases) for the latest version.
 
 <div align="center">
-    <img width="150" height="150" alt="QQ群二维码" src="https://github.com/user-attachments/assets/fcfa5426-51f8-4162-a5bc-1b724ccdb31c" />
+    <img width="150" height="150" alt="QQ Group QR Code" src="https://github.com/user-attachments/assets/fcfa5426-51f8-4162-a5bc-1b724ccdb31c" />
 </div>
 
 ---
 
-## 贡献者
-感谢所有为 Kazuha 项目做出贡献的人！
+## Contributors
+Thanks to everyone who has contributed to the Kazuha project!
 
 <div align="center">
     <a href="https://github.com/TCYKyousen/Kazuha/graphs/contributors">
@@ -87,9 +85,9 @@ Kazuha 处于长期 **不稳定阶段**，请通过下方二维码加入 **QQ �
 
 ---
 
-## 贡献与反馈
+## Contribution and Feedback
 
-我们欢迎所有形式的贡献和反馈！
+We welcome all kinds of contributions and feedback!
 
-* 这是我的新人作品，欢迎向我提出 [**议题**](https://github.com/TCYKyousen/Kazuha/issues)（提交 Bug 报告或功能请求）。
-* 同时，也欢迎提交 [**拉取请求（Pull Requests）**](https://github.com/TCYKyousen/Kazuha/pulls) 帮助改进代码。
+* This is my first project, feel free to open an [**issue**](https://github.com/TCYKyousen/Kazuha/issues) (bug reports or feature requests).
+* You are also welcome to submit [**pull requests**](https://github.com/TCYKyousen/Kazuha/pulls) to help improve the code.
