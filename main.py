@@ -23,7 +23,7 @@ if __name__ == "__main__":
         sys.exit(0)
 
 from PySide6.QtWidgets import QApplication, QDialog, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFrame, QGraphicsDropShadowEffect, QProgressBar
-from PySide6.QtCore import Qt, QTimer, Slot, QSize, QPoint, QCoreApplication
+from PySide6.QtCore import Qt, QTimer, Slot, QSize, QPoint, QCoreApplication, QEvent, QObject
 from PySide6.QtGui import QFontDatabase, QFont, QColor, QIcon, QRegion, QPainter, QPen, QBrush
 
 from ppt_assistant.core.ppt_monitor import PPTMonitor
@@ -34,7 +34,25 @@ from ppt_assistant.ui.tray import SystemTray
 from ppt_assistant.core.config import cfg, SETTINGS_PATH, PLUGINS_DIR, reload_cfg, _apply_theme_and_color, Theme, qconfig, FIRST_RUN
 from ppt_assistant.core.timer_manager import TimerManager
 from ppt_assistant.core.i18n import t
+from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.win_focus_watcher import WindowsFocusWatcher
+
+
+class WindowIconEventFilter(QObject):
+    def __init__(self, icon: QIcon):
+        super().__init__()
+        self._icon = icon
+
+    def eventFilter(self, obj, event):
+        if self._icon.isNull():
+            return False
+        try:
+            if event.type() in (QEvent.Show, QEvent.Polish):
+                if isinstance(obj, QWidget) and obj.isWindow() and obj.windowIcon().isNull():
+                    obj.setWindowIcon(self._icon)
+        except Exception:
+            return False
+        return False
 
 
 SPLASH_I18N = {
@@ -263,6 +281,9 @@ def _is_dev_preview_version(version: str) -> bool:
 class StartupSplash(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        icon = load_app_icon()
+        if not icon.isNull():
+            self.setWindowIcon(icon)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
 
@@ -1181,7 +1202,13 @@ class PPTAssistantApp:
 
 if __name__ == "__main__":
     _apply_win7_graphics_fallback()
+    QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     app = QApplication(sys.argv)
+    app_icon = load_app_icon()
+    if not app_icon.isNull():
+        app.setWindowIcon(app_icon)
+        app._window_icon_filter = WindowIconEventFilter(app_icon)
+        app.installEventFilter(app._window_icon_filter)
     _apply_global_font(app)
     crash_handler = CrashHandler(app)
     # _handle_multi_instance(app)

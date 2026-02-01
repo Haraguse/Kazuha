@@ -16,6 +16,7 @@ from qfluentwidgets import (
     Slider, setTheme, Theme, qconfig, FluentIcon as FIF
 )
 import os
+from ppt_assistant.core.app_icon import load_app_icon
 
 class SpotlightToolButton(QFrame):
     clicked = Signal()
@@ -83,6 +84,10 @@ class SpotlightControlPanel(QFrame):
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.ToolTip)
         self.setAttribute(Qt.WA_TranslucentBackground)
+
+        icon = load_app_icon()
+        if not icon.isNull():
+            self.setWindowIcon(icon)
         
         # 布局
         self.layout = QHBoxLayout(self)
@@ -167,6 +172,10 @@ class SpotlightWindow(QWidget):
             Qt.WindowDoesNotAcceptFocus
         )
         self.setAttribute(Qt.WA_TranslucentBackground)
+
+        icon = load_app_icon()
+        if not icon.isNull():
+            self.setWindowIcon(icon)
         
         # 初始化状态
         self.selection_rect = QRect()

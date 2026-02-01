@@ -11,8 +11,8 @@ from PySide6.QtWidgets import QApplication, QFileDialog
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineSettings
 from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtCore import QObject, Slot, QUrl, QFile, QIODevice, Qt, QTimer, QBuffer, QByteArray, QJsonValue
-from PySide6.QtGui import QColor, QImage, QGuiApplication
+from PySide6.QtCore import QObject, Slot, QUrl, QFile, QIODevice, Qt, QTimer, QBuffer, QByteArray, QJsonValue, QCoreApplication
+from PySide6.QtGui import QColor, QImage, QGuiApplication, QIcon
 
 DWMWA_WINDOW_CORNER_PREFERENCE = 33
 DWMWCP_ROUND = 2
@@ -21,6 +21,30 @@ DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19
 DWMWA_BORDER_COLOR = 34
 DWMWA_CAPTION_COLOR = 35
 DWMWA_TEXT_COLOR = 36
+
+
+def _resolve_logo_ico_path() -> str | None:
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    candidates: list[str] = [
+        os.path.join(root_dir, "icons", "logo.ico"),
+    ]
+
+    if getattr(sys, "frozen", False):
+        exe_dir = os.path.dirname(sys.executable)
+        candidates.insert(0, os.path.join(exe_dir, "icons", "logo.ico"))
+        candidates.append(sys.executable)
+
+    for path in candidates:
+        if path and os.path.exists(path):
+            return path
+    return None
+
+
+def _load_app_icon() -> QIcon:
+    path = _resolve_logo_ico_path()
+    if not path:
+        return QIcon()
+    return QIcon(path)
 
 def _get_windows_dark_mode():
     if sys.platform != "win32":
@@ -1029,19 +1053,31 @@ def apply_win11_aesthetics(window, theme_mode=None):
                 ctypes.sizeof(corner_preference)
             )
             _apply_window_theme(hwnd, _resolve_theme_dark(theme_mode))
-            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            icon_path = os.path.join(root_dir, "icons", "settings.png")
-            if os.path.exists(icon_path):
-                hicon = ctypes.windll.user32.LoadImageW(0, icon_path, 1, 0, 0, 0x00000010)
-                if hicon:
-                    ctypes.windll.user32.SendMessageW(hwnd, 0x0080, 0, hicon)
-                    ctypes.windll.user32.SendMessageW(hwnd, 0x0080, 1, hicon)
+            icon_path = _resolve_logo_ico_path()
+            if icon_path and os.path.exists(icon_path):
+                user32 = ctypes.windll.user32
+                IMAGE_ICON = 1
+                LR_LOADFROMFILE = 0x00000010
+                WM_SETICON = 0x0080
+                ICON_SMALL = 0
+                ICON_BIG = 1
+
+                hicon_small = user32.LoadImageW(0, icon_path, IMAGE_ICON, 16, 16, LR_LOADFROMFILE)
+                hicon_big = user32.LoadImageW(0, icon_path, IMAGE_ICON, 32, 32, LR_LOADFROMFILE)
+                if hicon_small:
+                    user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, hicon_small)
+                if hicon_big:
+                    user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon_big)
         except Exception:
             pass
 
 def main():
     _apply_chromium_flags()
+    QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     app = QApplication(sys.argv)
+    icon = _load_app_icon()
+    if not icon.isNull():
+        app.setWindowIcon(icon)
     os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
     if "--dialog" in sys.argv or "--crash-file" in sys.argv:
         mode = "--dialog" if "--dialog" in sys.argv else "--crash-file"

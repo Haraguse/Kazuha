@@ -6,6 +6,7 @@ from PySide6.QtCore import QUrl, Qt, Slot, QObject, QPoint, QTimer, Signal, Prop
 from PySide6.QtGui import QColor, QIcon, QAction
 from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QApplication, QDialog, QMessageBox
 from ppt_assistant.core.config import cfg, SETTINGS_PATH
+from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.ui.dialog import CustomDialog
 
 def _get_app_version():
@@ -199,6 +200,10 @@ class BoardWindow(QQuickView):
         # Allow Close and Maximize. Disallow Minimize.
         # Note: Qt.CustomizeWindowHint hides the title bar unless Qt.WindowTitleHint is present.
         self.setFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint | Qt.WindowSystemMenuHint | Qt.WindowCloseButtonHint | Qt.WindowMaximizeButtonHint)
+
+        icon = load_app_icon()
+        if not icon.isNull():
+            self.setIcon(icon)
         
         self.backend = BoardBackend(self)
         self.rootContext().setContextProperty("backend", self.backend)

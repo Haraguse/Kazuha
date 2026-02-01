@@ -12,6 +12,7 @@ import time
 import math
 import shiboken6
 from ppt_assistant.core.config import cfg, SETTINGS_PATH
+from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.timer_manager import TimerManager
 from qfluentwidgets import FluentWidget, FluentIcon as FIF, BodyLabel, IconWidget, themeColor, Theme, isDarkTheme, qconfig
 from ppt_assistant.core.theme_data import THEMES
@@ -1521,10 +1522,10 @@ class OverlayWindow(QWidget):
         scr = QGuiApplication.primaryScreen()
         if scr:
             self.setGeometry(scr.geometry())
-        
-        icon_path = os.path.join(ICON_DIR, "overlayicon.png")
-        if os.path.exists(icon_path):
-            self.setWindowIcon(QIcon(icon_path))
+
+        icon = load_app_icon()
+        if not icon.isNull():
+            self.setWindowIcon(icon)
             
         self.setWindowTitle(_t("overlay.title"))
         self._is_light = _resolve_is_light()
