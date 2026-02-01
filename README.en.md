@@ -1,4 +1,5 @@
-<img width="1157" height="628" alt="banner" src="https://github.com/user-attachments/assets/dc507a97-b73c-446e-80d9-fc14da3792e7" />
+<img width="1157" height="628" alt="web 1366es" src="https://github.com/user-attachments/assets/4dcf78b4-1e4c-4373-8205-41f4a431f25c" />
+
 
 
     
@@ -30,9 +31,6 @@ Provides the core capabilities of presentation assistants, allowing real-time ma
 * **Free drawing:** Calls PowerPoint annotation features via COM to support freehand markup.
 * **Color picker:** Convenient color selection tools.
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/65562ae8-a616-44f7-914e-86ee16b646f6" />
-
-
 
 ### Spotlight
 
@@ -41,17 +39,11 @@ Focus mode helps audiences or students concentrate on key information.
 * **Focus:** After selecting a screen region, areas outside the focus are automatically **dimmed**.
 * **Teaching aid:** Ideal for classrooms when students need to note down key points.
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/3923f9c1-2275-41e0-b1a4-4e94498cc302" />
-
 
 
 ### 3. Highly Customizable
 
 Kazuha provides flexible customization options so you can tailor it to your habits and presentation needs.
-<img width="580" height="477" alt="image" src="https://github.com/user-attachments/assets/1a9711d9-ef4b-431c-b9b1-edbd52a59bdf" />
-<img width="580" height="477" alt="image" src="https://github.com/user-attachments/assets/27916137-1183-4fe0-aaff-c67aa04df291" />
-
-
 
 
 ---
@@ -66,22 +58,7 @@ Kazuha provides flexible customization options so you can tailor it to your habi
 
 ## Downloads and Community
 
-Kazuha is in a long-term **unstable stage**. Join the **QQ group** via the QR code below or visit our [Release page](https://github.com/TCYKyousen/Kazuha/releases) for the latest version.
-
-<div align="center">
-    <img width="150" height="150" alt="QQ Group QR Code" src="https://github.com/user-attachments/assets/fcfa5426-51f8-4162-a5bc-1b724ccdb31c" />
-</div>
-
----
-
-## Contributors
-Thanks to everyone who has contributed to the Kazuha project!
-
-<div align="center">
-    <a href="https://github.com/TCYKyousen/Kazuha/graphs/contributors">
-        <img src="https://contrib.rocks/image?repo=TCYKyousen/Kazuha" />
-    </a>
-</div>
+Kazuha is in a long-term **unstable stage**. visit [Release page](https://github.com/TCYKyousen/Kazuha/releases) for the latest version.
 
 ---
 
