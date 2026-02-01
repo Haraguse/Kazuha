@@ -1,4 +1,5 @@
-<img width="1157" height="628" alt="banner" src="https://github.com/user-attachments/assets/dc507a97-b73c-446e-80d9-fc14da3792e7" />
+<img width="1157" height="628" alt="web js1368" src="https://github.com/user-attachments/assets/aab43766-d54d-4769-9787-2f92a5282024" />
+
 
 
     
@@ -30,8 +31,6 @@ Kazuha は、教室での授業やリモート会議向けに、シンプルで�
 * **自由描画：** COM 経由で PowerPoint の注釈機能を呼び出し、自由な書き込みに対応。
 * **色選択：** 便利なカラーピッカーを搭載。
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/65562ae8-a616-44f7-914e-86ee16b646f6" />
-
 
 
 ### 重点フォーカス
@@ -41,16 +40,10 @@ Kazuha は、教室での授業やリモート会議向けに、シンプルで�
 * **フォーカス：** 画面の範囲を選択すると、重点領域以外が自動的に **暗く** なります。
 * **授業支援：** 学生が重要点をメモする場面で、どこを記録すべきか分かりやすくします。
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/3923f9c1-2275-41e0-b1a4-4e94498cc302" />
-
-
 
 ### 3. 高度なカスタマイズ
 
 Kazuha は柔軟なカスタマイズ性を提供し、個人の習慣やプレゼン用途に合わせて調整できます。
-<img width="580" height="477" alt="image" src="https://github.com/user-attachments/assets/1a9711d9-ef4b-431c-b9b1-edbd52a59bdf" />
-<img width="580" height="477" alt="image" src="https://github.com/user-attachments/assets/27916137-1183-4fe0-aaff-c67aa04df291" />
-
 
 
 
@@ -66,11 +59,7 @@ Kazuha は柔軟なカスタマイズ性を提供し、個人の習慣やプレ�
 
 ## ダウンロードとコミュニティ
 
-Kazuha は長期的に **不安定な段階** にあります。下の QR コードから **QQ グループ** に参加するか、[Release ページ](https://github.com/TCYKyousen/Kazuha/releases) で最新バージョンを入手してください。
-
-<div align="center">
-    <img width="150" height="150" alt="QQ Group QR Code" src="https://github.com/user-attachments/assets/fcfa5426-51f8-4162-a5bc-1b724ccdb31c" />
-</div>
+Kazuha は長期的に **不安定な段階** にあります。[Release ページ](https://github.com/TCYKyousen/Kazuha/releases) で最新バージョンを入手してください。
 
 ---
 
@@ -90,4 +79,4 @@ Kazuha プロジェクトに貢献してくれた皆さんに感謝します！
 あらゆる形の貢献とフィードバックを歓迎します！
 
 * 初めての作品です。[**Issue**](https://github.com/TCYKyousen/Kazuha/issues) からバグ報告や機能要望をお寄せください。
-* [**Pull Requests**](https://github.com/TCYKyousen/Kazuha/pulls) も歓迎します。コード改善にご協力ください。
+* [**拉取请求**](https://github.com/TCYKyousen/Kazuha/pulls) も歓迎します。コード改善にご協力ください。
