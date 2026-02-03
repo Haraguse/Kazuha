@@ -32,7 +32,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['d:\\Documents\\Kazuha\\icons\\logo.ico'],
+    icon=['h:\\Dev\\Kazuha\\icons\\logo.ico'],
 )
 coll = COLLECT(
     exe,

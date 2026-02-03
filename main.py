@@ -809,13 +809,7 @@ class PPTAssistantApp:
                 while p.process and p.process.poll() is None:
                     QApplication.processEvents()
                     time.sleep(0.1)
-                
-                # Small delay to ensure file system is ready
-                time.sleep(0.5)
                 reload_cfg()
-                
-                # Handover: make sure we are not starting a zombie
-                self.cleanup()
                 self.restart()
         except Exception:
             pass
@@ -1191,23 +1185,7 @@ class PPTAssistantApp:
 
     def restart(self):
         self.cleanup()
-        # Use subprocess.Popen for a more robust restart on Windows.
-        try:
-            # For packaged apps (frozen), sys.executable is the EXE.
-            # sys.argv[0] is also the EXE, so we must not include it in args.
-            if getattr(sys, "frozen", False):
-                args = sys.argv[1:]
-            else:
-                # In dev mode, sys.executable is python.exe and sys.argv[0] is main.py.
-                # We want to run: python.exe main.py ...
-                args = sys.argv
-            
-            subprocess.Popen([sys.executable] + args)
-        except Exception as e:
-            print(f"Failed to restart: {e}")
-            # Final fallback
-            os.execl(sys.executable, sys.executable, *sys.argv)
-        sys.exit(0)
+        os.execl(sys.executable, sys.executable, *sys.argv)
 
     def cleanup(self):
         """Cleanup app resources and terminate subprocesses."""
@@ -1230,12 +1208,7 @@ class PPTAssistantApp:
 
 if __name__ == "__main__":
     _apply_win7_graphics_fallback()
-    
-    # Qt6 enables scaling by default, but we can set rounding policy
-    # to avoid blurriness on fractional scales (like 125%, 150%)
-    from PySide6.QtGui import QGuiApplication
-    QGuiApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
-    
+    QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     app = QApplication(sys.argv)
     app_icon = load_app_icon()
     if not app_icon.isNull():

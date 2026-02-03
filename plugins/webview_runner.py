@@ -567,29 +567,20 @@ class Api(QObject):
         except Exception:
             return self.get_quick_launch_apps()
 
-    @Slot(str, str, "QVariant")
+    @Slot(str, str, QJsonValue)
     def save_setting(self, category, key, value):
-        self.save_settings({category: {key: value}})
-
-    @Slot("QVariant")
-    def save_settings(self, settings_batch):
         preview_mode = os.environ.get("ONBOARDING_PREVIEW", "").lower() == "true"
         if preview_mode:
             return
-            
-        if not isinstance(settings_batch, dict):
-            # Try to convert if it's a wrapper object
-            try:
-                if hasattr(settings_batch, "toVariant"):
-                    settings_batch = settings_batch.toVariant()
-                elif hasattr(settings_batch, "toPython"):
-                    settings_batch = settings_batch.toPython()
-            except Exception:
-                pass
-            
-        if not isinstance(settings_batch, dict):
+        if not isinstance(category, str) or not isinstance(key, str):
             return
-
+        try:
+            if hasattr(value, "toVariant"):
+                value = value.toVariant()
+            elif hasattr(value, "toPython"):
+                value = value.toPython()
+        except Exception:
+            pass
         settings_path = os.environ.get("SETTINGS_PATH")
         if not settings_path:
             if getattr(sys, "frozen", False):
@@ -597,7 +588,6 @@ class Api(QObject):
             else:
                 base_dir = os.path.dirname(os.path.abspath(__file__))
                 settings_path = os.path.join(os.path.dirname(base_dir), "settings.json")
-        
         try:
             data = {}
             if os.path.exists(settings_path):
@@ -606,36 +596,24 @@ class Api(QObject):
                         data = json.load(f)
                     except JSONDecodeError:
                         data = {}
-            
-            # Apply all settings in batch
-            for category, keys in settings_batch.items():
-                if not isinstance(keys, dict): continue
-                if category not in data:
-                    data[category] = {}
-                for key, value in keys.items():
-                    data[category][key] = value
-                    
-                    # Hook for system integration settings
-                    if category == "General":
-                        if key == "RunAtStartup":
-                            _set_run_at_startup(bool(value))
-                        elif key == "PinToTaskbar":
-                            _pin_to_taskbar(bool(value))
-                        elif key == "PinToStart":
-                            _pin_to_start(bool(value))
-
+            if category not in data:
+                data[category] = {}
+            data[category][key] = value
             with open(settings_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
-                f.flush()
-                os.fsync(f.fileno()) # Ensure data is written to disk
-            
             self.settings = data
             
-            # Check if theme changed in this batch
-            appearance = settings_batch.get("Appearance", {})
-            if "ThemeMode" in appearance or "ThemeId" in appearance:
+            # Hook for system integration settings
+            if category == "General":
+                if key == "RunAtStartup":
+                    _set_run_at_startup(bool(value))
+                elif key == "PinToTaskbar":
+                    _pin_to_taskbar(bool(value))
+                elif key == "PinToStart":
+                    _pin_to_start(bool(value))
+
+            if category == "Appearance" and key in ("ThemeMode", "ThemeId"):
                 self.update_settings(data)
-                
         except Exception as e:
             print(f"Error saving settings: {e}", file=sys.stderr)
 
@@ -702,11 +680,7 @@ class Api(QObject):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
             json.dump(dialog_data, f)
             temp_path = f.name
-
-        if getattr(sys, "frozen", False):
-            subprocess.Popen([sys.executable, "--webview-runner", "--dialog", temp_path])
-        else:
-            subprocess.Popen([sys.executable, __file__, "--dialog", temp_path])
+        subprocess.Popen([sys.executable, __file__, "--dialog", temp_path])
 
     @Slot(str, str)
     def show_font_warning(self, font_name=None, font_lang=None):
@@ -743,11 +717,7 @@ class Api(QObject):
             dialog_data["overrideSettings"] = temp_settings
             with open(temp_path, "w", encoding="utf-8") as f:
                 json.dump(dialog_data, f)
-
-        if getattr(sys, "frozen", False):
-            subprocess.Popen([sys.executable, "--webview-runner", "--dialog", temp_path])
-        else:
-            subprocess.Popen([sys.executable, __file__, "--dialog", temp_path])
+        subprocess.Popen([sys.executable, __file__, "--dialog", temp_path])
 
     @Slot(result="QVariant")
     def get_dialog_data(self):
@@ -758,17 +728,8 @@ class Api(QObject):
         print("DIALOG_CONFIRMED")
         sys.stdout.flush()
         if self._window:
-            # Hide immediately to give feedback to user
-            self._window.hide()
-            # Use QTimer to give the event loop a chance to process 
-            # the last few messages and the response to JS
-            QTimer.singleShot(100, lambda: self._safe_exit(0))
-        else:
-            self._safe_exit(0)
-
-    def _safe_exit(self, code=0):
-        QCoreApplication.quit()
-        sys.exit(code)
+            self._window.close()
+        sys.exit(0)
 
     @Slot(str)
     def on_confirm_with_value(self, value):
@@ -780,10 +741,8 @@ class Api(QObject):
         print("DIALOG_CONFIRMED")
         sys.stdout.flush()
         if self._window:
-            self._window.hide()
-            QTimer.singleShot(100, lambda: self._safe_exit(0))
-        else:
-            self._safe_exit(0)
+            self._window.close()
+        sys.exit(0)
 
     @Slot()
     def on_cancel(self):
@@ -805,7 +764,6 @@ class Api(QObject):
         env["ONBOARDING_PREVIEW"] = "true"
         width = "960"
         height = "640"
-        
         if getattr(sys, "frozen", False):
             subprocess.Popen([sys.executable, "--webview-runner", onboarding_html, "Onboarding Preview", width, height, "true"], env=env)
         else:
@@ -888,10 +846,8 @@ class Api(QObject):
         print(f"SELECTED_ITEM:{json.dumps(item, ensure_ascii=False)}")
         sys.stdout.flush()
         if self._window:
-            self._window.hide()
-            QTimer.singleShot(100, lambda: self._safe_exit(0))
-        else:
-            self._safe_exit(0)
+            self._window.close()
+        sys.exit(0)
 
     @Slot(result="QVariant")
     def get_monet_colors(self):

@@ -428,10 +428,6 @@ class GlobalIconCache:
     def set(cls, key, pixmap):
         cls._cache[key] = pixmap
 
-    @classmethod
-    def clear(cls):
-        cls._cache.clear()
-
 class NetworkCheckThread(QThread):
     status_changed = Signal(str)
 
@@ -1046,11 +1042,7 @@ class CustomToolButton(QFrame):
         if self.is_exit:
             color_hex = "#FF453A"
 
-        # Use device pixel ratio for sharp icons on High DPI screens
-        dpr = self.devicePixelRatioF()
-        device_size = int(s * dpr)
-        
-        cache_key = (self.icon_name, color_hex, s, dpr)
+        cache_key = (self.icon_name, color_hex, s)
         cached_pixmap = GlobalIconCache.get(cache_key)
         if cached_pixmap:
             self.icon_label.setPixmap(cached_pixmap)
@@ -1062,8 +1054,9 @@ class CustomToolButton(QFrame):
         if not renderer.isValid():
             return
             
+        device_size = s * 2
         pixmap = QPixmap(device_size, device_size)
-        pixmap.setDevicePixelRatio(dpr)
+        pixmap.fill(Qt.transparent)
         
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.Antialiasing)
@@ -1558,15 +1551,6 @@ class OverlayWindow(QWidget):
         self._ui_heartbeat_timer.setInterval(100)
         self._ui_heartbeat_timer.timeout.connect(self._mark_ui_alive)
         self._ui_heartbeat_timer.start()
-        
-        self._layout_timer = QTimer(self)
-        self._layout_timer.setSingleShot(True)
-        self._layout_timer.timeout.connect(self.update_layout)
-        
-        self._repaint_timer = QTimer(self)
-        self._repaint_timer.setSingleShot(True)
-        self._repaint_timer.timeout.connect(self._force_repaint)
-
         self._block_watchdog = UiBlockWatchdog(lambda: self._ui_last_ping, threshold_ms=800, interval_ms=100, parent=self)
         self._block_watchdog.blocked_changed.connect(self._on_ui_blocked_changed)
         self._block_watchdog.start()
@@ -1620,33 +1604,17 @@ class OverlayWindow(QWidget):
         if target_screen:
             geo = rect if rect and not rect.isEmpty() else target_screen.geometry()
             if geo and not geo.isEmpty():
-                # Handle screen change and DPI awareness
-                old_screen = self.screen()
                 if self.windowHandle():
                     self.windowHandle().setScreen(target_screen)
-                    # Connect to DPI change signal if it's a new screen
-                    if old_screen != target_screen:
-                        try:
-                            target_screen.logicalDotsPerInchChanged.disconnect(self._on_dpi_changed)
-                        except: pass
-                        target_screen.logicalDotsPerInchChanged.connect(self._on_dpi_changed)
-                
                 self.setGeometry(geo)
-        
         if hasattr(self, "_layout_updating"):
             self._layout_updating = False
-        self._layout_timer.start(0)
-        self._layout_timer.start(60)
-        self._layout_timer.start(250)
-        self._repaint_timer.start(0)
-        self._repaint_timer.start(80)
-        self._repaint_timer.start(300)
-
-    def _on_dpi_changed(self, dpi):
-        """Handle system DPI changes."""
-        # Refresh all UI elements that depend on scaling
-        GlobalIconCache.clear()
-        self.apply_theme_update()
+        QTimer.singleShot(0, self.update_layout)
+        QTimer.singleShot(60, self.update_layout)
+        QTimer.singleShot(250, self.update_layout)
+        QTimer.singleShot(0, self._force_repaint)
+        QTimer.singleShot(80, self._force_repaint)
+        QTimer.singleShot(300, self._force_repaint)
 
     @Slot(int)
     def set_slideshow_hwnd(self, hwnd):
@@ -2235,7 +2203,6 @@ class OverlayWindow(QWidget):
         if hasattr(self, "_block_watchdog") and self._block_watchdog.isRunning():
             self._block_watchdog.requestInterruption()
             self._block_watchdog.wait()
-        GlobalIconCache.clear()
     
     def _on_status_bar_visibility_changed(self, visible: bool):
         if visible and getattr(self, "_has_status_plugin", False):
@@ -2888,10 +2855,7 @@ class PageFlipButton(QFrame):
             
         scale = cfg.scale.value
         s = int(20 * scale)
-        dpr = self.devicePixelRatioF()
-        device_size = int(s * dpr)
-        
-        cache_key = (self.icon_name, color.name(), s, self.rotation, dpr)
+        cache_key = (self.icon_name, color.name(), s, self.rotation)
         cached_pixmap = GlobalIconCache.get(cache_key)
         if cached_pixmap:
             self.icon_label.setPixmap(cached_pixmap)
@@ -2899,22 +2863,22 @@ class PageFlipButton(QFrame):
 
         renderer = QSvgRenderer(icon_path)
         if renderer.isValid():
-            pixmap = QPixmap(device_size, device_size)
-            pixmap.setDevicePixelRatio(dpr)
-            pixmap.fill(Qt.transparent)
-            p = QPainter(pixmap)
+            device_size = int(40 * scale)
+            base = QPixmap(device_size, device_size)
+            base.fill(Qt.transparent)
+            p = QPainter(base)
             p.setRenderHint(QPainter.Antialiasing)
-            p.translate(pixmap.width() / 2 / dpr, pixmap.height() / 2 / dpr)
+            p.translate(base.width() / 2, base.height() / 2)
             if self.rotation:
                 p.rotate(self.rotation)
-            p.translate(-pixmap.width() / 2 / dpr, -pixmap.height() / 2 / dpr)
+            p.translate(-base.width() / 2, -base.height() / 2)
             renderer.render(p)
             p.setCompositionMode(QPainter.CompositionMode_SourceIn)
-            p.fillRect(pixmap.rect(), color)
+            p.fillRect(base.rect(), color)
             p.end()
-            
-            GlobalIconCache.set(cache_key, pixmap)
-            self.icon_label.setPixmap(pixmap)
+            scaled = base.scaled(s, s, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            GlobalIconCache.set(cache_key, scaled)
+            self.icon_label.setPixmap(scaled)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
