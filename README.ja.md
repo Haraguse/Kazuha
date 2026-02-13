@@ -59,7 +59,11 @@ Kazuha は柔軟なカスタマイズ性を提供し、個人の習慣やプレ�
 
 ## ダウンロードとコミュニティ
 
-Kazuha は長期的に **不安定な段階** にあります。[Release ページ](https://github.com/TCYKyousen/Kazuha/releases) で最新バージョンを入手してください。
+Kazuha は長期的に **不安定な段階** にあります。以下のリンクから **QQ グループ** に参加するか、[Release ページ](https://github.com/TCYKyousen/Kazuha/releases) で最新バージョンを入手してください。
+
+<div align="center">
+    [![QQ群](https://img.shields.io/badge/-QQ%E7%BE%A4%EF%BD%9C833875216-blue?style=for-the-badge&logo=QQ)](https://qm.qq.com/q/iWcfaPHn7W)
+</div>
 
 ---
 

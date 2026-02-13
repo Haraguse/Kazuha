@@ -58,7 +58,11 @@ Kazuha provides flexible customization options so you can tailor it to your habi
 
 ## Downloads and Community
 
-Kazuha is in a long-term **unstable stage**. visit [Release page](https://github.com/TCYKyousen/Kazuha/releases) for the latest version.
+Kazuha is in a long-term **unstable stage**. Join our **QQ Group** via the link below or visit the [Release page](https://github.com/TCYKyousen/Kazuha/releases) for the latest version.
+
+<div align="center">
+    [![QQ群](https://img.shields.io/badge/-QQ%E7%BE%A4%EF%BD%9C833875216-blue?style=for-the-badge&logo=QQ)](https://qm.qq.com/q/iWcfaPHn7W)
+</div>
 
 ---
 

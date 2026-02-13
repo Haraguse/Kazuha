@@ -68,10 +68,10 @@ Kazuha 提供了灵活的自定义义项，您可以根据个人习惯和演示�
 
 ## 下载与社区
 
-Kazuha 处于长期 **不稳定阶段**，请通过下方二维码加入 **QQ 群** 或访问我们的 [Release 页面](https://github.com/TCYKyousen/Kazuha/releases) 获取最新版本。
+Kazuha 处于长期 **不稳定阶段**，请通过下方链接加入 **QQ 群** 或访问我们的 [Release 页面](https://github.com/TCYKyousen/Kazuha/releases) 获取最新版本。
 
 <div align="center">
-    <img width="150" height="150" alt="QQ群二维码" src="https://github.com/user-attachments/assets/fcfa5426-51f8-4162-a5bc-1b724ccdb31c" />
+    [![QQ群](https://img.shields.io/badge/-QQ%E7%BE%A4%EF%BD%9C833875216-blue?style=for-the-badge&logo=QQ)](https://qm.qq.com/q/iWcfaPHn7W)
 </div>
 
 ---
