@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overlay</title>
+    <style>
+        :root {
+            --bg-app: #f2f3f5;
+            --bg-surface: #ffffff;
+            --text-primary: #1a1c1e;
+            --text-secondary: #5e6368;
+            --accent-color: #3275F5;
+            --divider: rgba(0, 0, 0, 0.08);
+            --item-hover: rgba(0, 0, 0, 0.05);
+            --shadow-main: 0 4px 12px rgba(0, 0, 0, 0.06);
+            --font-stack: "MiSans Latin", "HarmonyOS Sans SC", "SF Pro", "苹方-简", "PingFang SC", "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+
+            --overlay-toolbar-bg: rgba(45, 45, 45, 0.85);
+            --overlay-toolbar-border: rgba(255, 255, 255, 0.2);
+            --overlay-toolbar-shadow: none;
+            --overlay-toolbar-fg: #FFFFFF;
+            --overlay-button-hover: rgba(255, 255, 255, 0.08);
+            --overlay-button-active: rgba(255, 255, 255, 0.15);
+            --overlay-status-bg: rgba(0, 0, 0, 0.25);
+            --overlay-status-fg: #FFFFFF;
+            --overlay-status-sep: rgba(255, 255, 255, 0.3);
+            
+            --overlay-page-bg: var(--overlay-toolbar-bg);
+            --overlay-page-border: var(--overlay-toolbar-border);
+            --overlay-page-fg: #FFFFFF;
+            --overlay-page-hint: rgba(255, 255, 255, 0.6);
+            --overlay-page-hover: var(--overlay-button-hover);
+            --overlay-page-shadow: none;
+        }
+
+        [data-theme="dark"] {
+            --bg-app: #121212;
+            --bg-surface: #1E1E1E;
+            --text-primary: #E5E5E5;
+            --text-secondary: #909090;
+            --accent-color: #4A85F6;
+            --divider: rgba(255, 255, 255, 0.08);
+            --item-hover: rgba(255, 255, 255, 0.05);
+            --shadow-main: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+            --overlay-toolbar-bg: rgba(28, 28, 30, 0.82);
+            --overlay-toolbar-border: rgba(255, 255, 255, 0.15);
+            --overlay-toolbar-shadow: none;
+            --overlay-toolbar-fg: #FFFFFF;
+            --overlay-button-hover: rgba(255, 255, 255, 0.08);
+            --overlay-button-active: rgba(255, 255, 255, 0.15);
+            --overlay-status-bg: rgba(0, 0, 0, 0.25);
+            --overlay-status-fg: #FFFFFF;
+            --overlay-status-sep: rgba(255, 255, 255, 0.3);
+            
+            --overlay-page-bg: var(--overlay-toolbar-bg);
+            --overlay-page-border: var(--overlay-toolbar-border);
+            --overlay-page-fg: #FFFFFF;
+            --overlay-page-hint: rgba(255, 255, 255, 0.6);
+            --overlay-page-hover: var(--overlay-button-hover);
+            --overlay-page-shadow: none;
+        }
+
+        body {
+            background: transparent;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            user-select: none;
+            font-family: var(--font-stack);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            pointer-events: none;
+        }
+
+        .interactive {
+            pointer-events: auto;
+        }
+
+        #status-bar {
+            width: 100%;
+            height: 32px;
+            background: var(--overlay-status-bg);
+            color: var(--overlay-status-fg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            box-sizing: border-box;
+            font-size: 12px;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-bottom: 1px solid var(--overlay-status-sep);
+        }
+        #status-bar.visible {
+            opacity: 1;
+        }
+
+        #center-area {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .flipper {
+            width: 54px;
+            height: 160px;
+            background: var(--overlay-page-bg);
+            border: 0.5px solid var(--overlay-page-border);
+            border-radius: 27px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: var(--overlay-page-shadow);
+            pointer-events: auto;
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        .flipper:active {
+            transform: scale(0.95);
+        }
+        
+        .flipper-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 8px;
+            flex: none;
+        }
+        
+        .flipper-btn:hover {
+            background: var(--overlay-page-hover);
+        }
+
+        .flipper-btn:active {
+            background: var(--overlay-button-active);
+        }
+        
+        .flipper-btn:first-child {
+            border-radius: 50%;
+            margin-bottom: 0;
+        }
+        
+        .flipper-btn:last-child {
+            border-radius: 50%;
+            margin-top: 0;
+        }
+        
+        .flipper .icon-previous {
+            transform: rotate(90deg);
+        }
+        
+        .flipper .icon-next {
+            transform: rotate(90deg);
+        }
+
+        .page-info-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.2;
+            padding: 4px 0;
+        }
+
+        .page-count-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+        }
+
+        .page-curr {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--overlay-page-fg);
+        }
+
+        .page-total-grp {
+            font-size: 10px;
+            color: var(--overlay-page-hint);
+            margin-left: 2px;
+        }
+
+        .page-label {
+            font-size: 10px;
+            color: var(--overlay-page-hint);
+            margin-top: -2px;
+        }
+
+        #toolbar-container {
+            display: flex;
+            justify-content: center;
+            padding-bottom: 20px;
+        }
+
+        #toolbar {
+            background: var(--overlay-toolbar-bg);
+            border: 0.5px solid var(--overlay-toolbar-border);
+            border-radius: 999px;
+            padding: 8px;
+            display: flex;
+            gap: 4px;
+            box-shadow: var(--overlay-toolbar-shadow);
+            transition: opacity 0.3s, transform 0.3s;
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+        }
+        
+        .tool-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 19px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+        }
+        
+        .tool-btn:hover {
+            background: var(--overlay-button-hover);
+        }
+        
+        .tool-btn.active {
+            background: var(--overlay-button-active);
+        }
+        
+        .tool-btn img {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .separator {
+            width: 1px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.15);
+            margin: auto 4px;
+        }
+        
+        .icon-mask {
+            width: 20px;
+            height: 20px;
+            background-color: var(--overlay-toolbar-fg);
+            -webkit-mask-size: contain;
+            -webkit-mask-repeat: no-repeat;
+            -webkit-mask-position: center;
+            mask-size: contain;
+            mask-repeat: no-repeat;
+            mask-position: center;
+        }
+
+        .icon-mouse { -webkit-mask-image: url('../../icons/Mouse.svg'); mask-image: url('../../icons/Mouse.svg'); }
+        .icon-previous { -webkit-mask-image: url('../../icons/Previous.svg'); mask-image: url('../../icons/Previous.svg'); }
+        .icon-next { -webkit-mask-image: url('../../icons/Next.svg'); mask-image: url('../../icons/Next.svg'); }
+        .icon-pen { -webkit-mask-image: url('../../icons/Pen.svg'); mask-image: url('../../icons/Pen.svg'); }
+        .icon-eraser { -webkit-mask-image: url('../../icons/Eraser.svg'); mask-image: url('../../icons/Eraser.svg'); }
+        .icon-clear { -webkit-mask-image: url('../../icons/Clear.svg'); mask-image: url('../../icons/Clear.svg'); }
+        .icon-spotlight { -webkit-mask-image: url('../../icons/spotlight.svg'); mask-image: url('../../icons/spotlight.svg'); }
+        .icon-board { -webkit-mask-image: url('../../icons/board-in-board.svg'); mask-image: url('../../icons/board-in-board.svg'); }
+        .icon-timer { -webkit-mask-image: url('../../icons/timer.svg'); mask-image: url('../../icons/timer.svg'); }
+        .icon-app { -webkit-mask-image: url('../../icons/More.svg'); mask-image: url('../../icons/More.svg'); }
+        .icon-minimize { 
+            -webkit-mask-image: url('../../icons/Minimize.svg'); 
+            mask-image: url('../../icons/Minimize.svg');
+            background-color: #FF453A !important;
+        }
+
+        .icon-img {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+        
+        #eraser-settings {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 30, 30, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            z-index: 100;
+        }
+
+        #eraser-settings.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .slider-container {
+            width: 200px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 22px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .slider-text {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .slider-thumb {
+            width: 40px;
+            height: 40px;
+            background: #FFFFFF;
+            border-radius: 50%;
+            position: absolute;
+            left: 2px;
+            top: 2px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+        }
+        
+        .slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+
+        .slider-thumb .icon-mask {
+            background-color: #000;
+            width: 20px;
+            height: 20px;
+        }
+
+        .clear-btn-container {
+            display: none;
+            width: 200px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 22px;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .clear-btn-container:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .clear-btn-container:active {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0.98);
+        }
+
+        .clear-btn-icon {
+            width: 24px;
+            height: 24px;
+            background-color: #FFFFFF;
+            margin-right: 8px;
+            -webkit-mask-image: url('../../icons/Clear.svg');
+            mask-image: url('../../icons/Clear.svg');
+            -webkit-mask-size: contain;
+            -webkit-mask-repeat: no-repeat;
+            -webkit-mask-position: center;
+            mask-size: contain;
+            mask-repeat: no-repeat;
+            mask-position: center;
+        }
+
+        .clear-btn-text {
+            color: #FFFFFF;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        body.popup-active {
+            pointer-events: auto !important;
+        }
+        
+        #color-picker, #eraser-settings, #toolbar, .flipper, #status-bar {
+            z-index: 100;
+        }
+
+        #color-picker {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 30, 30, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            z-index: 100;
+            min-width: 320px;
+        }
+
+        #color-picker.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .color-section-title {
+            font-size: 13px;
+            color: #E0E0E0;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .color-row {
+            display: flex;
+            gap: 8px;
+            justify-content: space-between;
+        }
+
+        .color-option {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s, border-color 0.2s;
+            box-sizing: border-box;
+        }
+        
+        .color-option:hover {
+            transform: scale(1.15);
+            z-index: 1;
+        }
+
+        .color-option.active {
+            border-color: #FFFFFF;
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.3);
+        }
+
+
+
+        .pivot-container {
+            display: flex;
+            gap: 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 12px;
+            padding: 0 4px;
+        }
+
+        .pivot-item {
+            padding: 8px 4px 12px 4px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            position: relative;
+            transition: color 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            font-weight: 500;
+        }
+
+        .pivot-item:active {
+            transform: scale(0.96);
+        }
+
+        .pivot-item:hover {
+            color: #FFFFFF;
+        }
+
+        .pivot-item.active {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        @keyframes pivotUnderlineIn {
+            from {
+                opacity: 0;
+                transform: scaleX(0.5);
+            }
+            to {
+                opacity: 1;
+                transform: scaleX(1);
+            }
+        }
+
+        .pivot-item.active::after {
+            content: "";
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--accent-color);
+            border-radius: 1px;
+            animation: pivotUnderlineIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .pivot-content {
+            display: none;
+        }
+
+        .pivot-content.active {
+            display: block;
+            animation: pivotSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .color-info {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .color-info div {
+            white-space: nowrap;
+        }
+
+        @keyframes pivotSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateX(10px);
+                filter: blur(4px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+                filter: blur(0);
+            }
+        }
+    </style>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+</head>
+<body>
+    <div id="status-bar" class="interactive">
+        <span id="time-display">12:00</span>
+        <span id="status-msg">Ready</span>
+    </div>
+
+    <div id="eraser-settings" class="interactive">
+        <div class="slider-container" id="clear-slider">
+            <div class="slider-text">滑动清屏</div>
+            <div class="slider-track"></div>
+            <div class="slider-thumb" id="clear-thumb">
+                <div class="icon-mask icon-clear"></div>
+            </div>
+        </div>
+        <div class="clear-btn-container" id="clear-btn" onclick="bridge.clearScreen(); closePopup()">
+            <div class="clear-btn-icon"></div>
+            <div class="clear-btn-text">清空屏幕</div>
+        </div>
+    </div>
+
+    <div id="color-picker" class="interactive">
+        <div class="pivot-container">
+            <div class="pivot-item active" onclick="switchColorTab('theme', this)">主题颜色</div>
+            <div class="pivot-item" onclick="switchColorTab('standard', this)">标准颜色</div>
+        </div>
+
+        <div id="tab-theme" class="pivot-content active">
+            <div class="color-row">
+                <div class="color-option" style="background-color: #FFFFFF;" onclick="selectColor(255,255,255, this)" onmouseover="updateColorInfo('白色', '255 255 255', '#FFFFFF')"></div>
+                <div class="color-option" style="background-color: #000000;" onclick="selectColor(0,0,0, this)" onmouseover="updateColorInfo('黑色', '0 0 0', '#000000')"></div>
+                <div class="color-option" style="background-color: #E7E6E6;" onclick="selectColor(231,230,230, this)" onmouseover="updateColorInfo('浅灰色', '231 230 230', '#E7E6E6')"></div>
+                <div class="color-option" style="background-color: #44546A;" onclick="selectColor(68,84,106, this)" onmouseover="updateColorInfo('蓝灰色', '68 84 106', '#44546A')"></div>
+                <div class="color-option" style="background-color: #4472C4;" onclick="selectColor(68,114,196, this)" onmouseover="updateColorInfo('蓝色', '68 114 196', '#4472C4')"></div>
+                <div class="color-option" style="background-color: #ED7D31;" onclick="selectColor(237,125,49, this)" onmouseover="updateColorInfo('橙色', '237 125 49', '#ED7D31')"></div>
+                <div class="color-option" style="background-color: #A5A5A5;" onclick="selectColor(165,165,165, this)" onmouseover="updateColorInfo('灰色', '165 165 165', '#A5A5A5')"></div>
+                <div class="color-option" style="background-color: #FFC000;" onclick="selectColor(255,192,0, this)" onmouseover="updateColorInfo('金色', '255 192 0', '#FFC000')"></div>
+                <div class="color-option" style="background-color: #5B9BD5;" onclick="selectColor(91,155,213, this)" onmouseover="updateColorInfo('浅蓝色', '91 155 213', '#5B9BD5')"></div>
+                <div class="color-option" style="background-color: #70AD47;" onclick="selectColor(112,173,71, this)" onmouseover="updateColorInfo('绿色', '112 173 71', '#70AD47')"></div>
+            </div>
+        </div>
+
+        <div id="tab-standard" class="pivot-content">
+            <div class="color-row">
+                <div class="color-option" style="background-color: #C00000;" onclick="selectColor(192,0,0, this)" onmouseover="updateColorInfo('深红色', '192 0 0', '#C00000')"></div>
+                <div class="color-option" style="background-color: #FF0000;" onclick="selectColor(255,0,0, this)" onmouseover="updateColorInfo('红色', '255 0 0', '#FF0000')"></div>
+                <div class="color-option" style="background-color: #FFC000;" onclick="selectColor(255,192,0, this)" onmouseover="updateColorInfo('金色', '255 192 0', '#FFC000')"></div>
+                <div class="color-option" style="background-color: #FFFF00;" onclick="selectColor(255,255,0, this)" onmouseover="updateColorInfo('黄色', '255 255 0', '#FFFF00')"></div>
+                <div class="color-option" style="background-color: #92D050;" onclick="selectColor(146,208,80, this)" onmouseover="updateColorInfo('浅绿色', '146 208 80', '#92D050')"></div>
+                <div class="color-option" style="background-color: #00B050;" onclick="selectColor(0,176,80, this)" onmouseover="updateColorInfo('绿色', '0 176 80', '#00B050')"></div>
+                <div class="color-option" style="background-color: #00B0F0;" onclick="selectColor(0,176,240, this)" onmouseover="updateColorInfo('浅蓝色', '0 176 240', '#00B0F0')"></div>
+                <div class="color-option" style="background-color: #0070C0;" onclick="selectColor(0,112,192, this)" onmouseover="updateColorInfo('蓝色', '0 112 192', '#0070C0')"></div>
+                <div class="color-option" style="background-color: #002060;" onclick="selectColor(0,32,96, this)" onmouseover="updateColorInfo('深蓝色', '0 32 96', '#002060')"></div>
+                <div class="color-option" style="background-color: #7030A0;" onclick="selectColor(112,48,160, this)" onmouseover="updateColorInfo('紫色', '112 48 160', '#7030A0')"></div>
+            </div>
+        </div>
+        
+        <div class="color-info" id="color-info-box">
+            <div id="info-name">黑色</div>
+            <div id="info-rgb">RGB (0 0 0)</div>
+            <div id="info-hex">#000000</div>
+        </div>
+    </div>
+
+    <div id="center-area">
+        <div id="left-flipper" class="interactive flipper">
+            <div class="flipper-btn" onclick="bridge.prevPage()">
+                <div class="icon-mask icon-previous"></div>
+            </div>
+            <div class="page-info-container">
+                <div class="page-count-row">
+                    <span class="page-curr" id="curr-page-l">1</span>
+                    <span class="page-total-grp" id="total-page-l">/1</span>
+                </div>
+
+            </div>
+            <div class="flipper-btn" onclick="bridge.nextPage()">
+                <div class="icon-mask icon-next"></div>
+            </div>
+        </div>
+
+        <div id="right-flipper" class="interactive flipper">
+            <div class="flipper-btn" onclick="bridge.prevPage()">
+                <div class="icon-mask icon-previous"></div>
+            </div>
+            <div class="page-info-container">
+                <div class="page-count-row">
+                    <span class="page-curr" id="curr-page-r">1</span>
+                    <span class="page-total-grp" id="total-page-r">/1</span>
+                </div>
+
+            </div>
+            <div class="flipper-btn" onclick="bridge.nextPage()">
+                <div class="icon-mask icon-next"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toolbar-container">
+        <div id="toolbar" class="interactive">
+        </div>
+    </div>
+
+    <script>
+        let bridge = null;
+        let currentTool = 'select';
+        let currentConfig = null;
+
+        new QWebChannel(qt.webChannelTransport, function(channel) {
+            bridge = channel.objects.bridge;
+            bridge.requestInitState();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!document.body.classList.contains('popup-active')) return;
+            
+            const isClickInside = e.target.closest('#color-picker') || 
+                                  e.target.closest('#eraser-settings') ||
+                                  e.target.closest('.tool-btn');
+            
+            if (!isClickInside) {
+                closePopup();
+            }
+        });
+
+        function updateConfig(config) {
+            currentConfig = config;
+            const toolbar = document.getElementById('toolbar');
+            
+
+
+            const clearSlider = document.getElementById('clear-slider');
+            const clearBtn = document.getElementById('clear-btn');
+            if (config.clearMode === 'button') {
+                if(clearSlider) clearSlider.style.display = 'none';
+                if(clearBtn) clearBtn.style.display = 'flex';
+            } else {
+                if(clearSlider) clearSlider.style.display = 'flex';
+                if(clearBtn) clearBtn.style.display = 'none';
+            }
+
+            toolbar.innerHTML = '';
+            
+            const order = config.toolbarOrder || ["select", "pen", "eraser", "clear", "spotlight", "board_in_board", "timer", "apps"];
+            
+            order.forEach(item => {
+                if (item === 'clear') return;
+                if (item === 'spotlight' && !config.showSpotlight) return;
+                if (item === 'board_in_board' && !config.showBoardInBoard) return;
+                if (item === 'timer' && !config.showTimer) return;
+                
+                let btn = document.createElement('div');
+                btn.className = 'tool-btn';
+                btn.id = 'btn-' + item;
+                
+                let iconClass = '';
+                let clickHandler = '';
+
+                
+                switch(item) {
+                    case 'select':
+                        iconClass = 'icon-mouse';
+                        clickHandler = "selectTool('select')";
+                        if (currentTool === 'select') btn.classList.add('active');
+                        break;
+                    case 'pen':
+                        iconClass = 'icon-pen';
+                        clickHandler = "selectTool('pen')";
+                        if (currentTool === 'pen') btn.classList.add('active');
+                        break;
+                    case 'eraser':
+                        iconClass = 'icon-eraser';
+                        clickHandler = "selectTool('eraser')";
+                        if (currentTool === 'eraser') btn.classList.add('active');
+                        break;
+                    case 'spotlight':
+                        iconClass = 'icon-spotlight';
+                        clickHandler = "bridge.toggleSpotlight()";
+                        break;
+                    case 'board_in_board':
+                        iconClass = 'icon-board';
+                        clickHandler = "bridge.toggleBoard()";
+                        break;
+                    case 'timer':
+                        iconClass = 'icon-timer';
+                        clickHandler = "bridge.toggleTimer()";
+                        break;
+                    case 'apps':
+                        if (config.apps && config.apps.length > 0) {
+                            config.apps.forEach(app => {
+                                let appBtn = document.createElement('div');
+                                appBtn.className = 'tool-btn';
+                                appBtn.onclick = function() { bridge.launchApp(app.path); };
+                                
+                                let appIconDiv;
+                                if (app.icon) {
+                                    appIconDiv = document.createElement('img');
+                                    appIconDiv.src = app.icon;
+                                    appIconDiv.className = 'icon-img';
+                                } else {
+                                    appIconDiv = document.createElement('div');
+                                    appIconDiv.className = 'icon-mask icon-app';
+                                }
+                                appBtn.appendChild(appIconDiv);
+                                
+
+                                
+                                toolbar.appendChild(appBtn);
+                            });
+                        }
+                        return; 
+                    default:
+                        return;
+                }
+                
+                btn.setAttribute('onclick', clickHandler);
+                
+                let iconDiv = document.createElement('div');
+                iconDiv.className = 'icon-mask ' + iconClass;
+                btn.appendChild(iconDiv);
+                
+
+                
+                toolbar.appendChild(btn);
+            });
+
+            let separator = document.createElement('div');
+            separator.className = 'separator';
+            toolbar.appendChild(separator);
+            
+            let endBtn = document.createElement('div');
+            endBtn.className = 'tool-btn';
+            endBtn.id = 'btn-end';
+            endBtn.onclick = function() { bridge.endShow(); };
+            
+            let endIcon = document.createElement('div');
+            endIcon.className = 'icon-mask icon-minimize';
+            endBtn.appendChild(endIcon);
+            
+
+            
+            toolbar.appendChild(endBtn);
+        }
+
+        function closePopup() {
+            document.getElementById('color-picker').classList.remove('visible');
+            document.getElementById('eraser-settings').classList.remove('visible');
+            document.body.classList.remove('popup-active');
+            const ae = document.activeElement;
+            if (ae && typeof ae.blur === 'function') ae.blur();
+            if (typeof bridge !== 'undefined' && bridge && typeof bridge.releaseFocus === 'function') {
+                bridge.releaseFocus();
+            }
+            if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
+        }
+
+        function selectTool(tool) {
+            const picker = document.getElementById('color-picker');
+            const eraserSettings = document.getElementById('eraser-settings');
+            
+            if (tool === 'pen' && currentTool === 'pen') {
+                if (picker.classList.contains('visible')) {
+                    closePopup();
+                } else {
+                    closePopup();
+                    picker.classList.add('visible');
+                    document.body.classList.add('popup-active');
+                    if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
+                    if (typeof bridge !== 'undefined' && bridge && typeof bridge.resizeNudge === 'function') {
+                        bridge.resizeNudge();
+                    }
+                }
+                return;
+            } else if (tool === 'eraser' && currentTool === 'eraser') {
+                 if (eraserSettings.classList.contains('visible')) {
+                     closePopup();
+                 } else {
+                     closePopup();
+                     eraserSettings.classList.add('visible');
+                     document.body.classList.add('popup-active');
+                     if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
+                     if (typeof bridge !== 'undefined' && bridge && typeof bridge.resizeNudge === 'function') {
+                         bridge.resizeNudge();
+                     }
+                 }
+                 return;
+            } else {
+                closePopup();
+            }
+
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            let btn = document.getElementById('btn-' + tool);
+            if(btn) btn.classList.add('active');
+            
+            currentTool = tool;
+            
+            if (bridge) {
+                if (tool === 'select') bridge.setTool('arrow');
+                else if (tool === 'pen') bridge.setTool('pen');
+                else if (tool === 'eraser') bridge.setTool('eraser');
+            }
+        }
+        
+        function selectColor(r, g, b, el) {
+            document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
+            if(el) el.classList.add('active');
+            
+            if (bridge) {
+                bridge.setPenColor(r, g, b);
+            }
+            closePopup();
+        }
+
+
+        function switchColorTab(tab, el) {
+            document.querySelectorAll('.pivot-item').forEach(item => item.classList.remove('active'));
+            el.classList.add('active');
+            
+            document.querySelectorAll('.pivot-content').forEach(content => content.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
+
+        function updateColorInfo(name, rgb, hex) {
+            document.getElementById('info-name').innerText = name;
+            document.getElementById('info-rgb').innerText = 'RGB (' + rgb + ')';
+            document.getElementById('info-hex').innerText = hex;
+        }
+
+        function updatePageInfo(current, total) {
+            document.getElementById('curr-page-l').innerText = current;
+            document.getElementById('total-page-l').innerText = '/' + total;
+            document.getElementById('curr-page-r').innerText = current;
+            document.getElementById('total-page-r').innerText = '/' + total;
+        }
+
+        function setTheme(isDark, accentColor) {
+            if (isDark) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+            }
+            if (accentColor) {
+                document.documentElement.style.setProperty('--accent-color', accentColor);
+            }
+        }
+
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('time-display').innerText = timeString;
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        function initSlider() {
+            const thumb = document.getElementById('clear-thumb');
+            const container = document.getElementById('clear-slider');
+            const text = container.querySelector('.slider-text');
+            let isDragging = false;
+            let startX = 0;
+            let currentX = 0;
+            const maxDrag = 156;
+
+            function onStart(e) {
+                isDragging = true;
+                startX = (e.touches ? e.touches[0].clientX : e.clientX) - currentX;
+                thumb.style.transition = 'none';
+                text.style.opacity = 1;
+            }
+
+            function onMove(e) {
+                if (!isDragging) return;
+                let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                let newX = clientX - startX;
+                
+                if (newX < 0) newX = 0;
+                if (newX > maxDrag) newX = maxDrag;
+                
+                currentX = newX;
+                thumb.style.transform = `translateX(${currentX}px)`;
+                
+                text.style.opacity = 1 - (currentX / maxDrag);
+            }
+
+            function onEnd() {
+                if (!isDragging) return;
+                isDragging = false;
+                thumb.style.transition = 'transform 0.3s ease';
+                
+                if (currentX > maxDrag * 0.8) {
+                    currentX = maxDrag;
+                    thumb.style.transform = `translateX(${currentX}px)`;
+                    if (bridge) bridge.clearScreen();
+                    
+                    setTimeout(() => {
+                        currentX = 0;
+                        thumb.style.transform = `translateX(0px)`;
+                        text.style.opacity = 1;
+                        document.getElementById('eraser-settings').classList.remove('visible');
+                    }, 300);
+                } else {
+                    currentX = 0;
+                    thumb.style.transform = `translateX(0px)`;
+                    text.style.opacity = 1;
+                }
+            }
+
+            thumb.addEventListener('mousedown', onStart);
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onEnd);
+            
+            thumb.addEventListener('touchstart', onStart);
+            document.addEventListener('touchmove', onMove);
+            document.addEventListener('touchend', onEnd);
+        }
+        
+        window.addEventListener('load', initSlider);
+
+        const observer = new ResizeObserver(entries => {
+            sendMaskUpdate();
+        });
+
+        document.querySelectorAll('.interactive').forEach(el => observer.observe(el));
+
+        function sendMaskUpdate() {
+            if (!bridge) return;
+            requestAnimationFrame(() => {
+                const rects = [];
+                document.querySelectorAll('.interactive').forEach(el => {
+                    if (el.offsetParent === null) return;
+                    const r = el.getBoundingClientRect();
+                    rects.push({
+                        x: r.x,
+                        y: r.y,
+                        width: r.width,
+                        height: r.height
+                    });
+                });
+                bridge.updateMask(rects);
+            });
+        }
+    </script>
+</body>
+</html>

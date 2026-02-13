@@ -106,6 +106,19 @@ _TRANSLATIONS = {
         "dialog.save_strokes_yes": "保留",
         "dialog.save_strokes_no": "不保留",
     },
+    "yue-HK": {
+        "watermark.1": "開發中版本",
+        "watermark.2": "技術預覽版",
+        "watermark.3": "Release Preview",
+        "watermark.4": "重新評估版本",
+        "overlay.dev_watermark": "{type}\n品質唔包，出事唔好屌我 ({version})",
+        "toolbar.theme_colors": "主題色",
+        "toolbar.standard_colors": "標準色",
+        "dialog.save_strokes_title": "提你一提",
+        "dialog.save_strokes_text": "要唔要留低呢堆筆跡？",
+        "dialog.save_strokes_yes": "留低",
+        "dialog.save_strokes_no": "唔留",
+    },
     "en-US": {
         "watermark.1": "Dev Build",
         "watermark.2": "Tech Preview",
@@ -136,10 +149,11 @@ _TRANSLATIONS = {
 
 def _t(key: str) -> str:
     lang = _load_language()
-    table = _TRANSLATIONS.get(lang) or _TRANSLATIONS["zh-CN"]
+    fallback_lang = "zh-TW" if lang == "yue-HK" else "zh-CN"
+    table = _TRANSLATIONS.get(lang) or _TRANSLATIONS.get(fallback_lang) or _TRANSLATIONS["zh-CN"]
     if key in table:
         return table[key]
-    default = _TRANSLATIONS["zh-CN"]
+    default = _TRANSLATIONS.get(fallback_lang) or _TRANSLATIONS["zh-CN"]
     return default.get(key, key)
 
 class ColorEncoder(json.JSONEncoder):

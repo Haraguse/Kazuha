@@ -54,8 +54,10 @@ class TimerPlugin(AssistantPlugin):
         
         screen = QApplication.primaryScreen()
         screen_geo = screen.geometry() if screen else QWidget().screen().geometry()
-        width = str(int(min(max(600, screen_geo.width() * 0.35), screen_geo.width() * 0.5)))
-        height = str(int(min(max(500, screen_geo.height() * 0.45), screen_geo.height() * 0.6)))
+        width_val = int(min(max(600, screen_geo.width() * 0.35), screen_geo.width() * 0.5))
+        height_val = int(min(max(500, screen_geo.height() * 0.45), screen_geo.height() * 0.6))
+        width = str(int(min(width_val + 350, screen_geo.width())))
+        height = str(int(min(height_val + 150, screen_geo.height())))
 
         env = os.environ.copy()
         env["SETTINGS_PATH"] = SETTINGS_PATH

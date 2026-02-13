@@ -27,6 +27,17 @@ _TRANSLATIONS = {
         "timer.notify.title": "時間到",
         "timer.notify.body": "倒數計時已結束",
     },
+    "yue-HK": {
+        "tray.tooltip": "Kazuha 幫手",
+        "tray.title": "Kazuha",
+        "tray.settings": "設定",
+        "tray.board": "黑板仔",
+        "tray.timer": "計時器",
+        "tray.restart": "重啟程式",
+        "tray.exit": "走人",
+        "timer.notify.title": "時間到喇",
+        "timer.notify.body": "倒數完咗，收工啦",
+    },
     "ja-JP": {
         "tray.tooltip": "Kazuha アシスタント",
         "tray.title": "Kazuha",
@@ -77,8 +88,9 @@ def get_language() -> str:
 
 def t(key: str) -> str:
     lang = get_language()
-    table = _TRANSLATIONS.get(lang) or _TRANSLATIONS["zh-CN"]
+    fallback_lang = "zh-TW" if lang == "yue-HK" else "zh-CN"
+    table = _TRANSLATIONS.get(lang) or _TRANSLATIONS.get(fallback_lang) or _TRANSLATIONS["zh-CN"]
     if key in table:
         return table[key]
-    default = _TRANSLATIONS["zh-CN"]
+    default = _TRANSLATIONS.get(fallback_lang) or _TRANSLATIONS["zh-CN"]
     return default.get(key, key)

@@ -195,6 +195,13 @@
       -webkit-tap-highlight-color: transparent;
     }
 
+    button,
+    input,
+    select,
+    textarea {
+      font-family: inherit;
+    }
+
     html, body {
       background: var(--bg-app);
       margin: 0;
@@ -348,25 +355,47 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
-      transform-origin: center bottom;
       opacity: 0;
-      transform: translateX(100px) rotateY(-20deg) scale(0.9);
-      backface-visibility: hidden;
+      transform: translateX(30px) scaleX(1.05);
+      filter: blur(8px);
     }
 
     .view-section.active {
       display: flex;
-      opacity: 1;
-      transform: translateX(0) rotateY(0) scale(1);
+      animation: pivotSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       z-index: 2;
     }
 
     .view-section.exit-left {
       display: flex;
-      opacity: 0;
-      transform: translateX(-100px) rotateY(20deg) scale(0.9);
+      animation: pivotSlideOut 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       pointer-events: none;
+    }
+
+    @keyframes pivotSlideIn {
+      0% {
+        opacity: 0;
+        transform: translateX(30px) scaleX(1.05);
+        filter: blur(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateX(0) scaleX(1);
+        filter: blur(0);
+      }
+    }
+
+    @keyframes pivotSlideOut {
+      0% {
+        opacity: 1;
+        transform: translateX(0) scaleX(1);
+        filter: blur(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translateX(-30px) scaleX(1.05);
+        filter: blur(8px);
+      }
     }
 
     /* --- 秒表 --- */
@@ -414,6 +443,148 @@
       pointer-events: auto;
     }
 
+    .countdown-fullscreen .sidebar,
+    .countdown-fullscreen .header-inline,
+    .countdown-fullscreen .control-layer,
+    .countdown-fullscreen .wheel-picker-container,
+    .countdown-fullscreen .bell-container,
+    .countdown-fullscreen .date-display {
+      display: none;
+    }
+
+    .countdown-fullscreen .container,
+    .countdown-fullscreen .content-area,
+    .countdown-fullscreen .main-container,
+    .countdown-fullscreen .view-section {
+      background: #000;
+    }
+
+    .countdown-fullscreen .main-container {
+      border-radius: 0;
+      border: none;
+      box-shadow: none;
+    }
+
+    .countdown-fullscreen .countdown-container {
+      opacity: 1;
+      pointer-events: auto;
+      background: #000;
+    }
+
+    .countdown-fullscreen .countdown-container .progress-ring svg,
+    .countdown-fullscreen .countdown-container .total-time,
+    .countdown-fullscreen .countdown-actions {
+      display: none;
+    }
+
+    .countdown-fullscreen .countdown-container .time-left {
+      color: #fff;
+      font-size: 15vw;
+      font-weight: 600;
+      letter-spacing: 2px;
+      white-space: nowrap;
+    }
+
+    .countdown-fullscreen .countdown-container .time-left.urgent {
+      color: #ff3b30;
+    }
+
+    .countdown-actions {
+      margin-top: 16px;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .fullscreen-toggle,
+    .fullscreen-exit {
+      height: 36px;
+      padding: 0 14px;
+      border-radius: 18px;
+      border: 1px solid var(--divider);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .fullscreen-toggle:active,
+    .fullscreen-exit:active {
+      opacity: 0.7;
+    }
+
+    .fullscreen-icon {
+      width: 14px;
+      height: 14px;
+      display: inline-block;
+      background-color: currentColor;
+      -webkit-mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      mask-size: contain;
+      mask-repeat: no-repeat;
+      mask-position: center;
+      -webkit-mask-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 3h7v2H5v5H3V3zm11 0h7v7h-2V5h-5V3zM3 14h2v5h5v2H3v-7zm16 0h2v7h-7v-2h5v-5z"/></svg>');
+      mask-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 3h7v2H5v5H3V3zm11 0h7v7h-2V5h-5V3zM3 14h2v5h5v2H3v-7zm16 0h2v7h-7v-2h5v-5z"/></svg>');
+    }
+
+    .countdown-fullscreen .fullscreen-exit {
+      display: inline-flex;
+    }
+
+    .fullscreen-exit {
+      position: absolute;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      z-index: 20;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn {
+      min-width: 88px;
+      height: 36px;
+      border-radius: 18px;
+      border: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      outline: none;
+      gap: 6px;
+    }
+
+    .btn:active {
+      transform: scale(0.96);
+    }
+
+    .btn:disabled, .btn.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .btn-cancel {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--divider);
+    }
+
+    .btn-cancel:hover {
+      background: var(--item-hover);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+
     .progress-ring {
       position: relative;
       width: 300px;
@@ -451,6 +622,8 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
+      width: 100%;
     }
 
     .time-left {
@@ -459,6 +632,10 @@
       font-variant-numeric: tabular-nums;
       color: var(--text-primary);
       line-height: 1;
+    }
+
+    .time-left.urgent {
+      color: #ff3b30;
     }
 
     .total-time {
@@ -482,6 +659,18 @@
       font-weight: 700;
       color: var(--text-primary);
       text-align: center;
+    }
+
+    .time-up-mode .sidebar {
+      display: none;
+    }
+
+    .time-up-mode .timer-setup-row {
+      display: none;
+    }
+
+    .time-up-mode .container {
+      gap: 0;
     }
 
     .icon-return {
@@ -515,6 +704,75 @@
           transparent 0%, black 30%, black 70%, transparent 100%);
       mask-image: linear-gradient(to bottom,
           transparent 0%, black 30%, black 70%, transparent 100%);
+    }
+
+    .timer-setup-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .timer-setup-row .wheel-picker-container {
+      flex: 1 1 0;
+    }
+
+    .timer-setup-divider {
+      width: 1px;
+      height: 200px;
+      background: var(--divider);
+      flex-shrink: 0;
+    }
+
+    .recent-durations {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .recent-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .recent-title {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .recent-list {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .recent-item {
+      width: 100%;
+      padding: 8px 6px;
+      border-radius: 10px;
+      border: 1px solid var(--divider);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      font-size: 14px;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .recent-item:hover {
+      background: var(--item-hover);
+    }
+
+    .recent-item:active {
+      transform: scale(0.98);
     }
 
     .wheel-col-wrapper {
@@ -819,19 +1077,73 @@
       white-space: pre-line;
       z-index: 9999;
     }
+    /* --- Digit Animation CSS --- */
+    .digit-wrapper {
+      display: inline-grid;
+      place-items: center;
+      position: relative;
+      width: 0.6em;
+      height: 1.2em;
+      overflow: visible;
+      vertical-align: bottom;
+    }
+
+    .digit-wrapper.colon {
+      width: auto;
+    }
+
+    .digit-wrapper > span {
+      grid-area: 1 / 1;
+      backface-visibility: hidden;
+      will-change: transform, opacity, filter;
+    }
+
+    .digit-old {
+      animation: digitExit 0.03s ease-in forwards;
+    }
+
+    .digit-new {
+      animation: digitEnter 0.3s cubic-bezier(0.2, 1.25, 0.4, 1) forwards;
+    }
+
+    @keyframes digitExit {
+      0% {
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-100%) scale(0.7);
+        filter: blur(10px);
+        opacity: 0;
+      }
+    }
+
+    @keyframes digitEnter {
+      0% {
+        transform: translateY(100%) scale(0.7);
+        filter: blur(10px);
+        opacity: 0;
+      }
+      100% {
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+        opacity: 1;
+      }
+    }
   </style>
 </head>
 
 <body>
   <div class="container" ondblclick="handleDblClick(event)">
     <div class="sidebar">
-      <div class="nav-item active" data-target="view-stopwatch" data-title-key="title.stopwatch">
-        <div class="nav-icon icon-stopwatch"></div>
-        <span data-i18n="nav.stopwatch">秒表</span>
-      </div>
       <div class="nav-item" data-target="view-timer" data-title-key="title.timer">
         <div class="nav-icon icon-timer"></div>
         <span data-i18n="nav.timer">计时</span>
+      </div>
+      <div class="nav-item active" data-target="view-stopwatch" data-title-key="title.stopwatch">
+        <div class="nav-icon icon-stopwatch"></div>
+        <span data-i18n="nav.stopwatch">秒表</span>
       </div>
       <div class="nav-item" data-target="view-clock" data-title-key="title.clock">
         <div class="nav-icon icon-clock"></div>
@@ -850,20 +1162,29 @@
         </section>
 
         <section id="view-timer" class="view-section">
-          <div class="wheel-picker-container">
-            <div class="wheel-col-wrapper">
-              <div class="wheel-col" id="wheel-hour"></div>
-              <div class="wheel-label" data-i18n="timer.hour">时</div>
+          <div class="timer-setup-row">
+            <div class="wheel-picker-container">
+              <div class="wheel-col-wrapper">
+                <div class="wheel-col" id="wheel-hour"></div>
+                <div class="wheel-label" data-i18n="timer.hour">时</div>
+              </div>
+              <div class="wheel-sep">:</div>
+              <div class="wheel-col-wrapper">
+                <div class="wheel-col" id="wheel-minute"></div>
+                <div class="wheel-label" data-i18n="timer.minute">分</div>
+              </div>
+              <div class="wheel-sep">:</div>
+              <div class="wheel-col-wrapper">
+                <div class="wheel-col" id="wheel-second"></div>
+                <div class="wheel-label" data-i18n="timer.second">秒</div>
+              </div>
             </div>
-            <div class="wheel-sep">:</div>
-            <div class="wheel-col-wrapper">
-              <div class="wheel-col" id="wheel-minute"></div>
-              <div class="wheel-label" data-i18n="timer.minute">分</div>
-            </div>
-            <div class="wheel-sep">:</div>
-            <div class="wheel-col-wrapper">
-              <div class="wheel-col" id="wheel-second"></div>
-              <div class="wheel-label" data-i18n="timer.second">秒</div>
+            <div class="timer-setup-divider"></div>
+            <div class="recent-durations">
+              <div class="recent-header">
+                <div class="recent-title" data-i18n="timer.presets">常用时间</div>
+              </div>
+              <div class="recent-list" id="recentDurationList"></div>
             </div>
           </div>
 
@@ -874,10 +1195,19 @@
                 <circle class="ring-val" id="progressCircle" cx="150" cy="150" r="140"></circle>
               </svg>
               <div class="countdown-text">
-                <div class="time-left" id="timeLeftDisplay">00:00:00</div>
+                <div class="time-left" id="timeLeftDisplay">00:00</div>
                 <div class="total-time" id="totalTimeDisplay"></div>
+                <div class="countdown-actions">
+                  <button class="fullscreen-toggle" id="fullscreenToggle" onclick="toggleCountdownFullscreen()">
+                    <span class="fullscreen-icon"></span>
+                    <span data-i18n="timer.fullscreen">全屏</span>
+                  </button>
+                </div>
               </div>
             </div>
+            <button class="fullscreen-exit" id="fullscreenExit" onclick="setCountdownFullscreen(false)">
+              <span data-i18n="timer.exitFullscreen">退出全屏</span>
+            </button>
           </div>
 
           <div class="bell-container" id="bellUI">
@@ -932,6 +1262,9 @@
         "timer.minute": "分",
         "timer.second": "秒",
         "timer.totalSeconds": "共{n}秒",
+        "timer.presets": "常用时间",
+        "timer.fullscreen": "全屏",
+        "timer.exitFullscreen": "退出全屏",
         "bell.timeUp": "时间到",
         "dialog.exit.title": "确认退出",
         "dialog.exit.desc": "计时器正在运行，退出将清空当前计时进度。确定要退出吗？",
@@ -952,12 +1285,38 @@
         "timer.minute": "分",
         "timer.second": "秒",
         "timer.totalSeconds": "共{n}秒",
+        "timer.presets": "常用時間",
+        "timer.fullscreen": "全螢幕",
+        "timer.exitFullscreen": "退出全螢幕",
         "bell.timeUp": "時間到",
         "dialog.exit.title": "確認退出",
         "dialog.exit.desc": "計時器正在運行，退出將清空當前計時進度。確定要退出嗎？",
         "dialog.cancel": "取消",
         "dialog.confirm": "確定",
         "general.devWatermark": "開發中版本/技術預覽版本\n不保證最終品質 （{version}）"
+      },
+      "yue-HK": {
+        "app.timer": "計時器",
+        "app.name": "Kazuha",
+        "nav.stopwatch": "秒錶",
+        "nav.timer": "計時",
+        "nav.clock": "時鐘",
+        "title.stopwatch": "秒錶",
+        "title.timer": "計時",
+        "title.clock": "而家時間",
+        "timer.hour": "時",
+        "timer.minute": "分",
+        "timer.second": "秒",
+        "timer.totalSeconds": "總共 {n} 秒",
+        "timer.presets": "常用時間",
+        "timer.fullscreen": "全螢幕",
+        "timer.exitFullscreen": "退出全螢幕",
+        "bell.timeUp": "時間到喇",
+        "dialog.exit.title": "退出確認",
+        "dialog.exit.desc": "計時緊，走人會清晒而家嘅進度。你係咪肯定？",
+        "dialog.cancel": "算啦",
+        "dialog.confirm": "確定",
+        "general.devWatermark": "開發中版本/技術預覽版本\n品質唔包 ({version})"
       },
       "ja-JP": {
         "app.timer": "タイマー",
@@ -972,6 +1331,9 @@
         "timer.minute": "分",
         "timer.second": "秒",
         "timer.totalSeconds": "合計 {n} 秒",
+        "timer.presets": "よく使う時間",
+        "timer.fullscreen": "全画面",
+        "timer.exitFullscreen": "全画面を終了",
         "bell.timeUp": "時間になりました",
         "dialog.exit.title": "終了の確認",
         "dialog.exit.desc": "タイマーが実行中です。終了すると現在の計時はリセットされます。終了してもよろしいですか？",
@@ -992,6 +1354,9 @@
         "timer.minute": "M",
         "timer.second": "S",
         "timer.totalSeconds": "Total {n} seconds",
+        "timer.presets": "Common Times",
+        "timer.fullscreen": "Fullscreen",
+        "timer.exitFullscreen": "Exit Fullscreen",
         "bell.timeUp": "Time is up",
         "dialog.exit.title": "Confirm exit",
         "dialog.exit.desc": "Timer is running. Exiting will clear the current progress. Are you sure?",
@@ -1012,6 +1377,9 @@
         "timer.minute": "د",
         "timer.second": "چ",
         "timer.totalSeconds": "جەمئى {n} سېكۇنت",
+        "timer.presets": "كۆپ ئىشلىتىلىدىغان ۋاقىت",
+        "timer.fullscreen": "پۈتۈن ئېكران",
+        "timer.exitFullscreen": "پۈتۈن ئېكراندىن چىقىش",
         "bell.timeUp": "ۋاقىت توشتى",
         "dialog.exit.title": "چىقىشنى جەزملەشتۈرۈش",
         "dialog.exit.desc": "ۋاقىت بەلگىلەش ئىشلەۋاتىدۇ. چىقسىڭىز نۆۋەتتىكى جەريان تازىلىنىدۇ. داۋاملىشىمىز؟",
@@ -1025,9 +1393,10 @@
     let currentLanguage = (settings.General && settings.General.Language) || "zh-CN";
 
     function getText(key) {
-      const langPack = I18N[currentLanguage] || I18N["zh-CN"];
+      const fallbackLang = currentLanguage === "yue-HK" ? "zh-TW" : "zh-CN";
+      const langPack = I18N[currentLanguage] || I18N[fallbackLang] || I18N["zh-CN"];
       if (langPack && key in langPack) return langPack[key];
-      const fallback = I18N["zh-CN"];
+      const fallback = I18N[fallbackLang] || I18N["zh-CN"];
       if (fallback && key in fallback) return fallback[key];
       return "";
     }
@@ -1036,6 +1405,9 @@
       const isSpecial = lang === "zh-TW" || lang === "ja-JP";
     if (lang === "zh-TW") {
       return "\"Microsoft JhengHei\", \"MiSans Latin\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
+    }
+    if (lang === "yue-HK") {
+      return "\"Meiryo UI\", \"Meiryo\", \"Microsoft JhengHei\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
     }
     if (lang === "ja-JP") {
       return "\"Yu Gothic UI\", \"Meiryo\", \"MiSans Latin\", \"HarmonyOS Sans JP\", \"SF Pro\", system-ui, -apple-system, sans-serif";
@@ -1112,6 +1484,9 @@
         const key = activeNav.dataset.titleKey || "title.stopwatch";
         const text = getText(key);
         if (text) pageTitle.textContent = text;
+      }
+      if (typeof renderPresetDurations === "function") {
+        renderPresetDurations();
       }
       updateWindowTitleFromActive();
     }
@@ -1219,9 +1594,11 @@
         const targetId = item.dataset.target;
         if (targetId === 'view-stopwatch') {
           currentMode = 'stopwatch';
+          setTimeUpMode(false);
         } else if (targetId === 'view-clock') {
           currentMode = 'clock';
           startClock();
+          setTimeUpMode(false);
         } else {
           currentMode = 'timer';
         }
@@ -1346,6 +1723,47 @@
       mContainer.scrollTo({ top: 400, behavior: 'instant' });
     }, 100);
 
+    const recentListEl = document.getElementById('recentDurationList');
+    const PRESET_SECONDS = [60, 900, 1800, 2400, 2700, 3600, 5400, 7200];
+
+    function setWheelValue(id, val) {
+      const container = document.getElementById(id);
+      if (!container) return;
+      const itemHeight = 80;
+      const targetScroll = val * itemHeight;
+      container.scrollTo({ top: targetScroll, behavior: 'smooth' });
+    }
+
+    function formatPresetLabel(sec) {
+      const h = Math.floor(sec / 3600).toString().padStart(2, '0');
+      const m = Math.floor((sec % 3600) / 60).toString().padStart(2, '0');
+      const s = Math.floor(sec % 60).toString().padStart(2, '0');
+      return `${h}:${m}:${s}`;
+    }
+
+    function applyPresetDuration(totalSec) {
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      setWheelValue('wheel-hour', h);
+      setWheelValue('wheel-minute', m);
+      setWheelValue('wheel-second', s);
+    }
+
+    function renderPresetDurations() {
+      if (!recentListEl) return;
+      recentListEl.innerHTML = '';
+      PRESET_SECONDS.forEach(sec => {
+        const btn = document.createElement('button');
+        btn.className = 'recent-item';
+        btn.textContent = formatPresetLabel(sec);
+        btn.addEventListener('click', () => applyPresetDuration(sec));
+        recentListEl.appendChild(btn);
+      });
+    }
+
+    renderPresetDurations();
+
     // --- Countdown Logic ---
     let tmTotal = 0, tmRemaining = 0, tmInterval = null;
     let tmRunning = false;
@@ -1371,6 +1789,7 @@
       if (window.pywebview && window.pywebview.api && window.pywebview.api.get_timer_state) {
         window.pywebview.api.get_timer_state().then(state => {
           if (state && state.is_running) {
+            setTimeUpMode(false);
             tmRemaining = state.remaining * 1000;
             tmTotal = state.remaining * 1000; // Simplified, ideally we'd pass total too
             tmState = 'running';
@@ -1395,6 +1814,7 @@
             updateButtonState();
           } else if (state && state.remaining > 0) {
             // Paused state
+            setTimeUpMode(false);
             tmRemaining = state.remaining * 1000;
             tmTotal = state.remaining * 1000;
             tmState = 'paused';
@@ -1425,6 +1845,7 @@
     const countdownUI = document.getElementById('countdownUI');
     const bellUI = document.getElementById('bellUI');
     const pickerUI = document.querySelector('.wheel-picker-container');
+    let countdownFullscreen = false;
 
     const circle = document.getElementById('progressCircle');
     const radius = circle.r.baseVal.value;
@@ -1437,6 +1858,45 @@
       circle.style.strokeDashoffset = offset;
     }
 
+    function setTimeUpMode(on) {
+      document.body.classList.toggle('time-up-mode', !!on);
+    }
+
+    function setCountdownFullscreen(on) {
+      countdownFullscreen = on;
+      document.body.classList.toggle('countdown-fullscreen', on);
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.set_fullscreen) {
+        window.pywebview.api.set_fullscreen(!!on);
+      }
+      if (on) {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      } else {
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+    }
+
+    function toggleCountdownFullscreen() {
+      const next = !document.body.classList.contains('countdown-fullscreen');
+      setCountdownFullscreen(next);
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement && countdownFullscreen) {
+        countdownFullscreen = false;
+        document.body.classList.remove('countdown-fullscreen');
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && document.body.classList.contains('countdown-fullscreen')) {
+        setCountdownFullscreen(false);
+      }
+    });
+
     function getWheelValue(id) {
       const container = document.getElementById(id);
       const itemHeight = 80;
@@ -1445,10 +1905,9 @@
     }
 
     function formatTime(sec) {
-      const h = Math.floor(sec / 3600).toString().padStart(2, '0');
-      const m = Math.floor((sec % 3600) / 60).toString().padStart(2, '0');
+      const mTotal = Math.floor(sec / 60).toString().padStart(2, '0');
       const s = (sec % 60).toString().padStart(2, '0');
-      return `${h}:${m}:${s}`;
+      return `${mTotal}:${s}`;
     }
 
     window.addEventListener('pywebviewready', () => {
@@ -1488,6 +1947,7 @@
       tmRemaining = tmTotal;
 
       tmState = 'running';
+      setTimeUpMode(false);
       pickerUI.style.opacity = '0';
       pickerUI.style.pointerEvents = 'none';
 
@@ -1508,11 +1968,77 @@
       updateButtonState();
     }
 
+    function formatFullTime(sec) {
+      const h = Math.floor(sec / 3600).toString().padStart(2, '0');
+      const m = Math.floor((sec % 3600) / 60).toString().padStart(2, '0');
+      const s = (sec % 60).toString().padStart(2, '0');
+      return `${h}:${m}:${s}`;
+    }
+
     function updateCountdownUI() {
       const sec = Math.ceil(tmRemaining / 1000);
-      document.getElementById('timeLeftDisplay').textContent = formatTime(sec);
+      const isFullscreen = document.body.classList.contains('countdown-fullscreen');
+      const text = isFullscreen ? formatFullTime(sec) : formatTime(sec);
+      updateTimerDisplay(text);
+      
+      const timeEl = document.getElementById('timeLeftDisplay');
+      const urgent = isFullscreen && sec <= 5;
+      timeEl.classList.toggle('urgent', urgent);
+      
       const percent = (tmRemaining / tmTotal) * 100;
       setProgress(percent);
+    }
+
+    function updateTimerDisplay(text) {
+      const display = document.getElementById('timeLeftDisplay');
+      const chars = text.split('');
+      const wrappers = display.querySelectorAll('.digit-wrapper');
+      
+      // If length mismatch, rebuild (rare, only when digits count change)
+      if (wrappers.length !== chars.length) {
+         display.innerHTML = '';
+         chars.forEach(char => {
+           const wrap = document.createElement('div');
+           wrap.className = 'digit-wrapper';
+           if (char === ':' || isNaN(parseInt(char))) {
+             wrap.classList.add('colon');
+             wrap.textContent = char;
+           } else {
+             const span = document.createElement('span');
+             span.textContent = char;
+             wrap.appendChild(span);
+           }
+           display.appendChild(wrap);
+         });
+         return;
+      }
+      
+      // Update existing
+      wrappers.forEach((wrap, i) => {
+         const char = chars[i];
+         if (wrap.classList.contains('colon')) return; // Skip colons
+         
+         const currentSpan = wrap.lastElementChild;
+         // Check if value changed and we are not already animating to this value
+         if (currentSpan.textContent !== char && !currentSpan.classList.contains('digit-new')) {
+            const newSpan = document.createElement('span');
+            newSpan.textContent = char;
+            newSpan.className = 'digit-new';
+            
+            // Current becomes old
+            currentSpan.className = 'digit-old';
+            
+            wrap.appendChild(newSpan);
+            
+            // Cleanup
+            setTimeout(() => {
+              if (currentSpan.parentNode === wrap) {
+                wrap.removeChild(currentSpan);
+              }
+              newSpan.className = ''; // 回归到他妈的static
+            }, 350); 
+         }
+      });
     }
 
     function pauseCountdown() {
@@ -1551,6 +2077,7 @@
       tmRemaining = 0;
       updateCountdownUI();
       tmState = 'finished';
+      setCountdownFullscreen(false);
 
       // Call Python API
       if (window.pywebview && window.pywebview.api) {
@@ -1563,6 +2090,7 @@
 
       countdownUI.classList.remove('active');
       bellUI.style.display = 'flex';
+      setTimeUpMode(true);
 
       const audio = new Audio('file:///C:/Windows/Media/Windows%20Notify%20Email.wav');
       audio.play().catch(e => console.error('Audio play error:', e));
@@ -1573,6 +2101,8 @@
     function resetCountdown() {
       clearInterval(tmInterval);
       tmState = 'picker';
+      setCountdownFullscreen(false);
+      setTimeUpMode(false);
 
       // Call Python API
       if (window.pywebview && window.pywebview.api) {

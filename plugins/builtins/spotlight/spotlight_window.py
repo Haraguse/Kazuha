@@ -152,6 +152,7 @@ class SpotlightControlPanel(QFrame):
         opt.initFrom(self)
         p = QPainter(self)
         self.style().drawPrimitive(QStyle.PE_Widget, opt, p, self)
+        p.end()
         super().paintEvent(event)
 
     def _on_magnify_click(self):
@@ -398,6 +399,7 @@ class SpotlightWindow(QWidget):
             pen = QPen(QColor(50, 117, 245), 2) # Kazuha blue
             painter.setPen(pen)
             painter.drawRoundedRect(self.selection_rect, 4, 4)
+        painter.end()
 
     def showEvent(self, event):
         super().showEvent(event)

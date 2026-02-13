@@ -785,7 +785,7 @@
       cursor: pointer;
       width: 100%;
       height: 60px;
-      border-radius: 12px;
+      border-radius: 999px;
       transition: all 0.2s;
       white-space: nowrap;
       opacity: 0;
@@ -1700,13 +1700,15 @@
     }
 
     .toolbar-preview-btn-capsule {
-      min-width: 68px;
-      height: 40px;
-      border-radius: 20px;
-      padding: 0 10px;
       flex-direction: row;
-      gap: 6px;
+      min-width: 50px;
+      height: auto;
+      border-radius: 999px;
+      padding: 6px 10px;
+      gap: 2px;
     }
+    
+
 
     .toolbar-preview-btn-icon {
       width: 20px;
@@ -1716,13 +1718,6 @@
       align-items: center;
       justify-content: center;
       position: relative;
-    }
-
-    .toolbar-preview-btn-capsule .toolbar-preview-btn-icon {
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: transparent;
     }
 
     .toolbar-preview-btn-icon::before {
@@ -1743,10 +1738,7 @@
       content: none;
     }
 
-    .toolbar-preview-btn-capsule .toolbar-preview-btn-icon::before {
-      width: 10px;
-      height: 10px;
-    }
+
 
     .toolbar-preview-btn-icon-img {
       width: 100%;
@@ -1859,16 +1851,7 @@
       font-weight: 500;
     }
 
-    .toolbar-preview-btn-label {
-      font-size: 11px;
-      font-weight: 500;
-      color: rgba(255, 255, 255, 0.9);
-      font-family: var(--font-stack);
-      max-width: 70px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+
 
     .toolbar-preview-separator {
       width: 1px;
@@ -2457,14 +2440,14 @@
       position: absolute;
       top: 4px;
       left: 4px;
-      height: calc(100% - 8px);
+      height: var(--select-slider-height, calc(100% - 8px));
       width: var(--select-slider-width, 0px);
-      transform: translateX(var(--select-slider-x, 0px));
+      transform: translate(var(--select-slider-x, 0px), var(--select-slider-y, 0px));
       background: var(--bg-surface);
       border-radius: 8px;
       box-shadow: 0 2px 8px var(--shadow-color);
       opacity: var(--select-slider-opacity, 0);
-      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), width 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), width 0.28s cubic-bezier(0.16, 1, 0.3, 1), height 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
       pointer-events: none;
     }
 
@@ -2492,6 +2475,43 @@
     .theme-select:not(.has-slider) .theme-option.active {
       background: var(--bg-surface);
       box-shadow: 0 2px 8px var(--shadow-color);
+    }
+
+    .restart-island {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        padding: 10px 16px;
+        border-radius: 20px;
+        box-shadow: 0 4px 16px var(--shadow-color);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 9999;
+        transform: translateY(-150%);
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+        cursor: pointer;
+        border: 1px solid var(--border-color);
+        font-size: 13px;
+        font-weight: 500;
+        pointer-events: none;
+        opacity: 0;
+    }
+    .restart-island.visible {
+        transform: translateY(0);
+        pointer-events: auto;
+        opacity: 1;
+    }
+    .restart-island:hover {
+        background: var(--bg-surface-hover);
+        transform: translateY(2px);
+    }
+    .restart-island svg {
+        width: 16px;
+        height: 16px;
+        fill: var(--accent-blue);
     }
 
     .language-select {
@@ -3338,6 +3358,8 @@
                 data-i18n="language.zh-CN">简体中文</div>
               <div class="theme-option language-option" data-lang="zh-TW" onclick="setLanguage('zh-TW')"
                 data-i18n="language.zh-TW">繁體中文</div>
+              <div class="theme-option language-option" data-lang="yue-HK" onclick="setLanguage('yue-HK')"
+                data-i18n="language.yue-HK">粵語（繁體）</div>
               <div class="theme-option language-option" data-lang="ja-JP" onclick="setLanguage('ja-JP')"
                 data-i18n="language.ja-JP">日本語</div>
               <div class="theme-option language-option" data-lang="en-US" onclick="setLanguage('en-US')"
@@ -3386,6 +3408,8 @@
             </div>
           </div>
         </div>
+
+
 
         <div class="group-title" data-i18n="group.security">安全</div>
         <div class="settings-group">
@@ -3623,6 +3647,21 @@
               </select>
             </div>
           </div>
+          <div class="settings-item">
+            <div class="item-info">
+              <span class="item-label" data-i18n="overlay.clearMode.label">清屏模式</span>
+              <span class="item-desc">
+                <span data-i18n="overlay.clearMode.desc">选择清屏方式</span>
+                <span style="color: #F5A623; display: block; margin-top: 4px; font-size: 12px;" data-i18n="overlay.clearMode.warning">对此项的更改将在重新启动后生效</span>
+              </span>
+            </div>
+            <div class="item-state">
+              <select class="styled-select" id="sel-Overlay-ClearMode" onchange="setClearMode(this.value)">
+                <option value="slide" data-i18n="overlay.clearMode.slide">滑动清屏</option>
+                <option value="button" data-i18n="overlay.clearMode.button">独立按钮清屏</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         <div class="group-title" data-i18n="group.overlayUi">顶层窗口</div>
@@ -3715,6 +3754,18 @@
             </div>
             <div class="switch" id="sw-Toolbar-ShowClear"></div>
           </div>
+          <div class="settings-item">
+            <div class="item-info">
+              <span class="item-label" data-i18n="interaction.clearMode.label">清屏模式</span>
+              <span class="item-desc" data-i18n="interaction.clearMode.desc">选择清屏按钮的交互方式</span>
+            </div>
+            <div class="item-state">
+              <select class="styled-select" id="sel-Toolbar-ClearMode" onchange="setToolbarClearMode(this.value)">
+                <option value="slide" data-i18n="interaction.clearMode.slide">滑动清屏</option>
+                <option value="button" data-i18n="interaction.clearMode.button">独立按钮</option>
+              </select>
+            </div>
+          </div>
           <div class="settings-item" onclick="toggleSwitch('Toolbar', 'ShowSpotlight')">
             <div class="item-info">
               <span class="item-label" data-i18n="interaction.showSpotlight.label">显示聚光灯</span>
@@ -3733,13 +3784,7 @@
             </div>
             <div class="switch" id="sw-Toolbar-ShowTimer"></div>
           </div>
-          <div class="settings-item" onclick="toggleSwitch('Toolbar', 'ShowToolbarText')">
-            <div class="item-info">
-              <span class="item-label" data-i18n="interaction.showToolbarText.label">工具栏文字</span>
-              <span class="item-desc" data-i18n="interaction.showToolbarText.desc">在工具栏图标下方显示功能名称</span>
-            </div>
-            <div class="switch" id="sw-Toolbar-ShowToolbarText"></div>
-          </div>
+
         </div>
 
         <div class="group-title" data-i18n="interaction.toolbar.customization.label">工具栏固定程序</div>
@@ -4201,7 +4246,7 @@
       </div>
     </div>
   </template>
-</body>
+
 <script>
   const I18N = {
     "zh-CN": {
@@ -4227,6 +4272,7 @@
       "group.language": "语言",
       "group.appearance": "外观",
       "group.startup": "启动",
+      "group.compatibility": "兼容性",
       "group.fonts": "全局应用字体",
       "group.presentation": "放映",
       "group.overlayUi": "顶层窗口",
@@ -4312,6 +4358,7 @@
       "general.language.warning": "当前选择的语言不是简体中文。为了获得最佳体验，建议使用简体中文。其他语言可能存在翻译不全或排版错位的问题。",
       "language.zh-CN": "简体中文",
       "language.zh-TW": "繁體中文",
+      "language.yue-HK": "粤语（繁体）",
       "language.ja-JP": "日本語",
       "language.en-US": "English",
       "language.ug-CN": "ئۇيغۇرچە",
@@ -4319,8 +4366,7 @@
       "language.ug-CN": "ئۇيغۇرچە",
       "interaction.autoHandleInk.label": "自动处理墨迹",
       "interaction.autoHandleInk.desc": "退出放映时自动处理\"是否保留墨迹\"",
-      "interaction.showToolbarText.label": "显示按钮文字",
-      "interaction.showToolbarText.desc": "在工具栏按钮下方显示文字标签",
+
       "interaction.showStatusBar.label": "顶部状态栏",
       "interaction.showStatusBar.desc": "在悬浮窗顶部显示时间与状态",
       "overlay.safeArea.label": "屏幕内安全区",
@@ -4333,6 +4379,15 @@
       "overlay.rebuild.desc": "重新创建顶层效果窗口以应用所有变更",
       "overlay.rebuild.action": "立即重建",
       "interaction.showClear.label": "显示清屏",
+      "interaction.clearMode.desc": "选择如何触发清屏功能（需重启生效）",
+      "interaction.clearMode.restart": "对此项的更改将在重新启动后生效",
+      "interaction.clearMode.slide": "滑动清屏",
+      "interaction.clearMode.button": "独立按钮清屏",
+      "restart.island.text": "需要重新启动",
+      "restart.confirm.title": "重启应用",
+      "restart.confirm.text": "部分设置需要重启才能生效。是否立即重启？",
+      "restart.confirm.yes": "立即重启",
+      "restart.confirm.no": "稍后",
       "interaction.showSpotlight.label": "显示聚光灯",
       "interaction.showBoardInBoard.label": "显示板中板",
       "boardInBoard.toolbarPosition.label": "工具栏位置",
@@ -4344,8 +4399,7 @@
       "boardInBoard.backgroundColor.label": "黑板背景",
       "boardInBoard.backgroundColor.desc": "选择板中板黑板的背景颜色",
       "interaction.showTimer.label": "显示计时器",
-      "interaction.showToolbarText.label": "工具栏文字",
-      "interaction.showToolbarText.desc": "在工具栏图标下方显示功能名称",
+
       "interaction.toolbar.customization.label": "工具栏固定项",
       "interaction.toolbar.customization.desc": "预览并管理工具栏上的快速启动项",
       "interaction.toolbar.preview.label": "工具栏预览",
@@ -4519,13 +4573,13 @@
       "general.language.warning": "目前選擇的語言不是簡體中文。為了獲得最佳體驗，建議使用簡體中文。其他語言可能存在翻譯不全或排版錯位的問題。",
       "language.zh-CN": "簡體中文",
       "language.zh-TW": "繁體中文",
+      "language.yue-HK": "粵語（繁體）",
       "language.ja-JP": "日本語",
       "language.en-US": "English",
       "language.ug-CN": "ئۇيغۇرچە",
       "interaction.autoHandleInk.label": "自動處理墨跡",
       "interaction.autoHandleInk.desc": "結束播放時自動處理「是否保留墨跡」",
-      "interaction.showToolbarText.label": "顯示按鈕文字",
-      "interaction.showToolbarText.desc": "在工具列按鈕下方顯示文字標籤",
+
       "interaction.showStatusBar.label": "頂部狀態列",
       "interaction.showStatusBar.desc": "在懸浮窗頂部顯示時間與狀態",
       "overlay.safeArea.label": "螢幕內安全區",
@@ -4608,6 +4662,186 @@
       "debug.showLogs.clear": "清空日誌",
       "debug.rtlTest.label": "RTL 版面測試",
       "debug.rtlTest.desc": "強制切換為由右至左的版面",
+      "debug.rotateTest.label": "旋轉視窗測試",
+      "debug.rotateTest.desc": "以視窗中心持續旋轉設定頁"
+    },
+    "yue-HK": {
+      "app.settings": "設定",
+      "app.name": "Kazuha",
+      "nav.main": "一般",
+      "nav.theme": "主題",
+      "nav.fonts": "全域字型",
+      "nav.overlay": "放映",
+      "nav.about": "關於",
+      "nav.plugins": "工具列",
+      "nav.boardInBoard": "板中板",
+      "nav.debug": "偵錯",
+      "nav.back": "返回",
+      "section.main": "一般",
+      "section.theme": "主題",
+      "section.fonts": "全域字型",
+      "section.overlay": "放映",
+      "section.plugins": "工具列",
+      "section.board-in-board": "板中板",
+      "section.about": "關於",
+      "section.debug": "偵錯",
+      "group.language": "語言",
+      "group.appearance": "外觀",
+      "group.startup": "啟動",
+      "group.fonts": "全域字型",
+      "group.presentation": "放映",
+      "group.overlayUi": "頂層視窗",
+      "group.toolbar.display": "工具列顯示",
+      "group.boardInBoard": "板中板",
+      "group.debugOptions": "偵錯選項",
+      "fonts.scene.web.label": "網頁介面",
+      "fonts.scene.web.desc": "設定 / 計時器 / Dialog",
+      "fonts.scene.qt.label": "主程式介面",
+      "fonts.scene.qt.desc": "Qt 介面（系統匣、設定入口等）",
+      "fonts.scene.overlay.label": "懸浮窗",
+      "fonts.scene.overlay.desc": "PPT 放映時嘅工具列同面板",
+      "fonts.custom.label": "自訂字型",
+      "fonts.custom.desc": "開咗就可以手動揀各界面字型",
+      "fonts.custom.warning.title": "自訂字型風險提示",
+      "fonts.custom.warning.text": "自訂字型有機會搞到版面亂晒龍、文字爆格甚至崩潰。開發者唔會幫你執手尾，開之前諗清楚。",
+      "fonts.custom.warning.confirm": "知喇",
+      "fonts.custom.confirm.title": "確認換字型",
+      "fonts.custom.confirm.text": "你而家揀嘅字型係：{font}\n\n請確認唔會搞到版面崩壞。因自訂字型導致嘅顯示或穩定性問題，開發者一概唔理。",
+      "fonts.option.default": "預設",
+      "fonts.option.search": "搵字型",
+      "appearance.mode.label": "外觀模式",
+      "appearance.mode.desc": "調整應用程式主題",
+      "appearance.mode.light": "淺色",
+      "appearance.mode.dark": "深色",
+      "appearance.mode.auto": "跟系統",
+      "appearance.theme.label": "主題",
+      "appearance.theme.desc": "揀個主題睇下效果",
+      "appearance.theme.default": "預設",
+      "appearance.theme.default.desc": "Kazuha 預設主題",
+      "appearance.theme.materialYou": "紫色",
+      "appearance.theme.materialYou.desc": "柔和紫調",
+      "appearance.theme.redSunrise": "紅色",
+      "appearance.theme.redSunrise.desc": "暖紅光暈",
+      "appearance.theme.emptinessColor": "灰色",
+      "appearance.theme.emptinessColor.desc": "清爽灰階",
+      "appearance.theme.mungBean": "綠色",
+      "appearance.theme.mungBean.desc": "薄荷綠",
+      "appearance.theme.orangeWish": "橙色",
+      "appearance.theme.orangeWish.desc": "柑橘活力",
+      "appearance.theme.monet": "動態取色",
+      "appearance.theme.monet.desc": "由桌面壁紙撈色",
+      "appearance.theme.monet.source.title": "揀取色來源",
+      "appearance.theme.monet.source.desc": "由壁紙或者本地圖片撈色",
+      "appearance.theme.monet.preview.title": "動態取色預覽",
+      "appearance.theme.monet.preview.desc": "確認配色後套用",
+      "appearance.theme.monet.preview.loading": "撈緊壁紙色...",
+      "appearance.theme.monet.preview.empty": "撈唔到色",
+      "appearance.theme.monet.preview.loading.custom": "撈緊圖片色...",
+      "appearance.theme.monet.preview.empty.custom": "撈唔到色",
+      "appearance.theme.monet.preview.error": "取色失敗",
+      "appearance.theme.monet.wallpaper": "用壁紙取色",
+      "appearance.theme.monet.custom": "用本地圖取色",
+      "appearance.theme.monet.apply": "套用",
+      "appearance.theme.monet.color.primary": "主色",
+      "appearance.theme.monet.color.background": "背景",
+      "appearance.theme.monet.color.surface": "表面",
+      "appearance.theme.monet.color.text": "文字",
+      "general.runAtStartup.label": "開機自啟",
+      "general.splashMode.label": "啟動畫面",
+      "general.splashMode.always": "每次都顯示",
+      "general.splashMode.never": "唔顯示",
+      "general.splashMode.hideOnAutoStart": "只係開機自啟時唔顯示",
+      "general.splashMode.timeRange": "特定時間段顯示",
+      "general.splashMode.timeRange.start": "開始時間",
+      "general.splashMode.timeRange.end": "結束時間",
+      "watermark.1": "開發中版本",
+      "watermark.2": "技術預覽版",
+      "watermark.3": "Release Preview",
+      "watermark.4": "重新評估版本",
+      "general.devWatermark": "{type}\n品質唔包 ({version})",
+      "general.autoShowOverlay.label": "自動顯示悬浮窗",
+      "general.autoShowOverlay.desc": "偵測到 PPT 放映就自動開工具列",
+      "general.overlayScreen.label": "顯示屏幕",
+      "general.overlayScreen.desc": "揀工具列出現喺邊個屏幕",
+      "general.overlayScreen.auto": "自動識別",
+      "general.overlayScreen.primary": "主顯示器",
+      "general.overlayScreen.screen1": "顯示器 1",
+      "general.overlayScreen.screen2": "顯示器 2",
+      "general.overlayScreen.screen3": "顯示器 3",
+      "general.language.label": "介面語言",
+      "general.language.desc": "改語言後要重啟先會完全生效",
+      "general.language.warning": "而家揀嘅唔係簡體中文，翻譯可能唔齊兼排版會走樣。要穩陣就用簡體，出事唔好屌我。",
+      "language.zh-CN": "簡體中文",
+      "language.zh-TW": "繁體中文",
+      "language.yue-HK": "粵語（繁體）",
+      "language.ja-JP": "日本語",
+      "language.en-US": "English",
+      "language.ug-CN": "ئۇيغۇرچە",
+      "interaction.autoHandleInk.label": "自動處理墨跡",
+      "interaction.autoHandleInk.desc": "放映完自動處理「保留墨跡」",
+
+      "interaction.toolbarLayout.label": "工具列佈局",
+      "interaction.toolbarLayout.desc": "揀工具列同翻頁按鈕點擺",
+      "interaction.layout.horizontal": "橫向",
+      "interaction.layout.verticalSplit": "兩邊直向",
+      "interaction.showStatusBar.label": "頂部狀態列",
+      "interaction.showStatusBar.desc": "頂部顯示時間同狀態",
+      "overlay.safeArea.label": "螢幕安全區",
+      "overlay.safeArea.desc": "調整元件離邊距",
+      "overlay.scale.label": "元件縮放",
+      "overlay.scale.desc": "調整元件顯示大小",
+      "overlay.popWindowScale.label": "色板縮放",
+      "overlay.popWindowScale.desc": "調整色板彈窗大小",
+      "overlay.rebuild.label": "重建頂層窗口",
+      "overlay.rebuild.desc": "重建頂層效果窗套用變更",
+      "overlay.rebuild.action": "即刻重建",
+      "interaction.showClear.label": "顯示清屏",
+      "interaction.showSpotlight.label": "顯示聚光燈",
+      "interaction.showBoardInBoard.label": "顯示板中板",
+      "boardInBoard.toolbarPosition.label": "工具列位置",
+      "boardInBoard.toolbarPosition.desc": "揀板中板工具列停靠位",
+      "boardInBoard.toolbarPosition.top": "頂部",
+      "boardInBoard.toolbarPosition.bottom": "底部",
+      "boardInBoard.toolbarPosition.left": "左邊",
+      "boardInBoard.toolbarPosition.right": "右邊",
+      "boardInBoard.backgroundColor.label": "黑板背景",
+      "boardInBoard.backgroundColor.desc": "揀板中板黑板背景色",
+      "interaction.showTimer.label": "顯示計時器",
+      "interaction.toolbar.layout.label": "工具列佈局",
+      "interaction.toolbar.layout.horizontal": "橫向",
+      "interaction.toolbar.layout.vertical": "兩邊直向",
+      "interaction.toolbar.customization.label": "工具列固定項",
+      "interaction.toolbar.customization.desc": "管理工具列快速啟動項",
+      "interaction.toolbar.preview.label": "工具列預覽",
+      "interaction.toolbar.addApp": "加項",
+      "interaction.toolbar.removeApp": "刪項",
+      "interaction.toolbar.appList.label": "已加項",
+      "toolbar.select": "選取",
+      "toolbar.pen": "畫筆",
+      "toolbar.eraser": "橡皮擦",
+      "toolbar.spotlight": "聚光燈",
+      "toolbar.board_in_board": "板中板",
+      "toolbar.timer": "計時器",
+      "toolbar.clear": "清屏",
+      "toolbar.end_show": "結束放映",
+      "about.version.label": "軟體版本",
+      "about.version.copyright": "COPYRIGHT 2025-2026 Seirai Haraguchi / YunoFactory │ 本程式依據 GNU General Public License 3 授權",
+      "about.version.github": "GitHub 儲存庫",
+      "about.version.qq": "QQ群",
+      "about.credits.label": "鳴謝",
+      "about.credits.contributors": "貢獻人員",
+      "about.credits.libraries": "第三方庫",
+      "about.checkUpdate.label": "檢查更新",
+      "debug.createDialog.label": "建立 Dialog",
+      "debug.createDialog.desc": "測試 Dialog",
+      "debug.triggerCrash.label": "觸發測試崩潰",
+      "debug.triggerCrash.desc": "手動觸發 RuntimeError 測試崩潰處理",
+      "debug.showLogs.label": "顯示日誌",
+      "debug.showLogs.desc": "即時顯示設定頁日誌",
+      "debug.showLogs.panelTitle": "日誌輸出",
+      "debug.showLogs.clear": "清空日誌",
+      "debug.rtlTest.label": "RTL 版面測試",
+      "debug.rtlTest.desc": "強制切右至左",
       "debug.rotateTest.label": "旋轉視窗測試",
       "debug.rotateTest.desc": "以視窗中心持續旋轉設定頁"
     },
@@ -4719,12 +4953,12 @@
       "general.language.warning": "現在選択されている言語は簡体字中国語ではありません。最高の体験を得るためには、簡体字中国語の使用をお勧めします。他の言語では翻訳が不完全であったり、レイアウトが崩れたりする可能性があります。",
       "language.zh-CN": "簡体字中国語",
       "language.zh-TW": "繁体字中国語",
+      "language.yue-HK": "広東語（繁体字）",
       "language.ja-JP": "日本語",
       "language.en-US": "英語",
       "interaction.autoHandleInk.label": "インクを自動処理",
       "interaction.autoHandleInk.desc": "スライドショー終了時に「インクを保持するか」を自動処理します",
-      "interaction.showToolbarText.label": "ボタンテキストを表示",
-      "interaction.showToolbarText.desc": "ツールバーボタンの下にテキストラベルを表示します",
+
       "interaction.toolbarLayout.label": "ツールバーのレイアウト",
       "interaction.toolbarLayout.desc": "ツールバーとページめくりボタンの配置を選択します",
       "interaction.layout.horizontal": "水平配置",
@@ -4924,12 +5158,12 @@
       "general.language.warning": "The selected language may be incomplete or misaligned. For the best experience, Simplified Chinese is recommended.",
       "language.zh-CN": "Simplified Chinese",
       "language.zh-TW": "Traditional Chinese",
+      "language.yue-HK": "Cantonese (Traditional)",
       "language.ja-JP": "Japanese",
       "language.en-US": "English",
       "interaction.autoHandleInk.label": "Auto handle ink",
       "interaction.autoHandleInk.desc": "Automatically handle \"keep ink\" prompt when slideshow ends",
-      "interaction.showToolbarText.label": "Show button text",
-      "interaction.showToolbarText.desc": "Show text labels below toolbar buttons",
+
       "interaction.toolbarLayout.label": "Toolbar layout",
       "interaction.toolbarLayout.desc": "Choose how the toolbar and page flippers are arranged",
       "interaction.layout.horizontal": "Horizontal",
@@ -4944,6 +5178,15 @@
       "overlay.rebuild.desc": "Recreate the overlay to apply all changes",
       "overlay.rebuild.action": "Rebuild Now",
       "interaction.showClear.label": "Show Clear",
+      "interaction.clearMode.desc": "Choose how to trigger clear screen on overlay (Restart required)",
+      "interaction.clearMode.restart": "Changes to this setting require a restart to take effect",
+      "interaction.clearMode.slide": "Slide to Clear",
+      "interaction.clearMode.button": "Independent Button",
+      "restart.island.text": "Restart Required",
+      "restart.confirm.title": "Restart Application",
+      "restart.confirm.text": "Some settings require a restart to take effect. Do you want to restart now?",
+      "restart.confirm.yes": "Restart Now",
+      "restart.confirm.no": "Later",
       "interaction.showSpotlight.label": "Show Spotlight",
       "interaction.showBoardInBoard.label": "Show Board in Board",
       "boardInBoard.toolbarPosition.label": "Toolbar Position",
@@ -5142,14 +5385,15 @@
   }
 
   function getText(key) {
-    const langPack = I18N[currentLanguage] || I18N["zh-CN"];
+    const fallbackLang = currentLanguage === "yue-HK" ? "zh-TW" : "zh-CN";
+    const langPack = I18N[currentLanguage] || I18N[fallbackLang] || I18N["zh-CN"];
     if (langPack && key in langPack) return langPack[key];
-    const fallback = I18N["zh-CN"];
+    const fallback = I18N[fallbackLang] || I18N["zh-CN"];
     if (fallback && key in fallback) return fallback[key];
     return "";
   }
 
-  const FONT_LANGS = ["zh-CN", "zh-TW", "ja-JP", "en-US", "ug-CN"];
+  const FONT_LANGS = ["zh-CN", "zh-TW", "yue-HK", "ja-JP", "en-US", "ug-CN"];
   const FONT_SCENES = ["web", "qt", "overlay"];
   let systemFonts = [];
   let systemFontsLoaded = false;
@@ -5158,6 +5402,9 @@
     const isSpecial = lang === "zh-TW" || lang === "ja-JP";
     if (lang === "zh-TW") {
       return "\"Microsoft JhengHei\", \"MiSans Latin\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
+    }
+    if (lang === "yue-HK") {
+      return "\"Meiryo UI\", \"Meiryo\", \"Microsoft JhengHei\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
     }
     if (lang === "ja-JP") {
       return "\"Yu Gothic UI\", \"Meiryo\", \"MiSans Latin\", \"HarmonyOS Sans JP\", \"SF Pro\", system-ui, -apple-system, sans-serif";
@@ -6119,16 +6366,31 @@
     }
   }
 
+  function setClearMode(value) {
+    if (!settings.Overlay) settings.Overlay = {};
+    if (settings.Overlay.ClearMode !== value) {
+        settings.Overlay.ClearMode = value;
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+            window.pywebview.api.save_setting("Overlay", "ClearMode", value);
+        }
+        showRestartIsland();
+    }
+  }
+
   function setBoardInBoardToolbarPosition(value) {
     if (value !== "top" && value !== "bottom") {
       value = "bottom";
     }
     if (!settings.BoardInBoard) settings.BoardInBoard = {};
-    settings.BoardInBoard.ToolbarPosition = value;
-    if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
-      window.pywebview.api.save_setting("BoardInBoard", "ToolbarPosition", value);
+    if (settings.BoardInBoard.ToolbarPosition !== value) {
+        settings.BoardInBoard.ToolbarPosition = value;
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+            window.pywebview.api.save_setting("BoardInBoard", "ToolbarPosition", value);
+        }
     }
   }
+
+
 
   function setBoardInBoardBackgroundColor(value) {
     if (!value || typeof value !== "string") {
@@ -6329,9 +6591,9 @@
   window.addEventListener("resize", updateAllSelectSliders);
 
   let settings = window.initialSettings || {
-    General: { RunAtStartup: false, AutoShowOverlay: true, Language: "zh-CN" },
+    General: { RunAtStartup: false, AutoShowOverlay: true, CompatibilityMode: false, Language: "zh-CN" },
     PPT: { AutoHandleInk: true },
-    Overlay: { ShowStatusBar: true },
+    Overlay: { ShowStatusBar: true, ClearMode: "slide" },
     Toolbar: { ShowClear: true, ShowToolbarText: true },
     BoardInBoard: { ToolbarPosition: "bottom", BackgroundColor: "#202020" },
     Debug: { ShowLog: false, RtlTest: false, RotateTest: false },
@@ -6532,6 +6794,7 @@
 
   function applySettingsToUI() {
     setSwitch("General", "RunAtStartup");
+    setSwitch("General", "CompatibilityMode");
     setSwitch("General", "AutoShowOverlay");
     setSwitch("PPT", "AutoHandleInk");
     setSwitch("Overlay", "ShowStatusBar");
@@ -6557,6 +6820,14 @@
     // Overlay Screen
     const overlayScreen = settings.Overlay?.OverlayScreen || "Auto";
     updateScreenList(overlayScreen);
+
+    // Clear Mode
+    const clearMode = settings.Overlay?.ClearMode || "slide";
+    const clearModeEl = document.getElementById("sel-Overlay-ClearMode");
+    if (clearModeEl) {
+        clearModeEl.value = clearMode;
+        refreshCustomSelect(clearModeEl);
+    }
 
     // Splash Mode
     const splashMode = settings.General?.SplashMode || "Always";
@@ -6612,6 +6883,10 @@
     document.querySelectorAll(".theme-option").forEach(opt => opt.classList.remove("active"));
     const activeOpt = document.getElementById(`theme-${mode}`);
     if (activeOpt) activeOpt.classList.add("active");
+
+    const activeLangOpt = document.querySelector(`.language-option[data-lang="${currentLanguage}"]`);
+    if (activeLangOpt) activeLangOpt.classList.add("active");
+
     MonetTheme.palette = normalizeMonetPalette(settings.Appearance?.MonetPalette);
     const themeId = settings.Appearance && settings.Appearance.ThemeId ? settings.Appearance.ThemeId : "default";
     ThemeSystem.applyTheme(themeId, mode);
@@ -6692,11 +6967,14 @@
 
   function setLanguage(lang) {
     if (!settings.General) settings.General = {};
-    settings.General.Language = lang;
-    currentLanguage = lang;
-    applySettingsToUI();
-    if (window.pywebview && window.pywebview.api.save_setting) {
-      window.pywebview.api.save_setting("General", "Language", lang);
+    if (settings.General.Language !== lang) {
+        settings.General.Language = lang;
+        currentLanguage = lang;
+        applySettingsToUI();
+        if (window.pywebview && window.pywebview.api.save_setting) {
+            window.pywebview.api.save_setting("General", "Language", lang);
+        }
+        showRestartIsland();
     }
   }
 
@@ -6940,9 +7218,14 @@
     const containerRect = container.getBoundingClientRect();
     const activeRect = active.getBoundingClientRect();
     const x = activeRect.left - containerRect.left - 4;
+    const y = activeRect.top - containerRect.top - 4;
     const width = activeRect.width;
+    const height = activeRect.height;
+    
     container.style.setProperty("--select-slider-x", `${Math.max(0, x)}px`);
+    container.style.setProperty("--select-slider-y", `${Math.max(0, y)}px`);
     container.style.setProperty("--select-slider-width", `${Math.max(0, width)}px`);
+    container.style.setProperty("--select-slider-height", `${Math.max(0, height)}px`);
     container.classList.add("has-slider");
     container.style.setProperty("--select-slider-opacity", "1");
   }
@@ -6957,6 +7240,8 @@
       run();
     }
   }
+
+  window.addEventListener('resize', updateAllSelectSliders);
 
   function loadToolbarApps() {
     const fallback = () => {
@@ -7004,13 +7289,13 @@
     if (!preview) return;
     preview.innerHTML = "";
 
-    const showText = !!(settings.Toolbar && settings.Toolbar.ShowToolbarText);
+
     const rawOrder = (settings.Toolbar && settings.Toolbar.ToolbarOrder) || ["select", "pen", "eraser", "spotlight", "timer", "clear", "apps"];
     const order = normalizeToolbarOrder(rawOrder);
 
     const createBtn = (labelKey, fallback, iconName, toolId) => {
       const btn = document.createElement("div");
-      btn.className = "toolbar-preview-btn" + (showText ? " toolbar-preview-btn-capsule" : "");
+      btn.className = "toolbar-preview-btn";
       btn.dataset.id = toolId;
 
       const icon = document.createElement("div");
@@ -7044,12 +7329,7 @@
 
       btn.appendChild(icon);
 
-      if (showText) {
-        const label = document.createElement("div");
-        label.className = "toolbar-preview-btn-label";
-        label.textContent = getText(labelKey) || fallback;
-        btn.appendChild(label);
-      }
+
       return btn;
     };
 
@@ -7091,7 +7371,7 @@
         if (toolbarApps && toolbarApps.length > 0) {
           toolbarApps.forEach((app, idx) => {
             const btn = document.createElement("div");
-            btn.className = "toolbar-preview-btn" + (showText ? " toolbar-preview-btn-capsule" : "");
+            btn.className = "toolbar-preview-btn";
             btn.dataset.id = "apps"; // Group apps as one logical unit for sorting simplicity or keep separate
             const icon = document.createElement("div");
             icon.className = "toolbar-preview-btn-icon";
@@ -7100,17 +7380,11 @@
               icon.innerHTML = `<img src="${app.icon}" class="toolbar-app-icon-img" style="position: relative; z-index: 1;">`;
             } else {
               const firstChar = (app.name || "?").charAt(0).toUpperCase();
-              icon.innerHTML = `<span style="font-size: ${showText ? '10px' : '14px'}; display: flex; align-items: center; justify-content: center; height: 100%; font-weight: 600; color: #FFFFFF; position: relative; z-index: 1;">${firstChar}</span>`;
+              icon.innerHTML = `<span style="font-size: 14px; display: flex; align-items: center; justify-content: center; height: 100%; font-weight: 600; color: #FFFFFF; position: relative; z-index: 1;">${firstChar}</span>`;
             }
 
             btn.appendChild(icon);
-            if (showText) {
-              const label = document.createElement("div");
-              label.className = "toolbar-preview-btn-label";
-              const name = app.name || "App";
-              label.textContent = name;
-              btn.appendChild(label);
-            }
+
             preview.appendChild(btn);
           });
         }
@@ -7896,7 +8170,88 @@
       title.style.display = 'none';
     }
   }
+  // --- Restart Notification & Generic Modal ---
+  let isRestartPending = false;
+
+  function showRestartIsland() {
+    if (isRestartPending) return;
+    const island = document.getElementById("restart-island");
+    if (island) {
+        island.classList.add("visible");
+        isRestartPending = true;
+    }
+  }
+
+  function showModal(title, text, buttons) {
+    const modal = document.getElementById("generic-modal");
+    const titleEl = document.getElementById("generic-modal-title");
+    const textEl = document.getElementById("generic-modal-text");
+    const footerEl = document.getElementById("generic-modal-footer");
+
+    if (!modal || !titleEl || !textEl || !footerEl) return;
+
+    titleEl.textContent = title;
+    textEl.textContent = text;
+    footerEl.innerHTML = "";
+
+    buttons.forEach(btn => {
+      const button = document.createElement("button");
+      button.className = "modal-btn " + (btn.primary ? "modal-btn-confirm" : "modal-btn-secondary");
+      button.textContent = btn.label;
+      button.onclick = () => {
+        if (btn.onClick) btn.onClick();
+        closeGenericModal();
+      };
+      footerEl.appendChild(button);
+    });
+
+    modal.classList.add("active");
+  }
+
+  function closeGenericModal() {
+    const modal = document.getElementById("generic-modal");
+    if (modal) modal.classList.remove("active");
+  }
+
+  function triggerRestart() {
+      const confirmTitle = getText("restart.confirm.title") || "重启应用";
+      const confirmText = getText("restart.confirm.text") || "部分设置需要重启才能生效。是否立即重启？";
+      const confirmYes = getText("restart.confirm.yes") || "立即重启";
+      const confirmNo = getText("restart.confirm.no") || "稍后";
+
+      showModal(
+        confirmTitle,
+        confirmText,
+        [
+          { label: confirmNo, onClick: () => {} },
+          { label: confirmYes, primary: true, onClick: () => {
+              if (window.pywebview && window.pywebview.api && window.pywebview.api.restart_app) {
+                  window.pywebview.api.restart_app();
+              }
+          }}
+        ]
+      );
+  }
 </script>
+
+<!-- Generic Modal Structure -->
+<div id="generic-modal" class="modal-overlay">
+  <div class="modal-dialog">
+    <div class="modal-title" id="generic-modal-title"></div>
+    <div class="modal-island">
+      <div class="modal-text" id="generic-modal-text"></div>
+    </div>
+    <div class="modal-footer" id="generic-modal-footer"></div>
+  </div>
+</div>
+
+<!-- Restart Island -->
+<div id="restart-island" class="restart-island" onclick="triggerRestart()">
+  <svg viewBox="0 0 24 24">
+    <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+  </svg>
+  <span data-i18n="restart.island.text">需要重新启动</span>
+</div>
 </body>
 
 </html>

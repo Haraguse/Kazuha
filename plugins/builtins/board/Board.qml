@@ -350,6 +350,7 @@ Rectangle {
                         
                         ToolButton {
                             anchors.fill: parent
+                            enabled: true
                             icon.source: iconsDir + "Pen.svg"
                             icon.color: canvas.drawColor
                             icon.width: 20
@@ -414,6 +415,7 @@ Rectangle {
                             height: 20
                             anchors.centerIn: parent
                             sourceSize: Qt.size(20, 20)
+                            opacity: 1.0
                         }
                     }
                     
@@ -430,6 +432,7 @@ Rectangle {
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
+                    enabled: true
                     onClicked: {
                         canvas.isEraser = true
                     }
@@ -456,6 +459,7 @@ Rectangle {
                             height: 20
                             anchors.centerIn: parent
                             sourceSize: Qt.size(20, 20)
+                            opacity: 1.0
                         }
                     }
                     
@@ -472,8 +476,9 @@ Rectangle {
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
+                    enabled: true
                     onClicked: canvas.clear()
-            }
+                }
         }
     }
 }

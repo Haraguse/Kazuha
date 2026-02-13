@@ -373,6 +373,19 @@ class Api(QObject):
         if self._window:
             self._window.setWindowTitle(str(title))
 
+    @Slot(bool)
+    def set_fullscreen(self, enabled):
+        if self._window:
+            if enabled:
+                self._window.showFullScreen()
+            else:
+                self._window.showNormal()
+            try:
+                self._window.raise_()
+                self._window.activateWindow()
+            except Exception:
+                pass
+
     @Slot(result="QVariant")
     def get_settings(self):
         return self.settings
@@ -616,6 +629,23 @@ class Api(QObject):
                 self.update_settings(data)
         except Exception as e:
             print(f"Error saving settings: {e}", file=sys.stderr)
+
+    @Slot()
+    def restart_app(self):
+        settings_path = self._get_settings_path()
+        try:
+            data = {}
+            if os.path.exists(settings_path):
+                with open(settings_path, "r", encoding="utf-8") as f:
+                    try:
+                        data = json.load(f)
+                    except JSONDecodeError:
+                        data = {}
+            data["_restart_pending"] = True
+            with open(settings_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            print(f"Error triggering restart: {e}", file=sys.stderr)
 
     @Slot()
     def show_window(self):

@@ -4104,6 +4104,38 @@ html, body {
           fmt: "{type}\n不保證最終品質 ({version})"
         }
       },
+      "yue-HK": {
+        steps: ["外觀風格", "啟動設定", "界面調整", "準備就緒"],
+        gpl: "睇 GPL 授權條款",
+        import: "由外面匯入設定",
+        pivotTip: "完成初始化設定先最好用。",
+        theme: { title: "外觀風格", desc: "揀你鍾意嘅主題", light: "淺色", dark: "深色", auto: "跟系統" },
+        themes: {
+          "default": "預設",
+          "material-you": "紫色",
+          "red-sunrise": "紅色",
+          "emptiness-color": "灰色",
+          "mung-bean": "綠色",
+          "orange-wish": "橙色"
+        },
+        startup: { title: "啟動設定", desc: "設定開機啟動行為", label: "開機自啟", sub: "登入 Windows 後自動啟動", taskbar: "釘選 Kazuha 去工作列", start: "釘選 Kazuha 去開始畫面" },
+        uiScaling: {
+          title: "界面調整",
+          desc: "調整縮放同邊距配合你個屏幕",
+          scale: "整體縮放",
+          popWindowScale: "彈窗縮放",
+          safeArea: "屏幕邊距"
+        },
+        finish: { title: "搞掂！", desc: "你已完成晒基本設定", sub: "之後要改設定就去托盤「設定」。要即刻開始就關咗呢個窗口，再喺 PowerPoint 開個簡報。", hint: "撳上面「✓」就完結設定精靈。", hintExpanded: "上一步   •   完成   •   重來" },
+        btn: { next: "下一步", prev: "返回", finish: "完成" },
+        watermark: {
+          1: "開發中版本",
+          2: "技術預覽版",
+          3: "Release Preview",
+          4: "重新評估版本",
+          fmt: "{type}\n品質唔包 ({version})"
+        }
+      },
       "en-US": {
         gpl: "View GPL License",
         import: "Import Config",
@@ -4491,6 +4523,9 @@ html, body {
       if (lang === "zh-TW") {
         return "\"Microsoft JhengHei\", \"MiSans Latin\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
       }
+      if (lang === "yue-HK") {
+        return "\"Meiryo UI\", \"Meiryo\", \"Microsoft JhengHei\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
+      }
       if (lang === "ja-JP") {
         return "\"Yu Gothic UI\", \"Meiryo\", \"MiSans Latin\", \"HarmonyOS Sans JP\", \"SF Pro\", system-ui, -apple-system, sans-serif";
       }
@@ -4578,6 +4613,7 @@ html, body {
     const langOptions = [
       { value: "zh-CN", label: "简体中文" },
       { value: "zh-TW", label: "繁體中文" },
+      { value: "yue-HK", label: "粵語（繁體）" },
       { value: "ja-JP", label: "日本語" },
       { value: "en-US", label: "English" }
     ];

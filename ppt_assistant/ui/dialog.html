@@ -390,6 +390,29 @@
         "dialog.password.loading": "正在驗證密碼...",
         "general.devWatermark": "開發中版本/技術預覽版本\n不保證最終品質 （{version}）"
       },
+      "yue-HK": {
+        "dialog.generic.ok": "得啦",
+        "dialog.generic.cancel": "算啦",
+        "dialog.crash.title": "程式仆街咗 (´；ω；`)",
+        "dialog.crash.confirm": "閂咗佢",
+        "dialog.crash.cancel": "抄低錯誤",
+        "dialog.multiInstance.title": "程式已經喺度跑緊",
+        "dialog.multiInstance.text": "已經有個實例喺度跑緊。\n\n揀一個做法：",
+        "dialog.multiInstance.confirm": "搞掂舊嗰個再開",
+        "dialog.multiInstance.cancel": "一齊收工",
+        "testDialog.title": "測試對話框",
+        "testDialog.confirm": "知啦",
+        "testDialog.cancel": "閂咗佢",
+        "dialog.fontWarning.title": "自訂字型風險提示",
+        "dialog.fontWarning.text": "啟用自訂字型可能會整到介面柒晒：\n\n1. 文字排版亂晒龍、控件被撐爆或換行奇怪\n2. 有啲字、符號或多語言內容冇字形，變方塊／問號\n3. 唔同 DPI／縮放比例下會模糊或對唔齊\n4. 某啲系統環境或 PowerPoint 版本會同開發環境唔同\n\n因自訂字型搞到嘅顯示異常、當機或簡報事故，開發者唔會負責。",
+        "dialog.fontWarning.confirm": "知喇，自己揹鑊",
+        "dialog.password.title": "驗證設定密碼",
+        "dialog.password.text": "輸入設定密碼先繼續。",
+        "dialog.password.confirm": "驗證",
+        "dialog.password.placeholder": "輸入密碼",
+        "dialog.password.loading": "驗證中...",
+        "general.devWatermark": "開發中版本/技術預覽版本\n品質唔包 ({version})"
+      },
       "ja-JP": {
         "dialog.generic.ok": "確認",
         "dialog.generic.cancel": "キャンセル",
@@ -478,9 +501,10 @@
     }
 
     function getText(key) {
-      const langPack = I18N[currentLanguage] || I18N["zh-CN"];
+      const fallbackLang = currentLanguage === "yue-HK" ? "zh-TW" : "zh-CN";
+      const langPack = I18N[currentLanguage] || I18N[fallbackLang] || I18N["zh-CN"];
       if (langPack && key in langPack) return langPack[key];
-      const fallback = I18N["zh-CN"];
+      const fallback = I18N[fallbackLang] || I18N["zh-CN"];
       if (fallback && key in fallback) return fallback[key];
       return "";
     }
@@ -489,6 +513,9 @@
       const isSpecial = lang === "zh-TW" || lang === "ja-JP";
       if (lang === "zh-TW") {
         return "\"Microsoft JhengHei\", \"MiSans Latin\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
+      }
+      if (lang === "yue-HK") {
+        return "\"Meiryo UI\", \"Meiryo\", \"Microsoft JhengHei\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
       }
       if (lang === "ja-JP") {
         return "\"Yu Gothic UI\", \"Meiryo\", \"MiSans Latin\", \"HarmonyOS Sans JP\", \"SF Pro\", system-ui, -apple-system, sans-serif";

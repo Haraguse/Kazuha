@@ -90,6 +90,23 @@ SPLASH_I18N = {
         "watermark.4": "重新評估版本",
         "dev_watermark": "{type}\n不保證最終品質 （{version}）"
     },
+    "yue-HK": {
+        "initializing": "開工中",
+        "loading_config": "撈緊設定",
+        "loading_fonts": "撈緊字型",
+        "init_monitor": "啟動監視器",
+        "init_ui": "砌緊介面",
+        "loading_plugins": "載入插件",
+        "loading_settings": "載入設定",
+        "loading_timer": "載入計時器",
+        "init_tray": "整緊托盤圖示",
+        "finalizing": "搞掂",
+        "watermark.1": "開發中版本",
+        "watermark.2": "技術預覽版",
+        "watermark.3": "Release Preview",
+        "watermark.4": "重新評估版本",
+        "dev_watermark": "{type}\n品質唔包，出事唔好屌我 （{version}）"
+    },
     "ja-JP": {
         "initializing": "初期化中",
         "loading_config": "設定を読み込み中",
@@ -224,7 +241,8 @@ def _apply_global_font(app: QApplication):
         except Exception:
             base_family = ""
 
-    family = selected_family or base_family
+    preferred_family = "Meiryo UI" if lang == "yue-HK" else ""
+    family = selected_family or preferred_family or base_family
     if not family:
         return
     app.setFont(QFont(family))
@@ -246,6 +264,7 @@ def _load_version_info():
             mapping = {
                 "MomokaKawaragi": "Momoka Kawaragi",
                 "NinaIseri": "Nina Iseri",
+                "SubaruAwa": "Subaru Awa"
             }
             code_name = mapping.get(raw_code_name, raw_code_name)
         except Exception:
@@ -366,12 +385,14 @@ class StartupSplash(QWidget):
         brand_name_map = {
             "zh-CN": "万演",
             "zh-TW": "万演",
+            "yue-HK": "萬演",
             "ja-JP": "カズハ",
             "en-US": "Kazuha",
         }
         brand_name = brand_name_map.get(self._language, "Kazuha")
         self._brand_label = QLabel(brand_name, self._container)
-        brand_font = QFont("Yu Gothic UI")
+        brand_font_family = "Meiryo UI" if self._language == "yue-HK" else "Yu Gothic UI"
+        brand_font = QFont(brand_font_family)
         brand_font.setPixelSize(32)
         brand_font.setWeight(QFont.Black) 
         self._brand_label.setFont(brand_font)
@@ -409,7 +430,8 @@ class StartupSplash(QWidget):
         # Status Text (element_2) - x: 76, y: 203
         init_text = SPLASH_I18N.get(self._language, SPLASH_I18N["zh-CN"])["initializing"]
         self._percent_label = QLabel(f"{init_text} 0%", self._container)
-        percent_font = QFont("HarmonyOS Sans SC")
+        percent_font_family = "Meiryo UI" if self._language == "yue-HK" else "HarmonyOS Sans SC"
+        percent_font = QFont(percent_font_family)
         percent_font.setPixelSize(15)
         percent_font.setBold(True)
         self._percent_label.setFont(percent_font)
@@ -1034,6 +1056,19 @@ class PPTAssistantApp:
         if mtime != self._settings_mtime:
             self._settings_mtime = mtime
             
+            # Check for restart flag
+            try:
+                with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
+                    temp_data = json.load(f)
+                if temp_data.get("_restart_pending"):
+                    del temp_data["_restart_pending"]
+                    with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
+                        json.dump(temp_data, f, indent=4, ensure_ascii=False)
+                    self.restart()
+                    return
+            except Exception:
+                pass
+            
             old_theme = cfg.themeMode.value
             old_theme_id = cfg.themeId.value if hasattr(cfg, "themeId") else "default"
             old_lang = getattr(self, "_current_language", "zh-CN")
@@ -1208,7 +1243,7 @@ class PPTAssistantApp:
 
 if __name__ == "__main__":
     _apply_win7_graphics_fallback()
-    QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    # QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     app = QApplication(sys.argv)
     app_icon = load_app_icon()
     if not app_icon.isNull():

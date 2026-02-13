@@ -126,9 +126,23 @@ class PPTWorker(QObject):
             left, top, right, bottom = win32gui.GetWindowRect(hwnd)
             w, h = right - left, bottom - top
             final_rect = (left, top, w, h)
+            dpi = 0
+            if win32api:
+                try:
+                    dpi = int(win32api.GetDpiForWindow(int(hwnd)) or 0)
+                except Exception:
+                    try:
+                        import ctypes
+
+                        user32 = ctypes.windll.user32
+                        user32.GetDpiForWindow.argtypes = [ctypes.c_void_p]
+                        user32.GetDpiForWindow.restype = ctypes.c_uint
+                        dpi = int(user32.GetDpiForWindow(ctypes.c_void_p(int(hwnd))) or 0)
+                    except Exception:
+                        dpi = 0
             if final_rect != self._last_win_rect:
                 self._last_win_rect = final_rect
-                self.window_geometry_changed.emit(QRect(*final_rect), None)
+                self.window_geometry_changed.emit(QRect(*final_rect), {"raw_is_physical": True, "dpi": dpi})
             if self._overlay_visible is not True:
                 self._overlay_visible = True
                 self.overlay_visibility_changed.emit(True)
@@ -361,40 +375,42 @@ class PPTWorker(QObject):
                             self._slideshow_started_at = time.monotonic()
                             self.slideshow_started.emit()
                         
-                        current = 0
-                        total = 0
-                        presentation = None
-                        try:
-                            current = int(getattr(view, "CurrentShowPosition", 0) or 0)
-                        except Exception:
+                        if True:
                             current = 0
-                        if not current:
+                            total = 0
+                            presentation = None
                             try:
-                                current = int(getattr(getattr(view, "Slide", None), "SlideIndex", 0) or 0)
+                                current = int(getattr(view, "CurrentShowPosition", 0) or 0)
                             except Exception:
                                 current = 0
-                        try:
-                            presentation = getattr(ss_win, "Presentation", None)
-                        except Exception:
-                            presentation = None
-                        if presentation is not None:
+                            if not current:
+                                try:
+                                    current = int(getattr(getattr(view, "Slide", None), "SlideIndex", 0) or 0)
+                                except Exception:
+                                    current = 0
                             try:
-                                total = int(getattr(getattr(presentation, "Slides", None), "Count", 0) or 0)
+                                presentation = getattr(ss_win, "Presentation", None)
                             except Exception:
-                                total = 0
-                            try:
-                                pres_readonly = bool(getattr(presentation, "ReadOnly", False))
-                                self._update_restrictions(self._protected_view, pres_readonly)
-                            except Exception:
-                                pass
-                        if not total:
-                            total = int(self._total_slides or 0)
-                        if current > 0 and total > 0 and (current != self._current_slide or total != self._total_slides):
-                            self._current_slide = current
-                            self._total_slides = total
-                            self.slide_changed.emit(current, total)
-                            self._degraded_current = current
-                            self._degraded_total = total
+                                presentation = None
+                            if presentation is not None:
+                                try:
+                                    total = int(getattr(getattr(presentation, "Slides", None), "Count", 0) or 0)
+                                except Exception:
+                                    total = 0
+                                try:
+                                    pres_readonly = bool(getattr(presentation, "ReadOnly", False))
+                                    self._update_restrictions(self._protected_view, pres_readonly)
+                                except Exception:
+                                    pass
+                            if not total:
+                                total = int(self._total_slides or 0)
+                            if current > 0 and total > 0 and (current != self._current_slide or total != self._total_slides):
+                                self._current_slide = current
+                                self._total_slides = total
+                                self.slide_changed.emit(current, total)
+                                self._degraded_current = current
+                                self._degraded_total = total
+                        
                         try:
                             self._update_window_rect(ss_win)
                             self._update_video_state(ss_win)
@@ -480,31 +496,32 @@ class PPTWorker(QObject):
                         self._slideshow_started_at = time.monotonic()
                         self.slideshow_started.emit()
 
-                    current = 0
-                    total = 0
-                    try:
-                        current = int(getattr(view, "CurrentShowPosition", 0) or 0)
-                    except Exception:
+                    if True:
                         current = 0
-                    if not current:
+                        total = 0
                         try:
-                            current = int(getattr(getattr(view, "Slide", None), "SlideIndex", 0) or 0)
+                            current = int(getattr(view, "CurrentShowPosition", 0) or 0)
                         except Exception:
                             current = 0
-                    try:
-                        presentation = getattr(ss_win, "Presentation", None)
-                        total = int(getattr(getattr(presentation, "Slides", None), "Count", 0) or 0) if presentation is not None else 0
-                    except Exception:
-                        total = 0
+                        if not current:
+                            try:
+                                current = int(getattr(getattr(view, "Slide", None), "SlideIndex", 0) or 0)
+                            except Exception:
+                                current = 0
+                        try:
+                            presentation = getattr(ss_win, "Presentation", None)
+                            total = int(getattr(getattr(presentation, "Slides", None), "Count", 0) or 0) if presentation is not None else 0
+                        except Exception:
+                            total = 0
 
-                    if not total:
-                        total = int(self._total_slides or 0)
-                    if current > 0 and total > 0 and (current != self._current_slide or total != self._total_slides):
-                        self._current_slide = current
-                        self._total_slides = total
-                        self.slide_changed.emit(current, total)
-                        self._degraded_current = current
-                        self._degraded_total = total
+                        if not total:
+                            total = int(self._total_slides or 0)
+                        if current > 0 and total > 0 and (current != self._current_slide or total != self._total_slides):
+                            self._current_slide = current
+                            self._total_slides = total
+                            self.slide_changed.emit(current, total)
+                            self._degraded_current = current
+                            self._degraded_total = total
 
                     try:
                         self._update_window_rect(ss_win)
@@ -542,6 +559,8 @@ class PPTWorker(QObject):
             l_left, l_top, l_width, l_height = 0, 0, 0, 0
             screen = None
             success = False
+            raw_is_physical = None
+            dpi = 0
             
             # 1. Try Win32 API
             if win32gui:
@@ -572,6 +591,20 @@ class PPTWorker(QObject):
                         # Let's emit raw global coords and let main thread map it.
                         final_rect = (left, top, w, h)
                         success = True
+                        raw_is_physical = True
+                        if win32api:
+                            try:
+                                dpi = int(win32api.GetDpiForWindow(int(hwnd)) or 0)
+                            except Exception:
+                                try:
+                                    import ctypes
+
+                                    user32 = ctypes.windll.user32
+                                    user32.GetDpiForWindow.argtypes = [ctypes.c_void_p]
+                                    user32.GetDpiForWindow.restype = ctypes.c_uint
+                                    dpi = int(user32.GetDpiForWindow(ctypes.c_void_p(int(hwnd))) or 0)
+                                except Exception:
+                                    dpi = 0
                 except Exception:
                     pass
 
@@ -584,6 +617,7 @@ class PPTWorker(QObject):
                     l_height = int(getattr(ss_win, "Height", 0))
                     final_rect = (l_left, l_top, l_width, l_height)
                     success = True
+                    raw_is_physical = False
                 except Exception:
                     pass
 
@@ -598,7 +632,7 @@ class PPTWorker(QObject):
                 if final_rect != self._last_win_rect:
                     self._last_win_rect = final_rect
                     # We send RAW rect (x, y, w, h). Main thread converts to QRect and finds Screen.
-                    self.window_geometry_changed.emit(QRect(*final_rect), None)
+                    self.window_geometry_changed.emit(QRect(*final_rect), {"raw_is_physical": raw_is_physical, "dpi": dpi})
                 self._update_overlay_visibility(ss_win, final_rect)
                     
         except Exception:
@@ -880,6 +914,7 @@ class PPTMonitor(QObject):
         self._worker.window_geometry_changed.connect(self._on_geometry_changed)
         self._worker.overlay_visibility_changed.connect(self.overlay_visibility_changed)
         self._worker.slideshow_hwnd_changed.connect(self.slideshow_hwnd_changed)
+        self.slideshow_hwnd_changed.connect(self._on_slideshow_hwnd_changed)
         self._worker.video_state_changed.connect(self.video_state_changed)
         self._worker.video_state_changed.connect(self._update_local_video_state)
         self._worker.thumbnail_generated.connect(self.thumbnail_generated)
@@ -906,6 +941,7 @@ class PPTMonitor(QObject):
         self._video_pos = 0.0
         self._video_len = 0.0
         self._last_rect_raw = None
+        self._slideshow_hwnd = 0
         
         self._thread.start()
 
@@ -960,50 +996,47 @@ class PPTMonitor(QObject):
         self._total = total
         self.slide_changed.emit(current, total)
 
-    def _on_geometry_changed(self, rect_raw, _):
+    def _on_slideshow_hwnd_changed(self, hwnd):
+        try:
+            self._slideshow_hwnd = int(hwnd or 0)
+        except Exception:
+            self._slideshow_hwnd = 0
+
+    def _on_geometry_changed(self, rect_raw, meta):
         if rect_raw and not rect_raw.isEmpty():
             self._last_rect_raw = QRect(rect_raw)
         x, y, w, h = rect_raw.x(), rect_raw.y(), rect_raw.width(), rect_raw.height()
         cx, cy = x + w // 2, y + h // 2
-        
+        raw_is_qt_units_override = None
+        raw_is_physical = None
+        meta_dpi = 0
+        try:
+            if isinstance(meta, dict) and "raw_is_physical" in meta:
+                raw_is_physical = bool(meta.get("raw_is_physical"))
+                raw_is_qt_units_override = not raw_is_physical
+                meta_dpi = int(meta.get("dpi") or 0)
+        except Exception:
+            raw_is_qt_units_override = None
+            raw_is_physical = None
+            meta_dpi = 0
+
         target_mode = cfg.overlayScreen.value
         screens = QGuiApplication.screens()
-        
+
         ppt_screen = None
-        ppt_p_origin = (0, 0)
-        m_width = 0
-        m_height = 0
-        
         try:
             hmonitor = win32api.MonitorFromPoint((cx, cy), win32con.MONITOR_DEFAULTTONEAREST)
             m_info = win32api.GetMonitorInfo(hmonitor)
             m_name = m_info['Device']
-            ppt_p_origin = (m_info['Monitor'][0], m_info['Monitor'][1])
-            m_width = m_info['Monitor'][2] - m_info['Monitor'][0]
-            m_height = m_info['Monitor'][3] - m_info['Monitor'][1]
-            
-            # 1. Try Name Match
             for s in screens:
                 if s.name() == m_name:
                     ppt_screen = s
                     break
-            
-            # 1.1 Try Fuzzy Name Match
             if not ppt_screen:
                 for s in screens:
                     s_name = s.name().replace('\x00', '').strip()
                     m_name_clean = m_name.replace('\x00', '').strip()
                     if s_name == m_name_clean:
-                        ppt_screen = s
-                        break
-
-            # 2. Try Dimension Match (Fallback)
-            if not ppt_screen:
-                for s in screens:
-                    dpr = s.devicePixelRatio()
-                    sw = s.geometry().width() * dpr
-                    sh = s.geometry().height() * dpr
-                    if abs(sw - m_width) < 10 and abs(sh - m_height) < 10:
                         ppt_screen = s
                         break
         except Exception:
@@ -1036,38 +1069,12 @@ class PPTMonitor(QObject):
                     display_screen = screens[idx]
             except:
                 pass
-        
+
         if not display_screen or target_mode == "Auto":
             display_screen = ppt_screen
 
-        if display_screen and ppt_screen:
-            if display_screen == ppt_screen:
-                dpr = float(ppt_screen.devicePixelRatio() or 1.0)
-                geo = ppt_screen.geometry()
-
-                raw_is_logical = False
-                if dpr > 1.05 and m_width > 0 and m_height > 0:
-                    diff_physical = abs(w - m_width) + abs(h - m_height)
-                    diff_logical = abs((w * dpr) - m_width) + abs((h * dpr) - m_height)
-                    raw_is_logical = diff_logical + 8 < diff_physical
-
-                if raw_is_logical:
-                    rect_logical = QRect(int(x), int(y), int(w), int(h))
-                    if rect_logical.isEmpty() or geo.intersected(rect_logical).isEmpty():
-                        lx = geo.x() + (x - ppt_p_origin[0]) / dpr
-                        ly = geo.y() + (y - ppt_p_origin[1]) / dpr
-                        lw = w / dpr
-                        lh = h / dpr
-                        rect_logical = QRect(int(lx), int(ly), int(lw), int(lh))
-                else:
-                    lx = geo.x() + (x - ppt_p_origin[0]) / dpr
-                    ly = geo.y() + (y - ppt_p_origin[1]) / dpr
-                    lw = w / dpr
-                    lh = h / dpr
-                    rect_logical = QRect(int(lx), int(ly), int(lw), int(lh))
-            else:
-                rect_logical = display_screen.geometry()
-            
+        if display_screen:
+            rect_logical = display_screen.geometry()
             self.window_geometry_changed.emit(rect_logical, display_screen)
         else:
             self.window_geometry_changed.emit(rect_raw, None)
