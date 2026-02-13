@@ -4,11 +4,12 @@
 
 
     
-[![Latest Release](https://img.shields.io/github/v/release/TCYKyousen/Kazuha?style=for-the-badge)](https://github.com/TCYKyousen/Kazuha/releases)
-[![License](https://img.shields.io/github/license/TCYKyousen/Kazuha?style=for-the-badge)](https://github.com/TCYKyousen/Kazuha/blob/main/LICENSE) 
-[![GitHub Stars](https://img.shields.io/github/stars/TCYKyousen/Kazuha?style=for-the-badge&color=yellow)](https://github.com/TCYKyousen/Kazuha/stargazers)
-[![Total Downloads](https://img.shields.io/github/downloads/TCYKyousen/Kazuha/total?style=for-the-badge)](https://github.com/TCYKyousen/Kazuha/releases) 
-[![Open Issues](https://img.shields.io/github/issues-raw/TCYKyousen/Kazuha?style=for-the-badge&color=red)](https://github.com/TCYKyousen/Kazuha/issues)
+[![Latest Release](https://img.shields.io/github/v/release/SECTL/Kazuha?style=for-the-badge)](https://github.com/SECTL/Kazuha/releases)
+[![License](https://img.shields.io/github/license/SECTL/Kazuha?style=for-the-badge)](https://github.com/SECTL/Kazuha/blob/main/LICENSE) 
+[![GitHub Stars](https://img.shields.io/github/stars/SECTL/Kazuha?style=for-the-badge&color=yellow)](https://github.com/SECTL/Kazuha/stargazers)
+[![Total Downloads](https://img.shields.io/github/downloads/SECTL/Kazuha/total?style=for-the-badge)](https://github.com/SECTL/Kazuha/releases) 
+[![Open Issues](https://img.shields.io/github/issues-raw/SECTL/Kazuha?style=for-the-badge&color=red)](https://github.com/SECTL/Kazuha/issues)
+[![QQ Group](https://img.shields.io/badge/-QQ%E7%BE%A4%EF%BD%9C833875216-blue?style=for-the-badge&logo=QQ)](https://qm.qq.com/q/iWcfaPHn7W)
 
 [简体中文](README.md) | [English](README.en.md) | [日本語](README.ja.md)
 
@@ -61,18 +62,14 @@ Kazuha 提供了灵活的自定义义项，您可以根据个人习惯和演示�
 ## 项目概况
 
 <div align="center">
-    <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=TCYKyousen&repo=Kazuha&layout=compact&theme=vision-friendly-light&hide_border=true" alt="Top Languages Chart" />
+    <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=SECTL&repo=Kazuha&layout=compact&theme=vision-friendly-light&hide_border=true" alt="Top Languages Chart" />
 </div>
 
 ---
 
-## 下载与社区
+## 下载
 
-Kazuha 处于长期 **不稳定阶段**，请通过下方链接加入 **QQ 群** 或访问我们的 [Release 页面](https://github.com/TCYKyousen/Kazuha/releases) 获取最新版本。
-
-<div align="center">
-    [![QQ群](https://img.shields.io/badge/-QQ%E7%BE%A4%EF%BD%9C833875216-blue?style=for-the-badge&logo=QQ)](https://qm.qq.com/q/iWcfaPHn7W)
-</div>
+Kazuha 处于长期 **不稳定阶段**，请访问我们的 [Release 页面](https://github.com/SECTL/Kazuha/releases) 获取最新版本。
 
 ---
 
@@ -80,8 +77,8 @@ Kazuha 处于长期 **不稳定阶段**，请通过下方链接加入 **QQ 群**
 感谢所有为 Kazuha 项目做出贡献的人！
 
 <div align="center">
-    <a href="https://github.com/TCYKyousen/Kazuha/graphs/contributors">
-        <img src="https://contrib.rocks/image?repo=TCYKyousen/Kazuha" />
+    <a href="https://github.com/SECTL/Kazuha/graphs/contributors">
+        <img src="https://contrib.rocks/image?repo=SECTL/Kazuha" />
     </a>
 </div>
 
@@ -91,5 +88,5 @@ Kazuha 处于长期 **不稳定阶段**，请通过下方链接加入 **QQ 群**
 
 我们欢迎所有形式的贡献和反馈！
 
-* 这是我的新人作品，欢迎向我提出 [**议题**](https://github.com/TCYKyousen/Kazuha/issues)（提交 Bug 报告或功能请求）。
-* 同时，也欢迎提交 [**拉取请求（Pull Requests）**](https://github.com/TCYKyousen/Kazuha/pulls) 帮助改进代码。
+* 这是我的新人作品，欢迎向我提出 [**议题**](https://github.com/SECTL/Kazuha/issues)（提交 Bug 报告或功能请求）。
+* 同时，也欢迎提交 [**拉取请求（Pull Requests）**](https://github.com/SECTL/Kazuha/pulls) 帮助改进代码。 

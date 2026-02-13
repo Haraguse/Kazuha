@@ -3,11 +3,12 @@
 
 
     
-[![Latest Release](https://img.shields.io/github/v/release/TCYKyousen/Kazuha?style=for-the-badge)](https://github.com/TCYKyousen/Kazuha/releases)
-[![License](https://img.shields.io/github/license/TCYKyousen/Kazuha?style=for-the-badge)](https://github.com/TCYKyousen/Kazuha/blob/main/LICENSE) 
-[![GitHub Stars](https://img.shields.io/github/stars/TCYKyousen/Kazuha?style=for-the-badge&color=yellow)](https://github.com/TCYKyousen/Kazuha/stargazers)
-[![Total Downloads](https://img.shields.io/github/downloads/TCYKyousen/Kazuha/total?style=for-the-badge)](https://github.com/TCYKyousen/Kazuha/releases) 
-[![Open Issues](https://img.shields.io/github/issues-raw/TCYKyousen/Kazuha?style=for-the-badge&color=red)](https://github.com/TCYKyousen/Kazuha/issues)
+[![Latest Release](https://img.shields.io/github/v/release/SECTL/Kazuha?style=for-the-badge)](https://github.com/SECTL/Kazuha/releases)
+[![License](https://img.shields.io/github/license/SECTL/Kazuha?style=for-the-badge)](https://github.com/SECTL/Kazuha/blob/main/LICENSE) 
+[![GitHub Stars](https://img.shields.io/github/stars/SECTL/Kazuha?style=for-the-badge&color=yellow)](https://github.com/SECTL/Kazuha/stargazers)
+[![Total Downloads](https://img.shields.io/github/downloads/SECTL/Kazuha/total?style=for-the-badge)](https://github.com/SECTL/Kazuha/releases) 
+[![Open Issues](https://img.shields.io/github/issues-raw/SECTL/Kazuha?style=for-the-badge&color=red)](https://github.com/SECTL/Kazuha/issues)
+[![QQ Group](https://img.shields.io/badge/-QQ%E7%BE%A4%EF%BD%9C833875216-blue?style=for-the-badge&logo=QQ)](https://qm.qq.com/q/iWcfaPHn7W)
 
 [简体中文](README.md) | [English](README.en.md) | [日本語](README.ja.md)
 
@@ -51,17 +52,28 @@ Kazuha provides flexible customization options so you can tailor it to your habi
 ## Project Overview
 
 <div align="center">
-    <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=TCYKyousen&repo=Kazuha&layout=compact&theme=vision-friendly-light&hide_border=true" alt="Top Languages Chart" />
+    <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=SECTL&repo=Kazuha&layout=compact&theme=vision-friendly-light&hide_border=true" alt="Top Languages Chart" />
 </div>
 
 ---
 
 ## Downloads and Community
 
-Kazuha is in a long-term **unstable stage**. Join our **QQ Group** via the link below or visit the [Release page](https://github.com/TCYKyousen/Kazuha/releases) for the latest version.
+Kazuha is in a long-term **unstable stage**. Join our **QQ Group** via the link below or visit the [Release page](https://github.com/SECTL/Kazuha/releases) for the latest version.
 
 <div align="center">
     [![QQ群](https://img.shields.io/badge/-QQ%E7%BE%A4%EF%BD%9C833875216-blue?style=for-the-badge&logo=QQ)](https://qm.qq.com/q/iWcfaPHn7W)
+</div>
+
+---
+
+## Contributors
+Thanks to everyone who has contributed to the Kazuha project!
+
+<div align="center">
+    <a href="https://github.com/SECTL/Kazuha/graphs/contributors">
+        <img src="https://contrib.rocks/image?repo=SECTL/Kazuha" />
+    </a>
 </div>
 
 ---
@@ -70,5 +82,5 @@ Kazuha is in a long-term **unstable stage**. Join our **QQ Group** via the link 
 
 We welcome all kinds of contributions and feedback!
 
-* This is my first project, feel free to open an [**issue**](https://github.com/TCYKyousen/Kazuha/issues) (bug reports or feature requests).
-* You are also welcome to submit [**pull requests**](https://github.com/TCYKyousen/Kazuha/pulls) to help improve the code.
+* This is my first project, feel free to open an [**issue**](https://github.com/SECTL/Kazuha/issues) (bug reports or feature requests).
+* You are also welcome to submit [**pull requests**](https://github.com/SECTL/Kazuha/pulls) to help improve the code.
