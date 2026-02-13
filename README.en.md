@@ -52,7 +52,7 @@ Kazuha provides flexible customization options so you can tailor it to your habi
 ## Project Overview
 
 <div align="center">
-    <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=SECTL&repo=Kazuha&layout=compact&theme=vision-friendly-light&hide_border=true" alt="Top Languages Chart" />
+    <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=TCYKyousen&repo=Kazuha&layout=compact&theme=vision-friendly-light&hide_border=true" alt="Top Languages Chart" />
 </div>
 
 ---

@@ -62,7 +62,7 @@ Kazuha 提供了灵活的自定义义项，您可以根据个人习惯和演示�
 ## 项目概况
 
 <div align="center">
-    <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=SECTL&repo=Kazuha&layout=compact&theme=vision-friendly-light&hide_border=true" alt="Top Languages Chart" />
+    <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=TCYKyousen&repo=Kazuha&layout=compact&theme=vision-friendly-light&hide_border=true" alt="Top Languages Chart" />
 </div>
 
 ---

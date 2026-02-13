@@ -53,7 +53,7 @@ Kazuha は柔軟なカスタマイズ性を提供し、個人の習慣やプレ�
 ## プロジェクト概要
 
 <div align="center">
-    <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=SECTL&repo=Kazuha&layout=compact&theme=vision-friendly-light&hide_border=true" alt="Top Languages Chart" />
+    <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=TCYKyousen&repo=Kazuha&layout=compact&theme=vision-friendly-light&hide_border=true" alt="Top Languages Chart" />
 </div>
 
 ---
