@@ -374,6 +374,11 @@ class Api(QObject):
             self._window.setWindowTitle(str(title))
 
     @Slot(bool)
+    def set_mini_mode(self, enabled):
+        if self._window:
+            self._window.set_mini_mode(enabled)
+
+    @Slot(bool)
     def set_fullscreen(self, enabled):
         if self._window:
             if enabled:
@@ -941,6 +946,7 @@ class MainWindow(QWebEngineView):
         self._theme_mode = theme_mode
         self._custom_border = custom_border
         self._defer_load = defer_load
+        self._mini_mode = False
         self._pending_url = None
         self._apply_page_background()
         settings = self.page().settings()
@@ -1006,6 +1012,10 @@ class MainWindow(QWebEngineView):
         self._schedule_backdrop_apply()
 
     def _apply_page_background(self):
+        if self._mini_mode:
+            self.page().setBackgroundColor(Qt.transparent)
+            return
+
         is_dark = _resolve_theme_dark(self._theme_mode)
         if is_dark:
             self.page().setBackgroundColor(QColor(24, 24, 24))
@@ -1038,6 +1048,31 @@ body {
         script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
         script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         self.page().scripts().insert(script)
+
+    def set_mini_mode(self, enabled):
+        if self._mini_mode == enabled:
+            return
+        self._mini_mode = enabled
+        if enabled:
+            self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
+            self.setAttribute(Qt.WA_TranslucentBackground)
+            self.resize(220, 220)
+            
+            # Move to top-right corner
+            screen = QApplication.primaryScreen()
+            if screen:
+                geo = screen.availableGeometry()
+                x = geo.x() + geo.width() - 220 - 20
+                y = geo.y() + 20
+                self.move(x, y)
+        else:
+            self.setWindowFlags(Qt.Window)
+            self.setAttribute(Qt.WA_TranslucentBackground, False)
+            self.resize(800, 600)
+            self._center_on_screen()
+        
+        self._apply_page_background()
+        self.show()
 
     def _center_on_screen(self):
         screen = QApplication.primaryScreen()

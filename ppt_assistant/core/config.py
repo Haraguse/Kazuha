@@ -38,7 +38,7 @@ class Config(QConfig):
     showTimer = ConfigItem("Toolbar", "ShowTimer", True, BoolValidator())
     showToolbarText = ConfigItem("Toolbar", "ShowToolbarText", False, BoolValidator())
 
-    showStatusBar = ConfigItem("Overlay", "ShowStatusBar", True, BoolValidator())
+    showStatusBar = ConfigItem("Overlay", "ShowStatusBar", False, BoolValidator())
     clearMode = OptionsConfigItem("Overlay", "ClearMode", "slide", OptionsValidator(["slide", "button"]), restart=False)
     safeArea = RangeConfigItem("Overlay", "SafeArea", 0, RangeValidator(0, 100), restart=False)
     scale = RangeConfigItem("Overlay", "Scale", 1.0, RangeValidator(0.5, 2.0), restart=False)

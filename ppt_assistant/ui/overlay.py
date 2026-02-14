@@ -11,6 +11,14 @@ from PySide6.QtGui import QColor, QRegion, QGuiApplication, QIcon
 from ppt_assistant.core.config import cfg
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.icon_helper import get_file_icon_base64
+import psutil
+import asyncio
+import threading
+try:
+    from winsdk.windows.media.control import GlobalSystemMediaTransportControlsSessionManager
+    WINSDK_AVAILABLE = True
+except ImportError:
+    WINSDK_AVAILABLE = False
 
 PLUGIN_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "plugins", "builtins")
 
@@ -131,8 +139,18 @@ class OverlayWindow(QWebEngineView):
         self._presentation_readonly = False
         self._active_on_slideshow = False
         
+        self._smtc_info = {"status": "", "title": ""}
+        self._smtc_thread = None
+        self._stop_smtc = False
+        if WINSDK_AVAILABLE:
+            self._start_smtc_thread()
+
         self.load_plugins()
         self.bind_config_signals()
+        
+        self.status_timer = QTimer(self)
+        self.status_timer.timeout.connect(self._update_system_status)
+        self.status_timer.start(2000)
         
         screen = QGuiApplication.primaryScreen()
         if screen:
@@ -206,6 +224,99 @@ class OverlayWindow(QWebEngineView):
         js = f"setTheme({'false' if is_light else 'true'}, '{color_str}');"
         self.page().runJavaScript(js)
 
+    def _start_smtc_thread(self):
+        def smtc_loop():
+            async def get_media_info():
+                try:
+                    manager = await GlobalSystemMediaTransportControlsSessionManager.request_async()
+                    session = manager.get_current_session()
+                    if session:
+                        info = await session.try_get_media_properties_async()
+                        title = info.title if info else ""
+                        artist = info.artist if info else ""
+                        status = session.get_playback_info().playback_status
+                        
+                        display_text = title
+                        if artist:
+                            display_text = f"{title} - {artist}"
+                            
+                        # Map status enum to string if needed, or just check value
+                        # 4: Playing, 5: Paused
+                        status_str = "Stopped"
+                        if status == 4:
+                            status_str = "Playing"
+                        elif status == 5:
+                            status_str = "Paused"
+                            
+                        return {"status": status_str, "title": display_text}
+                except Exception:
+                    pass
+                return {"status": "", "title": ""}
+
+            while not self._stop_smtc:
+                try:
+                    info = asyncio.run(get_media_info())
+                    self._smtc_info = info
+                except Exception:
+                    pass
+                # Sleep a bit
+                for _ in range(20):
+                    if self._stop_smtc: break
+                    import time
+                    time.sleep(0.1)
+
+        self._smtc_thread = threading.Thread(target=smtc_loop, daemon=True)
+        self._smtc_thread.start()
+
+    def _update_system_status(self):
+        try:
+            # Battery
+            battery = psutil.sensors_battery()
+            is_desktop = False
+            battery_percent = 100
+            battery_charging = False
+            
+            if battery:
+                battery_percent = int(battery.percent)
+                battery_charging = battery.power_plugged
+            else:
+                is_desktop = True
+                
+            # Network
+            net_stats = psutil.net_if_stats()
+            network_online = False
+            # Check for any active interface (excluding loopback)
+            for iface, stats in net_stats.items():
+                if stats.isup and 'loopback' not in iface.lower():
+                    network_online = True
+                    break
+            
+            # Volume (Placeholder for now as pycaw/comtypes might not be present)
+            volume = -1
+            
+            # SMTC
+            smtc_status = self._smtc_info.get("status", "")
+            smtc_title = self._smtc_info.get("title", "")
+            
+            data = {
+                "is_desktop": is_desktop,
+                "battery_percent": battery_percent,
+                "battery_charging": battery_charging,
+                "network_online": network_online,
+                "volume": volume,
+                "smtc_status": smtc_status,
+                "smtc_title": smtc_title
+            }
+            
+            js = f"if(window.updateSystemStatus) window.updateSystemStatus({json.dumps(data)});"
+            self.page().runJavaScript(js)
+        except Exception as e:
+            print(f"Status update error: {e}")
+
+    def _on_status_bar_visibility_changed(self, visible):
+        js = f"if(window.toggleStatusBar) window.toggleStatusBar({'true' if visible else 'false'});"
+        self.page().runJavaScript(js)
+
     def update_config(self):
         try:
             # Check if C++ object is still valid
@@ -260,6 +371,7 @@ class OverlayWindow(QWebEngineView):
                 })
 
         config_data = {
+            "showStatusBar": cfg.showStatusBar.value,
             "showToolbarText": cfg.showToolbarText.value,
             "toolbarOrder": cfg.toolbarOrder.value,
             "showClear": cfg.showClear.value,
@@ -377,7 +489,9 @@ class OverlayWindow(QWebEngineView):
         self._presentation_readonly = bool(presentation_readonly)
 
     def cleanup(self):
-        pass
+        self._stop_smtc = True
+        if self._smtc_thread:
+            self._smtc_thread.join(timeout=1.0)
         
     def update_geometry(self, rect, screen):
         if screen:
