@@ -4583,19 +4583,26 @@ html, body {
       }
     }
 
-    function finish() {
+    async function finish() {
       if (state.previewMode) return;
-      if (window.pywebview?.api?.save_setting) {
-        window.pywebview.api.save_setting("General", "Language", state.config.language);
-        window.pywebview.api.save_setting("Appearance", "ThemeMode", state.config.theme);
-        window.pywebview.api.save_setting("Appearance", "ThemeId", state.config.themeId);
-        window.pywebview.api.save_setting("General", "RunAtStartup", state.config.runAtStartup);
-        window.pywebview.api.save_setting("Overlay", "Scale", state.config.scale);
-        window.pywebview.api.save_setting("Overlay", "PopWindowScale", state.config.popWindowScale);
-        window.pywebview.api.save_setting("Overlay", "SafeArea", state.config.safeArea);
-      }
-      if (window.pywebview?.api?.on_confirm) {
-        window.pywebview.api.on_confirm();
+      try {
+        if (window.pywebview?.api?.save_setting) {
+          await window.pywebview.api.save_setting("General", "Language", state.config.language);
+          await window.pywebview.api.save_setting("Appearance", "ThemeMode", state.config.theme);
+          await window.pywebview.api.save_setting("Appearance", "ThemeId", state.config.themeId);
+          await window.pywebview.api.save_setting("General", "RunAtStartup", state.config.runAtStartup);
+          await window.pywebview.api.save_setting("Overlay", "Scale", state.config.scale);
+          await window.pywebview.api.save_setting("Overlay", "PopWindowScale", state.config.popWindowScale);
+          await window.pywebview.api.save_setting("Overlay", "SafeArea", state.config.safeArea);
+        }
+        if (window.pywebview?.api?.on_confirm) {
+          await window.pywebview.api.on_confirm();
+        } else {
+          window.close();
+        }
+      } catch (e) {
+        console.error("finish() error:", e);
+        window.close();
       }
     }
 

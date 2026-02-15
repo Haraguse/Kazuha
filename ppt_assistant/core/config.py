@@ -40,6 +40,7 @@ class Config(QConfig):
 
     showStatusBar = ConfigItem("Overlay", "ShowStatusBar", False, BoolValidator())
     clearMode = OptionsConfigItem("Overlay", "ClearMode", "slide", OptionsValidator(["slide", "button"]), restart=False)
+    toolbarPosition = OptionsConfigItem("Overlay", "ToolbarPosition", "bottom", OptionsValidator(["top", "bottom", "left", "right"]), restart=False)
     safeArea = RangeConfigItem("Overlay", "SafeArea", 0, RangeValidator(0, 100), restart=False)
     scale = RangeConfigItem("Overlay", "Scale", 1.0, RangeValidator(0.5, 2.0), restart=False)
     popWindowScale = RangeConfigItem("Overlay", "PopWindowScale", 1.0, RangeValidator(0.5, 3.0), restart=False)
@@ -197,6 +198,7 @@ def _bind_auto_save():
     cfg.showSpotlight.valueChanged.connect(lambda *_: _save_cfg())
     cfg.showTimer.valueChanged.connect(lambda *_: _save_cfg())
     cfg.showStatusBar.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.toolbarPosition.valueChanged.connect(lambda *_: _save_cfg())
     cfg.safeArea.valueChanged.connect(lambda *_: _save_cfg())
     cfg.scale.valueChanged.connect(lambda *_: _save_cfg())
     cfg.autoHandleInk.valueChanged.connect(lambda *_: _save_cfg())

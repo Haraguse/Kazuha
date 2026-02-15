@@ -50,6 +50,13 @@
             
             --overlay-thumb-bg: #FFFFFF;
             --overlay-thumb-icon: #333333;
+
+            --overlay-dialog-mask: rgba(0, 0, 0, 0.2);
+            --overlay-dialog-bg: rgba(255, 255, 255, 0.98);
+            --overlay-dialog-border: rgba(0, 0, 0, 0.08);
+            --overlay-dialog-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+            --overlay-dialog-title: #1a1c1e;
+            --overlay-dialog-text: rgba(0, 0, 0, 0.65);
         }
 
         [data-theme="dark"] {
@@ -96,6 +103,13 @@
             
             --overlay-thumb-bg: #FFFFFF;
             --overlay-thumb-icon: #000000;
+
+            --overlay-dialog-mask: rgba(0, 0, 0, 0.35);
+            --overlay-dialog-bg: rgba(24, 24, 24, 0.96);
+            --overlay-dialog-border: rgba(255, 255, 255, 0.12);
+            --overlay-dialog-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+            --overlay-dialog-title: #FFFFFF;
+            --overlay-dialog-text: rgba(255, 255, 255, 0.68);
         }
 
         body {
@@ -195,6 +209,80 @@
         .flipper:active {
             transform: scale(0.95);
         }
+
+        #ink-prompt {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: var(--overlay-dialog-mask);
+            width: 100vw;
+            height: 100vh;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 9999;
+            pointer-events: auto;
+        }
+
+        #ink-prompt.visible {
+            display: flex;
+        }
+
+        .ink-card {
+            min-width: 320px;
+            max-width: 520px;
+            padding: 22px 24px;
+            border-radius: 16px;
+            background: var(--overlay-dialog-bg);
+            border: 1px solid var(--overlay-dialog-border);
+            box-shadow: var(--overlay-dialog-shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: auto;
+        }
+
+        .ink-title {
+            font-size: 18px;
+            font-weight: 900;
+            color: var(--overlay-dialog-title);
+        }
+
+        .ink-text {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--overlay-dialog-text);
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .ink-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 4px;
+        }
+
+        .ink-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 8px 18px;
+            font-size: 14px;
+            font-weight: 900;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.08);
+            color: var(--overlay-dialog-title);
+        }
+
+        .ink-btn:hover {
+            filter: brightness(1.02);
+        }
+
+        .ink-btn.confirm {
+            background: var(--accent-color);
+            color: #ffffff;
+        }
         
         .flipper-btn {
             width: 38px;
@@ -268,10 +356,67 @@
         }
 
         #toolbar-container {
+            position: absolute;
+            pointer-events: none;
+            z-index: 100;
             display: flex;
-            justify-content: center;
-            padding-bottom: 20px;
+            padding: 20px;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
+
+        /* Bottom Position (Default) */
+        #toolbar-container.pos-bottom {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        /* Top Position */
+        #toolbar-container.pos-top {
+            top: 0;
+            left: 0;
+            right: 0;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* Left Position */
+        #toolbar-container.pos-left {
+            top: 0;
+            bottom: 0;
+            left: 0;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* Right Position */
+        #toolbar-container.pos-right {
+            top: 0;
+            bottom: 0;
+            right: 0;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        /* Adjust toolbar for vertical layout */
+        #toolbar-container.pos-left #toolbar,
+        #toolbar-container.pos-right #toolbar {
+            flex-direction: column;
+            width: auto;
+            height: auto;
+        }
+
+        #toolbar-container.pos-left .separator,
+        #toolbar-container.pos-right .separator {
+            width: 24px;
+            height: 1px;
+            margin: 4px auto;
+        }
+
 
         #toolbar {
             background: var(--overlay-toolbar-bg);
@@ -508,7 +653,7 @@
         #color-picker.visible {
             opacity: 1;
             pointer-events: auto;
-            transform: translateX(-50%) translateY(0);
+            /* transform is handled in JS for scale support */
         }
 
         .color-section-title {
@@ -757,6 +902,17 @@
         </div>
     </div>
 
+    <div id="ink-prompt" class="interactive">
+        <div class="ink-card">
+            <div class="ink-title">是否保留墨迹注释？</div>
+            <div class="ink-text">检测到放映期间添加了墨迹注释，是否保留到幻灯片中？</div>
+            <div class="ink-actions">
+                <button class="ink-btn" onclick="onInkPrompt(false)">不保留</button>
+                <button class="ink-btn confirm" onclick="onInkPrompt(true)">保留</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let bridge = null;
         let currentTool = 'select';
@@ -785,12 +941,162 @@
             else sb.classList.remove('visible');
         }
 
+        function showInkPrompt() {
+            const prompt = document.getElementById('ink-prompt');
+            if (prompt) prompt.classList.add('visible');
+        }
+
+        function hideInkPrompt() {
+            const prompt = document.getElementById('ink-prompt');
+            if (prompt) prompt.classList.remove('visible');
+        }
+
+        function onInkPrompt(keep) {
+            hideInkPrompt();
+            if (bridge && typeof bridge.inkPromptResult === 'function') {
+                bridge.inkPromptResult(!!keep);
+            }
+        }
+
         function updateConfig(config) {
             currentConfig = config;
             
             toggleStatusBar(config.showStatusBar);
 
+            const toolbarContainer = document.getElementById('toolbar-container');
+            if (!toolbarContainer.dataset.maskBound) {
+                toolbarContainer.addEventListener('transitionend', () => scheduleMaskUpdate());
+                toolbarContainer.dataset.maskBound = '1';
+            }
+            
+            // Remove existing position classes
+            toolbarContainer.classList.remove('pos-top', 'pos-bottom', 'pos-left', 'pos-right');
+            
+            // Add new position class
+            const pos = config.toolbarPosition || 'bottom';
+            toolbarContainer.classList.add('pos-' + pos);
+
             const toolbar = document.getElementById('toolbar');
+
+            // Apply Scale and SafeArea
+            const scale = config.scale || 1.0;
+            const safeArea = config.safeArea || 0;
+            
+            toolbar.style.transform = `scale(${scale})`;
+            toolbar.style.transformOrigin = {
+                'bottom': 'center bottom',
+                'top': 'center top',
+                'left': 'left center',
+                'right': 'right center'
+            }[pos] || 'center bottom';
+
+            // Reset margins/padding
+            toolbarContainer.style.paddingBottom = '';
+            toolbarContainer.style.paddingTop = '';
+            toolbarContainer.style.paddingLeft = '';
+            toolbarContainer.style.paddingRight = '';
+
+            if (pos === 'bottom') {
+                toolbarContainer.style.paddingBottom = (20 + safeArea) + 'px';
+            } else if (pos === 'top') {
+                toolbarContainer.style.paddingTop = (20 + safeArea) + 'px';
+            } else if (pos === 'left') {
+                toolbarContainer.style.paddingLeft = (20 + safeArea) + 'px';
+            } else if (pos === 'right') {
+                toolbarContainer.style.paddingRight = (20 + safeArea) + 'px';
+            }
+
+            // Adjust center-area padding to avoid overlap with side toolbar
+            const centerArea = document.getElementById('center-area');
+            if (centerArea) {
+                // Reset horizontal padding (previously added)
+                centerArea.style.paddingLeft = '';
+                centerArea.style.paddingRight = '';
+                
+                // Reset vertical padding
+                centerArea.style.paddingTop = '';
+                centerArea.style.paddingBottom = '';
+                
+                const leftFlipper = document.getElementById('left-flipper');
+                const rightFlipper = document.getElementById('right-flipper');
+                
+                // Reset transforms
+                if (leftFlipper) leftFlipper.style.transform = '';
+                if (rightFlipper) rightFlipper.style.transform = '';
+                
+                // Reset Toolbar Container overrides
+                toolbarContainer.style.justifyContent = '';
+                toolbarContainer.style.paddingTop = '';
+                toolbarContainer.style.paddingBottom = '';
+                
+                if (pos === 'left') {
+                    // Toolbar to Bottom-ish
+                    toolbarContainer.style.justifyContent = 'flex-end';
+                    toolbarContainer.style.paddingBottom = `calc(20px + ${safeArea}px)`;
+                    
+                    // Flipper to Top-ish (via transform)
+                    if (leftFlipper) {
+                        leftFlipper.style.transform = `translateY(-15vh)`;
+                    }
+                } else if (pos === 'right') {
+                    // Toolbar to Bottom-ish
+                    toolbarContainer.style.justifyContent = 'flex-end';
+                    toolbarContainer.style.paddingBottom = `calc(20px + ${safeArea}px)`;
+                    
+                    // Flipper to Top-ish
+                    if (rightFlipper) {
+                        rightFlipper.style.transform = `translateY(-15vh)`;
+                    }
+                }
+            }
+
+            // Apply PopWindowScale & Position
+            const popScale = config.popWindowScale || 1.0;
+            const colorPicker = document.getElementById('color-picker');
+            const eraserSettings = document.getElementById('eraser-settings');
+            
+            [colorPicker, eraserSettings].forEach(el => {
+                if(!el) return;
+                // Reset styles
+                el.style.top = '';
+                el.style.bottom = '';
+                el.style.left = '';
+                el.style.right = '';
+                el.style.transform = '';
+                el.style.transformOrigin = '';
+                
+                // Remove side-layout class by default (though now removed entirely)
+                if (el.id === 'color-picker') el.classList.remove('side-layout');
+                
+                if (pos === 'bottom') {
+                    el.style.top = 'auto';
+                    el.style.bottom = '90px';
+                    el.style.left = '50%';
+                    el.style.transform = `translateX(-50%) scale(${popScale})`;
+                    el.style.transformOrigin = 'center bottom';
+                } else if (pos === 'top') {
+                    // Toolbar at top (0px offset + 20px padding) + ~54px height = ~74px
+                    el.style.top = '90px'; 
+                    el.style.bottom = 'auto';
+                    el.style.left = '50%';
+                    el.style.transform = `translateX(-50%) scale(${popScale})`;
+                    el.style.transformOrigin = 'center top';
+                } else if (pos === 'left') {
+                    el.style.left = '90px';
+                    // Fixed height like bottom
+                    el.style.top = 'auto';
+                    el.style.bottom = '90px';
+                    el.style.transform = `scale(${popScale})`;
+                    el.style.transformOrigin = 'left bottom';
+                } else if (pos === 'right') {
+                    el.style.right = '90px';
+                    // Fixed height like bottom
+                    el.style.top = 'auto';
+                    el.style.bottom = '90px';
+                    el.style.transform = `scale(${popScale})`;
+                    el.style.transformOrigin = 'right bottom';
+                }
+            });
             
 
 
@@ -905,6 +1211,7 @@
 
             
             toolbar.appendChild(endBtn);
+            scheduleMaskUpdate();
         }
 
         function closePopup() {
@@ -1143,6 +1450,12 @@
         });
 
         document.querySelectorAll('.interactive').forEach(el => observer.observe(el));
+
+        function scheduleMaskUpdate() {
+            if (typeof sendMaskUpdate !== 'function') return;
+            requestAnimationFrame(() => requestAnimationFrame(sendMaskUpdate));
+            setTimeout(sendMaskUpdate, 360);
+        }
 
         function sendMaskUpdate() {
             if (!bridge) return;

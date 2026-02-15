@@ -9,7 +9,7 @@ from json import JSONDecodeError
 
 from PySide6.QtWidgets import QApplication, QFileDialog
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineSettings
+from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineSettings, QWebEngineProfile
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QObject, Slot, QUrl, QFile, QIODevice, Qt, QTimer, QBuffer, QByteArray, QJsonValue, QCoreApplication
 from PySide6.QtGui import QColor, QImage, QGuiApplication, QIcon
@@ -118,7 +118,8 @@ def _apply_chromium_flags():
     flags = [
         "--enable-gpu",
         "--ignore-gpu-blocklist",
-        "--enable-zero-copy"
+        "--enable-zero-copy",
+        "--enable-features=BackForwardCache"
     ]
     if _is_windows7():
         flags = [
@@ -130,6 +131,8 @@ def _apply_chromium_flags():
     current = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
     if current:
         merged = current.split()
+        if "--disable-gpu-shader-disk-cache" in merged:
+            merged.remove("--disable-gpu-shader-disk-cache")
         for flag in flags:
             if flag not in merged:
                 merged.append(flag)
@@ -391,6 +394,19 @@ class Api(QObject):
             except Exception:
                 pass
 
+    @Slot(bool)
+    def set_maximized(self, enabled):
+        if self._window:
+            if enabled:
+                self._window.showMaximized()
+            else:
+                self._window.showNormal()
+            try:
+                self._window.raise_()
+                self._window.activateWindow()
+            except Exception:
+                pass
+
     @Slot(result="QVariant")
     def get_settings(self):
         return self.settings
@@ -584,6 +600,79 @@ class Api(QObject):
             return apps
         except Exception:
             return self.get_quick_launch_apps()
+
+    @Slot(str, result="QVariant")
+    def get_taskbar_preview(self, screen_name):
+        screens = QGuiApplication.screens()
+        target_screen = QGuiApplication.primaryScreen()
+        
+        if screen_name and screen_name != "Auto" and screen_name != "Primary":
+            try:
+                parts = screen_name.split(" ")
+                if len(parts) >= 2 and parts[1].isdigit():
+                    idx = int(parts[1]) - 1
+                    if 0 <= idx < len(screens):
+                        target_screen = screens[idx]
+            except Exception:
+                pass
+        
+        if not target_screen:
+            return {"is_visible": False}
+
+        geo = target_screen.geometry()
+        avail = target_screen.availableGeometry()
+        
+        tb_rect = None
+        position = "bottom"
+        size_percent = 0.0
+        
+        if avail.height() < geo.height():
+            diff = geo.height() - avail.height()
+            size_percent = diff / geo.height()
+            if avail.y() > geo.y():
+                position = "top"
+                tb_rect = [geo.x(), geo.y(), geo.width(), diff]
+            else:
+                position = "bottom"
+                tb_rect = [geo.x(), geo.height() - diff + geo.y(), geo.width(), diff]
+        elif avail.width() < geo.width():
+            diff = geo.width() - avail.width()
+            size_percent = diff / geo.width()
+            if avail.x() > geo.x():
+                position = "left"
+                tb_rect = [geo.x(), geo.y(), diff, geo.height()]
+            else:
+                position = "right"
+                tb_rect = [geo.width() - diff + geo.x(), geo.y(), diff, geo.height()]
+        else:
+            return {"is_visible": False}
+            
+        try:
+            pixmap = target_screen.grabWindow(0, tb_rect[0], tb_rect[1], tb_rect[2], tb_rect[3])
+            
+            byte_array = QByteArray()
+            buffer = QBuffer(byte_array)
+            buffer.open(QIODevice.WriteOnly)
+            pixmap.save(buffer, "PNG")
+            base64_data = byte_array.toBase64().data().decode()
+            data_url = f"data:image/png;base64,{base64_data}"
+            
+            return {
+                "image": data_url,
+                "position": position,
+                "size_percent": size_percent,
+                "is_visible": True
+            }
+        except Exception as e:
+            print(f"Taskbar capture error: {e}")
+            return {"is_visible": False}
+
+    @Slot(result=str)
+    def get_wallpaper_path(self):
+        path = _get_wallpaper_path()
+        if path:
+             return _image_path_to_data_url(path)
+        return ""
 
     @Slot(str, str, QJsonValue)
     def save_setting(self, category, key, value):
@@ -932,6 +1021,48 @@ class Api(QObject):
                 print(f"Error getting screens: {e}", file=sys.stderr)
         return screens
 
+_QWEBCHANNEL_JS_CACHE = None
+
+def _get_qwebchannel_js():
+    global _QWEBCHANNEL_JS_CACHE
+    if _QWEBCHANNEL_JS_CACHE is not None:
+        return _QWEBCHANNEL_JS_CACHE
+    
+    js = ""
+    f = QFile(":/qtwebchannel/qwebchannel.js")
+    if f.open(QIODevice.OpenModeFlag.ReadOnly):
+        try:
+            # PySide6: readAll returns QByteArray, convert to bytes then string
+            js = f.readAll().data().decode('utf-8')
+        except Exception:
+            try:
+                # Fallback for older versions
+                js = str(f.readAll(), "utf-8")
+            except Exception:
+                pass
+        f.close()
+    
+    shim_js = """
+    new QWebChannel(qt.webChannelTransport, function(channel) {
+        window.pywebview = {
+            api: new Proxy(channel.objects.api, {
+                get: function(target, prop) {
+                    return function(...args) {
+                        return new Promise((resolve, reject) => {
+                            target[prop](...args, function(result) {
+                                resolve(result);
+                            });
+                        });
+                    }
+                }
+            })
+        };
+        window.dispatchEvent(new Event('pywebviewready'));
+    });
+    """
+    _QWEBCHANNEL_JS_CACHE = js + shim_js
+    return _QWEBCHANNEL_JS_CACHE
+
 class MainWindow(QWebEngineView):
     def __init__(self, title, url, api, width, height, theme_mode="auto", custom_border=False, defer_load=False):
         super().__init__()
@@ -956,36 +1087,24 @@ class MainWindow(QWebEngineView):
         settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.ScrollAnimatorEnabled, True)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.AutoLoadImages, True)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, False)
+
+        # Configure disk cache
+        profile = self.page().profile()
+        cache_path = os.path.join(tempfile.gettempdir(), "kazuha_webengine_cache")
+        profile.setCachePath(cache_path)
+        profile.setPersistentStoragePath(cache_path)
+        profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
+        profile.setHttpCacheMaximumSize(50 * 1024 * 1024)  # 50 MB
         self.api = api
         self.api.set_window(self)
         self.channel = QWebChannel()
         self.channel.registerObject("api", api)
         self.page().setWebChannel(self.channel)
-        qwebchannel_js = ""
-        f = QFile(":/qtwebchannel/qwebchannel.js")
-        if f.open(QIODevice.OpenModeFlag.ReadOnly):
-            qwebchannel_js = str(f.readAll(), "utf-8")
-            f.close()
-        shim_js = """
-        new QWebChannel(qt.webChannelTransport, function(channel) {
-            window.pywebview = {
-                api: new Proxy(channel.objects.api, {
-                    get: function(target, prop) {
-                        return function(...args) {
-                            return new Promise((resolve, reject) => {
-                                target[prop](...args, function(result) {
-                                    resolve(result);
-                                });
-                            });
-                        }
-                    }
-                })
-            };
-            window.dispatchEvent(new Event('pywebviewready'));
-        });
-        """
+        
         script = QWebEngineScript()
-        script.setSourceCode(qwebchannel_js + shim_js)
+        script.setSourceCode(_get_qwebchannel_js())
         script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
         script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         self.page().scripts().insert(script)

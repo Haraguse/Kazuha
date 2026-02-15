@@ -174,8 +174,7 @@ class SpotlightWindow(QWidget):
         self.setWindowFlags(
             Qt.FramelessWindowHint | 
             Qt.WindowStaysOnTopHint | 
-            Qt.Tool |
-            Qt.WindowDoesNotAcceptFocus
+            Qt.Tool
         )
         self.setAttribute(Qt.WA_TranslucentBackground)
 
@@ -207,6 +206,12 @@ class SpotlightWindow(QWidget):
         # 全屏覆盖
         self.update_geometry()
         self.capture_screen()
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.close()
+        else:
+            super().keyPressEvent(event)
 
     def update_geometry(self):
         screen = QApplication.primaryScreen().geometry()

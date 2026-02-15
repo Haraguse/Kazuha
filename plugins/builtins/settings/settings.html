@@ -975,6 +975,24 @@
       position: relative;
     }
 
+    .inline-settings {
+      gap: 0;
+    }
+
+    .inline-settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 0;
+    }
+
+    .inline-settings-divider {
+      width: 100%;
+      height: 1px;
+      background: var(--divider);
+    }
+
     .settings-item:first-child {
       border-top-left-radius: 12px;
       border-top-right-radius: 12px;
@@ -3261,7 +3279,287 @@
       font-weight: 500;
     }
 
-  </style>
+    /* Screen Preview Styles */
+    .screen-preview-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 20px;
+      background: var(--bg-surface);
+      border-radius: 12px;
+      border: 1px solid var(--divider);
+    }
+
+    .screen-preview {
+      position: relative;
+      width: 320px;
+      height: 180px;
+      background: var(--bg-app);
+      border: 2px solid var(--divider);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .screen-content {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .ppt-slide {
+      background: var(--text-secondary);
+      height: 8px;
+      border-radius: 4px;
+      width: 60%;
+    }
+    .ppt-slide:nth-child(2) { width: 80%; }
+    .ppt-slide:nth-child(3) { width: 40%; }
+
+    .pos-area {
+      position: absolute;
+      background: rgba(50, 117, 245, 0.05);
+      transition: all 0.2s;
+      cursor: pointer;
+      z-index: 1;
+    }
+    
+    .pos-area:hover {
+      background: rgba(50, 117, 245, 0.15);
+    }
+
+    .pos-top { top: 0; left: 0; right: 0; height: 40px; }
+    .pos-bottom { bottom: 0; left: 0; right: 0; height: 40px; }
+    .pos-left { top: 40px; bottom: 40px; left: 0; width: 60px; }
+    .pos-right { top: 40px; bottom: 40px; right: 0; width: 60px; }
+
+    .toolbar-indicator {
+      position: absolute;
+      z-index: 2;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .toolbar-pill {
+      background: var(--accent-blue);
+      border-radius: 99px;
+      box-shadow: 0 4px 12px rgba(50, 117, 245, 0.3);
+    }
+
+    /* Indicator Positions */
+    .toolbar-indicator.pos-top {
+      top: 12px; left: 50%; transform: translateX(-50%);
+    }
+    .toolbar-indicator.pos-top .toolbar-pill {
+      width: 120px; height: 16px;
+    }
+
+    .toolbar-indicator.pos-bottom {
+      bottom: 12px; left: 50%; transform: translateX(-50%);
+    }
+    .toolbar-indicator.pos-bottom .toolbar-pill {
+      width: 120px; height: 16px;
+    }
+
+    .toolbar-indicator.pos-left {
+      left: 12px; top: 50%; transform: translateY(-50%);
+    }
+    .toolbar-indicator.pos-left .toolbar-pill {
+      width: 16px; height: 120px;
+    }
+
+    .toolbar-indicator.pos-right {
+      right: 12px; top: 50%; transform: translateY(-50%);
+    }
+    .toolbar-indicator.pos-right .toolbar-pill {
+      width: 16px; height: 120px;
+    }
+
+    .position-labels {
+      display: flex;
+      gap: 12px;
+    }
+
+    .pos-label {
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      border: 1px solid var(--divider);
+      transition: all 0.2s;
+    }
+
+    .pos-label:hover {
+      background: var(--item-hover);
+    }
+
+    .pos-label.active {
+      background: var(--accent-blue);
+      color: white;
+      border-color: var(--accent-blue);
+    }
+
+    /* Gradient blur overlay */
+    .content-blur-overlay {
+      position: sticky;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      mask-image: linear-gradient(to bottom, black 20%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, black 20%, transparent 100%);
+      z-index: 99;
+      pointer-events: none;
+      flex-shrink: 0;
+      margin-bottom: -60px;
+    }
+
+    /* Content wrapper for padding */
+    .content-body {
+      padding: 32px 48px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Override content padding */
+    .content {
+      padding: 0 !important;
+      overflow-x: hidden;
+    }
+
+  .monet-wallpaper-frame {
+      background: var(--bg-app);
+      transition: all 0.3s;
+    }
+  
+    .monet-wallpaper-screen {
+      --taskbar-offset-bottom: 12%;
+      --taskbar-offset-top: 0px;
+      --taskbar-offset-left: 0px;
+      --taskbar-offset-right: 0px;
+    }
+
+    .toolbar-indicator {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      pointer-events: none;
+    }
+
+    .toolbar-pill {
+      background: var(--bg-surface);
+      border: 1px solid var(--divider);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      border-radius: 999px;
+      width: 30%; 
+      height: 16px;
+      transition: all 0.3s;
+      position: relative;
+    }
+    
+    .toolbar-pill::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 60%;
+        height: 2px;
+        background: var(--text-secondary);
+        border-radius: 2px;
+        opacity: 0.3;
+    }
+
+    .toolbar-indicator.pos-bottom {
+      bottom: calc(var(--taskbar-offset-bottom, 12%) + 10px);
+      left: var(--taskbar-offset-left, 0px);
+      right: var(--taskbar-offset-right, 0px);
+      justify-content: center;
+    }
+
+    .toolbar-indicator.pos-top {
+      top: calc(var(--taskbar-offset-top, 0px) + 10px);
+      left: var(--taskbar-offset-left, 0px);
+      right: var(--taskbar-offset-right, 0px);
+      justify-content: center;
+    }
+
+    .toolbar-indicator.pos-left {
+      top: var(--taskbar-offset-top, 0px);
+      bottom: var(--taskbar-offset-bottom, 0px);
+      left: calc(var(--taskbar-offset-left, 0px) + 10px);
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .toolbar-indicator.pos-right {
+      top: var(--taskbar-offset-top, 0px);
+      bottom: var(--taskbar-offset-bottom, 0px);
+      right: calc(var(--taskbar-offset-right, 0px) + 10px);
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .toolbar-indicator.pos-left .toolbar-pill,
+    .toolbar-indicator.pos-right .toolbar-pill {
+      width: 16px;
+      height: 30%;
+    }
+    
+    .toolbar-indicator.pos-left .toolbar-pill::after,
+    .toolbar-indicator.pos-right .toolbar-pill::after {
+        width: 2px;
+        height: 60%;
+    }
+
+    .preview-taskbar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 12%;
+      background: rgba(30, 30, 30, 0.85);
+      backdrop-filter: blur(4px);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    
+    .preview-taskbar-icon {
+      width: 12px;
+      height: 12px;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 2px;
+      transition: all 0.2s;
+    }
+    
+    .preview-taskbar-icon.start {
+      background: rgba(0, 120, 215, 0.8);
+    }
+    
+    .toolbar-indicator.pos-left .toolbar-pill::after,
+    .toolbar-indicator.pos-right .toolbar-pill::after {
+        width: 2px;
+        height: 60%;
+    }
+
+    </style>
 </head>
 
 <body>
@@ -3323,6 +3621,12 @@
         </svg>
         <span data-i18n="nav.boardInBoard">板中板</span>
       </div>
+      <div class="sidebar-item" data-section="window">
+        <svg class="sidebar-icon" viewBox="0 0 24 24">
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-9-2h2V7h-2v10z"/>
+        </svg>
+        <span data-i18n="nav.window">窗口</span>
+      </div>
       <div class="sidebar-item" data-section="about">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="10" />
@@ -3343,6 +3647,8 @@
     <div id="dev-watermark" class="dev-watermark" style="display: none;"></div>
 
     <div class="content" id="content">
+      <div class="content-blur-overlay"></div>
+      <div class="content-body">
       <div class="page-title" id="section-title" data-i18n="section.main">主程序</div>
 
       <div class="section active" id="section-main">
@@ -3660,21 +3966,6 @@
           </div>
           <div class="settings-item">
             <div class="item-info">
-              <span class="item-label" data-i18n="general.overlayScreen.label">显示屏幕</span>
-              <span class="item-desc" data-i18n="general.overlayScreen.desc">选择工具栏显示的显示器（多屏幕环境）</span>
-            </div>
-            <div class="item-state">
-              <select class="styled-select" id="sel-Overlay-OverlayScreen" onchange="setOverlayScreen(this.value)">
-                <option value="Auto" data-i18n="general.overlayScreen.auto">自动识别</option>
-                <option value="Primary" data-i18n="general.overlayScreen.primary">主显示器</option>
-                <option value="Screen 1" data-i18n="general.overlayScreen.screen1">显示器 1</option>
-                <option value="Screen 2" data-i18n="general.overlayScreen.screen2">显示器 2</option>
-                <option value="Screen 3" data-i18n="general.overlayScreen.screen3">显示器 3</option>
-              </select>
-            </div>
-          </div>
-          <div class="settings-item">
-            <div class="item-info">
               <span class="item-label" data-i18n="overlay.clearMode.label">清屏模式</span>
               <span class="item-desc">
                 <span data-i18n="overlay.clearMode.desc">选择清屏方式</span>
@@ -3698,30 +3989,6 @@
               <span class="item-desc" data-i18n="interaction.showStatusBar.desc">在悬浮窗顶部显示时间与状态</span>
             </div>
             <div class="switch" id="sw-Overlay-ShowStatusBar"></div>
-          </div>
-          <div class="settings-item">
-            <div class="item-info">
-              <span class="item-label" data-i18n="overlay.safeArea.label">屏幕内安全区</span>
-              <span class="item-desc" data-i18n="overlay.safeArea.desc">调整组件与屏幕边缘的距离</span>
-            </div>
-            <div class="item-state">
-              <div class="slider-container">
-                <input type="range" id="range-Overlay-SafeArea" min="0" max="100" step="1" oninput="updateRangeValue('Overlay', 'SafeArea', this.value)" onchange="saveRangeValue('Overlay', 'SafeArea', this.value)">
-                <span class="slider-value" id="val-Overlay-SafeArea">0px</span>
-              </div>
-            </div>
-          </div>
-          <div class="settings-item">
-            <div class="item-info">
-              <span class="item-label" data-i18n="overlay.scale.label">组件缩放倍率</span>
-              <span class="item-desc" data-i18n="overlay.scale.desc">调整悬浮窗组件的整体显示大小</span>
-            </div>
-            <div class="item-state">
-              <div class="slider-container">
-                <input type="range" id="range-Overlay-Scale" min="0.5" max="2.0" step="0.05" oninput="updateRangeValue('Overlay', 'Scale', this.value)" onchange="saveRangeValue('Overlay', 'Scale', this.value)">
-                <span class="slider-value" id="val-Overlay-Scale">1.00x</span>
-              </div>
-            </div>
           </div>
           <div class="settings-item">
             <div class="item-info">
@@ -3822,6 +4089,111 @@
               data-i18n="interaction.toolbar.removeApp" disabled>删除软件</button>
             <button id="toolbar-add-btn" class="btn btn-confirm" type="button"
               data-i18n="interaction.toolbar.addApp">添加软件</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="section-window">
+        <div class="group-title" data-i18n="group.window">窗口设置</div>
+        <div class="settings-group">
+          <div class="settings-item">
+            <div class="item-info">
+              <span class="item-label" data-i18n="general.overlayScreen.label">显示屏幕</span>
+              <span class="item-desc" data-i18n="general.overlayScreen.desc">选择工具栏显示的显示器（多屏幕环境）</span>
+            </div>
+            <div class="item-state">
+              <select class="styled-select" id="sel-Overlay-OverlayScreen" onchange="setOverlayScreen(this.value)">
+                <option value="Auto" data-i18n="general.overlayScreen.auto">自动识别</option>
+                <option value="Primary" data-i18n="general.overlayScreen.primary">主显示器</option>
+                <option value="Screen 1" data-i18n="general.overlayScreen.screen1">显示器 1</option>
+                <option value="Screen 2" data-i18n="general.overlayScreen.screen2">显示器 2</option>
+                <option value="Screen 3" data-i18n="general.overlayScreen.screen3">显示器 3</option>
+              </select>
+            </div>
+          </div>
+          <div class="settings-item" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 40px; padding: 24px 20px;">
+            <div style="flex: 1 1 360px; max-width: 480px; display: flex; flex-direction: column; gap: 12px;">
+              <div class="monet-wallpaper-frame" style="width: 100%; aspect-ratio: 16/9; max-width: 480px; position: relative; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border: 1px solid var(--divider);">
+                  <div class="monet-wallpaper-screen" id="preview-wallpaper-screen" style="position: relative; width: 100%; height: 100%;">
+                       <img id="preview-wallpaper-img" alt="wallpaper" style="width: 100%; height: 100%; object-fit: cover; display: none;" />
+                       <div id="preview-wallpaper-placeholder" style="width: 100%; height: 100%; background: var(--bg-app); display: flex; align-items: center; justify-content: center;">
+                          <div style="width: 60%; height: 8px; background: var(--text-secondary); border-radius: 4px; opacity: 0.3;"></div>
+                       </div>
+
+                       <img id="preview-taskbar-real" class="preview-taskbar-real" style="display: none; position: absolute; z-index: 5; object-fit: fill;">
+                       <div class="preview-taskbar">
+                          <div class="preview-taskbar-icon start"></div>
+                          <div class="preview-taskbar-icon"></div>
+                          <div class="preview-taskbar-icon"></div>
+                          <div class="preview-taskbar-icon"></div>
+                       </div>
+
+                       <div id="toolbar-indicator" class="toolbar-indicator pos-bottom">
+                            <div class="toolbar-pill"></div>
+                       </div>
+                  </div>
+              </div>
+              <div style="font-size: 12px; color: var(--text-secondary); opacity: 0.7;">
+                 * 预览效果仅供参考，实际显示取决于屏幕分辨率
+              </div>
+            </div>
+            <div class="inline-settings" style="flex: 1 1 360px; min-width: 300px; display: flex; flex-direction: column;">
+              <div class="inline-settings-row">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="window.toolbarPosition.label">工具栏位置</span>
+                  <span class="item-desc" data-i18n="window.toolbarPosition.desc">调整工具栏在屏幕上的位置</span>
+                </div>
+                <div class="item-state">
+                  <select class="styled-select" id="sel-Overlay-ToolbarPosition" onchange="setToolbarPosition(this.value)">
+                    <option value="bottom" data-i18n="window.position.bottom">底部</option>
+                    <option value="top" data-i18n="window.position.top">顶部</option>
+                    <option value="left" data-i18n="window.position.left">左侧</option>
+                    <option value="right" data-i18n="window.position.right">右侧</option>
+                  </select>
+                </div>
+              </div>
+              <div class="inline-settings-divider"></div>
+              <div class="inline-settings-row">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="overlay.safeArea.label">屏幕内安全区</span>
+                  <span class="item-desc" data-i18n="overlay.safeArea.desc">调整组件与屏幕边缘的距离</span>
+                </div>
+                <div class="item-state">
+                  <div class="slider-container">
+                    <input type="range" id="range-Overlay-SafeArea" min="0" max="100" step="1" oninput="updateRangeValue('Overlay', 'SafeArea', this.value)" onchange="saveRangeValue('Overlay', 'SafeArea', this.value)">
+                    <span class="slider-value" id="val-Overlay-SafeArea">0px</span>
+                  </div>
+                </div>
+              </div>
+              <div class="inline-settings-divider"></div>
+              <div class="inline-settings-row">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="overlay.scale.label">组件缩放倍率</span>
+                  <span class="item-desc" data-i18n="overlay.scale.desc">调整悬浮窗组件的整体显示大小</span>
+                </div>
+                <div class="item-state">
+                  <div class="slider-container">
+                    <input type="range" id="range-Overlay-Scale" min="0.5" max="2.0" step="0.05" oninput="updateRangeValue('Overlay', 'Scale', this.value)" onchange="saveRangeValue('Overlay', 'Scale', this.value)">
+                    <span class="slider-value" id="val-Overlay-Scale">1.00x</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="group-title" data-i18n="group.timer">计时器</div>
+        <div class="settings-group">
+          <div class="settings-item">
+            <div class="item-info">
+              <span class="item-label" data-i18n="window.timerFullscreenBehavior.label">计时器全屏行为</span>
+              <span class="item-desc" data-i18n="window.timerFullscreenBehavior.desc">设置计时器进入全屏时的窗口模式</span>
+            </div>
+            <div class="item-state">
+              <div class="theme-select" id="timer-fullscreen-behavior">
+                <div class="theme-option" data-value="fullscreen" onclick="setTimerFullscreenBehavior('fullscreen')" data-i18n="window.timerFullscreenBehavior.fullscreen">全屏切换</div>
+                <div class="theme-option" data-value="maximize" onclick="setTimerFullscreenBehavior('maximize')" data-i18n="window.timerFullscreenBehavior.maximize">最大化</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -4130,6 +4502,7 @@
           </div>
         </div>
       </div>
+      </div> <!-- end of content-body -->
     </div> <!-- end of content -->
   </div> <!-- end of layout -->
 
@@ -4283,6 +4656,7 @@
       "nav.fonts": "全局应用字体",
       "nav.overlay": "放映",
       "nav.about": "关于",
+      "nav.window": "窗口",
       "nav.plugins": "工具栏",
       "nav.debug": "调试",
       "nav.back": "返回",
@@ -4291,6 +4665,7 @@
       "section.theme": "主题",
       "section.fonts": "全局应用字体",
       "section.overlay": "放映",
+      "section.window": "窗口",
       "section.plugins": "工具栏",
       "section.board-in-board": "板中板",
       "section.about": "关于",
@@ -4303,8 +4678,20 @@
       "group.presentation": "放映",
       "group.overlayUi": "顶层窗口",
       "group.toolbar.display": "工具栏显示",
+      "group.timer": "计时器",
       "group.boardInBoard": "板中板",
+      "group.window": "窗口设置",
       "group.debugOptions": "调试选项",
+      "window.toolbarPosition.label": "工具栏位置",
+      "window.toolbarPosition.desc": "调整工具栏在屏幕上的位置",
+      "window.timerFullscreenBehavior.label": "计时器全屏行为",
+      "window.timerFullscreenBehavior.desc": "设置计时器进入全屏时的窗口模式",
+      "window.timerFullscreenBehavior.fullscreen": "全屏切换",
+      "window.timerFullscreenBehavior.maximize": "最大化",
+      "window.position.top": "顶部",
+      "window.position.bottom": "底部",
+      "window.position.left": "左侧",
+      "window.position.right": "右侧",
       "fonts.scene.web.label": "网页界面",
       "fonts.scene.web.desc": "设置 / 计时器 / Dialog",
       "fonts.scene.qt.label": "主程序界面",
@@ -4518,6 +4905,11 @@
       "group.presentation": "放映",
       "group.overlayUi": "頂層視窗",
       "group.toolbar.display": "工具列顯示",
+      "group.timer": "計時器",
+      "window.timerFullscreenBehavior.label": "計時器全螢幕行為",
+      "window.timerFullscreenBehavior.desc": "設定計時器進入全螢幕時的視窗模式",
+      "window.timerFullscreenBehavior.fullscreen": "全螢幕切換",
+      "window.timerFullscreenBehavior.maximize": "最大化",
       "group.boardInBoard": "板中板",
       "group.debugOptions": "偵錯選項",
       "fonts.scene.web.label": "網頁介面",
@@ -4718,6 +5110,11 @@
       "group.presentation": "放映",
       "group.overlayUi": "頂層視窗",
       "group.toolbar.display": "工具列顯示",
+      "group.timer": "計時器",
+      "window.timerFullscreenBehavior.label": "計時器全螢幕行為",
+      "window.timerFullscreenBehavior.desc": "設定計時器進入全螢幕時嘅視窗模式",
+      "window.timerFullscreenBehavior.fullscreen": "全螢幕切換",
+      "window.timerFullscreenBehavior.maximize": "最大化",
       "group.boardInBoard": "板中板",
       "group.debugOptions": "偵錯選項",
       "fonts.scene.web.label": "網頁介面",
@@ -4898,6 +5295,11 @@
       "group.presentation": "プレゼン",
       "group.overlayUi": "オーバーレイ UI",
       "group.toolbar.display": "ツールバー表示",
+      "group.timer": "タイマー",
+      "window.timerFullscreenBehavior.label": "タイマー全画面動作",
+      "window.timerFullscreenBehavior.desc": "タイマーを全画面にする時のウィンドウモードを選択",
+      "window.timerFullscreenBehavior.fullscreen": "全画面切替",
+      "window.timerFullscreenBehavior.maximize": "最大化",
       "group.boardInBoard": "ボードインボード",
       "group.debugOptions": "デバッグオプション",
       "fonts.scene.web.label": "ウェブインターフェース",
@@ -5084,6 +5486,7 @@
       "nav.fonts": "Global Fonts",
       "nav.overlay": "Presentation",
       "nav.about": "About",
+      "nav.window": "Window",
       "nav.plugins": "Toolbar",
       "nav.boardInBoard": "Board in Board",
       "nav.debug": "Debug",
@@ -5092,6 +5495,7 @@
       "section.theme": "Theme",
       "section.fonts": "Global Fonts",
       "section.overlay": "Presentation",
+      "section.window": "Window",
       "section.plugins": "Toolbar",
       "section.board-in-board": "Board in Board",
       "section.about": "About",
@@ -5103,8 +5507,20 @@
       "group.presentation": "Presentation",
       "group.overlayUi": "Overlay UI",
       "group.toolbar.display": "Toolbar Display",
+      "group.timer": "Timer",
       "group.boardInBoard": "Board in Board",
+      "group.window": "Window Settings",
       "group.debugOptions": "Debug Options",
+      "window.toolbarPosition.label": "Toolbar Position",
+      "window.toolbarPosition.desc": "Adjust the position of the toolbar on the screen",
+      "window.timerFullscreenBehavior.label": "Timer Fullscreen Behavior",
+      "window.timerFullscreenBehavior.desc": "Choose how the timer enters fullscreen",
+      "window.timerFullscreenBehavior.fullscreen": "Fullscreen switch",
+      "window.timerFullscreenBehavior.maximize": "Maximize",
+      "window.position.top": "Top",
+      "window.position.bottom": "Bottom",
+      "window.position.left": "Left",
+      "window.position.right": "Right",
       "fonts.scene.web.label": "Web Interface",
       "fonts.scene.web.desc": "Settings / Timers / Dialogs",
       "fonts.scene.qt.label": "Main Program",
@@ -6384,12 +6800,206 @@
     }
   };
 
+  let taskbarRefreshTimer = null;
+  let taskbarInfoCache = {
+    is_visible: false,
+    position: "bottom",
+    size_percent: 0
+  };
+
   function setOverlayScreen(value) {
     if (!settings.Overlay) settings.Overlay = {};
     settings.Overlay.OverlayScreen = value;
     if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
       window.pywebview.api.save_setting("Overlay", "OverlayScreen", value);
     }
+    updateTaskbarPreview();
+  }
+
+  function updateTaskbarPreview() {
+    const screenSel = document.getElementById("sel-Overlay-OverlayScreen");
+    const screenName = screenSel ? screenSel.value : "Auto";
+    const screenEl = document.getElementById("preview-wallpaper-screen");
+    
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.get_taskbar_preview) {
+        window.pywebview.api.get_taskbar_preview(screenName).then(res => {
+            const img = document.getElementById("preview-taskbar-real");
+            const fake = document.querySelector(".preview-taskbar");
+            if (!img) return;
+            
+            if (res && res.is_visible && res.image) {
+                taskbarInfoCache = {
+                  is_visible: true,
+                  position: res.position || "bottom",
+                  size_percent: res.size_percent || 0
+                };
+                img.src = res.image;
+                img.style.display = "block";
+                if (fake) fake.style.display = "none";
+                
+                img.style.top = ""; img.style.bottom = ""; img.style.left = ""; img.style.right = "";
+                img.style.width = ""; img.style.height = "";
+                
+                const pct = (res.size_percent * 100) + "%";
+                
+                if (res.position === "bottom") {
+                    img.style.bottom = "0"; img.style.left = "0"; img.style.right = "0";
+                    img.style.height = pct; img.style.width = "100%";
+                } else if (res.position === "top") {
+                    img.style.top = "0"; img.style.left = "0"; img.style.right = "0";
+                    img.style.height = pct; img.style.width = "100%";
+                } else if (res.position === "left") {
+                    img.style.left = "0"; img.style.top = "0"; img.style.bottom = "0";
+                    img.style.width = pct; img.style.height = "100%";
+                } else if (res.position === "right") {
+                    img.style.right = "0"; img.style.top = "0"; img.style.bottom = "0";
+                    img.style.width = pct; img.style.height = "100%";
+                }
+            } else {
+                taskbarInfoCache = {
+                  is_visible: false,
+                  position: "bottom",
+                  size_percent: 0
+                };
+                img.style.display = "none";
+                if (fake) fake.style.display = "flex";
+            }
+            updateToolbarIndicatorPosition();
+        });
+    }
+  }
+
+  function updateToolbarIndicatorPosition() {
+    const indicator = document.getElementById("toolbar-indicator");
+    const pill = indicator ? indicator.querySelector(".toolbar-pill") : null;
+    const screenEl = document.getElementById("preview-wallpaper-screen");
+    if (!indicator || !pill || !screenEl) return;
+
+    const screenW = screenEl.clientWidth;
+    const screenH = screenEl.clientHeight;
+    if (!screenW || !screenH) return;
+
+    const pos = (settings.Overlay && settings.Overlay.ToolbarPosition) || "bottom";
+    const scale = (settings.Overlay && settings.Overlay.Scale) || 1.0;
+    const safeArea = (settings.Overlay && settings.Overlay.SafeArea) || 0;
+    
+    // Scale safeArea proportionally to preview size (assuming 1920x1080 reference)
+    const scaleRatio = screenW / 1920; 
+    const scaledSafeArea = safeArea * scaleRatio;
+
+    let bottomOffset = 0;
+
+    if (taskbarInfoCache.is_visible) {
+      if (taskbarInfoCache.position === "bottom") {
+        bottomOffset = screenH * taskbarInfoCache.size_percent;
+      }
+    }
+
+    const padding = 10;
+    const availX = 0;
+    const availY = 0;
+    const availW = Math.max(0, screenW);
+    const availH = Math.max(0, screenH - bottomOffset);
+
+    // Apply scale to pill
+    pill.style.transform = `scale(${scale})`;
+    
+    if (pos === "top" || pos === "bottom") {
+      const pillWidth = Math.max(80, availW * 0.3);
+      const pillHeight = 16;
+      pill.style.width = `${pillWidth}px`;
+      pill.style.height = `${pillHeight}px`;
+      indicator.style.width = `${pillWidth}px`;
+      indicator.style.height = `${pillHeight}px`;
+      indicator.style.left = "50%";
+      indicator.style.transform = "translateX(-50%)";
+      indicator.style.right = "auto";
+      indicator.style.top = pos === "top" ? `${padding + scaledSafeArea}px` : "auto";
+      indicator.style.bottom = pos === "bottom" ? `${bottomOffset + padding + scaledSafeArea}px` : "auto";
+      indicator.style.flexDirection = "row";
+    } else {
+      const pillWidth = 16;
+      const pillHeight = Math.max(80, availH * 0.3);
+      pill.style.width = `${pillWidth}px`;
+      pill.style.height = `${pillHeight}px`;
+      indicator.style.width = `${pillWidth}px`;
+      indicator.style.height = `${pillHeight}px`;
+      indicator.style.transform = "translateX(0)";
+      indicator.style.left = pos === "left" ? `${padding + scaledSafeArea}px` : "auto";
+      indicator.style.right = pos === "right" ? `${padding + scaledSafeArea}px` : "auto";
+      indicator.style.top = `${(availH - pillHeight) / 2}px`;
+      indicator.style.bottom = "auto";
+      indicator.style.flexDirection = "column";
+    }
+  }
+
+  function setToolbarPosition(pos) {
+    const sel = document.getElementById("sel-Overlay-ToolbarPosition");
+    if (sel && sel.value !== pos) {
+        sel.value = pos;
+        refreshCustomSelect(sel);
+    }
+
+    const indicator = document.getElementById('toolbar-indicator');
+    if (indicator) {
+      indicator.classList.remove('pos-top', 'pos-bottom', 'pos-left', 'pos-right');
+      indicator.classList.add(`pos-${pos}`);
+    }
+
+    if (!settings.Overlay) settings.Overlay = {};
+    settings.Overlay.ToolbarPosition = pos;
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+      window.pywebview.api.save_setting("Overlay", "ToolbarPosition", pos);
+    }
+    updateToolbarIndicatorPosition();
+  }
+
+  function initToolbarPosition() {
+    const pos = (settings.Overlay && settings.Overlay.ToolbarPosition) || 'bottom';
+    setToolbarPosition(pos);
+    
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.get_wallpaper_path) {
+        window.pywebview.api.get_wallpaper_path().then(dataUrl => {
+            const img = document.getElementById("preview-wallpaper-img");
+            const placeholder = document.getElementById("preview-wallpaper-placeholder");
+            if (img && dataUrl) {
+                img.src = dataUrl;
+                img.style.display = "block";
+                if (placeholder) placeholder.style.display = "none";
+            }
+        }).catch(err => {
+            console.error("Failed to get wallpaper for preview:", err);
+        });
+    }
+
+    updateTaskbarPreview();
+    if (!taskbarRefreshTimer) {
+      taskbarRefreshTimer = setInterval(updateTaskbarPreview, 1000);
+    }
+  }
+
+  function applyTimerFullscreenBehavior(value, save) {
+    if (value !== "fullscreen" && value !== "maximize") {
+      value = "fullscreen";
+    }
+    const container = document.getElementById("timer-fullscreen-behavior");
+    if (container) {
+      container.querySelectorAll(".theme-option").forEach(opt => {
+        opt.classList.toggle("active", opt.dataset.value === value);
+      });
+      updateSelectSlider(container);
+    }
+    if (!settings.Window) settings.Window = {};
+    if (settings.Window.TimerFullscreenBehavior !== value) {
+      settings.Window.TimerFullscreenBehavior = value;
+      if (save && window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+        window.pywebview.api.save_setting("Window", "TimerFullscreenBehavior", value);
+      }
+    }
+  }
+
+  function setTimerFullscreenBehavior(value) {
+    applyTimerFullscreenBehavior(value, true);
   }
 
   function setClearMode(value) {
@@ -6621,6 +7231,7 @@
     PPT: { AutoHandleInk: true },
     Overlay: { ShowStatusBar: true, ClearMode: "slide" },
     Toolbar: { ShowClear: true, ShowToolbarText: true },
+    Window: { TimerFullscreenBehavior: "fullscreen" },
     BoardInBoard: { ToolbarPosition: "bottom", BackgroundColor: "#202020" },
     Debug: { ShowLog: false, RtlTest: false, RotateTest: false },
     Update: { AutoCheck: true, Source: "github" },
@@ -6891,6 +7502,12 @@
         refreshCustomSelect(boardToolbarEl);
     }
 
+    let timerFullscreenBehavior = settings.Window?.TimerFullscreenBehavior || "fullscreen";
+    if (timerFullscreenBehavior !== "fullscreen" && timerFullscreenBehavior !== "maximize") {
+        timerFullscreenBehavior = "fullscreen";
+    }
+    applyTimerFullscreenBehavior(timerFullscreenBehavior, false);
+
     let boardBackgroundColor = settings.BoardInBoard?.BackgroundColor || "#202020";
     if (!/^#([0-9a-fA-F]{6})$/.test(boardBackgroundColor)) {
         boardBackgroundColor = "#202020";
@@ -6919,6 +7536,7 @@
     ThemeSystem.renderThemeGallery("theme-gallery", themeId, mode);
 
     renderToolbarPreview();
+    initToolbarPosition();
     applyDebugSettings();
     const passwordEl = document.getElementById("input-security-password");
     if (passwordEl) {
@@ -7076,7 +7694,20 @@
         unit = "x";
         decimals = 2;
       }
+      if (key === "PopWindowScale") {
+        unit = "x";
+        decimals = 1;
+      }
       valEl.textContent = Number(val).toFixed(decimals) + unit;
+    }
+    
+    // Update settings object
+    if (!settings[cat]) settings[cat] = {};
+    settings[cat][key] = Number(val);
+    
+    // If updating scale or safe area, update preview
+    if (cat === "Overlay" && (key === "Scale" || key === "SafeArea")) {
+        updateToolbarIndicatorPosition();
     }
   }
 

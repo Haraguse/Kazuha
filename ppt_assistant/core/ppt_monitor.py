@@ -35,6 +35,8 @@ class PPTWorker(QObject):
     finished = Signal()
     slideshow_hwnd_changed = Signal(int)
     restrictions_changed = Signal(bool, bool) # protected_view, presentation_readonly
+    active_kind_changed = Signal(str)
+    ink_prompt_requested = Signal()
 
     def __init__(self):
         super().__init__()
@@ -57,6 +59,16 @@ class PPTWorker(QObject):
         self._last_error_by_key = {}
         self._degraded_current = 0
         self._degraded_total = 0
+        self._pending_ink_prompt = False
+
+    def _set_active_kind(self, kind):
+        if kind == self._active_kind:
+            return
+        self._active_kind = kind
+        try:
+            self.active_kind_changed.emit(kind or "")
+        except Exception:
+            pass
 
     def _update_restrictions(self, protected_view: bool, presentation_readonly: bool):
         protected_view = bool(protected_view)
@@ -363,7 +375,7 @@ class PPTWorker(QObject):
                     if state in [1, 2]: # Running or Paused
                         if not self._running:
                             self._running = True
-                            self._active_kind = "ppt"
+                            self._set_active_kind("ppt")
                             self._control_mode = "com"
                             try:
                                 hwnd = int(getattr(ss_win, "HWND", 0) or 0)
@@ -425,7 +437,7 @@ class PPTWorker(QObject):
                 if hwnd:
                     if not self._running:
                         self._running = True
-                        self._active_kind = "ppt"
+                        self._set_active_kind("ppt")
                         self._control_mode = "win32"
                         if hwnd != self._slideshow_hwnd:
                             self._slideshow_hwnd = int(hwnd)
@@ -485,7 +497,7 @@ class PPTWorker(QObject):
                 if state in [1, 2]:
                     if not self._running:
                         self._running = True
-                        self._active_kind = "wps"
+                        self._set_active_kind("wps")
                         try:
                             hwnd = int(getattr(ss_win, "HWND", 0) or 0)
                             if hwnd and hwnd != self._slideshow_hwnd:
@@ -538,7 +550,8 @@ class PPTWorker(QObject):
     def _handle_stop(self, kind):
         if self._running and (self._active_kind == kind or self._active_kind is None):
             self._running = False
-            self._active_kind = None
+            self._set_active_kind(None)
+            self._pending_ink_prompt = False
             self.slideshow_ended.emit()
             try:
                 self._update_restrictions(False, False)
@@ -800,24 +813,93 @@ class PPTWorker(QObject):
         except Exception:
             pass
 
+    def _apply_ink_keep(self, ss_win):
+        try:
+            view = ss_win.View
+        except Exception:
+            return
+        try:
+            annotations = getattr(view, "InkAnnotations", None)
+            if annotations is not None:
+                save_method = getattr(annotations, "Save", None)
+                if callable(save_method):
+                    save_method()
+        except Exception:
+            pass
+
+    def _apply_ink_discard(self, ss_win):
+        try:
+            view = ss_win.View
+        except Exception:
+            return
+        try:
+            erase_method = getattr(view, "EraseDrawing", None)
+            if callable(erase_method):
+                erase_method()
+        except Exception:
+            pass
+        try:
+            annotations = getattr(view, "InkAnnotations", None)
+            if annotations is not None:
+                clear_method = getattr(annotations, "Clear", None) or getattr(annotations, "Delete", None)
+                if callable(clear_method):
+                    clear_method()
+        except Exception:
+            pass
+
     @Slot()
     def end_show(self):
         try:
             app = self._get_active_app()
             if app and app.SlideShowWindows.Count > 0:
                 if cfg.autoHandleInk.value and self._active_kind == "ppt":
-                    try: app.DisplayAlerts = 1 
-                    except: pass
-                
+                    if not self._pending_ink_prompt:
+                        self._pending_ink_prompt = True
+                        self.ink_prompt_requested.emit()
+                    return
                 app.SlideShowWindows(1).View.Exit()
-
-                if cfg.autoHandleInk.value and self._active_kind == "ppt":
-                    try: app.DisplayAlerts = -1
-                    except: pass
                 self._control_mode = "com"
                 return
         except Exception as e:
             self._note_error("end_show_com", e)
+        try:
+            self._control_mode = "win32"
+            self._send_vk_to_slideshow(win32con.VK_ESCAPE if win32con else 0x1B)
+        except Exception:
+            pass
+
+    @Slot(bool)
+    def end_show_with_ink_choice(self, keep):
+        self._pending_ink_prompt = False
+        try:
+            app = self._get_active_app()
+            if app and app.SlideShowWindows.Count > 0:
+                ss_win = app.SlideShowWindows(1)
+                original_alerts = None
+                try:
+                    original_alerts = app.DisplayAlerts
+                except Exception:
+                    original_alerts = None
+                try:
+                    app.DisplayAlerts = 2
+                except Exception:
+                    pass
+                if keep:
+                    self._apply_ink_keep(ss_win)
+                else:
+                    self._apply_ink_discard(ss_win)
+                ss_win.View.Exit()
+                try:
+                    if original_alerts is not None:
+                        app.DisplayAlerts = original_alerts
+                    else:
+                        app.DisplayAlerts = -1
+                except Exception:
+                    pass
+                self._control_mode = "com"
+                return
+        except Exception as e:
+            self._note_error("end_show_ink", e)
         try:
             self._control_mode = "win32"
             self._send_vk_to_slideshow(win32con.VK_ESCAPE if win32con else 0x1B)
@@ -896,6 +978,7 @@ class PPTMonitor(QObject):
     _req_prev = Signal()
     _req_clear = Signal()
     _req_end = Signal()
+    _req_end_with_ink = Signal(bool)
     _req_ptr_type = Signal(int)
     _req_pen_color = Signal(int, int, int)
     _req_goto = Signal(int)
@@ -919,6 +1002,8 @@ class PPTMonitor(QObject):
         self._worker.video_state_changed.connect(self._update_local_video_state)
         self._worker.thumbnail_generated.connect(self.thumbnail_generated)
         self._worker.restrictions_changed.connect(self.restrictions_changed)
+        self._worker.active_kind_changed.connect(self._on_active_kind_changed)
+        self._worker.ink_prompt_requested.connect(self._on_ink_prompt_requested)
         self._worker.finished.connect(self._thread.quit)
         self._thread.finished.connect(self._worker.deleteLater)
 
@@ -929,6 +1014,7 @@ class PPTMonitor(QObject):
         self._req_prev.connect(self._worker.go_previous)
         self._req_clear.connect(self._worker.clear_screen)
         self._req_end.connect(self._worker.end_show)
+        self._req_end_with_ink.connect(self._worker.end_show_with_ink_choice)
         self._req_ptr_type.connect(self._worker.set_pointer_type)
         self._req_pen_color.connect(self._worker.set_pen_color)
         self._req_goto.connect(self._worker.go_to_slide)
@@ -942,6 +1028,9 @@ class PPTMonitor(QObject):
         self._video_len = 0.0
         self._last_rect_raw = None
         self._slideshow_hwnd = 0
+        self._overlay = None
+        self._active_kind = None
+        self._pending_ink_prompt = False
         
         self._thread.start()
 
@@ -958,6 +1047,21 @@ class PPTMonitor(QObject):
             if self._thread.isRunning():
                 self._thread.terminate()
                 self._thread.wait()
+
+    def set_overlay(self, overlay):
+        if self._overlay is overlay:
+            return
+        if self._overlay:
+            try:
+                self._overlay.ink_prompt_result.disconnect(self._on_ink_prompt_result)
+            except Exception:
+                pass
+        self._overlay = overlay
+        if overlay:
+            try:
+                overlay.ink_prompt_result.connect(self._on_ink_prompt_result)
+            except Exception:
+                pass
 
     # --- Public API (Async) ---
     def go_next(self):
@@ -989,6 +1093,25 @@ class PPTMonitor(QObject):
         if rect is None or rect.isEmpty():
             return
         self._on_geometry_changed(QRect(rect), None)
+
+    def _on_active_kind_changed(self, kind):
+        self._active_kind = kind or None
+
+    def _on_ink_prompt_requested(self):
+        if self._pending_ink_prompt:
+            return
+        self._pending_ink_prompt = True
+        if self._overlay:
+            self._overlay.show_ink_prompt()
+        else:
+            self._pending_ink_prompt = False
+            self._req_end_with_ink.emit(True)
+
+    def _on_ink_prompt_result(self, keep):
+        if not self._pending_ink_prompt:
+            return
+        self._pending_ink_prompt = False
+        self._req_end_with_ink.emit(bool(keep))
 
     # --- State Handling ---
     def _on_slide_changed(self, current, total):

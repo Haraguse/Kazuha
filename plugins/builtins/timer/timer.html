@@ -202,7 +202,8 @@
       font-family: inherit;
     }
 
-    html, body {
+    html,
+    body {
       background: var(--bg-app);
       margin: 0;
       padding: 0;
@@ -378,6 +379,7 @@
         transform: translateX(30px) scaleX(1.05);
         filter: blur(8px);
       }
+
       100% {
         opacity: 1;
         transform: translateX(0) scaleX(1);
@@ -391,6 +393,7 @@
         transform: translateX(0) scaleX(1);
         filter: blur(0);
       }
+
       100% {
         opacity: 0;
         transform: translateX(-30px) scaleX(1.05);
@@ -405,8 +408,8 @@
     }
 
     .stopwatch-display {
-      font-size: 88px;
-      font-weight: 500;
+      font-size: 120px;
+      font-weight: 700;
       font-variant-numeric: tabular-nums;
       margin-bottom: 60px;
       letter-spacing: -1px;
@@ -474,7 +477,7 @@
     .countdown-fullscreen .countdown-container .progress-ring svg,
     .countdown-fullscreen .countdown-container .total-time,
     .countdown-fullscreen .countdown-actions {
-      display: none;
+      display: none !important;
     }
 
     .countdown-fullscreen .countdown-container .time-left {
@@ -534,7 +537,7 @@
     .countdown-fullscreen .fullscreen-exit {
       display: inline-flex;
     }
-    
+
     .fullscreen-exit {
       position: absolute;
       bottom: 32px;
@@ -547,9 +550,9 @@
       border: 1px solid rgba(255, 255, 255, 0.2);
       transition: all 0.2s;
     }
-    
+
     .countdown-fullscreen .fullscreen-exit {
-        transform: translateX(-50%);
+      transform: translateX(-50%);
     }
 
     .btn {
@@ -572,7 +575,8 @@
       transform: scale(0.96);
     }
 
-    .btn:disabled, .btn.disabled {
+    .btn:disabled,
+    .btn.disabled {
       opacity: 0.4;
       cursor: not-allowed;
       pointer-events: none;
@@ -632,8 +636,8 @@
     }
 
     .time-left {
-      font-size: 56px;
-      font-weight: 500;
+      font-size: 64px;
+      font-weight: 700;
       font-variant-numeric: tabular-nums;
       color: var(--text-primary);
       line-height: 1;
@@ -667,7 +671,7 @@
     }
 
     .time-up-mode .sidebar {
-      display: none;
+      display: flex;
     }
 
     .time-up-mode .timer-setup-row {
@@ -1052,13 +1056,13 @@
     body.mini-mode {
       background: transparent !important;
     }
-    
+
     body.mini-mode .container {
       padding: 0;
       gap: 0;
       background: transparent;
     }
-    
+
     body.mini-mode .sidebar,
     body.mini-mode .header-inline,
     body.mini-mode .control-layer,
@@ -1071,11 +1075,11 @@
     body.mini-mode .timer-setup-divider {
       display: none !important;
     }
-    
+
     body.mini-mode .content-area {
       background: transparent;
     }
-    
+
     body.mini-mode .main-container {
       background: rgba(255, 255, 255, 0.9);
       border-radius: 50%;
@@ -1092,97 +1096,110 @@
     }
 
     [data-theme="dark"] body.mini-mode .main-container {
-        background: rgba(30, 30, 30, 0.9);
+      background: rgba(30, 30, 30, 0.9);
     }
-    
+
     body.mini-mode .view-section {
-        padding: 0;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        right: 0;
+      padding: 0;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
     }
-    
+
     body.mini-mode .countdown-container {
-        background: transparent;
+      background: transparent;
+      -webkit-app-region: drag;
     }
-    
+
     body.mini-mode .progress-ring {
-        width: 180px;
-        height: 180px;
-        margin: 0 auto;
+      width: 180px;
+      height: 180px;
+      margin: 0 auto;
+      -webkit-app-region: drag;
+      pointer-events: none;
     }
-    
+
     body.mini-mode .progress-ring svg {
-        width: 180px;
-        height: 180px;
+      width: 180px;
+      height: 180px;
+      -webkit-app-region: drag;
+      pointer-events: none;
     }
 
     body.mini-mode .progress-ring circle {
-        cx: 90;
-        cy: 90;
-        r: 80;
+      cx: 90;
+      cy: 90;
+      r: 80;
+      -webkit-app-region: drag;
+      pointer-events: none;
     }
-    
+
     body.mini-mode .time-left {
-        font-size: 36px;
+      font-size: 36px;
+      -webkit-app-region: drag;
+      pointer-events: none;
     }
-    
+
+    .mini-exit-overlay {
+      display: none;
+    }
+
     body.mini-mode .mini-exit-overlay {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 80px;
-        height: 80px;
-        background: rgba(0, 0, 0, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        transition: opacity 0.2s;
-        z-index: 200;
-        cursor: pointer;
-        border-radius: 50%;
-        -webkit-app-region: no-drag;
-        pointer-events: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 200;
+      cursor: pointer;
+      border-radius: 50%;
+      -webkit-app-region: no-drag;
+      pointer-events: none;
     }
-    
+
     body.mini-mode .main-container:hover .mini-exit-overlay {
-        opacity: 1;
-        pointer-events: auto;
+      opacity: 1;
+      pointer-events: auto;
     }
-    
+
     .icon-restore {
-        width: 32px;
-        height: 32px;
-        color: #fff;
+      width: 32px;
+      height: 32px;
+      color: #fff;
     }
-    
+
     .icon-restore svg {
-        width: 100%;
-        height: 100%;
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 2;
-        stroke-linecap: round;
-        stroke-linejoin: round;
+      width: 100%;
+      height: 100%;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
 
     /* Icon for Float Button */
     .icon-float {
-        width: 14px;
-        height: 14px;
-        display: inline-block;
-        background-color: currentColor;
-        -webkit-mask-size: contain;
-        -webkit-mask-repeat: no-repeat;
-        -webkit-mask-position: center;
-        mask-size: contain;
-        mask-repeat: no-repeat;
-        mask-position: center;
-        -webkit-mask-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z"/></svg>');
-        mask-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z"/></svg>');
+      width: 14px;
+      height: 14px;
+      display: inline-block;
+      background-color: currentColor;
+      -webkit-mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      mask-size: contain;
+      mask-repeat: no-repeat;
+      mask-position: center;
+      -webkit-mask-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z"/></svg>');
+      mask-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z"/></svg>');
     }
 
     /* --- 时钟 --- */
@@ -1193,8 +1210,8 @@
     }
 
     .clock-display {
-      font-size: 80px;
-      font-weight: 500;
+      font-size: 120px;
+      font-weight: 700;
       font-variant-numeric: tabular-nums;
       color: var(--text-primary);
       line-height: 1;
@@ -1202,9 +1219,9 @@
     }
 
     .date-display {
-      font-size: 20px;
+      font-size: 24px;
       color: var(--text-secondary);
-      font-weight: 400;
+      font-weight: 500;
     }
 
     .dev-watermark {
@@ -1219,6 +1236,7 @@
       white-space: pre-line;
       z-index: 9999;
     }
+
     /* --- Digit Animation CSS --- */
     .digit-wrapper {
       display: inline-grid;
@@ -1234,7 +1252,7 @@
       width: auto;
     }
 
-    .digit-wrapper > span {
+    .digit-wrapper>span {
       grid-area: 1 / 1;
       backface-visibility: hidden;
       will-change: transform, opacity, filter;
@@ -1254,6 +1272,7 @@
         filter: blur(0);
         opacity: 1;
       }
+
       100% {
         transform: translateY(-100%) scale(0.7);
         filter: blur(10px);
@@ -1267,6 +1286,7 @@
         filter: blur(10px);
         opacity: 0;
       }
+
       100% {
         transform: translateY(0) scale(1);
         filter: blur(0);
@@ -1352,9 +1372,12 @@
               </div>
             </div>
             <div class="mini-exit-overlay" onclick="toggleMiniMode()">
-                 <div class="icon-restore">
-                     <svg viewBox="0 0 24 24"><path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z"/></svg>
-                 </div>
+              <div class="icon-restore">
+                <svg viewBox="0 0 24 24">
+                  <path
+                    d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z" />
+                </svg>
+              </div>
             </div>
             <button class="fullscreen-exit" id="fullscreenExit" onclick="setCountdownFullscreen(false)">
               <span data-i18n="timer.exitFullscreen">退出全屏</span>
@@ -1367,8 +1390,8 @@
         </section>
 
         <section id="view-clock" class="view-section">
-          <div class="clock-display" id="clockDisplay">00:00:00</div>
           <div class="date-display" id="dateDisplay"></div>
+          <div class="clock-display" id="clockDisplay">00:00:00</div>
         </section>
 
         <div class="control-layer">
@@ -1554,20 +1577,20 @@
 
     function getDefaultFontStack(lang) {
       const isSpecial = lang === "zh-TW" || lang === "ja-JP";
-    if (lang === "zh-TW") {
-      return "\"Microsoft JhengHei\", \"MiSans Latin\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
+      if (lang === "zh-TW") {
+        return "\"Microsoft JhengHei\", \"MiSans Latin\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
+      }
+      if (lang === "yue-HK") {
+        return "\"Meiryo UI\", \"Meiryo\", \"Microsoft JhengHei\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
+      }
+      if (lang === "ja-JP") {
+        return "\"Yu Gothic UI\", \"Meiryo\", \"MiSans Latin\", \"HarmonyOS Sans JP\", \"SF Pro\", system-ui, -apple-system, sans-serif";
+      }
+      if (lang === "ug-CN") {
+        return "\"Microsoft Uighur\", \"ALKATIP Basma Tom\", \"MiSans Latin\", \"HarmonyOS Sans SC\", \"SF Pro\", system-ui, -apple-system, sans-serif";
+      }
+      return "\"MiSans Latin\", \"HarmonyOS Sans SC\", \"SF Pro\", \"苹方-简\", \"PingFang SC\", \"Segoe UI\", \"Microsoft YaHei\", system-ui, -apple-system, sans-serif";
     }
-    if (lang === "yue-HK") {
-      return "\"Meiryo UI\", \"Meiryo\", \"Microsoft JhengHei\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
-    }
-    if (lang === "ja-JP") {
-      return "\"Yu Gothic UI\", \"Meiryo\", \"MiSans Latin\", \"HarmonyOS Sans JP\", \"SF Pro\", system-ui, -apple-system, sans-serif";
-    }
-    if (lang === "ug-CN") {
-      return "\"Microsoft Uighur\", \"ALKATIP Basma Tom\", \"MiSans Latin\", \"HarmonyOS Sans SC\", \"SF Pro\", system-ui, -apple-system, sans-serif";
-    }
-    return "\"MiSans Latin\", \"HarmonyOS Sans SC\", \"SF Pro\", \"苹方-简\", \"PingFang SC\", \"Segoe UI\", \"Microsoft YaHei\", system-ui, -apple-system, sans-serif";
-  }
 
     function getSelectedWebFont(lang) {
       const profiles = settings && settings.Fonts && settings.Fonts.Profiles;
@@ -1703,7 +1726,7 @@
       applyTheme(settings.Appearance.ThemeMode || themeMode || 'Light', settings.Appearance.ThemeId || themeId);
     }
 
-    function updateAccentColor() {}
+    function updateAccentColor() { }
 
     const navItems = document.querySelectorAll('.nav-item');
     const sections = document.querySelectorAll('.view-section');
@@ -1944,14 +1967,14 @@
             tmRemaining = state.remaining * 1000;
             tmTotal = state.remaining * 1000; // Simplified, ideally we'd pass total too
             tmState = 'running';
-            
+
             // UI setup for running state
             pickerUI.style.opacity = '0';
             pickerUI.style.pointerEvents = 'none';
             countdownUI.classList.add('active');
             document.getElementById('totalTimeDisplay').textContent = formatTotalSecondsText(state.remaining);
             updateCountdownUI();
-            
+
             // Start local UI timer
             if (tmInterval) clearInterval(tmInterval);
             tmInterval = setInterval(() => {
@@ -1969,7 +1992,7 @@
             tmRemaining = state.remaining * 1000;
             tmTotal = state.remaining * 1000;
             tmState = 'paused';
-            
+
             pickerUI.style.opacity = '0';
             pickerUI.style.pointerEvents = 'none';
             countdownUI.classList.add('active');
@@ -1989,7 +2012,7 @@
       applyTheme(mode);
     }
 
-    function updateAccentColor() {}
+    function updateAccentColor() { }
 
     let tmState = 'picker'; // picker, running, paused, finished
 
@@ -2013,19 +2036,39 @@
       document.body.classList.toggle('time-up-mode', !!on);
     }
 
+    function getTimerFullscreenBehavior() {
+      const behavior = settings && settings.Window && settings.Window.TimerFullscreenBehavior;
+      if (behavior === "maximize" || behavior === "fullscreen") return behavior;
+      return "fullscreen";
+    }
+
     function setCountdownFullscreen(on) {
       countdownFullscreen = on;
       document.body.classList.toggle('countdown-fullscreen', on);
+      const behavior = getTimerFullscreenBehavior();
+      if (behavior === "maximize") {
+        if (window.pywebview && window.pywebview.api) {
+          if (window.pywebview.api.set_maximized) {
+            window.pywebview.api.set_maximized(!!on);
+          } else if (window.pywebview.api.set_fullscreen) {
+            window.pywebview.api.set_fullscreen(!!on);
+          }
+        }
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch(() => { });
+        }
+        return;
+      }
       if (window.pywebview && window.pywebview.api && window.pywebview.api.set_fullscreen) {
         window.pywebview.api.set_fullscreen(!!on);
       }
       if (on) {
         if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen().catch(() => {});
+          document.documentElement.requestFullscreen().catch(() => { });
         }
       } else {
         if (document.fullscreenElement && document.exitFullscreen) {
-          document.exitFullscreen().catch(() => {});
+          document.exitFullscreen().catch(() => { });
         }
       }
     }
@@ -2039,24 +2082,24 @@
       const body = document.body;
       const isMini = body.classList.contains('mini-mode');
       const next = !isMini;
-      
+
       if (next) {
-          body.classList.add('mini-mode');
+        body.classList.add('mini-mode');
       } else {
-          body.classList.remove('mini-mode');
+        body.classList.remove('mini-mode');
       }
-      
+
       if (window.pywebview && window.pywebview.api && window.pywebview.api.set_mini_mode) {
-          window.pywebview.api.set_mini_mode(next);
+        window.pywebview.api.set_mini_mode(next);
       }
     }
 
     function toggleMiniModeFromFullscreen() {
-        setCountdownFullscreen(false);
-        // Wait for fullscreen exit animation/state change
-        setTimeout(() => {
-            toggleMiniMode();
-        }, 100);
+      setCountdownFullscreen(false);
+      // Wait for fullscreen exit animation/state change
+      setTimeout(() => {
+        toggleMiniMode();
+      }, 100);
     }
 
     document.addEventListener('fullscreenchange', () => {
@@ -2155,11 +2198,11 @@
       const isFullscreen = document.body.classList.contains('countdown-fullscreen');
       const text = isFullscreen ? formatFullTime(sec) : formatTime(sec);
       updateTimerDisplay(text);
-      
+
       const timeEl = document.getElementById('timeLeftDisplay');
       const urgent = isFullscreen && sec <= 5;
       timeEl.classList.toggle('urgent', urgent);
-      
+
       const percent = (tmRemaining / tmTotal) * 100;
       setProgress(percent);
     }
@@ -2168,69 +2211,69 @@
       const display = document.getElementById('timeLeftDisplay');
       const chars = text.split('');
       const wrappers = display.querySelectorAll('.digit-wrapper');
-      
+
       // If length mismatch, rebuild (rare, only when digits count change)
       if (wrappers.length !== chars.length) {
-         display.innerHTML = '';
-         chars.forEach(char => {
-           const wrap = document.createElement('div');
-           wrap.className = 'digit-wrapper';
-           if (char === ':' || isNaN(parseInt(char))) {
-             wrap.classList.add('colon');
-             wrap.textContent = char;
-           } else {
-             const span = document.createElement('span');
-             span.textContent = char;
-             wrap.appendChild(span);
-           }
-           display.appendChild(wrap);
-         });
-         return;
+        display.innerHTML = '';
+        chars.forEach(char => {
+          const wrap = document.createElement('div');
+          wrap.className = 'digit-wrapper';
+          if (char === ':' || isNaN(parseInt(char))) {
+            wrap.classList.add('colon');
+            wrap.textContent = char;
+          } else {
+            const span = document.createElement('span');
+            span.textContent = char;
+            wrap.appendChild(span);
+          }
+          display.appendChild(wrap);
+        });
+        return;
       }
-      
+
       // Update existing
       wrappers.forEach((wrap, i) => {
-         const char = chars[i];
-         if (wrap.classList.contains('colon')) return; // Skip colons
-         
-         const currentSpan = wrap.lastElementChild;
-         // Check if value changed and we are not already animating to this value
-         if (currentSpan.textContent !== char && !currentSpan.classList.contains('digit-new')) {
-            const newSpan = document.createElement('span');
-            newSpan.textContent = char;
-            newSpan.className = 'digit-new';
-            
-            // Current becomes old
-            currentSpan.className = 'digit-old';
-            
-            wrap.appendChild(newSpan);
-            
-            // Cleanup
-            setTimeout(() => {
-              if (currentSpan.parentNode === wrap) {
-                wrap.removeChild(currentSpan);
-              }
-              newSpan.className = ''; // 回归到他妈的static
-            }, 350); 
-         }
+        const char = chars[i];
+        if (wrap.classList.contains('colon')) return; // Skip colons
+
+        const currentSpan = wrap.lastElementChild;
+        // Check if value changed and we are not already animating to this value
+        if (currentSpan.textContent !== char && !currentSpan.classList.contains('digit-new')) {
+          const newSpan = document.createElement('span');
+          newSpan.textContent = char;
+          newSpan.className = 'digit-new';
+
+          // Current becomes old
+          currentSpan.className = 'digit-old';
+
+          wrap.appendChild(newSpan);
+
+          // Cleanup
+          setTimeout(() => {
+            if (currentSpan.parentNode === wrap) {
+              wrap.removeChild(currentSpan);
+            }
+            newSpan.className = ''; // 回归到他妈的static
+          }, 350);
+        }
       });
     }
 
     function pauseCountdown() {
       clearInterval(tmInterval);
       tmState = 'paused';
-      
+
       // Call Python API
       if (window.pywebview && window.pywebview.api) {
         window.pywebview.api.pause_timer();
       }
-      
+
       updateButtonState();
     }
 
     function resumeCountdown() {
       tmState = 'running';
-      
+
       // Call Python API
       if (window.pywebview && window.pywebview.api) {
         window.pywebview.api.resume_timer();
@@ -2253,10 +2296,10 @@
       updateCountdownUI();
       tmState = 'finished';
       setCountdownFullscreen(false);
-      
+
       // Auto exit mini mode
       if (document.body.classList.contains('mini-mode')) {
-          toggleMiniMode();
+        toggleMiniMode();
       }
 
       // Call Python API
@@ -2305,28 +2348,104 @@
     const clockDisplay = document.getElementById('clockDisplay');
     const dateDisplay = document.getElementById('dateDisplay');
 
+    function getGanZhi(lunarYear) {
+      if (!lunarYear || isNaN(lunarYear)) return "";
+      const heavenlyStems = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+      const earthlyBranches = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+      const stemIndex = (lunarYear - 4) % 10;
+      const branchIndex = (lunarYear - 4) % 12;
+      return heavenlyStems[stemIndex < 0 ? stemIndex + 10 : stemIndex] + earthlyBranches[branchIndex < 0 ? branchIndex + 12 : branchIndex];
+    }
+
+    function getLunarMonthName(month, raw) {
+      if (isNaN(month) && raw) return raw.endsWith("月") ? raw : raw + "月";
+      if (isNaN(month)) return "";
+      const monthNames = ["正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "冬", "腊"];
+      if (month >= 1 && month <= 12) return monthNames[month - 1] + "月";
+      return month + "月";
+    }
+
+    function getLunarDayName(day, raw) {
+      if (isNaN(day) && raw) return raw;
+      if (isNaN(day)) return "";
+      const dayPrefixes = ["初", "十", "廿", "三"];
+      const dayDigits = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+      if (day === 10) return "初十";
+      if (day === 20) return "二十";
+      if (day === 30) return "三十";
+      const prefix = dayPrefixes[Math.floor(day / 10)];
+      const digit = dayDigits[(day % 10) - 1];
+      return prefix + digit;
+    }
+
     function updateClock() {
       const now = new Date();
       const h = now.getHours().toString().padStart(2, '0');
       const m = now.getMinutes().toString().padStart(2, '0');
       const s = now.getSeconds().toString().padStart(2, '0');
       clockDisplay.textContent = `${h}:${m}:${s}`;
-      
+
       const y = now.getFullYear();
-      const mo = (now.getMonth() + 1).toString().padStart(2, '0');
-      const d = now.getDate().toString().padStart(2, '0');
-      
+      const mo = now.getMonth() + 1;
+      const d = now.getDate();
+
       const weekdays = {
         "zh-CN": ["周日", "周一", "周二", "周三", "周四", "周五", "周六"],
         "zh-TW": ["週日", "週一", "週二", "週三", "週四", "週五", "週六"],
         "ja-JP": ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"],
-        "en-US": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        "en-US": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+        "ug-CN": ["يەكشەنبە", "دۈشەنبە", "سەيشەنبە", "چارشەنبە", "پەيشەنبە", "جۈمە", "شەنبە"]
       };
-      // Fallback for other languages
       const lang = currentLanguage in weekdays ? currentLanguage : "zh-CN";
       const w = weekdays[lang][now.getDay()];
       
-      dateDisplay.textContent = `${y}/${mo}/${d} ${w}`;
+      let dateStr = `${mo}月${d}日${w}`;
+
+      try {
+        const lunarFormatter = new Intl.DateTimeFormat("zh-CN", {
+          calendar: "chinese",
+          year: "numeric",
+          month: "numeric",
+          day: "numeric"
+        });
+        const parts = lunarFormatter.formatToParts(now);
+        
+        let lYearVal = y;
+        let lMonthVal = NaN;
+        let lDayVal = NaN;
+        let lMonthRaw = "";
+        let lDayRaw = "";
+
+        parts.forEach(p => {
+           if (p.type === "relatedYear") {
+             const v = parseInt(p.value);
+             if (!isNaN(v)) lYearVal = v;
+           }
+           if (p.type === "year") {
+             const v = parseInt(p.value.replace(/[^\d]/g, ''));
+             if (!isNaN(v)) lYearVal = v;
+           }
+           if (p.type === "month") {
+             lMonthVal = parseInt(p.value);
+             lMonthRaw = p.value;
+           }
+           if (p.type === "day") {
+             lDayVal = parseInt(p.value);
+             lDayRaw = p.value;
+           }
+        });
+
+        const ganZhi = getGanZhi(lYearVal);
+        const lMonthStr = getLunarMonthName(lMonthVal, lMonthRaw);
+        const lDayStr = getLunarDayName(lDayVal, lDayRaw);
+        
+        dateStr += ` · ${ganZhi}年${lMonthStr}${lDayStr}`;
+      } catch (e) {
+        console.error(e);
+        dateStr += ` · ${y}年${mo}月${d}日`;
+      }
+
+      dateDisplay.textContent = dateStr;
     }
 
     function startClock() {

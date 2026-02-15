@@ -39,9 +39,21 @@ class TimerPlugin(AssistantPlugin):
                     # Find window by title "Kazuha Timer Plugin"
                     hwnd = ctypes.windll.user32.FindWindowW(None, "Kazuha Timer Plugin")
                     if hwnd:
+                        user32 = ctypes.windll.user32
+                        kernel32 = ctypes.windll.kernel32
+                        # Attach to foreground thread to gain SetForegroundWindow permission
+                        fg_hwnd = user32.GetForegroundWindow()
+                        fg_thread = user32.GetWindowThreadProcessId(fg_hwnd, None)
+                        cur_thread = kernel32.GetCurrentThreadId()
+                        attached = False
+                        if fg_thread != cur_thread:
+                            attached = user32.AttachThreadInput(cur_thread, fg_thread, True)
                         # SW_RESTORE = 9
-                        ctypes.windll.user32.ShowWindow(hwnd, 9)
-                        ctypes.windll.user32.SetForegroundWindow(hwnd)
+                        user32.ShowWindow(hwnd, 9)
+                        user32.BringWindowToTop(hwnd)
+                        user32.SetForegroundWindow(hwnd)
+                        if attached:
+                            user32.AttachThreadInput(cur_thread, fg_thread, False)
                 except:
                     pass
             return

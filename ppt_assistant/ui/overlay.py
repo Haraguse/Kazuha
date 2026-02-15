@@ -6,14 +6,17 @@ import json
 import importlib.util
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtCore import QObject, Slot, Signal, Qt, QUrl, QTimer, QRect, QPoint, QEvent
+from PySide6.QtCore import QObject, Slot, Signal, Qt, QUrl, QTimer, QRect, QPoint, QEvent, QByteArray
 from PySide6.QtGui import QColor, QRegion, QGuiApplication, QIcon
+from PySide6.QtQuick import QQuickView
+from PySide6.QtQml import QQmlComponent
 from ppt_assistant.core.config import cfg
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.icon_helper import get_file_icon_base64
 import psutil
 import asyncio
 import threading
+import subprocess
 try:
     from winsdk.windows.media.control import GlobalSystemMediaTransportControlsSessionManager
     WINSDK_AVAILABLE = True
@@ -63,6 +66,10 @@ class OverlayBridge(QObject):
     def endShow(self):
         self._overlay.request_end.emit()
 
+    @Slot(bool)
+    def inkPromptResult(self, keep):
+        self._overlay.ink_prompt_result.emit(bool(keep))
+
     @Slot()
     def toggleSpotlight(self):
         self._overlay.execute_plugin("聚光灯")
@@ -102,6 +109,17 @@ class OverlayBridge(QObject):
         except Exception:
             pass
 
+class InkPromptBridge(QObject):
+    result = Signal(bool)
+
+    @Slot()
+    def keep(self):
+        self.result.emit(True)
+
+    @Slot()
+    def discard(self):
+        self.result.emit(False)
+
 class OverlayWindow(QWebEngineView):
     request_next = Signal()
     request_prev = Signal()
@@ -111,6 +129,7 @@ class OverlayWindow(QWebEngineView):
     request_ptr_pen = Signal()
     request_ptr_eraser = Signal()
     request_pen_color = Signal(int, int, int)
+    ink_prompt_result = Signal(bool)
     
     def __init__(self):
         super().__init__()
@@ -138,12 +157,13 @@ class OverlayWindow(QWebEngineView):
         self._protected_view = False
         self._presentation_readonly = False
         self._active_on_slideshow = False
+        self._ink_prompt_view = None
+        self._ink_prompt_bridge = None
         
         self._smtc_info = {"status": "", "title": ""}
         self._smtc_thread = None
         self._stop_smtc = False
-        if WINSDK_AVAILABLE:
-            self._start_smtc_thread()
+        self._start_smtc_thread()
 
         self.load_plugins()
         self.bind_config_signals()
@@ -171,6 +191,8 @@ class OverlayWindow(QWebEngineView):
 
     def set_monitor(self, monitor):
         self.monitor = monitor
+        if monitor and hasattr(monitor, "set_overlay"):
+            monitor.set_overlay(self)
         self.monitor.slide_changed.connect(self.on_slide_changed)
         
     def on_slide_changed(self, current, total):
@@ -223,47 +245,126 @@ class OverlayWindow(QWebEngineView):
         
         js = f"setTheme({'false' if is_light else 'true'}, '{color_str}');"
         self.page().runJavaScript(js)
+        if self._ink_prompt_view:
+            self._apply_ink_prompt_context(self._ink_prompt_view.rootContext())
+
+    def _get_media_info_from_powershell(self):
+        script = r'''
+$ErrorActionPreference="SilentlyContinue"
+Add-Type -AssemblyName System.Runtime.WindowsRuntime
+$manager=[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync().GetAwaiter().GetResult()
+$session=$manager.GetCurrentSession()
+if ($session -eq $null) { @{status=""; title=""} | ConvertTo-Json -Compress; exit }
+$props=$session.TryGetMediaPropertiesAsync().GetAwaiter().GetResult()
+$statusValue=[int]$session.GetPlaybackInfo().PlaybackStatus
+$title=$props.Title
+$artist=$props.Artist
+$display=$title
+if ($artist) { $display="$title - $artist" }
+$state="Stopped"
+if ($statusValue -eq 4) { $state="Playing" } elseif ($statusValue -eq 5) { $state="Paused" }
+@{status=$state; title=$display} | ConvertTo-Json -Compress
+'''
+        try:
+            result = subprocess.run(
+                ["powershell", "-NoProfile", "-Command", script],
+                capture_output=True,
+                text=True,
+                timeout=1.5
+            )
+            raw = (result.stdout or "").strip()
+            if raw:
+                data = json.loads(raw)
+                if isinstance(data, dict):
+                    return {
+                        "status": data.get("status", "") or "",
+                        "title": data.get("title", "") or ""
+                    }
+        except Exception:
+            pass
+        return {"status": "", "title": ""}
 
     def _start_smtc_thread(self):
         def smtc_loop():
-            async def get_media_info():
+            loop = None
+            manager = None
+
+            if WINSDK_AVAILABLE:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+                async def init_manager():
+                    return await GlobalSystemMediaTransportControlsSessionManager.request_async()
+
                 try:
-                    manager = await GlobalSystemMediaTransportControlsSessionManager.request_async()
-                    session = manager.get_current_session()
-                    if session:
-                        info = await session.try_get_media_properties_async()
-                        title = info.title if info else ""
-                        artist = info.artist if info else ""
-                        status = session.get_playback_info().playback_status
-                        
-                        display_text = title
-                        if artist:
-                            display_text = f"{title} - {artist}"
-                            
-                        # Map status enum to string if needed, or just check value
-                        # 4: Playing, 5: Paused
-                        status_str = "Stopped"
-                        if status == 4:
-                            status_str = "Playing"
-                        elif status == 5:
-                            status_str = "Paused"
-                            
-                        return {"status": status_str, "title": display_text}
+                    manager = loop.run_until_complete(init_manager())
                 except Exception:
-                    pass
-                return {"status": "", "title": ""}
+                    manager = None
+
+                async def get_media_info():
+                    if not manager:
+                        return {"status": "", "title": ""}
+                    try:
+                        session = None
+                        try:
+                            sessions = await manager.get_sessions_async()
+                        except Exception:
+                            sessions = None
+                        if sessions:
+                            for s in sessions:
+                                try:
+                                    info = s.get_playback_info()
+                                    if info and info.playback_status == 4:
+                                        session = s
+                                        break
+                                except Exception:
+                                    pass
+                        if not session:
+                            try:
+                                session = manager.get_current_session()
+                            except Exception:
+                                session = None
+                        if session:
+                            info = await session.try_get_media_properties_async()
+                            title = info.title if info else ""
+                            artist = info.artist if info else ""
+                            status = session.get_playback_info().playback_status
+
+                            display_text = title
+                            if artist:
+                                display_text = f"{title} - {artist}"
+
+                            status_str = "Stopped"
+                            if status == 4:
+                                status_str = "Playing"
+                            elif status == 5:
+                                status_str = "Paused"
+
+                            return {"status": status_str, "title": display_text}
+                    except Exception:
+                        pass
+                    return {"status": "", "title": ""}
 
             while not self._stop_smtc:
                 try:
-                    info = asyncio.run(get_media_info())
+                    if WINSDK_AVAILABLE and loop:
+                        info = loop.run_until_complete(get_media_info())
+                    else:
+                        info = self._get_media_info_from_powershell()
                     self._smtc_info = info
                 except Exception:
                     pass
-                # Sleep a bit
                 for _ in range(20):
-                    if self._stop_smtc: break
+                    if self._stop_smtc:
+                        break
                     import time
                     time.sleep(0.1)
+
+            if loop:
+                try:
+                    loop.close()
+                except Exception:
+                    pass
 
         self._smtc_thread = threading.Thread(target=smtc_loop, daemon=True)
         self._smtc_thread.start()
@@ -374,11 +475,15 @@ class OverlayWindow(QWebEngineView):
             "showStatusBar": cfg.showStatusBar.value,
             "showToolbarText": cfg.showToolbarText.value,
             "toolbarOrder": cfg.toolbarOrder.value,
+            "toolbarPosition": cfg.toolbarPosition.value,
             "showClear": cfg.showClear.value,
             "clearMode": cfg.clearMode.value,
             "showSpotlight": cfg.showSpotlight.value,
             "showBoardInBoard": cfg.showBoardInBoard.value,
             "showTimer": cfg.showTimer.value,
+            "scale": cfg.scale.value,
+            "safeArea": cfg.safeArea.value,
+            "popWindowScale": cfg.popWindowScale.value,
             "texts": trans_map,
             "apps": apps_list
         }
@@ -388,6 +493,224 @@ class OverlayWindow(QWebEngineView):
             self.page().runJavaScript(js)
         except RuntimeError:
             pass
+
+    def show_ink_prompt(self):
+        try:
+            self._ensure_ink_prompt_view()
+            if self._ink_prompt_view:
+                self._ink_prompt_view.show()
+                self._ink_prompt_view.raise_()
+        except Exception:
+            pass
+
+    def _ensure_ink_prompt_view(self):
+        if not self._ink_prompt_view:
+            view = QQuickView()
+            view.setColor(Qt.transparent)
+            view.setFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+            view.setResizeMode(QQuickView.SizeRootObjectToView)
+            view.setModality(Qt.ApplicationModal)
+
+            bridge = InkPromptBridge()
+            bridge.result.connect(self._on_ink_prompt_result)
+
+            ctx = view.rootContext()
+            ctx.setContextProperty("inkBridge", bridge)
+            self._ink_prompt_view = view
+            self._ink_prompt_bridge = bridge
+            self._apply_ink_prompt_context(ctx)
+
+            qml = """
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+
+Item {
+    id: root
+    width: screenWidth
+    height: screenHeight
+
+    Rectangle {
+        anchors.fill: parent
+        color: maskColor
+    }
+
+    MouseArea {
+        anchors.fill: parent
+    }
+
+    Rectangle {
+        id: card
+        width: Math.min(parent.width * 0.6, 460)
+        height: content.height + 48
+        color: dialogBg
+        radius: 12
+        border.color: dialogBorder
+        border.width: 1
+        anchors.centerIn: parent
+
+        Column {
+            id: content
+            spacing: 20
+            width: parent.width - 48
+            anchors.centerIn: parent
+
+            Text {
+                text: inkTitle
+                font.pixelSize: 17
+                font.bold: true
+                color: titleColor
+                width: parent.width
+                wrapMode: Text.Wrap
+            }
+
+            Text {
+                text: inkText
+                font.pixelSize: 15
+                font.weight: Font.Normal
+                color: bodyColor
+                width: parent.width
+                wrapMode: Text.Wrap
+                lineHeight: 1.4
+            }
+
+            Item {
+                width: parent.width
+                height: 4
+            }
+
+            Row {
+                spacing: 12
+                layoutDirection: Qt.RightToLeft
+                width: parent.width
+
+                Rectangle {
+                    width: 88
+                    height: 34
+                    radius: 17
+                    color: primaryBg
+                    border.color: primaryBorder
+                    border.width: 1
+                    
+                    Text {
+                        anchors.centerIn: parent
+                        text: inkKeep
+                        font.pixelSize: 14
+                        font.bold: true
+                        color: primaryText
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: inkBridge.keep()
+                    }
+                }
+
+                Rectangle {
+                    width: 88
+                    height: 34
+                    radius: 17
+                    color: btnBg
+                    border.color: btnBorder
+                    border.width: 1
+                    
+                    Text {
+                        anchors.centerIn: parent
+                        text: inkDiscard
+                        font.pixelSize: 14
+                        font.bold: true
+                        color: btnText
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: inkBridge.discard()
+                    }
+                }
+            }
+        }
+    }
+}
+"""
+
+            component = QQmlComponent(view.engine())
+            component.setData(QByteArray(qml.encode("utf-8")), QUrl())
+            root = component.create()
+            view.setContent(QUrl(), component, root)
+
+        screen = self.screen() or QGuiApplication.primaryScreen()
+        if screen:
+            self._ink_prompt_view.setGeometry(screen.geometry())
+            self._apply_ink_prompt_context(self._ink_prompt_view.rootContext())
+
+    def _apply_ink_prompt_context(self, ctx):
+        texts = self._get_ink_prompt_texts()
+        palette = self._get_ink_prompt_palette()
+        ctx.setContextProperty("inkTitle", texts["title"])
+        ctx.setContextProperty("inkText", texts["text"])
+        ctx.setContextProperty("inkKeep", texts["keep"])
+        ctx.setContextProperty("inkDiscard", texts["discard"])
+        ctx.setContextProperty("maskColor", palette["mask"])
+        ctx.setContextProperty("dialogBg", palette["bg"])
+        ctx.setContextProperty("dialogBorder", palette["border"])
+        ctx.setContextProperty("titleColor", palette["title"])
+        ctx.setContextProperty("bodyColor", palette["body"])
+        ctx.setContextProperty("btnBg", palette["btn_bg"])
+        ctx.setContextProperty("btnBorder", palette["btn_border"])
+        ctx.setContextProperty("btnText", palette["btn_text"])
+        ctx.setContextProperty("primaryBg", palette["primary_bg"])
+        ctx.setContextProperty("primaryBorder", palette["primary_border"])
+        ctx.setContextProperty("primaryText", palette["primary_text"])
+        if self._ink_prompt_view:
+            size = self._ink_prompt_view.size()
+            ctx.setContextProperty("screenWidth", size.width())
+            ctx.setContextProperty("screenHeight", size.height())
+
+    def _get_ink_prompt_texts(self):
+        return {
+            "title": "是否保留墨迹注释？",
+            "text": "检测到放映期间添加了墨迹注释，是否保留到幻灯片中？",
+            "keep": "保留",
+            "discard": "不保留"
+        }
+
+    def _get_ink_prompt_palette(self):
+        from qfluentwidgets import themeColor
+        accent = themeColor().name()
+        if self._is_light:
+            return {
+                "mask": "rgba(0, 0, 0, 1.0)",
+                "bg": "#ffffff",
+                "border": "rgba(0, 0, 0, 0.05)",
+                "title": "#191919",
+                "body": "#191919",
+                "btn_bg": "transparent",
+                "btn_border": "rgba(0, 0, 0, 0.05)",
+                "btn_text": "#666666",
+                "primary_bg": "transparent",
+                "primary_border": accent,
+                "primary_text": accent
+            }
+        return {
+            "mask": "rgba(0, 0, 0, 1.0)",
+            "bg": "#2b2b2b",
+            "border": "rgba(255, 255, 255, 0.08)",
+            "title": "#E5E5E5",
+            "body": "#E5E5E5",
+            "btn_bg": "transparent",
+            "btn_border": "rgba(255, 255, 255, 0.08)",
+            "btn_text": "#909090",
+            "primary_bg": "transparent",
+            "primary_border": accent,
+            "primary_text": accent
+        }
+
+    def _on_ink_prompt_result(self, keep):
+        if self._ink_prompt_view:
+            try:
+                self._ink_prompt_view.hide()
+            except Exception:
+                pass
+        self.ink_prompt_result.emit(bool(keep))
 
     def load_plugins(self):
         if not os.path.exists(PLUGIN_DIR):
@@ -433,6 +756,7 @@ class OverlayWindow(QWebEngineView):
 
     def bind_config_signals(self):
         cfg.toolbarOrder.valueChanged.connect(lambda *_: self.update_config())
+        cfg.toolbarPosition.valueChanged.connect(lambda *_: self.update_config())
         cfg.quickLaunchApps.valueChanged.connect(lambda *_: self.update_config())
         cfg.showToolbarText.valueChanged.connect(lambda *_: self.update_config())
         cfg.showClear.valueChanged.connect(lambda *_: self.update_config())
@@ -440,6 +764,9 @@ class OverlayWindow(QWebEngineView):
         cfg.showSpotlight.valueChanged.connect(lambda *_: self.update_config())
         cfg.showBoardInBoard.valueChanged.connect(lambda *_: self.update_config())
         cfg.showTimer.valueChanged.connect(lambda *_: self.update_config())
+        cfg.scale.valueChanged.connect(lambda *_: self.update_config())
+        cfg.safeArea.valueChanged.connect(lambda *_: self.update_config())
+        cfg.popWindowScale.valueChanged.connect(lambda *_: self.update_config())
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -498,4 +825,3 @@ class OverlayWindow(QWebEngineView):
             self.setGeometry(screen.geometry())
         elif rect:
             self.setGeometry(rect)
-
