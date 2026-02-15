@@ -196,7 +196,7 @@ class OverlayWindow(QWebEngineView):
         self.monitor.slide_changed.connect(self.on_slide_changed)
         
     def on_slide_changed(self, current, total):
-        script = f"updatePageInfo({current}, {total});"
+        script = f"if (typeof updatePageInfo === 'function') updatePageInfo({current}, {total});"
         self.page().runJavaScript(script)
 
     def update_page_info(self, current, total):
@@ -205,7 +205,7 @@ class OverlayWindow(QWebEngineView):
             total = int(total)
         except Exception:
             return
-        script = f"updatePageInfo({current}, {total});"
+        script = f"if (typeof updatePageInfo === 'function') updatePageInfo({current}, {total});"
         self.page().runJavaScript(script)
 
     def update_mask(self, rects_data):
@@ -229,13 +229,22 @@ class OverlayWindow(QWebEngineView):
     def update_theme(self):
         mode = cfg.themeMode.value
         is_light = False
-        if str(mode).lower() == "light":
-            is_light = True
-        elif str(mode).lower() == "dark":
-            is_light = False
+        
+        from qfluentwidgets import Theme, isDarkTheme
+        
+        if isinstance(mode, Theme):
+            if mode == Theme.AUTO:
+                is_light = not isDarkTheme()
+            else:
+                is_light = (mode == Theme.LIGHT)
         else:
-            from qfluentwidgets import isDarkTheme
-            is_light = not isDarkTheme()
+            mode_str = str(mode).lower()
+            if mode_str == "light":
+                is_light = True
+            elif mode_str == "dark":
+                is_light = False
+            else:
+                is_light = not isDarkTheme()
             
         self._is_light = is_light
         
