@@ -1477,6 +1477,112 @@
                 filter: blur(0);
             }
         }
+        /* Toolbar Collapse/Expand (iOS Style) */
+        #toolbar-handle {
+            width: 48px;
+            height: 5px;
+            background: var(--overlay-text-secondary);
+            border-radius: 3px;
+            opacity: 0;
+            margin: 6px auto;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            pointer-events: none;
+            cursor: pointer;
+            z-index: 101;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* Handle Visibility */
+        #toolbar-container.collapsed #toolbar-handle {
+            opacity: 0.6;
+            pointer-events: auto;
+            height: 5px;
+            background: var(--overlay-text-primary);
+        }
+        
+        #toolbar-container.collapsed #toolbar-handle:hover {
+            opacity: 1;
+            height: 6px;
+        }
+
+        /* Toolbar Transitions */
+        #toolbar {
+            transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease;
+        }
+
+        /* Position: Bottom */
+        #toolbar-container.pos-bottom #toolbar-handle {
+            bottom: 8px; /* Slightly above bottom edge */
+        }
+        
+        #toolbar-container.pos-bottom.collapsed #toolbar {
+            transform: translateY(120%) scale(0.92);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #toolbar-container.pos-bottom.collapsed #toolbar-handle {
+            transform: translateX(-50%) translateY(-6px);
+        }
+
+        /* Position: Top */
+        #toolbar-container.pos-top #toolbar-handle {
+            top: 8px;
+        }
+
+        #toolbar-container.pos-top.collapsed #toolbar {
+            transform: translateY(-120%) scale(0.92);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #toolbar-container.pos-top.collapsed #toolbar-handle {
+            transform: translateX(-50%) translateY(6px);
+        }
+
+        /* Position: Left */
+        #toolbar-container.pos-left #toolbar-handle {
+            width: 5px;
+            height: 48px;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            margin: auto 6px;
+        }
+
+        #toolbar-container.pos-left.collapsed #toolbar {
+            transform: translateX(-120%) scale(0.92);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #toolbar-container.pos-left.collapsed #toolbar-handle {
+            transform: translateY(-50%) translateX(6px);
+        }
+
+        /* Position: Right */
+        #toolbar-container.pos-right #toolbar-handle {
+            width: 5px;
+            height: 48px;
+            right: 8px;
+            left: auto; /* Override left: 50% */
+            top: 50%;
+            transform: translateY(-50%);
+            margin: auto 6px;
+        }
+
+        #toolbar-container.pos-right.collapsed #toolbar {
+            transform: translateX(120%) scale(0.92);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #toolbar-container.pos-right.collapsed #toolbar-handle {
+            transform: translateY(-50%) translateX(-6px);
+        }
+
     </style>
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
 </head>
@@ -1594,6 +1700,7 @@
     </div>
 
     <div id="toolbar-container">
+        <div id="toolbar-handle" class="interactive"></div>
         <div id="toolbar" class="interactive">
         </div>
     </div>
@@ -1958,6 +2065,10 @@
 
             let separator = document.createElement('div');
             separator.className = 'separator';
+            separator.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                toggleToolbar(true);
+            });
             toolbar.appendChild(separator);
             
             let endBtn = document.createElement('div');
@@ -2266,6 +2377,146 @@
                 document.querySelectorAll('.interactive').forEach(el => {
                     if (el.offsetParent === null) return;
                     const r = el.getBoundingClientRect();
+                    rects.push({
+                        x: r.x,
+                        y: r.y,
+                        width: r.width,
+                        height: r.height
+                    });
+                });
+                bridge.updateMask(rects);
+            });
+        }
+        // Toolbar Collapse Logic
+        let isToolbarCollapsed = false;
+        let toolbarTouchStartY = 0;
+        let toolbarTouchStartX = 0;
+
+        function toggleToolbar(collapsed) {
+            if (typeof collapsed === 'undefined') collapsed = !isToolbarCollapsed;
+            isToolbarCollapsed = collapsed;
+            
+            const container = document.getElementById('toolbar-container');
+            if (collapsed) {
+                container.classList.add('collapsed');
+            } else {
+                container.classList.remove('collapsed');
+            }
+            
+            scheduleMaskUpdate();
+        }
+
+        // Gestures
+        const toolbarEl = document.getElementById('toolbar');
+        const handleEl = document.getElementById('toolbar-handle');
+        
+        // Handle Click
+        handleEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleToolbar(false);
+        });
+
+        // Toolbar Swipe Down (Collapse)
+        toolbarEl.addEventListener('mousedown', e => {
+            toolbarTouchStartY = e.clientY;
+            toolbarTouchStartX = e.clientX;
+        });
+        
+        toolbarEl.addEventListener('touchstart', e => {
+            if(e.touches.length > 0) {
+                toolbarTouchStartY = e.touches[0].clientY;
+                toolbarTouchStartX = e.touches[0].clientX;
+            }
+        }, {passive: true});
+
+        function handleToolbarSwipe(e, clientX, clientY) {
+            const diffY = clientY - toolbarTouchStartY;
+            const diffX = clientX - toolbarTouchStartX;
+            const config = currentConfig || {};
+            const pos = config.toolbarPosition || 'bottom';
+            const threshold = 40; // Pixel threshold
+
+            if (pos === 'bottom') {
+                if (diffY > threshold) toggleToolbar(true);
+            } else if (pos === 'top') {
+                if (diffY < -threshold) toggleToolbar(true);
+            } else if (pos === 'left') {
+                if (diffX < -threshold) toggleToolbar(true);
+            } else if (pos === 'right') {
+                if (diffX > threshold) toggleToolbar(true);
+            }
+        }
+
+        toolbarEl.addEventListener('mouseup', e => {
+            handleToolbarSwipe(e, e.clientX, e.clientY);
+        });
+        
+        toolbarEl.addEventListener('touchend', e => {
+            if (e.changedTouches.length > 0) {
+                handleToolbarSwipe(e, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+            }
+        });
+        
+        // Handle Swipe Up (Expand)
+        handleEl.addEventListener('mousedown', e => {
+            toolbarTouchStartY = e.clientY;
+            toolbarTouchStartX = e.clientX;
+        });
+        
+        handleEl.addEventListener('touchstart', e => {
+             if(e.touches.length > 0) {
+                toolbarTouchStartY = e.touches[0].clientY;
+                toolbarTouchStartX = e.touches[0].clientX;
+            }
+        }, {passive: true});
+        
+        function handleHandleSwipe(e, clientX, clientY) {
+            const diffY = clientY - toolbarTouchStartY;
+            const diffX = clientX - toolbarTouchStartX;
+            const config = currentConfig || {};
+            const pos = config.toolbarPosition || 'bottom';
+            const threshold = 30; 
+
+            if (pos === 'bottom') {
+                if (diffY < -threshold) toggleToolbar(false);
+            } else if (pos === 'top') {
+                if (diffY > threshold) toggleToolbar(false);
+            } else if (pos === 'left') {
+                if (diffX > threshold) toggleToolbar(false);
+            } else if (pos === 'right') {
+                if (diffX < -threshold) toggleToolbar(false);
+            }
+        }
+        
+        handleEl.addEventListener('mouseup', e => {
+            handleHandleSwipe(e, e.clientX, e.clientY);
+        });
+        
+        handleEl.addEventListener('touchend', e => {
+            if (e.changedTouches.length > 0) {
+                handleHandleSwipe(e, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+            }
+        });
+
+        // Override sendMaskUpdate to exclude collapsed toolbar
+        function sendMaskUpdate() {
+            if (!bridge) return;
+            requestAnimationFrame(() => {
+                const rects = [];
+                const isCollapsed = document.getElementById('toolbar-container').classList.contains('collapsed');
+                
+                document.querySelectorAll('.interactive').forEach(el => {
+                    if (el.offsetParent === null) return;
+                    
+                    // Skip toolbar if collapsed
+                    if (isCollapsed && el.id === 'toolbar') return;
+                    
+                    // Skip handle if NOT collapsed
+                    if (!isCollapsed && el.id === 'toolbar-handle') return;
+
+                    const r = el.getBoundingClientRect();
+                    if (r.width === 0 || r.height === 0) return;
+                    
                     rects.push({
                         x: r.x,
                         y: r.y,

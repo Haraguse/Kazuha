@@ -45,6 +45,19 @@ class TimerWorker(QObject):
             self.timer.stop()
         self.updated.emit(0)
 
+    @Slot(int)
+    def add_time(self, seconds):
+        if self.remaining_seconds > 0 or self.is_running:
+            self.remaining_seconds += float(seconds)
+            if self.remaining_seconds < 0:
+                self.remaining_seconds = 0
+            self.updated.emit(int(self.remaining_seconds))
+
+    @Slot(int)
+    def update_time(self, total_seconds):
+        self.remaining_seconds = float(total_seconds)
+        self.updated.emit(int(self.remaining_seconds))
+
     def _tick(self):
         if self.remaining_seconds > 0:
             self.remaining_seconds -= 0.1
@@ -69,6 +82,8 @@ class TimerManager(QObject):
     _request_pause = Signal()
     _request_resume = Signal()
     _request_stop = Signal()
+    _request_add_time = Signal(int)
+    _request_update_time = Signal(int)
 
     _instance = None
 
@@ -131,6 +146,14 @@ class TimerManager(QObject):
     def stop(self):
         self._request_stop.emit()
         self.state_changed.emit(False)
+
+    @Slot(int)
+    def add_time(self, seconds):
+        self._request_add_time.emit(seconds)
+
+    @Slot(int)
+    def update_time(self, total_seconds):
+        self._request_update_time.emit(total_seconds)
 
     @Slot()
     def finish(self):

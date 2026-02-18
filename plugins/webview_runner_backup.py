@@ -662,6 +662,10 @@ class Api:
         print("TIMER_FINISH")
         sys.stdout.flush()
 
+    def add_time(self, seconds):
+        print(f"TIMER_ADD_TIME:{seconds}")
+        sys.stdout.flush()
+
     def select_item(self, item):
         # Generic method to return data to the caller process
         # item can be any serializable object

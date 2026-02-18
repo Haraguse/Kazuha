@@ -15,6 +15,8 @@ class TimerPlugin(AssistantPlugin):
     stop_requested = Signal()
     finish_requested = Signal()
     background_mode_entered = Signal()
+    add_time_requested = Signal(int)
+    update_time_requested = Signal(int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -25,6 +27,8 @@ class TimerPlugin(AssistantPlugin):
         self.resume_requested.connect(self._timer_manager.resume)
         self.stop_requested.connect(self._timer_manager.stop)
         self.finish_requested.connect(self._timer_manager.finish)
+        self.add_time_requested.connect(self._timer_manager.add_time)
+        self.update_time_requested.connect(self._timer_manager.update_time)
 
     def get_name(self):
         return "计时器"
@@ -136,6 +140,18 @@ class TimerPlugin(AssistantPlugin):
                 self.stop_requested.emit()
             elif line == "TIMER_FINISH":
                 self.finish_requested.emit()
+            elif line.startswith("TIMER_ADD_TIME:"):
+                try:
+                    seconds = int(line.split(":")[1])
+                    self.add_time_requested.emit(seconds)
+                except:
+                    pass
+            elif line.startswith("TIMER_UPDATE:"):
+                try:
+                    total_seconds = int(line.split(":")[1])
+                    self.update_time_requested.emit(total_seconds)
+                except:
+                    pass
         
         # When process exits, we no longer stop the timer logic here 
         # as per user request to keep timer running even if window is closed.

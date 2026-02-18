@@ -383,6 +383,11 @@ class Api(QObject):
             except Exception:
                 pass
 
+    @Slot(int)
+    def update_timer(self, total_seconds):
+        print(f"TIMER_UPDATE:{total_seconds}")
+        sys.stdout.flush()
+
     @Slot(str)
     def set_title(self, title):
         if self._window:
@@ -973,6 +978,11 @@ class Api(QObject):
     @Slot()
     def finish_timer(self):
         print("TIMER_FINISH")
+        sys.stdout.flush()
+
+    @Slot(int)
+    def add_time(self, seconds):
+        print(f"TIMER_ADD_TIME:{seconds}")
         sys.stdout.flush()
 
     @Slot(QJsonValue)

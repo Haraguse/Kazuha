@@ -540,7 +540,8 @@
 
     .countdown-fullscreen .countdown-container .progress-ring svg,
     .countdown-fullscreen .countdown-container .total-time,
-    .countdown-fullscreen .countdown-actions {
+    .countdown-fullscreen .countdown-actions,
+    .countdown-fullscreen .add-time-actions {
       display: none !important;
     }
 
@@ -561,6 +562,41 @@
       display: flex;
       justify-content: center;
       gap: 12px;
+    }
+
+    .add-time-actions {
+      margin-top: 12px;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .countdown-container.active .add-time-actions {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .add-time-btn {
+      height: 28px;
+      padding: 0 10px;
+      border-radius: 14px;
+      border: 1px solid var(--divider);
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.1s;
+    }
+
+    .add-time-btn:active {
+      transform: scale(0.96);
+      background: var(--item-hover);
     }
 
     .fullscreen-toggle,
@@ -1423,6 +1459,10 @@
               <div class="countdown-text">
                 <div class="time-left" id="timeLeftDisplay">00:00</div>
                 <div class="total-time" id="totalTimeDisplay"></div>
+                <div class="add-time-actions">
+                  <button class="add-time-btn" onclick="addTime(60)">+1m</button>
+                  <button class="add-time-btn" onclick="addTime(15)">+15s</button>
+                </div>
                 <div class="countdown-actions">
                   <button class="fullscreen-toggle" id="fullscreenToggle" onclick="toggleCountdownFullscreen()">
                     <span class="fullscreen-icon"></span>
@@ -2413,6 +2453,23 @@
       resetAudio.play().catch(e => console.error('Audio play error:', e));
 
       updateButtonState();
+    }
+
+    function addTime(seconds) {
+      if (tmState === 'finished') return;
+      
+      // Call Python API
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.add_time) {
+        window.pywebview.api.add_time(seconds);
+        // Optimistically update local state to feel responsive
+        tmRemaining += seconds * 1000;
+        tmTotal += seconds * 1000; // Extend total time as well? Usually yes for progress bar logic
+        updateCountdownUI();
+        
+        if (window.pywebview.api.update_timer) {
+            window.pywebview.api.update_timer(Math.ceil(tmRemaining / 1000));
+        }
+      }
     }
 
     // --- Clock Logic ---
