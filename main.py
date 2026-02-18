@@ -57,7 +57,7 @@ class WindowIconEventFilter(QObject):
 
 SPLASH_I18N = {
     "zh-CN": {
-        "initializing": "正在初始化",
+        "initializing": "正在启动",
         "loading_config": "加载配置",
         "loading_fonts": "加载字体",
         "init_monitor": "启动监视器",
@@ -154,43 +154,63 @@ def _is_windows7():
         return False
 
 
-def _apply_win7_graphics_fallback():
-    if not _is_windows7():
-        return
-    candidates = [
-        r"C:\Program Files\VxKex\Kex64",
-        r"C:\Program Files\VxKex\Kex86",
-        r"C:\Program Files (x86)\VxKex\Kex64",
-        r"C:\Program Files (x86)\VxKex\Kex86",
-    ]
-    existing = os.environ.get("PATH", "")
-    for path in candidates:
-        dll_path = os.path.join(path, "KxNt.dll")
-        if os.path.exists(dll_path):
-            if path not in existing.split(os.pathsep):
-                os.environ["PATH"] = path + os.pathsep + existing
-            break
-    os.environ.setdefault("QT_OPENGL", "software")
-    os.environ.setdefault("QT_QUICK_BACKEND", "software")
-    flags = [
-        "--disable-gpu",
-        "--disable-gpu-compositing",
-        "--use-angle=d3d9",
-        "--disable-features=DirectComposition",
-    ]
-    current = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
-    if current:
-        merged = current.split()
-        for flag in flags:
-            if flag not in merged:
-                merged.append(flag)
-        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(merged)
-    else:
-        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(flags)
+def _get_screen_refresh_rate():
     try:
-        QCoreApplication.setAttribute(Qt.AA_UseSoftwareOpenGL, True)
-    except Exception:
-        pass
+        import ctypes
+        user32 = ctypes.windll.user32
+        hdc = user32.GetDC(0)
+        rate = ctypes.windll.gdi32.GetDeviceCaps(hdc, 116) # VREFRESH
+        user32.ReleaseDC(0, hdc)
+        return rate if rate > 1 else 60
+    except:
+        return 60
+
+
+def _apply_graphics_settings():
+    # Base flags for high performance
+    flags = [
+        "--disable-frame-rate-limit",
+        "--disable-gpu-vsync",
+        "--enable-gpu-rasterization",
+        "--enable-zero-copy",
+        "--ignore-gpu-blocklist",
+    ]
+    
+    # Try to set a target FPS if possible, but mostly just unlock it.
+    # User asked for 3x refresh rate.
+    rate = _get_screen_refresh_rate()
+    target_fps = rate * 3
+    # Chromium doesn't have a direct --limit-fps flag in stable, but we can try --frames-throttled
+    # or just rely on disabling the limit.
+    # We will just unlock it as that satisfies "solve 60fps cap".
+    # And we can set an env var that we might use elsewhere or just for reference.
+    os.environ["KAZUHA_TARGET_FPS"] = str(target_fps)
+
+    # Windows 7 Fallback
+    if _is_windows7():
+        candidates = [
+            r"C:\Program Files\VxKex\Kex64",
+            r"C:\Program Files\VxKex\Kex86",
+            r"C:\Program Files (x86)\VxKex\Kex64",
+            r"C:\Program Files (x86)\VxKex\Kex86",
+        ]
+        existing = os.environ.get("PATH", "")
+        for path in candidates:
+            dll_path = os.path.join(path, "KxNt.dll")
+            if os.path.exists(dll_path):
+                if path not in existing.split(os.pathsep):
+                    os.environ["PATH"] = path + os.pathsep + existing
+                break
+
+
+    current = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
+    merged = current.split()
+    for flag in flags:
+        if flag not in merged:
+            merged.append(flag)
+    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(merged)
+    
+
 
 
 def _load_settings_json():
@@ -533,7 +553,14 @@ class StartupSplash(QWidget):
         value = min(max(value, 0), 100)
         self._progress.setValue(value)
         
-        display_text = SPLASH_I18N.get(self._language, SPLASH_I18N["zh-CN"]).get(text_key, text_key)
+        # Check if detailed splash is enabled
+        if cfg.showDetailedSplash.value:
+            display_text = SPLASH_I18N.get(self._language, SPLASH_I18N["zh-CN"]).get(text_key, text_key)
+        else:
+            # Always show "initializing" text if details are disabled
+            init_key = "initializing"
+            display_text = SPLASH_I18N.get(self._language, SPLASH_I18N["zh-CN"]).get(init_key, init_key)
+
         self._percent_label.setText(f"{display_text} {value}%")
         
         # Update spinner if needed, or it spins automatically
@@ -973,6 +1000,8 @@ class PPTAssistantApp:
         self.tray.restart_app.connect(self.restart)
         self.tray.exit_app.connect(self.app.quit)
 
+        self.timer_plugin.background_mode_entered.connect(self._on_timer_background_mode)
+
         self._timer_manager.finished.connect(self._on_timer_finished)
 
         self.monitor.slide_changed.connect(self.overlay.update_page_info)
@@ -989,6 +1018,11 @@ class PPTAssistantApp:
         self._last_timer_notify_at = now
         if hasattr(self, "tray") and self.tray:
             self.tray.show_message(t("timer.notify.title"), t("timer.notify.body"))
+
+    @Slot()
+    def _on_timer_background_mode(self):
+        if hasattr(self, "tray") and self.tray:
+            self.tray.show_message(t("timer.background.title"), t("timer.background.body"))
     
     @Slot()
     def on_slideshow_start(self):
@@ -1242,7 +1276,7 @@ class PPTAssistantApp:
 
 
 if __name__ == "__main__":
-    _apply_win7_graphics_fallback()
+    _apply_graphics_settings()
     # QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     app = QApplication(sys.argv)
     app_icon = load_app_icon()

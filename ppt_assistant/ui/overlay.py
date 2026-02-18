@@ -252,7 +252,8 @@ class OverlayWindow(QWebEngineView):
         t_color = themeColor()
         color_str = t_color.name()
         
-        js = f"setTheme({'false' if is_light else 'true'}, '{color_str}');"
+        theme_id = cfg.themeId.value
+        js = f"setTheme({'false' if is_light else 'true'}, '{color_str}', '{theme_id}');"
         self.page().runJavaScript(js)
         if self._ink_prompt_view:
             self._apply_ink_prompt_context(self._ink_prompt_view.rootContext())
@@ -493,8 +494,11 @@ if ($statusValue -eq 4) { $state="Playing" } elseif ($statusValue -eq 5) { $stat
             "scale": cfg.scale.value,
             "safeArea": cfg.safeArea.value,
             "popWindowScale": cfg.popWindowScale.value,
+            "toolbarOpacity": cfg.toolbarOpacity.value,
+            "sidePageOpacity": cfg.sidePageOpacity.value,
             "texts": trans_map,
-            "apps": apps_list
+            "apps": apps_list,
+            "disabledTools": cfg.disabledTools.value
         }
         
         js = f"if(window.updateConfig) window.updateConfig({json.dumps(config_data)});"
@@ -776,6 +780,9 @@ Item {
         cfg.scale.valueChanged.connect(lambda *_: self.update_config())
         cfg.safeArea.valueChanged.connect(lambda *_: self.update_config())
         cfg.popWindowScale.valueChanged.connect(lambda *_: self.update_config())
+        cfg.toolbarOpacity.valueChanged.connect(lambda *_: self.update_config())
+        cfg.sidePageOpacity.valueChanged.connect(lambda *_: self.update_config())
+        cfg.disabledTools.valueChanged.connect(lambda *_: self.update_config())
 
     def showEvent(self, event):
         super().showEvent(event)

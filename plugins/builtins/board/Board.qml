@@ -9,6 +9,8 @@ Rectangle {
     focus: true
     property string toolbarPosition: typeof boardToolbarPosition !== "undefined" ? boardToolbarPosition : "bottom"
     property string backgroundColor: typeof boardBackgroundColor !== "undefined" ? boardBackgroundColor : "#202020"
+    property string popupBackgroundColor: typeof boardPopupBackgroundColor !== "undefined" ? boardPopupBackgroundColor : ""
+    property string popupBorderColor: typeof boardPopupBorderColor !== "undefined" ? boardPopupBorderColor : ""
     property bool darkBackground: isDarkColor(backgroundColor)
     Keys.onEscapePressed: backend.closeWindow()
 
@@ -46,49 +48,83 @@ Rectangle {
             property var lastY
             property var pendingLines: []
             property var allLines: [] // Store all strokes history
+            property bool needsFullRepaint: false
+
+            onWidthChanged: {
+                needsFullRepaint = true;
+                requestPaint();
+            }
+            onHeightChanged: {
+                needsFullRepaint = true;
+                requestPaint();
+            }
             
             onPaint: {
                 var ctx = getContext("2d");
                 ctx.lineJoin = "round";
                 ctx.lineCap = "round";
                 
+                var w = width;
+                var h = height;
+
+                if (needsFullRepaint) {
+                    ctx.clearRect(0, 0, w, h);
+                    for (var i = 0; i < allLines.length; i++) {
+                        drawLine(ctx, allLines[i], w, h);
+                    }
+                    needsFullRepaint = false;
+                }
+
                 while (pendingLines.length > 0) {
                     var line = pendingLines.shift();
-                    ctx.beginPath();
-                    if (line.isEraser) {
-                         ctx.globalCompositeOperation = "destination-out";
-                         ctx.lineWidth = 20;
-                    } else {
-                        ctx.globalCompositeOperation = "source-over";
-                        ctx.strokeStyle = line.color;
-                        ctx.lineWidth = line.width;
-                    }
-                    ctx.moveTo(line.x1, line.y1);
-                    ctx.lineTo(line.x2, line.y2);
-                    ctx.stroke();
+                    drawLine(ctx, line, w, h);
                 }
+            }
+
+            function drawLine(ctx, line, w, h) {
+                ctx.beginPath();
+                if (line.isEraser) {
+                     ctx.globalCompositeOperation = "destination-out";
+                     ctx.lineWidth = 20; 
+                } else {
+                    ctx.globalCompositeOperation = "source-over";
+                    ctx.strokeStyle = line.color;
+                    ctx.lineWidth = line.width;
+                }
+                
+                var x1 = line.x1 * w;
+                var y1 = line.y1 * h;
+                var x2 = line.x2 * w;
+                var y2 = line.y2 * h;
+
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
             }
             
             MouseArea {
                 anchors.fill: parent
                 onPressed: (mouse) => {
-                    canvas.lastX = mouse.x
-                    canvas.lastY = mouse.y
+                    canvas.lastX = mouse.x / canvas.width
+                    canvas.lastY = mouse.y / canvas.height
                 }
                 onPositionChanged: (mouse) => {
+                    var currentX = mouse.x / canvas.width;
+                    var currentY = mouse.y / canvas.height;
+                    
                     var line = {
                         x1: canvas.lastX,
                         y1: canvas.lastY,
-                        x2: mouse.x,
-                        y2: mouse.y,
+                        x2: currentX,
+                        y2: currentY,
                         color: canvas.drawColor.toString(),
                         width: canvas.lineWidth,
                         isEraser: canvas.isEraser
                     };
                     canvas.pendingLines.push(line);
                     canvas.allLines.push(line);
-                    canvas.lastX = mouse.x;
-                    canvas.lastY = mouse.y;
+                    canvas.lastX = currentX;
+                    canvas.lastY = currentY;
                     canvas.requestPaint();
                 }
             }
@@ -97,6 +133,7 @@ Rectangle {
                 var ctx = getContext("2d");
                 ctx.clearRect(0, 0, width, height);
                 canvas.allLines = [];
+                canvas.pendingLines = [];
                 requestPaint();
             }
 
@@ -110,12 +147,39 @@ Rectangle {
             }
 
             function setStrokes(strokes) {
-                var ctx = getContext("2d");
-                ctx.clearRect(0, 0, width, height);
-                canvas.allLines = strokes;
+                // Convert legacy absolute coordinates to relative if needed
+                var newStrokes = [];
+                var w = width || 800; // Fallback to avoid div by zero if 0
+                var h = height || 600;
+                
+                if (w === 0) w = 800;
+                if (h === 0) h = 600;
+
                 for (var i = 0; i < strokes.length; i++) {
-                    canvas.pendingLines.push(strokes[i]);
+                    var s = strokes[i];
+                    // Deep copy to avoid modifying original reference if passed by ref
+                    var line = {
+                        x1: s.x1,
+                        y1: s.y1,
+                        x2: s.x2,
+                        y2: s.y2,
+                        color: s.color,
+                        width: s.width,
+                        isEraser: s.isEraser
+                    };
+
+                    // Heuristic: if values are > 1.1, assume absolute pixels
+                    if (line.x1 > 1.1 || line.y1 > 1.1 || line.x2 > 1.1 || line.y2 > 1.1) {
+                        line.x1 /= w;
+                        line.y1 /= h;
+                        line.x2 /= w;
+                        line.y2 /= h;
+                    }
+                    newStrokes.push(line);
                 }
+                
+                canvas.allLines = newStrokes;
+                canvas.needsFullRepaint = true;
                 canvas.requestPaint();
             }
         }
@@ -154,9 +218,9 @@ Rectangle {
         padding: 12
         
         background: Rectangle {
-            color: darkBackground ? "#202020" : "#FFFFFF"
+            color: root.popupBackgroundColor !== "" ? root.popupBackgroundColor : (darkBackground ? "#202020" : "#FFFFFF")
             radius: 12
-            border.color: darkBackground ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.1)
+            border.color: root.popupBorderColor !== "" ? root.popupBorderColor : (darkBackground ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.1))
             border.width: 1
         }
         

@@ -7,7 +7,8 @@ from PySide6.QtGui import QColor, QIcon, QAction
 from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QApplication, QDialog, QMessageBox
 from ppt_assistant.core.config import cfg, SETTINGS_PATH
 from ppt_assistant.core.app_icon import load_app_icon
-from ppt_assistant.ui.dialog import CustomDialog
+from ppt_assistant.core.theme_data import THEMES
+from qfluentwidgets import Theme
 
 def _get_app_version():
     try:
@@ -56,27 +57,62 @@ def _load_language():
 def _read_board_settings():
     position = "bottom"
     background_color = "#202020"
+    popup_bg = ""
+    popup_border = ""
+    
+    # Read settings file once
+    settings_data = {}
     try:
         if os.path.exists(SETTINGS_PATH):
             with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            board = data.get("BoardInBoard", {}) or {}
-            pos = board.get("ToolbarPosition", position)
-            if pos in ("top", "bottom"):
-                position = pos
-            color = board.get("BackgroundColor", background_color)
-            if isinstance(color, str) and len(color) == 7 and color.startswith("#"):
-                try:
-                    int(color[1:], 16)
-                    background_color = color
-                except Exception:
-                    background_color = "#202020"
+                settings_data = json.load(f)
     except Exception:
-        return position, background_color
-    return position, background_color
+        pass
+        
+    # Get ThemeId from settings or fallback to cfg
+    theme_id = settings_data.get("Appearance", {}).get("ThemeId", cfg.themeId.value)
+    theme_mode = settings_data.get("Appearance", {}).get("ThemeMode", cfg.themeMode.value)
+
+    # Override for year-of-horse theme
+    if theme_id == "year-of-horse":
+        is_dark = str(theme_mode).lower() == "dark"
+        if is_dark:
+            background_color = "#451212"
+            popup_bg = "#451212"
+            popup_border = "rgba(255, 69, 0, 0.3)"
+        else:
+            background_color = "#FFF0F0"
+            popup_bg = "#FFF0F0"
+            popup_border = "rgba(230, 0, 0, 0.15)"
+        
+        # Check if user has explicitly set a custom color in settings, 
+        # but for this specific theme request, we probably want to enforce the theme feel 
+        # unless we want to respect user override. 
+        # Given the user's strong request for "red", let's prioritize the theme defaults 
+        # if the user hasn't touched the board settings recently (which we can't easily know).
+        # However, to be safe and "red enough", we return the theme color.
+        # But we should still read position.
+        board = settings_data.get("BoardInBoard", {}) or {}
+        pos = board.get("ToolbarPosition", position)
+        if pos in ("top", "bottom"):
+            position = pos
+        return position, background_color, popup_bg, popup_border
+
+    board = settings_data.get("BoardInBoard", {}) or {}
+    pos = board.get("ToolbarPosition", position)
+    if pos in ("top", "bottom"):
+        position = pos
+    color = board.get("BackgroundColor", background_color)
+    if isinstance(color, str) and len(color) == 7 and color.startswith("#"):
+        try:
+            int(color[1:], 16)
+            background_color = color
+        except Exception:
+            background_color = "#202020"
+    return position, background_color, popup_bg, popup_border
 
 def _load_board_toolbar_position():
-    position, _ = _read_board_settings()
+    position, _, _, _ = _read_board_settings()
     return position
 
 _TRANSLATIONS = {
@@ -228,12 +264,14 @@ class BoardWindow(QQuickView):
         icons_url = QUrl.fromLocalFile(icons_dir).toString() + "/"
         self._settings_path = SETTINGS_PATH
         self._settings_mtime = None
-        self._board_toolbar_position, self._board_background_color = _read_board_settings()
+        self._board_toolbar_position, self._board_background_color, self._board_popup_bg, self._board_popup_border = _read_board_settings()
 
         self.rootContext().setContextProperty("iconsDir", icons_url)
         self.rootContext().setContextProperty("showToolText", cfg.showToolbarText.value)
         self.rootContext().setContextProperty("boardToolbarPosition", self._board_toolbar_position)
         self.rootContext().setContextProperty("boardBackgroundColor", self._board_background_color)
+        self.rootContext().setContextProperty("boardPopupBackgroundColor", self._board_popup_bg)
+        self.rootContext().setContextProperty("boardPopupBorderColor", self._board_popup_border)
         self.rootContext().setContextProperty("penText", _t("toolbar.pen"))
         self.rootContext().setContextProperty("eraserText", _t("toolbar.eraser"))
         self.rootContext().setContextProperty("clearText", _t("toolbar.clear"))
@@ -300,7 +338,7 @@ class BoardWindow(QQuickView):
         if self._settings_mtime == mtime:
             return
         self._settings_mtime = mtime
-        position, background_color = _read_board_settings()
+        position, background_color, popup_bg, popup_border = _read_board_settings()
         root = self.rootObject()
         if position != self._board_toolbar_position:
             self._board_toolbar_position = position
@@ -310,6 +348,14 @@ class BoardWindow(QQuickView):
             self._board_background_color = background_color
             if root:
                 root.setProperty("backgroundColor", background_color)
+        if popup_bg != self._board_popup_bg:
+            self._board_popup_bg = popup_bg
+            if root:
+                root.setProperty("popupBackgroundColor", popup_bg)
+        if popup_border != self._board_popup_border:
+            self._board_popup_border = popup_border
+            if root:
+                root.setProperty("popupBorderColor", popup_border)
 
     def _on_status_changed(self, status):
         if status == QQuickView.Ready:

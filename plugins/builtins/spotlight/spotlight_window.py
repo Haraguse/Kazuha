@@ -18,6 +18,15 @@ from qfluentwidgets import (
 import os
 import time
 from ppt_assistant.core.app_icon import load_app_icon
+from ppt_assistant.core.config import cfg
+from ppt_assistant.core.theme_data import THEMES
+
+def _get_theme_color(key, default):
+    theme_id = cfg.themeId.value
+    mode = "dark" if cfg.themeMode.value == Theme.DARK else "light"
+    if theme_id in THEMES:
+        return THEMES[theme_id].get(mode, {}).get(key, default)
+    return default
 
 class SpotlightToolButton(QFrame):
     clicked = Signal()
@@ -45,7 +54,16 @@ class SpotlightToolButton(QFrame):
         self.update_style()
 
     def _update_icon(self):
-        color = QColor("#3275F5") if self.is_active else QColor("#FFFFFF")
+        accent_color = "#3275F5"
+        inactive_color = "#FFFFFF"
+        
+        # Check if year-of-horse theme is active
+        if cfg.themeId.value == "year-of-horse":
+            accent_color = _get_theme_color("accent", "#E60000")
+            # For light mode, we need a darker color for inactive icons
+            inactive_color = _get_theme_color("toolbar_fg", "#FFFFFF")
+            
+        color = QColor(accent_color) if self.is_active else QColor(inactive_color)
         # 使用 FluentIcon 的 icon() 方法生成带颜色的图标并转为 pixmap
         pixmap = self.icon.icon(color=color).pixmap(20, 20)
         self.icon_label.setPixmap(pixmap)
@@ -57,14 +75,21 @@ class SpotlightToolButton(QFrame):
             self.update_style()
 
     def update_style(self):
-        bg = "rgba(255, 255, 255, 0.1)" if self.is_active else "transparent"
+        active_bg = "rgba(255, 255, 255, 0.1)"
+        hover_bg = "rgba(255, 255, 255, 0.15)"
+        
+        if cfg.themeId.value == "year-of-horse":
+             active_bg = _get_theme_color("btn_active_bg", "rgba(255, 255, 255, 0.1)")
+             hover_bg = _get_theme_color("btn_hover_bg", "rgba(255, 255, 255, 0.15)")
+
+        bg = active_bg if self.is_active else "transparent"
         self.setStyleSheet(f"""
             SpotlightToolButton {{
                 background-color: {bg};
                 border-radius: 19px;
             }}
             SpotlightToolButton:hover {{
-                background-color: rgba(255, 255, 255, 0.15);
+                background-color: {hover_bg};
             }}
         """)
 
@@ -133,12 +158,20 @@ class SpotlightControlPanel(QFrame):
         self.layout.addWidget(self.btn_close)
 
         # 整体样式
-        self.setStyleSheet("""
-            #SpotlightControlPanel {
-                background-color: #202020;
-                border: 1px solid rgba(255, 255, 255, 0.08);
+        bg_color = "#202020"
+        border_color = "rgba(255, 255, 255, 0.08)"
+        
+        if cfg.themeId.value == "year-of-horse":
+            # Use theme toolbar background
+            bg_color = _get_theme_color("toolbar_bg", "#2A0505")
+            border_color = _get_theme_color("toolbar_border", "rgba(255, 77, 77, 0.15)")
+
+        self.setStyleSheet(f"""
+            #SpotlightControlPanel {{
+                background-color: {bg_color};
+                border: 1px solid {border_color};
                 border-radius: 27px;
-            }
+            }}
         """)
         
         shadow = QGraphicsDropShadowEffect(self)
@@ -401,7 +434,11 @@ class SpotlightWindow(QWidget):
 
         # 3. 绘制边框
         if not self.selection_rect.isEmpty():
-            pen = QPen(QColor(50, 117, 245), 2) # Kazuha blue
+            accent_color = "#3275F5"
+            if cfg.themeId.value == "year-of-horse":
+                accent_color = _get_theme_color("accent", "#E60000")
+                
+            pen = QPen(QColor(accent_color), 2)
             painter.setPen(pen)
             painter.drawRoundedRect(self.selection_rect, 4, 4)
         painter.end()

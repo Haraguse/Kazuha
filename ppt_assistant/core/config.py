@@ -44,6 +44,9 @@ class Config(QConfig):
     safeArea = RangeConfigItem("Overlay", "SafeArea", 0, RangeValidator(0, 100), restart=False)
     scale = RangeConfigItem("Overlay", "Scale", 1.0, RangeValidator(0.5, 2.0), restart=False)
     popWindowScale = RangeConfigItem("Overlay", "PopWindowScale", 1.0, RangeValidator(0.5, 3.0), restart=False)
+    toolbarOpacity = RangeConfigItem("Overlay", "ToolbarOpacity", 1.0, RangeValidator(0.1, 1.0), restart=False)
+    sidePageOpacity = RangeConfigItem("Overlay", "SidePageOpacity", 1.0, RangeValidator(0.1, 1.0), restart=False)
+    syncOpacity = ConfigItem("Overlay", "SyncOpacity", False, BoolValidator(), restart=False)
 
     autoHandleInk = ConfigItem("PPT", "AutoHandleInk", True, BoolValidator())
 
@@ -56,11 +59,13 @@ class Config(QConfig):
         OptionsValidator(["Always", "Never", "HideOnAutoStart", "TimeRange"]),
         restart=False,
     )
+    showDetailedSplash = ConfigItem("General", "ShowDetailedSplash", False, BoolValidator())
     splashStartTime = ConfigItem("General", "SplashStartTime", "08:00", restart=False)
     splashEndTime = ConfigItem("General", "SplashEndTime", "20:00", restart=False)
 
     quickLaunchApps = ConfigItem("Toolbar", "QuickLaunchApps", [], restart=False)
     toolbarOrder = ConfigItem("Toolbar", "ToolbarOrder", ["select", "pen", "eraser", "spotlight", "board_in_board", "timer", "clear", "apps"], restart=False)
+    disabledTools = ConfigItem("Toolbar", "DisabledTools", [], restart=False)
 
 
 cfg = Config()
@@ -201,11 +206,16 @@ def _bind_auto_save():
     cfg.toolbarPosition.valueChanged.connect(lambda *_: _save_cfg())
     cfg.safeArea.valueChanged.connect(lambda *_: _save_cfg())
     cfg.scale.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.popWindowScale.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.toolbarOpacity.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.sidePageOpacity.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.syncOpacity.valueChanged.connect(lambda *_: _save_cfg())
     cfg.autoHandleInk.valueChanged.connect(lambda *_: _save_cfg())
     cfg.overlayScreen.valueChanged.connect(lambda *_: _save_cfg())
     cfg.splashMode.valueChanged.connect(lambda *_: _save_cfg())
     cfg.splashStartTime.valueChanged.connect(lambda *_: _save_cfg())
     cfg.splashEndTime.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.disabledTools.valueChanged.connect(lambda *_: _save_cfg())
     # cfg.toolbarLayout.valueChanged.connect(lambda *_: _save_cfg())
 
 

@@ -113,21 +113,33 @@ def _maybe_add_vxkex_path():
             break
 
 
+def _get_screen_refresh_rate():
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        hdc = user32.GetDC(0)
+        rate = ctypes.windll.gdi32.GetDeviceCaps(hdc, 116) # VREFRESH
+        user32.ReleaseDC(0, hdc)
+        return rate if rate > 1 else 60
+    except:
+        return 60
+
 def _apply_chromium_flags():
     _maybe_add_vxkex_path()
     flags = [
         "--enable-gpu",
         "--ignore-gpu-blocklist",
         "--enable-zero-copy",
-        "--enable-features=BackForwardCache"
+        "--enable-features=BackForwardCache",
+        "--disable-frame-rate-limit",
+        "--disable-gpu-vsync",
     ]
-    if _is_windows7():
-        flags = [
-            "--disable-gpu",
-            "--disable-gpu-compositing",
-            "--use-angle=d3d9",
-            "--disable-features=DirectComposition"
-        ]
+    
+    rate = _get_screen_refresh_rate()
+    target_fps = rate * 3
+    os.environ["KAZUHA_TARGET_FPS"] = str(target_fps)
+
+
     current = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
     if current:
         merged = current.split()

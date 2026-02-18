@@ -187,6 +187,70 @@
       --dialog-icon-bg: rgba(255, 182, 119, 0.22);
     }
 
+    :root[data-theme-id="year-of-horse"][data-theme="light"] {
+      --bg-app: #FFEBEE;
+      --bg-surface: #FFF5F5;
+      --text-primary: #B71C1C;
+      --text-secondary: rgba(183, 28, 28, 0.6);
+      --text-inverse: #FFFFFF;
+      --accent-blue: #D32F2F;
+      --divider: rgba(211, 47, 47, 0.2);
+      --item-hover: rgba(211, 47, 47, 0.18);
+      --shadow-main: 0 6px 22px rgba(183, 28, 28, 0.2);
+      --ring-bg: rgba(211, 47, 47, 0.15);
+      --dialog-overlay: rgba(50, 10, 10, 0.6);
+      --dialog-icon-bg: rgba(211, 47, 47, 0.15);
+    }
+
+    :root[data-theme-id="year-of-horse"][data-theme="dark"] {
+      --bg-app: #2A0505;
+      --bg-surface: #451212;
+      --text-primary: #FFD700;
+      --text-secondary: #FFB347;
+      --text-inverse: #2A0A0A;
+      --accent-blue: #FF4500;
+      --divider: rgba(255, 69, 0, 0.3);
+      --item-hover: rgba(255, 69, 0, 0.22);
+      --shadow-main: 0 12px 34px rgba(0, 0, 0, 0.5);
+      --ring-bg: rgba(255, 69, 0, 0.22);
+      --dialog-overlay: rgba(0, 0, 0, 0.62);
+      --dialog-icon-bg: rgba(255, 69, 0, 0.2);
+    }
+
+    /* Year of Horse Background Pattern */
+    :root[data-theme-id="year-of-horse"][data-theme="light"] body {
+      background-image: radial-gradient(circle at 100% 0%, rgba(230, 0, 0, 0.12) 0%, transparent 25%),
+                        radial-gradient(circle at 0% 100%, rgba(230, 0, 0, 0.12) 0%, transparent 25%),
+                        radial-gradient(circle at 50% 50%, rgba(230, 0, 0, 0.08) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
+    :root[data-theme-id="year-of-horse"][data-theme="dark"] body {
+      background-image: radial-gradient(circle at 100% 0%, rgba(255, 69, 0, 0.15) 0%, transparent 30%),
+                        radial-gradient(circle at 0% 100%, rgba(255, 69, 0, 0.15) 0%, transparent 30%),
+                        radial-gradient(circle at 50% 50%, rgba(255, 69, 0, 0.08) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
+    :root[data-theme-id="year-of-horse"] body::before {
+        content: "马";
+        position: fixed;
+        bottom: -10vh;
+        right: -10vh;
+        font-size: 60vh;
+        font-family: "Kaiti", "STKaiti", "Xingkai SC", "STXingkai", "Microsoft YaHei", serif;
+        color: var(--accent-blue);
+        opacity: 0.08;
+        pointer-events: none;
+        z-index: 0;
+        transform: rotate(-15deg);
+    }
+
+    [data-theme-id="year-of-horse"] .container {
+        position: relative;
+        z-index: 1;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -1463,8 +1527,8 @@
         "timer.fullscreen": "全螢幕",
         "timer.exitFullscreen": "退出全螢幕",
         "bell.timeUp": "時間到",
-        "dialog.exit.title": "確認退出",
-        "dialog.exit.desc": "計時器正在運行，退出將清空當前計時進度。確定要退出嗎？",
+        "dialog.exit.title": "確認關閉",
+        "dialog.exit.desc": "計時器將在後台繼續運行。確定要關閉窗口嗎？",
         "dialog.cancel": "取消",
         "dialog.confirm": "確定",
         "general.devWatermark": "開發中版本/技術預覽版本\n不保證最終品質 （{version}）"
@@ -1486,8 +1550,8 @@
         "timer.fullscreen": "全螢幕",
         "timer.exitFullscreen": "退出全螢幕",
         "bell.timeUp": "時間到喇",
-        "dialog.exit.title": "退出確認",
-        "dialog.exit.desc": "計時緊，走人會清晒而家嘅進度。你係咪肯定？",
+        "dialog.exit.title": "確認關閉",
+        "dialog.exit.desc": "計時器會喺後台繼續行。確定要關閉窗口？",
         "dialog.cancel": "算啦",
         "dialog.confirm": "確定",
         "general.devWatermark": "開發中版本/技術預覽版本\n品質唔包 ({version})"
@@ -1678,6 +1742,14 @@
     function handleDblClick(e) {
       if (e.target.classList.contains('container')) {
         showExitDialog();
+      }
+    }
+
+    function winClose() {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.on_cancel) {
+        window.pywebview.api.on_cancel();
+      } else {
+        window.close();
       }
     }
 
@@ -2399,50 +2471,58 @@
       const lang = currentLanguage in weekdays ? currentLanguage : "zh-CN";
       const w = weekdays[lang][now.getDay()];
       
-      let dateStr = `${mo}月${d}日${w}`;
+      let dateStr = "";
+      if (currentLanguage === "ja-JP") {
+        const reiwaYear = y - 2018;
+        dateStr = `令和${reiwaYear}年${mo}月${d}日${w}`;
+      } else {
+        dateStr = `${mo}月${d}日${w}`;
+      }
 
-      try {
-        const lunarFormatter = new Intl.DateTimeFormat("zh-CN", {
-          calendar: "chinese",
-          year: "numeric",
-          month: "numeric",
-          day: "numeric"
-        });
-        const parts = lunarFormatter.formatToParts(now);
-        
-        let lYearVal = y;
-        let lMonthVal = NaN;
-        let lDayVal = NaN;
-        let lMonthRaw = "";
-        let lDayRaw = "";
+      if (currentLanguage !== "en-US" && currentLanguage !== "ug-CN" && currentLanguage !== "ja-JP") {
+        try {
+          const lunarFormatter = new Intl.DateTimeFormat("zh-CN", {
+            calendar: "chinese",
+            year: "numeric",
+            month: "numeric",
+            day: "numeric"
+          });
+          const parts = lunarFormatter.formatToParts(now);
+          
+          let lYearVal = y;
+          let lMonthVal = NaN;
+          let lDayVal = NaN;
+          let lMonthRaw = "";
+          let lDayRaw = "";
 
-        parts.forEach(p => {
-           if (p.type === "relatedYear") {
-             const v = parseInt(p.value);
-             if (!isNaN(v)) lYearVal = v;
-           }
-           if (p.type === "year") {
-             const v = parseInt(p.value.replace(/[^\d]/g, ''));
-             if (!isNaN(v)) lYearVal = v;
-           }
-           if (p.type === "month") {
-             lMonthVal = parseInt(p.value);
-             lMonthRaw = p.value;
-           }
-           if (p.type === "day") {
-             lDayVal = parseInt(p.value);
-             lDayRaw = p.value;
-           }
-        });
+          parts.forEach(p => {
+             if (p.type === "relatedYear") {
+               const v = parseInt(p.value);
+               if (!isNaN(v)) lYearVal = v;
+             }
+             if (p.type === "year") {
+               const v = parseInt(p.value.replace(/[^\d]/g, ''));
+               if (!isNaN(v)) lYearVal = v;
+             }
+             if (p.type === "month") {
+               lMonthVal = parseInt(p.value);
+               lMonthRaw = p.value;
+             }
+             if (p.type === "day") {
+               lDayVal = parseInt(p.value);
+               lDayRaw = p.value;
+             }
+          });
 
-        const ganZhi = getGanZhi(lYearVal);
-        const lMonthStr = getLunarMonthName(lMonthVal, lMonthRaw);
-        const lDayStr = getLunarDayName(lDayVal, lDayRaw);
-        
-        dateStr += ` · ${ganZhi}年${lMonthStr}${lDayStr}`;
-      } catch (e) {
-        console.error(e);
-        dateStr += ` · ${y}年${mo}月${d}日`;
+          const ganZhi = getGanZhi(lYearVal);
+          const lMonthStr = getLunarMonthName(lMonthVal, lMonthRaw);
+          const lDayStr = getLunarDayName(lDayVal, lDayRaw);
+          
+          dateStr += ` · ${ganZhi}年${lMonthStr}${lDayStr}`;
+        } catch (e) {
+          console.error(e);
+          dateStr += ` · ${y}年${mo}月${d}日`;
+        }
       }
 
       dateDisplay.textContent = dateStr;

@@ -112,6 +112,696 @@
             --overlay-dialog-text: rgba(255, 255, 255, 0.68);
         }
 
+        [data-theme-id="year-of-horse"] {
+            /* Light Mode Year of Horse - Synced with Settings */
+            --accent-color: #D32F2F;
+            --overlay-toolbar-bg: #FFEBEE;
+            --overlay-toolbar-border: rgba(211, 47, 47, 0.25);
+            --overlay-toolbar-fg: #B71C1C;
+            --overlay-toolbar-shadow: rgba(183, 28, 28, 0.2);
+            
+            --overlay-button-hover: rgba(211, 47, 47, 0.15);
+            --overlay-button-active: rgba(211, 47, 47, 0.25);
+            
+            --overlay-status-bg: rgba(183, 28, 28, 0.9);
+            --overlay-status-fg: #FFFFFF;
+            --overlay-status-sep: rgba(255, 255, 255, 0.6);
+            
+            --overlay-page-bg: #FFEBEE;
+            --overlay-page-border: rgba(211, 47, 47, 0.25);
+            --overlay-page-fg: #B71C1C;
+            --overlay-page-hint: rgba(183, 28, 28, 0.7);
+            --overlay-page-hover: rgba(211, 47, 47, 0.15);
+            --overlay-page-shadow: rgba(183, 28, 28, 0.2);
+            
+            --overlay-popup-bg: #FFEBEE;
+            --overlay-popup-border: rgba(211, 47, 47, 0.25);
+            --overlay-popup-fg: #B71C1C;
+            
+            --overlay-control-bg: rgba(211, 47, 47, 0.15);
+            --overlay-control-hover: rgba(211, 47, 47, 0.18);
+            --overlay-control-active: rgba(211, 47, 47, 0.25);
+            
+            --overlay-text-primary: #B71C1C;
+            --overlay-text-secondary: rgba(183, 28, 28, 0.6);
+            
+            --overlay-thumb-bg: #D32F2F;
+            --overlay-thumb-icon: #FFFFFF;
+            
+            --overlay-dialog-bg: #FFEBEE;
+            --overlay-dialog-border: rgba(211, 47, 47, 0.25);
+            --overlay-dialog-title: #B71C1C;
+            --overlay-dialog-text: rgba(183, 28, 28, 0.6);
+        }
+
+        [data-theme="dark"][data-theme-id="year-of-horse"] {
+            /* Dark Mode Year of Horse - Synced with Settings */
+            --accent-color: #FF4500;
+            --overlay-toolbar-bg: #451212;
+            --overlay-toolbar-border: rgba(255, 69, 0, 0.3);
+            --overlay-toolbar-fg: #FFD700;
+            --overlay-toolbar-shadow: rgba(0, 0, 0, 0.38);
+            
+            --overlay-button-hover: rgba(255, 69, 0, 0.22);
+            --overlay-button-active: rgba(255, 69, 0, 0.3);
+            
+            --overlay-status-bg: rgba(255, 213, 79, 0.8);
+            --overlay-status-fg: #3E2723;
+            --overlay-status-sep: rgba(62, 39, 35, 0.32);
+            
+            --overlay-popup-bg: #451212;
+            --overlay-popup-border: rgba(255, 69, 0, 0.3);
+            --overlay-popup-fg: #FFD700;
+            
+            --overlay-page-bg: #451212;
+            --overlay-page-border: rgba(255, 69, 0, 0.3);
+            --overlay-page-fg: #FFD700;
+            --overlay-page-hint: rgba(255, 215, 0, 0.68);
+            --overlay-page-hover: rgba(255, 69, 0, 0.22);
+            --overlay-page-shadow: rgba(0, 0, 0, 0.38);
+            
+            --overlay-control-bg: rgba(255, 69, 0, 0.15);
+            --overlay-control-hover: rgba(255, 69, 0, 0.22);
+            --overlay-control-active: rgba(255, 69, 0, 0.3);
+            
+            --overlay-text-primary: #FFD700;
+            --overlay-text-secondary: #FFB347;
+            
+            --overlay-thumb-bg: #FF4500;
+            --overlay-thumb-icon: #451212;
+            
+            --overlay-dialog-bg: #451212;
+            --overlay-dialog-border: rgba(255, 69, 0, 0.3);
+            --overlay-dialog-title: #FFD700;
+            --overlay-dialog-text: #FFB347;
+        }
+
+        /* Year of Horse Background Pattern */
+        [data-theme-id="year-of-horse"] .flipper {
+            background-image: radial-gradient(circle at 50% 0%, rgba(230, 0, 0, 0.12), transparent 70%),
+                              radial-gradient(circle at 50% 100%, rgba(230, 0, 0, 0.08), transparent 70%);
+            background-size: cover;
+        }
+        [data-theme="dark"][data-theme-id="year-of-horse"] .flipper {
+            background-image: radial-gradient(circle at 50% 0%, rgba(255, 69, 0, 0.15), transparent 70%),
+                              radial-gradient(circle at 50% 100%, rgba(255, 69, 0, 0.1), transparent 70%);
+        }
+
+        /* Material You */
+        :root[data-theme-id="material-you"][data-theme-variant="light"],
+        .theme-preview-root[data-theme-id="material-you"][data-theme-variant="light"] {
+            --bg-app: #F6F0FF;
+            --bg-surface: #FFF7FF;
+            --bg-color: #FFF7FF;
+            --sidebar-bg: #FFF7FF;
+            --border-color: rgba(42, 26, 61, 0.1);
+            --text-primary: #2B153E;
+            --text-secondary: #5F4B74;
+            --accent-blue: #7A3BDB;
+            --divider: rgba(42, 26, 61, 0.1);
+            --card-bg: rgba(122, 59, 219, 0.1);
+            --card-border: rgba(122, 59, 219, 0.2);
+            --item-hover: rgba(122, 59, 219, 0.14);
+            --shadow-color: rgba(122, 59, 219, 0.18);
+            --shadow-main: 0 6px 22px var(--shadow-color);
+            --logo-glow: rgba(122, 59, 219, 0.24);
+            --hyperos-g1: #F6F0FF;
+            --hyperos-g2: #EAD9FF;
+            --hyperos-g3: #F1E6FF;
+            --hyperos-g4: #C9A7FF;
+            --hyperos-g5: #FFF7FF;
+            --overlay-toolbar-bg: #FFF7FF;
+            --overlay-toolbar-border: rgba(42, 26, 61, 0.1);
+            --overlay-toolbar-line: rgba(42, 26, 61, 0.1);
+            --overlay-toolbar-shadow: rgba(42, 26, 61, 0.2);
+            --overlay-toolbar-fg: #2B153E;
+            --overlay-button-hover: rgba(122, 59, 219, 0.14);
+            --overlay-button-active: rgba(122, 59, 219, 0.22);
+            --overlay-status-bg: rgba(35, 20, 50, 0.28);
+            --overlay-status-fg: #FFFFFF;
+            --overlay-status-sep: rgba(255, 255, 255, 0.32);
+            --overlay-popup-bg: #FFF7FF;
+            --overlay-popup-border: rgba(42, 26, 61, 0.14);
+            --overlay-popup-fg: #2B153E;
+            --overlay-page-bg: #FFF7FF;
+            --overlay-page-border: rgba(42, 26, 61, 0.14);
+            --overlay-page-fg: #2B153E;
+            --overlay-page-hint: rgba(43, 21, 62, 0.55);
+            --overlay-page-hover: rgba(122, 59, 219, 0.14);
+            --overlay-page-shadow: rgba(42, 26, 61, 0.2);
+            --overlay-reload-mask: rgba(36, 22, 54, 0.48);
+            --overlay-reload-card: rgba(52, 32, 78, 0.9);
+            --overlay-reload-text: rgba(255, 255, 255, 0.94);
+            --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+            
+            --overlay-control-bg: var(--card-bg);
+            --overlay-control-hover: var(--item-hover);
+            --overlay-control-active: rgba(122, 59, 219, 0.22);
+            --overlay-text-primary: var(--text-primary);
+            --overlay-text-secondary: var(--text-secondary);
+            --overlay-thumb-bg: #FFFFFF;
+            --overlay-thumb-icon: var(--accent-blue);
+            --overlay-dialog-bg: var(--overlay-popup-bg);
+            --overlay-dialog-border: var(--overlay-popup-border);
+            --overlay-dialog-title: var(--text-primary);
+            --overlay-dialog-text: var(--text-secondary);
+        }
+
+        :root[data-theme-id="material-you"][data-theme-variant="dark"],
+        .theme-preview-root[data-theme-id="material-you"][data-theme-variant="dark"] {
+            --bg-app: #1C1329;
+            --bg-surface: #2A1D3B;
+            --bg-color: #2A1D3B;
+            --sidebar-bg: #2A1D3B;
+            --border-color: rgba(226, 210, 255, 0.14);
+            --text-primary: #F0E7FF;
+            --text-secondary: #D2C2EA;
+            --accent-blue: #CDA7FF;
+            --divider: rgba(226, 210, 255, 0.14);
+            --card-bg: rgba(205, 167, 255, 0.18);
+            --card-border: rgba(205, 167, 255, 0.28);
+            --item-hover: rgba(205, 167, 255, 0.22);
+            --shadow-color: rgba(0, 0, 0, 0.5);
+            --shadow-main: 0 12px 34px var(--shadow-color);
+            --logo-glow: rgba(205, 167, 255, 0.28);
+            --hyperos-g1: #1C1329;
+            --hyperos-g2: #2A1D3B;
+            --hyperos-g3: #3B2A55;
+            --hyperos-g4: #4A366A;
+            --hyperos-g5: #2A1D3B;
+            --overlay-toolbar-bg: #2A1D3B;
+            --overlay-toolbar-border: rgba(226, 210, 255, 0.16);
+            --overlay-toolbar-line: rgba(226, 210, 255, 0.2);
+            --overlay-toolbar-shadow: rgba(0, 0, 0, 0.38);
+            --overlay-toolbar-fg: #F0E7FF;
+            --overlay-button-hover: rgba(205, 167, 255, 0.22);
+            --overlay-button-active: rgba(205, 167, 255, 0.3);
+            --overlay-status-bg: rgba(0, 0, 0, 0.3);
+            --overlay-status-fg: #FFFFFF;
+            --overlay-status-sep: rgba(255, 255, 255, 0.32);
+            --overlay-popup-bg: #2A1D3B;
+            --overlay-popup-border: rgba(226, 210, 255, 0.24);
+            --overlay-popup-fg: #F0E7FF;
+            --overlay-page-bg: #2A1D3B;
+            --overlay-page-border: rgba(226, 210, 255, 0.18);
+            --overlay-page-fg: #F0E7FF;
+            --overlay-page-hint: rgba(226, 210, 255, 0.68);
+            --overlay-page-hover: rgba(205, 167, 255, 0.22);
+            --overlay-page-shadow: rgba(0, 0, 0, 0.38);
+            --overlay-reload-mask: rgba(0, 0, 0, 0.48);
+            --overlay-reload-card: rgba(49, 31, 74, 0.92);
+            --overlay-reload-text: rgba(255, 255, 255, 0.94);
+            --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+            
+            --overlay-control-bg: var(--card-bg);
+            --overlay-control-hover: var(--item-hover);
+            --overlay-control-active: rgba(205, 167, 255, 0.3);
+            --overlay-text-primary: var(--text-primary);
+            --overlay-text-secondary: var(--text-secondary);
+            --overlay-thumb-bg: var(--accent-blue);
+            --overlay-thumb-icon: #1C1329;
+            --overlay-dialog-bg: var(--overlay-popup-bg);
+            --overlay-dialog-border: var(--overlay-popup-border);
+            --overlay-dialog-title: var(--text-primary);
+            --overlay-dialog-text: var(--text-secondary);
+        }
+
+        /* Red Sunrise */
+        :root[data-theme-id="red-sunrise"][data-theme-variant="light"],
+        .theme-preview-root[data-theme-id="red-sunrise"][data-theme-variant="light"] {
+            --bg-app: #FFF5F3;
+            --bg-surface: #FFFFFF;
+            --bg-color: #FFFFFF;
+            --sidebar-bg: #FFFFFF;
+            --border-color: rgba(97, 20, 18, 0.12);
+            --text-primary: #3A0B0B;
+            --text-secondary: #7A3C35;
+            --accent-blue: #E5523C;
+            --divider: rgba(97, 20, 18, 0.12);
+            --card-bg: rgba(229, 82, 60, 0.1);
+            --card-border: rgba(229, 82, 60, 0.2);
+            --item-hover: rgba(229, 82, 60, 0.14);
+            --shadow-color: rgba(229, 82, 60, 0.18);
+            --shadow-main: 0 6px 22px var(--shadow-color);
+            --logo-glow: rgba(229, 82, 60, 0.22);
+            --hyperos-g1: #FFF1EC;
+            --hyperos-g2: #FFD6C8;
+            --hyperos-g3: #FFE7DB;
+            --hyperos-g4: #FFB8A4;
+            --hyperos-g5: #FFFFFF;
+            --overlay-toolbar-bg: #FFF7F4;
+            --overlay-toolbar-border: rgba(97, 20, 18, 0.12);
+            --overlay-toolbar-line: rgba(97, 20, 18, 0.12);
+            --overlay-toolbar-shadow: rgba(97, 20, 18, 0.2);
+            --overlay-toolbar-fg: #3A0B0B;
+            --overlay-button-hover: rgba(229, 82, 60, 0.14);
+            --overlay-button-active: rgba(229, 82, 60, 0.22);
+            --overlay-status-bg: rgba(56, 18, 12, 0.28);
+            --overlay-status-fg: #FFFFFF;
+            --overlay-status-sep: rgba(255, 255, 255, 0.32);
+            --overlay-popup-bg: #FFF7F4;
+            --overlay-popup-border: rgba(97, 20, 18, 0.14);
+            --overlay-popup-fg: #3A0B0B;
+            --overlay-page-bg: #FFF7F4;
+            --overlay-page-border: rgba(97, 20, 18, 0.14);
+            --overlay-page-fg: #3A0B0B;
+            --overlay-page-hint: rgba(58, 11, 11, 0.55);
+            --overlay-page-hover: rgba(229, 82, 60, 0.14);
+            --overlay-page-shadow: rgba(97, 20, 18, 0.2);
+            --overlay-reload-mask: rgba(54, 18, 12, 0.48);
+            --overlay-reload-card: rgba(64, 26, 20, 0.9);
+            --overlay-reload-text: rgba(255, 255, 255, 0.94);
+            --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+            
+            --overlay-control-bg: var(--card-bg);
+            --overlay-control-hover: var(--item-hover);
+            --overlay-control-active: var(--overlay-button-active);
+            --overlay-text-primary: var(--text-primary);
+            --overlay-text-secondary: var(--text-secondary);
+            --overlay-thumb-bg: #FFFFFF;
+            --overlay-thumb-icon: var(--accent-blue);
+            --overlay-dialog-bg: var(--overlay-popup-bg);
+            --overlay-dialog-border: var(--overlay-popup-border);
+            --overlay-dialog-title: var(--text-primary);
+            --overlay-dialog-text: var(--text-secondary);
+        }
+
+        :root[data-theme-id="red-sunrise"][data-theme-variant="dark"],
+        .theme-preview-root[data-theme-id="red-sunrise"][data-theme-variant="dark"] {
+            --bg-app: #1A0B0A;
+            --bg-surface: #2B1512;
+            --bg-color: #2B1512;
+            --sidebar-bg: #2B1512;
+            --border-color: rgba(255, 210, 200, 0.14);
+            --text-primary: #FFEDE8;
+            --text-secondary: #F1BEB3;
+            --accent-blue: #FF907B;
+            --divider: rgba(255, 210, 200, 0.14);
+            --card-bg: rgba(255, 144, 123, 0.18);
+            --card-border: rgba(255, 144, 123, 0.28);
+            --item-hover: rgba(255, 144, 123, 0.22);
+            --shadow-color: rgba(0, 0, 0, 0.5);
+            --shadow-main: 0 12px 34px var(--shadow-color);
+            --logo-glow: rgba(255, 144, 123, 0.28);
+            --hyperos-g1: #1A0B0A;
+            --hyperos-g2: #2B1512;
+            --hyperos-g3: #3C1D18;
+            --hyperos-g4: #4D241E;
+            --hyperos-g5: #2B1512;
+            --overlay-toolbar-bg: #2B1512;
+            --overlay-toolbar-border: rgba(255, 210, 200, 0.18);
+            --overlay-toolbar-line: rgba(255, 210, 200, 0.22);
+            --overlay-toolbar-shadow: rgba(0, 0, 0, 0.38);
+            --overlay-toolbar-fg: #FFEDE8;
+            --overlay-button-hover: rgba(255, 144, 123, 0.22);
+            --overlay-button-active: rgba(255, 144, 123, 0.3);
+            --overlay-status-bg: rgba(0, 0, 0, 0.3);
+            --overlay-status-fg: #FFFFFF;
+            --overlay-status-sep: rgba(255, 255, 255, 0.32);
+            --overlay-popup-bg: #2B1512;
+            --overlay-popup-border: rgba(255, 210, 200, 0.24);
+            --overlay-popup-fg: #FFEDE8;
+            --overlay-page-bg: #2B1512;
+            --overlay-page-border: rgba(255, 210, 200, 0.2);
+            --overlay-page-fg: #FFEDE8;
+            --overlay-page-hint: rgba(255, 210, 200, 0.68);
+            --overlay-page-hover: rgba(255, 144, 123, 0.22);
+            --overlay-page-shadow: rgba(0, 0, 0, 0.38);
+            --overlay-reload-mask: rgba(0, 0, 0, 0.48);
+            --overlay-reload-card: rgba(51, 22, 18, 0.92);
+            --overlay-reload-text: rgba(255, 255, 255, 0.94);
+            --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+            
+            --overlay-control-bg: var(--card-bg);
+            --overlay-control-hover: var(--item-hover);
+            --overlay-control-active: var(--overlay-button-active);
+            --overlay-text-primary: var(--text-primary);
+            --overlay-text-secondary: var(--text-secondary);
+            --overlay-thumb-bg: var(--accent-blue);
+            --overlay-thumb-icon: #1A0B0A;
+            --overlay-dialog-bg: var(--overlay-popup-bg);
+            --overlay-dialog-border: var(--overlay-popup-border);
+            --overlay-dialog-title: var(--text-primary);
+            --overlay-dialog-text: var(--text-secondary);
+        }
+
+        /* Emptiness Color */
+        :root[data-theme-id="emptiness-color"][data-theme-variant="light"],
+        .theme-preview-root[data-theme-id="emptiness-color"][data-theme-variant="light"] {
+            --bg-app: #F5F6F8;
+            --bg-surface: #FFFFFF;
+            --bg-color: #FFFFFF;
+            --sidebar-bg: #FFFFFF;
+            --border-color: rgba(27, 31, 35, 0.08);
+            --text-primary: #1B1F23;
+            --text-secondary: #5B636B;
+            --accent-blue: #6B7280;
+            --divider: rgba(27, 31, 35, 0.08);
+            --card-bg: rgba(27, 31, 35, 0.03);
+            --card-border: rgba(27, 31, 35, 0.06);
+            --item-hover: rgba(27, 31, 35, 0.06);
+            --shadow-color: rgba(27, 31, 35, 0.08);
+            --shadow-main: 0 4px 12px var(--shadow-color);
+            --logo-glow: rgba(27, 31, 35, 0.08);
+            --hyperos-g1: #F3F4F6;
+            --hyperos-g2: #E5E7EB;
+            --hyperos-g3: #F9FAFB;
+            --hyperos-g4: #D1D5DB;
+            --hyperos-g5: #FFFFFF;
+            --overlay-toolbar-bg: #FFFFFF;
+            --overlay-toolbar-border: rgba(27, 31, 35, 0.08);
+            --overlay-toolbar-line: rgba(27, 31, 35, 0.08);
+            --overlay-toolbar-shadow: rgba(27, 31, 35, 0.16);
+            --overlay-toolbar-fg: #1B1F23;
+            --overlay-button-hover: rgba(27, 31, 35, 0.06);
+            --overlay-button-active: rgba(27, 31, 35, 0.12);
+            --overlay-status-bg: rgba(27, 31, 35, 0.26);
+            --overlay-status-fg: #FFFFFF;
+            --overlay-status-sep: rgba(255, 255, 255, 0.32);
+            --overlay-popup-bg: #FFFFFF;
+            --overlay-popup-border: rgba(27, 31, 35, 0.12);
+            --overlay-popup-fg: #1B1F23;
+            --overlay-page-bg: #FFFFFF;
+            --overlay-page-border: rgba(27, 31, 35, 0.12);
+            --overlay-page-fg: #1B1F23;
+            --overlay-page-hint: rgba(27, 31, 35, 0.5);
+            --overlay-page-hover: rgba(27, 31, 35, 0.06);
+            --overlay-page-shadow: rgba(27, 31, 35, 0.16);
+            --overlay-reload-mask: rgba(27, 31, 35, 0.43);
+            --overlay-reload-card: rgba(30, 30, 30, 0.86);
+            --overlay-reload-text: rgba(255, 255, 255, 0.92);
+            --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+            
+            --overlay-control-bg: var(--card-bg);
+            --overlay-control-hover: var(--item-hover);
+            --overlay-control-active: var(--overlay-button-active);
+            --overlay-text-primary: var(--text-primary);
+            --overlay-text-secondary: var(--text-secondary);
+            --overlay-thumb-bg: #FFFFFF;
+            --overlay-thumb-icon: var(--accent-blue);
+            --overlay-dialog-bg: var(--overlay-popup-bg);
+            --overlay-dialog-border: var(--overlay-popup-border);
+            --overlay-dialog-title: var(--text-primary);
+            --overlay-dialog-text: var(--text-secondary);
+        }
+
+        :root[data-theme-id="emptiness-color"][data-theme-variant="dark"],
+        .theme-preview-root[data-theme-id="emptiness-color"][data-theme-variant="dark"] {
+            --bg-app: #101113;
+            --bg-surface: #1B1C1F;
+            --bg-color: #1B1C1F;
+            --sidebar-bg: #1B1C1F;
+            --border-color: rgba(230, 233, 238, 0.12);
+            --text-primary: #F1F3F5;
+            --text-secondary: #C3C7CC;
+            --accent-blue: #A1A6AD;
+            --divider: rgba(230, 233, 238, 0.12);
+            --card-bg: rgba(161, 166, 173, 0.14);
+            --card-border: rgba(161, 166, 173, 0.22);
+            --item-hover: rgba(161, 166, 173, 0.2);
+            --shadow-color: rgba(0, 0, 0, 0.4);
+            --shadow-main: 0 10px 30px var(--shadow-color);
+            --logo-glow: rgba(161, 166, 173, 0.2);
+            --hyperos-g1: #101113;
+            --hyperos-g2: #1B1C1F;
+            --hyperos-g3: #23252A;
+            --hyperos-g4: #2C2F36;
+            --hyperos-g5: #1B1C1F;
+            --overlay-toolbar-bg: #1B1C1F;
+            --overlay-toolbar-border: rgba(230, 233, 238, 0.16);
+            --overlay-toolbar-line: rgba(230, 233, 238, 0.2);
+            --overlay-toolbar-shadow: rgba(0, 0, 0, 0.32);
+            --overlay-toolbar-fg: #F1F3F5;
+            --overlay-button-hover: rgba(161, 166, 173, 0.2);
+            --overlay-button-active: rgba(161, 166, 173, 0.28);
+            --overlay-status-bg: rgba(0, 0, 0, 0.28);
+            --overlay-status-fg: #FFFFFF;
+            --overlay-status-sep: rgba(255, 255, 255, 0.32);
+            --overlay-popup-bg: #1B1C1F;
+            --overlay-popup-border: rgba(230, 233, 238, 0.2);
+            --overlay-popup-fg: #F1F3F5;
+            --overlay-page-bg: #1B1C1F;
+            --overlay-page-border: rgba(230, 233, 238, 0.18);
+            --overlay-page-fg: #F1F3F5;
+            --overlay-page-hint: rgba(230, 233, 238, 0.62);
+            --overlay-page-hover: rgba(161, 166, 173, 0.2);
+            --overlay-page-shadow: rgba(0, 0, 0, 0.32);
+            --overlay-reload-mask: rgba(0, 0, 0, 0.46);
+            --overlay-reload-card: rgba(26, 27, 30, 0.9);
+            --overlay-reload-text: rgba(255, 255, 255, 0.94);
+            --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+            
+            --overlay-control-bg: var(--card-bg);
+            --overlay-control-hover: var(--item-hover);
+            --overlay-control-active: var(--overlay-button-active);
+            --overlay-text-primary: var(--text-primary);
+            --overlay-text-secondary: var(--text-secondary);
+            --overlay-thumb-bg: var(--accent-blue);
+            --overlay-thumb-icon: #101113;
+            --overlay-dialog-bg: var(--overlay-popup-bg);
+            --overlay-dialog-border: var(--overlay-popup-border);
+            --overlay-dialog-title: var(--text-primary);
+            --overlay-dialog-text: var(--text-secondary);
+        }
+
+    /* Mung Bean */
+    :root[data-theme-id="mung-bean"][data-theme-variant="light"],
+    .theme-preview-root[data-theme-id="mung-bean"][data-theme-variant="light"] {
+      --bg-app: #F3FFF7;
+      --bg-surface: #FFFFFF;
+      --bg-color: #FFFFFF;
+      --sidebar-bg: #FFFFFF;
+      --border-color: rgba(18, 63, 44, 0.1);
+      --text-primary: #0F3D2A;
+      --text-secondary: #3F6B57;
+      --accent-blue: #45B97C;
+      --divider: rgba(18, 63, 44, 0.1);
+      --card-bg: rgba(69, 185, 124, 0.1);
+      --card-border: rgba(69, 185, 124, 0.2);
+      --item-hover: rgba(69, 185, 124, 0.14);
+      --shadow-color: rgba(69, 185, 124, 0.18);
+      --shadow-main: 0 6px 22px var(--shadow-color);
+      --logo-glow: rgba(69, 185, 124, 0.22);
+      --hyperos-g1: #ECFFF4;
+      --hyperos-g2: #CFF5DF;
+      --hyperos-g3: #E4FFF0;
+      --hyperos-g4: #B5EBCB;
+      --hyperos-g5: #FFFFFF;
+      --overlay-toolbar-bg: #FFFFFF;
+      --overlay-toolbar-border: rgba(18, 63, 44, 0.1);
+      --overlay-toolbar-line: rgba(18, 63, 44, 0.1);
+      --overlay-toolbar-shadow: rgba(18, 63, 44, 0.2);
+      --overlay-toolbar-fg: #0F3D2A;
+      --overlay-button-hover: rgba(69, 185, 124, 0.14);
+      --overlay-button-active: rgba(69, 185, 124, 0.22);
+      --overlay-status-bg: rgba(16, 50, 35, 0.28);
+      --overlay-status-fg: #FFFFFF;
+      --overlay-status-sep: rgba(255, 255, 255, 0.32);
+      --overlay-popup-bg: #FFFFFF;
+      --overlay-popup-border: rgba(18, 63, 44, 0.14);
+      --overlay-popup-fg: #0F3D2A;
+      --overlay-page-bg: #FFFFFF;
+      --overlay-page-border: rgba(18, 63, 44, 0.14);
+      --overlay-page-fg: #0F3D2A;
+      --overlay-page-hint: rgba(15, 61, 42, 0.52);
+      --overlay-page-hover: rgba(69, 185, 124, 0.14);
+      --overlay-page-shadow: rgba(18, 63, 44, 0.2);
+      --overlay-reload-mask: rgba(16, 50, 35, 0.48);
+      --overlay-reload-card: rgba(28, 58, 45, 0.9);
+      --overlay-reload-text: rgba(255, 255, 255, 0.94);
+      --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+
+      --overlay-control-bg: var(--card-bg);
+      --overlay-control-hover: var(--item-hover);
+      --overlay-control-active: var(--overlay-button-active);
+      --overlay-text-primary: var(--text-primary);
+      --overlay-text-secondary: var(--text-secondary);
+      --overlay-thumb-bg: #FFFFFF;
+      --overlay-thumb-icon: var(--accent-blue);
+      --overlay-dialog-bg: var(--overlay-popup-bg);
+      --overlay-dialog-border: var(--overlay-popup-border);
+      --overlay-dialog-title: var(--text-primary);
+      --overlay-dialog-text: var(--text-secondary);
+    }
+
+    :root[data-theme-id="mung-bean"][data-theme-variant="dark"],
+    .theme-preview-root[data-theme-id="mung-bean"][data-theme-variant="dark"] {
+      --bg-app: #0D1A14;
+      --bg-surface: #16231C;
+      --bg-color: #16231C;
+      --sidebar-bg: #16231C;
+      --border-color: rgba(199, 240, 219, 0.14);
+      --text-primary: #E7FFF1;
+      --text-secondary: #B7E6CD;
+      --accent-blue: #7FE3B1;
+      --divider: rgba(199, 240, 219, 0.14);
+      --card-bg: rgba(127, 227, 177, 0.18);
+      --card-border: rgba(127, 227, 177, 0.28);
+      --item-hover: rgba(127, 227, 177, 0.22);
+      --shadow-color: rgba(0, 0, 0, 0.5);
+      --shadow-main: 0 12px 34px var(--shadow-color);
+      --logo-glow: rgba(127, 227, 177, 0.26);
+      --hyperos-g1: #0D1A14;
+      --hyperos-g2: #16231C;
+      --hyperos-g3: #1C2E25;
+      --hyperos-g4: #24392F;
+      --hyperos-g5: #16231C;
+      --overlay-toolbar-bg: #16231C;
+      --overlay-toolbar-border: rgba(199, 240, 219, 0.18);
+      --overlay-toolbar-line: rgba(199, 240, 219, 0.22);
+      --overlay-toolbar-shadow: rgba(0, 0, 0, 0.36);
+      --overlay-toolbar-fg: #E7FFF1;
+      --overlay-button-hover: rgba(127, 227, 177, 0.22);
+      --overlay-button-active: rgba(127, 227, 177, 0.3);
+      --overlay-status-bg: rgba(0, 0, 0, 0.3);
+      --overlay-status-fg: #FFFFFF;
+      --overlay-status-sep: rgba(255, 255, 255, 0.32);
+      --overlay-popup-bg: #16231C;
+      --overlay-popup-border: rgba(199, 240, 219, 0.24);
+      --overlay-popup-fg: #E7FFF1;
+      --overlay-page-bg: #16231C;
+      --overlay-page-border: rgba(199, 240, 219, 0.2);
+      --overlay-page-fg: #E7FFF1;
+      --overlay-page-hint: rgba(199, 240, 219, 0.68);
+      --overlay-page-hover: rgba(127, 227, 177, 0.22);
+      --overlay-page-shadow: rgba(0, 0, 0, 0.36);
+      --overlay-reload-mask: rgba(0, 0, 0, 0.48);
+      --overlay-reload-card: rgba(21, 40, 32, 0.92);
+      --overlay-reload-text: rgba(255, 255, 255, 0.94);
+      --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+
+      --overlay-control-bg: var(--card-bg);
+      --overlay-control-hover: var(--item-hover);
+      --overlay-control-active: var(--overlay-button-active);
+      --overlay-text-primary: var(--text-primary);
+      --overlay-text-secondary: var(--text-secondary);
+      --overlay-thumb-bg: var(--accent-blue);
+      --overlay-thumb-icon: #0D1A14;
+      --overlay-dialog-bg: var(--overlay-popup-bg);
+      --overlay-dialog-border: var(--overlay-popup-border);
+      --overlay-dialog-title: var(--text-primary);
+      --overlay-dialog-text: var(--text-secondary);
+    }
+
+    /* Orange Wish */
+    :root[data-theme-id="orange-wish"][data-theme-variant="light"],
+    .theme-preview-root[data-theme-id="orange-wish"][data-theme-variant="light"] {
+      --bg-app: #FFF6EE;
+      --bg-surface: #FFFFFF;
+      --bg-color: #FFFFFF;
+      --sidebar-bg: #FFFFFF;
+      --border-color: rgba(80, 40, 12, 0.12);
+      --text-primary: #4A2A11;
+      --text-secondary: #7B5A3E;
+      --accent-blue: #FF8A3D;
+      --divider: rgba(80, 40, 12, 0.12);
+      --card-bg: rgba(255, 138, 61, 0.1);
+      --card-border: rgba(255, 138, 61, 0.2);
+      --item-hover: rgba(255, 138, 61, 0.14);
+      --shadow-color: rgba(255, 138, 61, 0.18);
+      --shadow-main: 0 6px 22px var(--shadow-color);
+      --logo-glow: rgba(255, 138, 61, 0.24);
+      --hyperos-g1: #FFF1E4;
+      --hyperos-g2: #FFD9BF;
+      --hyperos-g3: #FFEBDD;
+      --hyperos-g4: #FFC69B;
+      --hyperos-g5: #FFFFFF;
+      --overlay-toolbar-bg: #FFFFFF;
+      --overlay-toolbar-border: rgba(80, 40, 12, 0.12);
+      --overlay-toolbar-line: rgba(80, 40, 12, 0.12);
+      --overlay-toolbar-shadow: rgba(80, 40, 12, 0.2);
+      --overlay-toolbar-fg: #4A2A11;
+      --overlay-button-hover: rgba(255, 138, 61, 0.14);
+      --overlay-button-active: rgba(255, 138, 61, 0.22);
+      --overlay-status-bg: rgba(62, 32, 12, 0.28);
+      --overlay-status-fg: #FFFFFF;
+      --overlay-status-sep: rgba(255, 255, 255, 0.32);
+      --overlay-popup-bg: #FFFFFF;
+      --overlay-popup-border: rgba(80, 40, 12, 0.14);
+      --overlay-popup-fg: #4A2A11;
+      --overlay-page-bg: #FFFFFF;
+      --overlay-page-border: rgba(80, 40, 12, 0.14);
+      --overlay-page-fg: #4A2A11;
+      --overlay-page-hint: rgba(74, 42, 17, 0.52);
+      --overlay-page-hover: rgba(255, 138, 61, 0.14);
+      --overlay-page-shadow: rgba(80, 40, 12, 0.2);
+      --overlay-reload-mask: rgba(62, 32, 12, 0.48);
+      --overlay-reload-card: rgba(70, 40, 20, 0.9);
+      --overlay-reload-text: rgba(255, 255, 255, 0.94);
+      --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+
+      --overlay-control-bg: var(--card-bg);
+      --overlay-control-hover: var(--item-hover);
+      --overlay-control-active: var(--overlay-button-active);
+      --overlay-text-primary: var(--text-primary);
+      --overlay-text-secondary: var(--text-secondary);
+      --overlay-thumb-bg: #FFFFFF;
+      --overlay-thumb-icon: var(--accent-blue);
+      --overlay-dialog-bg: var(--overlay-popup-bg);
+      --overlay-dialog-border: var(--overlay-popup-border);
+      --overlay-dialog-title: var(--text-primary);
+      --overlay-dialog-text: var(--text-secondary);
+    }
+
+    :root[data-theme-id="orange-wish"][data-theme-variant="dark"],
+    .theme-preview-root[data-theme-id="orange-wish"][data-theme-variant="dark"] {
+      --bg-app: #1C1108;
+      --bg-surface: #2A190D;
+      --bg-color: #2A190D;
+      --sidebar-bg: #2A190D;
+      --border-color: rgba(255, 220, 195, 0.16);
+      --text-primary: #FFEFE3;
+      --text-secondary: #F2C8A6;
+      --accent-blue: #FFB677;
+      --divider: rgba(255, 220, 195, 0.16);
+      --card-bg: rgba(255, 182, 119, 0.2);
+      --card-border: rgba(255, 182, 119, 0.3);
+      --item-hover: rgba(255, 182, 119, 0.24);
+      --shadow-color: rgba(0, 0, 0, 0.5);
+      --shadow-main: 0 12px 34px var(--shadow-color);
+      --logo-glow: rgba(255, 182, 119, 0.28);
+      --hyperos-g1: #1C1108;
+      --hyperos-g2: #2A190D;
+      --hyperos-g3: #3A2314;
+      --hyperos-g4: #4A2C19;
+      --hyperos-g5: #2A190D;
+      --overlay-toolbar-bg: #2A190D;
+      --overlay-toolbar-border: rgba(255, 220, 195, 0.2);
+      --overlay-toolbar-line: rgba(255, 220, 195, 0.24);
+      --overlay-toolbar-shadow: rgba(0, 0, 0, 0.36);
+      --overlay-toolbar-fg: #FFEFE3;
+      --overlay-button-hover: rgba(255, 182, 119, 0.24);
+      --overlay-button-active: rgba(255, 182, 119, 0.32);
+      --overlay-status-bg: rgba(0, 0, 0, 0.3);
+      --overlay-status-fg: #FFFFFF;
+      --overlay-status-sep: rgba(255, 255, 255, 0.32);
+      --overlay-popup-bg: #2A190D;
+      --overlay-popup-border: rgba(255, 220, 195, 0.26);
+      --overlay-popup-fg: #FFEFE3;
+      --overlay-page-bg: #2A190D;
+      --overlay-page-border: rgba(255, 220, 195, 0.22);
+      --overlay-page-fg: #FFEFE3;
+      --overlay-page-hint: rgba(255, 220, 195, 0.7);
+      --overlay-page-hover: rgba(255, 182, 119, 0.24);
+      --overlay-page-shadow: rgba(0, 0, 0, 0.36);
+      --overlay-reload-mask: rgba(0, 0, 0, 0.48);
+      --overlay-reload-card: rgba(46, 28, 16, 0.92);
+      --overlay-reload-text: rgba(255, 255, 255, 0.94);
+      --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+
+      --overlay-control-bg: var(--card-bg);
+      --overlay-control-hover: var(--item-hover);
+      --overlay-control-active: var(--overlay-button-active);
+      --overlay-text-primary: var(--text-primary);
+      --overlay-text-secondary: var(--text-secondary);
+      --overlay-thumb-bg: var(--accent-blue);
+      --overlay-thumb-icon: #1C1108;
+      --overlay-dialog-bg: var(--overlay-popup-bg);
+      --overlay-dialog-border: var(--overlay-popup-border);
+      --overlay-dialog-title: var(--text-primary);
+      --overlay-dialog-text: var(--text-secondary);
+    }
+
         body {
             background: transparent;
             margin: 0;
@@ -129,6 +819,12 @@
 
         .interactive {
             pointer-events: auto;
+        }
+
+        .disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            filter: grayscale(0.8);
         }
 
         #status-bar {
@@ -488,7 +1184,7 @@
         .icon-minimize { 
             -webkit-mask-image: url('../../icons/Minimize.svg'); 
             mask-image: url('../../icons/Minimize.svg');
-            background-color: #FF453A !important;
+            background-color: var(--overlay-toolbar-fg);
         }
         
         /* Status Bar Icons */
@@ -917,6 +1613,8 @@
         let bridge = null;
         let currentTool = 'select';
         let currentConfig = null;
+        let currentPage = 1;
+        let totalPage = 1;
 
         new QWebChannel(qt.webChannelTransport, function(channel) {
             bridge = channel.objects.bridge;
@@ -958,8 +1656,58 @@
             }
         }
 
+        function applyOpacity() {
+            if (!currentConfig) return;
+            
+            const toolbarOpacity = currentConfig.toolbarOpacity !== undefined ? currentConfig.toolbarOpacity : 1.0;
+            const sidePageOpacity = currentConfig.sidePageOpacity !== undefined ? currentConfig.sidePageOpacity : 1.0;
+            
+            // Get base colors from CSS variables
+            const rootStyle = getComputedStyle(document.documentElement);
+            const toolbarBgVar = rootStyle.getPropertyValue('--overlay-toolbar-bg').trim();
+            const pageBgVar = rootStyle.getPropertyValue('--overlay-page-bg').trim();
+            
+            function resolveColor(colorStr, opacity) {
+                if (!colorStr) return '';
+                const temp = document.createElement('div');
+                temp.style.color = colorStr;
+                // Use visibility hidden instead of display none to ensure computed style works in all engines
+                temp.style.visibility = 'hidden';
+                temp.style.position = 'absolute';
+                temp.style.pointerEvents = 'none';
+                document.body.appendChild(temp);
+                const computed = getComputedStyle(temp).color;
+                document.body.removeChild(temp);
+                
+                const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+                if (match) {
+                    let a = match[4] !== undefined ? parseFloat(match[4]) : 1;
+                    a *= opacity;
+                    return `rgba(${match[1]}, ${match[2]}, ${match[3]}, ${a})`;
+                }
+                return colorStr;
+            }
+            
+            const toolbar = document.getElementById('toolbar');
+            if (toolbar) {
+                // Remove inline background-color if present (from previous version)
+                toolbar.style.removeProperty('background-color');
+                // Set the variable locally to override global value but respect CSS rules
+                const newColor = resolveColor(toolbarBgVar, toolbarOpacity);
+                toolbar.style.setProperty('--overlay-toolbar-bg', newColor);
+            }
+            
+            document.querySelectorAll('.flipper').forEach(el => {
+                el.style.removeProperty('background-color');
+                const newColor = resolveColor(pageBgVar, sidePageOpacity);
+                el.style.setProperty('--overlay-page-bg', newColor);
+            });
+        }
+
         function updateConfig(config) {
             currentConfig = config;
+            
+            applyOpacity();
             
             toggleStatusBar(config.showStatusBar);
 
@@ -1102,6 +1850,15 @@
 
             const clearSlider = document.getElementById('clear-slider');
             const clearBtn = document.getElementById('clear-btn');
+            
+            if (config.disabledTools && config.disabledTools.includes('clear')) {
+                if(clearSlider) clearSlider.classList.add('disabled');
+                if(clearBtn) clearBtn.classList.add('disabled');
+            } else {
+                if(clearSlider) clearSlider.classList.remove('disabled');
+                if(clearBtn) clearBtn.classList.remove('disabled');
+            }
+
             if (config.clearMode === 'button') {
                 if(clearSlider) clearSlider.style.display = 'none';
                 if(clearBtn) clearBtn.style.display = 'flex';
@@ -1123,6 +1880,10 @@
                 let btn = document.createElement('div');
                 btn.className = 'tool-btn';
                 btn.id = 'btn-' + item;
+                
+                if (config.disabledTools && config.disabledTools.includes(item)) {
+                    btn.classList.add('disabled');
+                }
                 
                 let iconClass = '';
                 let clickHandler = '';
@@ -1202,6 +1963,11 @@
             let endBtn = document.createElement('div');
             endBtn.className = 'tool-btn';
             endBtn.id = 'btn-end';
+            
+            if (config.disabledTools && (config.disabledTools.includes('endShow') || config.disabledTools.includes('minimize'))) {
+                endBtn.classList.add('disabled');
+            }
+            
             endBtn.onclick = function() { bridge.endShow(); };
             
             let endIcon = document.createElement('div');
@@ -1211,6 +1977,7 @@
 
             
             toolbar.appendChild(endBtn);
+            updatePageInfo(currentPage, totalPage);
             scheduleMaskUpdate();
         }
 
@@ -1299,27 +2066,62 @@
         }
 
         function updatePageInfo(current, total) {
+            currentPage = current;
+            totalPage = total;
             document.getElementById('curr-page-l').innerText = current;
             document.getElementById('total-page-l').innerText = '/' + total;
             document.getElementById('curr-page-r').innerText = current;
             document.getElementById('total-page-r').innerText = '/' + total;
+            
+            const disabledTools = (currentConfig && currentConfig.disabledTools) ? currentConfig.disabledTools : [];
+            
+            const prevBtns = document.querySelectorAll('#left-flipper .flipper-btn');
+            prevBtns.forEach(btn => {
+                if (current <= 1 || disabledTools.includes('prev')) {
+                    btn.classList.add('disabled');
+                } else {
+                    btn.classList.remove('disabled');
+                }
+            });
+
+            const nextBtns = document.querySelectorAll('#right-flipper .flipper-btn');
+            nextBtns.forEach(btn => {
+                if (current >= total || disabledTools.includes('next')) {
+                    btn.classList.add('disabled');
+                } else {
+                    btn.classList.remove('disabled');
+                }
+            });
         }
 
-        function setTheme(isDark, accentColor) {
+        function setTheme(isDark, accentColor, themeId) {
+            const variant = isDark ? 'dark' : 'light';
+            
             if (isDark) {
                 document.documentElement.setAttribute('data-theme', 'dark');
             } else {
                 document.documentElement.removeAttribute('data-theme');
             }
-            if (accentColor) {
-                document.documentElement.style.setProperty('--accent-color', accentColor);
+            
+            document.documentElement.setAttribute('data-theme-variant', variant);
+            
+            if (themeId) {
+                document.documentElement.setAttribute('data-theme-id', themeId);
+            } else {
+                document.documentElement.removeAttribute('data-theme-id');
             }
+
+            if (accentColor && (!themeId || themeId === 'default')) {
+                document.documentElement.style.setProperty('--accent-color', accentColor);
+            } else {
+                document.documentElement.style.removeProperty('--accent-color');
+            }
+            
+            // Re-apply opacity as base colors might have changed
+            if (typeof applyOpacity === 'function') applyOpacity();
         }
 
-        function updateTheme(mode, themeId) {
-             const isDark = (String(mode).toLowerCase() === 'dark');
-             setTheme(isDark, null); 
-        }
+
 
         function updateTime() {
             const now = new Date();

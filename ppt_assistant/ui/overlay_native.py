@@ -2537,6 +2537,7 @@ class ToolbarWidget(QWidget):
         self.update_layout_style()
         
         cfg.showToolbarText.valueChanged.connect(self.update_layout_style)
+        cfg.toolbarOpacity.valueChanged.connect(self.update_layout_style)
     
     def sizeHint(self):
         return self.layout.sizeHint()
@@ -2557,6 +2558,13 @@ class ToolbarWidget(QWidget):
             show_text = cfg.showToolbarText.value
 
             bg = _p("toolbar_bg", self._is_light) or ("#FFFFFF" if self._is_light else "#202020")
+            
+            # Apply opacity
+            bg_c = _parse_color(bg)
+            if bg_c.isValid():
+                alpha = int(bg_c.alpha() * cfg.toolbarOpacity.value)
+                bg = f"rgba({bg_c.red()}, {bg_c.green()}, {bg_c.blue()}, {alpha/255.0})"
+
             border = _p("toolbar_border", self._is_light) or ("rgba(0, 0, 0, 0.08)" if self._is_light else "rgba(255, 255, 255, 0.08)")
             line_color = _p("toolbar_line", self._is_light) or ("rgba(0, 0, 0, 0.08)" if self._is_light else "rgba(255, 255, 255, 0.15)")
             shadow_color = _parse_color(_p("toolbar_shadow", self._is_light), QColor(0, 0, 0, 15) if self._is_light else QColor(0, 0, 0, 80))
@@ -2992,6 +3000,8 @@ class PageFlipWidget(QFrame):
         self.btn_prev.btn_clicked.connect(self.clicked_prev.emit)
         self.btn_next.btn_clicked.connect(self.clicked_next.emit)
         
+        cfg.sidePageOpacity.valueChanged.connect(lambda: self.update_style(self._is_light))
+
         self.set_page_info(0, 0)
 
     def _on_show_text_changed(self, show):
@@ -3019,6 +3029,13 @@ class PageFlipWidget(QFrame):
         scale = cfg.scale.value
         
         bg = _p("pageflip_bg", self._is_light) or ("#FFFFFF" if self._is_light else "#202020")
+        
+        # Apply opacity
+        bg_c = _parse_color(bg)
+        if bg_c.isValid():
+            alpha = int(bg_c.alpha() * cfg.sidePageOpacity.value)
+            bg = f"rgba({bg_c.red()}, {bg_c.green()}, {bg_c.blue()}, {alpha/255.0})"
+            
         border = _p("pageflip_border", self._is_light) or ("rgba(0, 0, 0, 0.08)" if self._is_light else "rgba(255, 255, 255, 0.08)")
         fg = _p("pageflip_fg", self._is_light) or ("#191919" if self._is_light else "white")
         hint_fg = _p("pageflip_hint", self._is_light) or ("rgba(0, 0, 0, 0.5)" if self._is_light else "rgba(255, 255, 255, 0.6)")

@@ -14,6 +14,7 @@ class TimerPlugin(AssistantPlugin):
     resume_requested = Signal()
     stop_requested = Signal()
     finish_requested = Signal()
+    background_mode_entered = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -74,7 +75,7 @@ class TimerPlugin(AssistantPlugin):
         env = os.environ.copy()
         env["SETTINGS_PATH"] = SETTINGS_PATH
         env["ASSETS_PATH"] = assets_path
-        env["TIMER_REMAINING"] = str(self._timer_manager.remaining_seconds)
+        env["TIMER_REMAINING"] = str(int(self._timer_manager.remaining_seconds))
         env["TIMER_IS_RUNNING"] = "true" if self._timer_manager.is_running else "false"
         env["DEFER_WEBENGINE_LOAD"] = "1"
 
@@ -138,6 +139,8 @@ class TimerPlugin(AssistantPlugin):
         
         # When process exits, we no longer stop the timer logic here 
         # as per user request to keep timer running even if window is closed.
+        if self._timer_manager.is_running:
+            self.background_mode_entered.emit()
         pass
 
     def terminate(self):

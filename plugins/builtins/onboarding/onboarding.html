@@ -288,6 +288,115 @@
       --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
     }
 
+    :root[data-theme-id="year-of-horse"][data-theme-variant="light"],
+    .theme-preview-root[data-theme-id="year-of-horse"][data-theme-variant="light"] {
+      --bg-app: #FFEBEE;
+      --bg-surface: #FFF5F5;
+      --bg-color: #FFF5F5;
+      --sidebar-bg: #FFF5F5;
+      --border-color: rgba(255, 0, 0, 0.15);
+      --text-primary: #B71C1C;
+      --text-secondary: rgba(183, 28, 28, 0.6);
+      --accent-blue: #D32F2F;
+      --divider: rgba(255, 0, 0, 0.15);
+      --card-bg: rgba(255, 0, 0, 0.12);
+      --card-border: rgba(255, 0, 0, 0.15);
+      --item-hover: rgba(255, 0, 0, 0.12);
+      --shadow-color: rgba(180, 0, 0, 0.15);
+      --shadow-main: 0 6px 22px var(--shadow-color);
+      --logo-glow: rgba(211, 47, 47, 0.22);
+      --hyperos-g1: #FFEBEE;
+      --hyperos-g2: #FFCDD2;
+      --hyperos-g3: #EF9A9A;
+      --hyperos-g4: #E57373;
+      --hyperos-g5: #FFF5F5;
+      --overlay-toolbar-bg: #FFEBEE;
+      --overlay-toolbar-border: rgba(255, 0, 0, 0.2);
+      --overlay-toolbar-line: rgba(255, 0, 0, 0.15);
+      --overlay-toolbar-shadow: rgba(180, 0, 0, 0.15);
+      --overlay-toolbar-fg: #B71C1C;
+      --overlay-button-hover: rgba(255, 0, 0, 0.12);
+      --overlay-button-active: rgba(255, 0, 0, 0.2);
+      --overlay-status-bg: rgba(180, 20, 20, 0.85);
+      --overlay-status-fg: #FFFFFF;
+      --overlay-status-sep: rgba(255, 255, 255, 0.5);
+      --overlay-popup-bg: #FFEBEE;
+      --overlay-popup-border: rgba(255, 0, 0, 0.2);
+      --overlay-popup-fg: #B71C1C;
+      --overlay-page-bg: #FFEBEE;
+      --overlay-page-border: rgba(255, 0, 0, 0.2);
+      --overlay-page-fg: #B71C1C;
+      --overlay-page-hint: rgba(183, 28, 28, 0.6);
+      --overlay-page-hover: rgba(255, 0, 0, 0.12);
+      --overlay-page-shadow: rgba(180, 0, 0, 0.15);
+      --overlay-reload-mask: rgba(50, 10, 10, 0.6);
+      --overlay-reload-card: rgba(180, 20, 20, 0.95);
+      --overlay-reload-text: #FFFFFF;
+      --overlay-dev-watermark: rgba(180, 0, 0, 0.3);
+    }
+
+    :root[data-theme-id="year-of-horse"][data-theme-variant="dark"],
+    .theme-preview-root[data-theme-id="year-of-horse"][data-theme-variant="dark"] {
+      --bg-app: #2A0505;
+      --bg-surface: #451212;
+      --bg-color: #451212;
+      --sidebar-bg: #451212;
+      --border-color: rgba(255, 69, 0, 0.3);
+      --text-primary: #FFD700;
+      --text-secondary: #FFB300;
+      --accent-blue: #FF4500;
+      --divider: rgba(255, 69, 0, 0.3);
+      --card-bg: rgba(255, 69, 0, 0.15);
+      --card-border: rgba(255, 69, 0, 0.25);
+      --item-hover: rgba(255, 69, 0, 0.22);
+      --shadow-color: rgba(0, 0, 0, 0.5);
+      --shadow-main: 0 12px 34px var(--shadow-color);
+      --logo-glow: rgba(255, 69, 0, 0.28);
+      --hyperos-g1: #2A0505;
+      --hyperos-g2: #451212;
+      --hyperos-g3: #5E1A1A;
+      --hyperos-g4: #7A2222;
+      --hyperos-g5: #451212;
+      --overlay-toolbar-bg: #451212;
+      --overlay-toolbar-border: rgba(255, 69, 0, 0.3);
+      --overlay-toolbar-line: rgba(255, 69, 0, 0.3);
+      --overlay-toolbar-shadow: rgba(0, 0, 0, 0.4);
+      --overlay-toolbar-fg: #FFD700;
+      --overlay-button-hover: rgba(255, 69, 0, 0.22);
+      --overlay-button-active: rgba(255, 69, 0, 0.3);
+      --overlay-status-bg: rgba(255, 213, 79, 0.8);
+      --overlay-status-fg: #3E2723;
+      --overlay-status-sep: rgba(62, 39, 35, 0.32);
+      --overlay-popup-bg: #451212;
+      --overlay-popup-border: rgba(255, 69, 0, 0.3);
+      --overlay-popup-fg: #FFD700;
+      --overlay-page-bg: #451212;
+      --overlay-page-border: rgba(255, 69, 0, 0.3);
+      --overlay-page-fg: #FFD700;
+      --overlay-page-hint: rgba(255, 215, 0, 0.68);
+      --overlay-page-hover: rgba(255, 69, 0, 0.22);
+      --overlay-page-shadow: rgba(0, 0, 0, 0.4);
+      --overlay-reload-mask: rgba(0, 0, 0, 0.5);
+      --overlay-reload-card: rgba(62, 39, 35, 0.92);
+      --overlay-reload-text: rgba(255, 255, 255, 0.94);
+      --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+    }
+
+    /* Year of Horse Background Pattern */
+    :root[data-theme-id="year-of-horse"][data-theme-variant="light"] body {
+      background-image: radial-gradient(circle at 100% 0%, rgba(230, 0, 0, 0.08) 0%, transparent 25%),
+                        radial-gradient(circle at 0% 100%, rgba(230, 0, 0, 0.08) 0%, transparent 25%),
+                        radial-gradient(circle at 50% 50%, rgba(230, 0, 0, 0.03) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
+    :root[data-theme-id="year-of-horse"][data-theme-variant="dark"] body {
+      background-image: radial-gradient(circle at 100% 0%, rgba(255, 69, 0, 0.1) 0%, transparent 30%),
+                        radial-gradient(circle at 0% 100%, rgba(255, 69, 0, 0.1) 0%, transparent 30%),
+                        radial-gradient(circle at 50% 50%, rgba(255, 69, 0, 0.05) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
     :root[data-theme-id="emptiness-color"][data-theme-variant="light"],
     .theme-preview-root[data-theme-id="emptiness-color"][data-theme-variant="light"] {
       --bg-app: #F5F6F8;
@@ -570,8 +679,99 @@
       --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
     }
 
+    :root[data-theme-id="year-of-horse"][data-theme-variant="light"],
+    .theme-preview-root[data-theme-id="year-of-horse"][data-theme-variant="light"] {
+      --bg-app: #FFF0F0;
+      --bg-surface: #FFFFFF;
+      --bg-color: #FFFFFF;
+      --sidebar-bg: #FFFFFF;
+      --border-color: rgba(139, 0, 0, 0.12);
+      --text-primary: #8B0000;
+      --text-secondary: #B22222;
+      --accent-blue: #D32F2F;
+      --divider: rgba(139, 0, 0, 0.12);
+      --card-bg: rgba(211, 47, 47, 0.08);
+      --card-border: rgba(211, 47, 47, 0.15);
+      --item-hover: rgba(211, 47, 47, 0.14);
+      --shadow-color: rgba(211, 47, 47, 0.18);
+      --shadow-main: 0 6px 22px var(--shadow-color);
+      --logo-glow: rgba(211, 47, 47, 0.22);
+      --hyperos-g1: #FFF0F0;
+      --hyperos-g2: #FFE0E0;
+      --hyperos-g3: #FFD0D0;
+      --hyperos-g4: #FFB0B0;
+      --hyperos-g5: #FFFFFF;
+      --overlay-toolbar-bg: #FFFFFF;
+      --overlay-toolbar-border: rgba(139, 0, 0, 0.12);
+      --overlay-toolbar-line: rgba(139, 0, 0, 0.12);
+      --overlay-toolbar-shadow: rgba(139, 0, 0, 0.2);
+      --overlay-toolbar-fg: #8B0000;
+      --overlay-button-hover: rgba(211, 47, 47, 0.14);
+      --overlay-button-active: rgba(211, 47, 47, 0.22);
+      --overlay-status-bg: rgba(62, 39, 35, 0.3);
+      --overlay-status-fg: #FFFFFF;
+      --overlay-status-sep: rgba(255, 255, 255, 0.32);
+      --overlay-popup-bg: #FFFFFF;
+      --overlay-popup-border: rgba(139, 0, 0, 0.14);
+      --overlay-popup-fg: #8B0000;
+      --overlay-page-bg: #FFFFFF;
+      --overlay-page-border: rgba(139, 0, 0, 0.14);
+      --overlay-page-fg: #8B0000;
+      --overlay-page-hint: rgba(139, 0, 0, 0.55);
+      --overlay-page-hover: rgba(211, 47, 47, 0.14);
+      --overlay-page-shadow: rgba(139, 0, 0, 0.2);
+      --overlay-reload-mask: rgba(62, 39, 35, 0.48);
+      --overlay-reload-card: rgba(62, 39, 35, 0.9);
+      --overlay-reload-text: rgba(255, 255, 255, 0.94);
+      --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+    }
 
-
+    :root[data-theme-id="year-of-horse"][data-theme-variant="dark"],
+    .theme-preview-root[data-theme-id="year-of-horse"][data-theme-variant="dark"] {
+      --bg-app: #2A0A0A;
+      --bg-surface: #3E1010;
+      --bg-color: #3E1010;
+      --sidebar-bg: #3E1010;
+      --border-color: rgba(255, 215, 0, 0.14);
+      --text-primary: #FFD700;
+      --text-secondary: #FFB347;
+      --accent-blue: #FF4500;
+      --divider: rgba(255, 215, 0, 0.14);
+      --card-bg: rgba(255, 69, 0, 0.15);
+      --card-border: rgba(255, 69, 0, 0.25);
+      --item-hover: rgba(255, 69, 0, 0.22);
+      --shadow-color: rgba(0, 0, 0, 0.5);
+      --shadow-main: 0 12px 34px var(--shadow-color);
+      --logo-glow: rgba(255, 69, 0, 0.28);
+      --hyperos-g1: #2A0A0A;
+      --hyperos-g2: #3E1010;
+      --hyperos-g3: #521616;
+      --hyperos-g4: #661C1C;
+      --hyperos-g5: #3E1010;
+      --overlay-toolbar-bg: #3E1010;
+      --overlay-toolbar-border: rgba(255, 215, 0, 0.18);
+      --overlay-toolbar-line: rgba(255, 215, 0, 0.22);
+      --overlay-toolbar-shadow: rgba(0, 0, 0, 0.38);
+      --overlay-toolbar-fg: #FFD700;
+      --overlay-button-hover: rgba(255, 69, 0, 0.22);
+      --overlay-button-active: rgba(255, 69, 0, 0.3);
+      --overlay-status-bg: rgba(255, 213, 79, 0.8);
+      --overlay-status-fg: #3E2723;
+      --overlay-status-sep: rgba(62, 39, 35, 0.32);
+      --overlay-popup-bg: #3E1010;
+      --overlay-popup-border: rgba(255, 215, 0, 0.24);
+      --overlay-popup-fg: #FFD700;
+      --overlay-page-bg: #3E1010;
+      --overlay-page-border: rgba(255, 215, 0, 0.2);
+      --overlay-page-fg: #FFD700;
+      --overlay-page-hint: rgba(255, 215, 0, 0.68);
+      --overlay-page-hover: rgba(255, 69, 0, 0.22);
+      --overlay-page-shadow: rgba(0, 0, 0, 0.38);
+      --overlay-reload-mask: rgba(0, 0, 0, 0.48);
+      --overlay-reload-card: rgba(62, 39, 35, 0.92);
+      --overlay-reload-text: rgba(255, 255, 255, 0.94);
+      --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+    }
 
     * {
       box-sizing: border-box;
@@ -3925,6 +4125,20 @@ html, body {
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+    /* Year of Horse Background Pattern */
+    :root[data-theme-id="year-of-horse"][data-theme-variant="light"] body {
+      background-image: radial-gradient(circle at 100% 0%, rgba(230, 0, 0, 0.05) 0%, transparent 25%),
+                        radial-gradient(circle at 0% 100%, rgba(230, 0, 0, 0.05) 0%, transparent 25%),
+                        radial-gradient(circle at 50% 50%, rgba(230, 0, 0, 0.02) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
+    :root[data-theme-id="year-of-horse"][data-theme-variant="dark"] body {
+      background-image: radial-gradient(circle at 100% 0%, rgba(255, 69, 0, 0.08) 0%, transparent 30%),
+                        radial-gradient(circle at 0% 100%, rgba(255, 69, 0, 0.08) 0%, transparent 30%),
+                        radial-gradient(circle at 50% 50%, rgba(255, 69, 0, 0.03) 0%, transparent 40%);
+      background-attachment: fixed;
     }
 </style>
 </head>

@@ -28,6 +28,40 @@
       --btn-cancel-bg: rgba(44, 44, 44, 0.5);
     }
 
+    [data-theme-id="year-of-horse"] {
+      --accent-blue: #D32F2F;
+      --bg-app: rgba(255, 235, 238, 0.95);
+      --card-bg: rgba(211, 47, 47, 0.15);
+      --btn-cancel-bg: rgba(211, 47, 47, 0.15);
+      --text-primary: #B71C1C;
+      --text-secondary: rgba(183, 28, 28, 0.6);
+      --divider: rgba(211, 47, 47, 0.2);
+    }
+
+    [data-theme="dark"][data-theme-id="year-of-horse"] {
+      --accent-blue: #FF4500;
+      --bg-app: rgba(69, 18, 18, 0.95);
+      --card-bg: rgba(255, 69, 0, 0.15);
+      --btn-cancel-bg: rgba(255, 69, 0, 0.15);
+      --text-primary: #FFD700;
+      --text-secondary: rgba(255, 215, 0, 0.6);
+      --divider: rgba(255, 69, 0, 0.3);
+    }
+
+    /* Year of Horse Background Pattern */
+    :root[data-theme-id="year-of-horse"] body {
+      background-image: radial-gradient(circle at 100% 0%, rgba(230, 0, 0, 0.12) 0%, transparent 25%),
+                        radial-gradient(circle at 0% 100%, rgba(230, 0, 0, 0.12) 0%, transparent 25%),
+                        radial-gradient(circle at 50% 50%, rgba(230, 0, 0, 0.08) 0%, transparent 40%) !important;
+      background-attachment: fixed;
+    }
+
+    :root[data-theme="dark"][data-theme-id="year-of-horse"] body {
+      background-image: radial-gradient(circle at 100% 0%, rgba(255, 69, 0, 0.15) 0%, transparent 30%),
+                        radial-gradient(circle at 0% 100%, rgba(255, 69, 0, 0.15) 0%, transparent 30%),
+                        radial-gradient(circle at 50% 50%, rgba(255, 69, 0, 0.08) 0%, transparent 40%) !important;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -671,13 +705,13 @@
       }
       
       let mode = data.theme || 'light';
+      let themeId = data.themeId || (settings && settings.Appearance && settings.Appearance.ThemeId);
+      
       if (mode === 'auto') {
         mode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       }
       const isDark = mode === 'dark';
-      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-      const accent = isDark ? '#E1EBFF' : '#3275F5';
-      document.documentElement.style.setProperty('--accent-blue', accent);
+      updateTheme(mode, themeId);
     }
 
     function onConfirm() {
@@ -733,14 +767,24 @@
       }
     }
 
-    function updateTheme(mode) {
+    function updateTheme(mode, themeId) {
       let theme = mode || 'light';
       if (theme === 'auto') {
         theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       }
       const isDark = theme === 'dark';
       document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-      const accent = isDark ? '#E1EBFF' : '#3275F5';
+      
+      if (themeId) {
+        document.documentElement.setAttribute('data-theme-id', themeId);
+      } else {
+        document.documentElement.removeAttribute('data-theme-id');
+      }
+
+      let accent = isDark ? '#E1EBFF' : '#3275F5';
+      if (themeId === 'year-of-horse') {
+        accent = isDark ? '#FF4500' : '#D32F2F';
+      }
       document.documentElement.style.setProperty('--accent-blue', accent);
     }
 

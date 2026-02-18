@@ -15,6 +15,8 @@ _TRANSLATIONS = {
         "tray.exit": "退出程序",
         "timer.notify.title": "时间到",
         "timer.notify.body": "倒计时已结束",
+        "timer.background.title": "计时器",
+        "timer.background.body": "计时器正在后台运行",
     },
     "zh-TW": {
         "tray.tooltip": "Kazuha 助手",
@@ -26,6 +28,8 @@ _TRANSLATIONS = {
         "tray.exit": "退出程式",
         "timer.notify.title": "時間到",
         "timer.notify.body": "倒數計時已結束",
+        "timer.background.title": "計時器",
+        "timer.background.body": "計時器正在背景執行",
     },
     "yue-HK": {
         "tray.tooltip": "Kazuha 幫手",
@@ -37,6 +41,8 @@ _TRANSLATIONS = {
         "tray.exit": "走人",
         "timer.notify.title": "時間到喇",
         "timer.notify.body": "倒數完咗，收工啦",
+        "timer.background.title": "計時器",
+        "timer.background.body": "計時器喺後台行緊",
     },
     "ja-JP": {
         "tray.tooltip": "Kazuha アシスタント",
@@ -69,6 +75,8 @@ _TRANSLATIONS = {
         "tray.exit": "چېكىنىش",
         "timer.notify.title": "ۋاقىت توشتى",
         "timer.notify.body": "قايتۇرما ۋاقىت تاماملاندى",
+        "timer.background.title": "ۋاقىت بەلگىلەش",
+        "timer.background.body": "ۋاقىت بەلگىلەش ئارقا سۇپىدا ئىشلەۋاتىدۇ",
     },
 }
 
