@@ -276,11 +276,20 @@ if ($statusValue -eq 4) { $state="Playing" } elseif ($statusValue -eq 5) { $stat
 @{status=$state; title=$display} | ConvertTo-Json -Compress
 '''
         try:
+            creationflags = 0
+            startupinfo = None
+            if sys.platform == "win32":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = 0
+                creationflags = subprocess.CREATE_NO_WINDOW
             result = subprocess.run(
                 ["powershell", "-NoProfile", "-Command", script],
                 capture_output=True,
                 text=True,
-                timeout=1.5
+                timeout=1.5,
+                creationflags=creationflags,
+                startupinfo=startupinfo
             )
             raw = (result.stdout or "").strip()
             if raw:
