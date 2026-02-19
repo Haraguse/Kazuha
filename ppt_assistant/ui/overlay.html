@@ -17,15 +17,15 @@
             --font-stack: "MiSans Latin", "HarmonyOS Sans SC", "SF Pro", "苹方-简", "PingFang SC", "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
 
             /* Light Mode Defaults */
-            --overlay-toolbar-bg: rgba(255, 255, 255, 0.92);
+            --overlay-toolbar-bg: rgba(255, 255, 255, 0.95);
             --overlay-toolbar-border: rgba(0, 0, 0, 0.08);
-            --overlay-toolbar-shadow: none;
+            --overlay-toolbar-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             --overlay-toolbar-fg: #333333;
             
             --overlay-button-hover: rgba(0, 0, 0, 0.06);
             --overlay-button-active: rgba(0, 0, 0, 0.12);
             
-            --overlay-status-bg: rgba(255, 255, 255, 0.95);
+            --overlay-status-bg: rgba(255, 255, 255, 0.98);
             --overlay-status-fg: #333333;
             --overlay-status-sep: rgba(0, 0, 0, 0.1);
             
@@ -34,10 +34,10 @@
             --overlay-page-fg: #333333;
             --overlay-page-hint: rgba(0, 0, 0, 0.5);
             --overlay-page-hover: var(--overlay-button-hover);
-            --overlay-page-shadow: none;
+            --overlay-page-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 
             /* Popup & Controls (Light) */
-            --overlay-popup-bg: rgba(255, 255, 255, 0.95);
+            --overlay-popup-bg: rgba(255, 255, 255, 0.98);
             --overlay-popup-border: rgba(0, 0, 0, 0.08);
             --overlay-popup-shadow: none;
             
@@ -70,15 +70,15 @@
             --shadow-main: 0 8px 32px rgba(0, 0, 0, 0.3);
 
             /* Dark Mode Overrides */
-            --overlay-toolbar-bg: rgba(40, 40, 40, 0.85);
+            --overlay-toolbar-bg: rgba(40, 40, 40, 0.95);
             --overlay-toolbar-border: rgba(255, 255, 255, 0.15);
-            --overlay-toolbar-shadow: none;
+            --overlay-toolbar-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
             --overlay-toolbar-fg: #FFFFFF;
             
             --overlay-button-hover: rgba(255, 255, 255, 0.1);
             --overlay-button-active: rgba(255, 255, 255, 0.2);
             
-            --overlay-status-bg: rgba(0, 0, 0, 0.4);
+            --overlay-status-bg: rgba(0, 0, 0, 0.85);
             --overlay-status-fg: #FFFFFF;
             --overlay-status-sep: rgba(255, 255, 255, 0.2);
             
@@ -87,10 +87,10 @@
             --overlay-page-fg: #FFFFFF;
             --overlay-page-hint: rgba(255, 255, 255, 0.6);
             --overlay-page-hover: var(--overlay-button-hover);
-            --overlay-page-shadow: none;
+            --overlay-page-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
             
             /* Popup & Controls (Dark) */
-            --overlay-popup-bg: rgba(30, 30, 30, 0.95);
+            --overlay-popup-bg: rgba(30, 30, 30, 0.98);
             --overlay-popup-border: rgba(255, 255, 255, 0.1);
             --overlay-popup-shadow: none;
             
@@ -839,7 +839,7 @@
             box-sizing: border-box;
             font-size: 12px;
             font-weight: 900;
-            backdrop-filter: blur(10px);
+            /* backdrop-filter: blur(10px); */
             opacity: 0;
             transition: opacity 0.3s;
             border-bottom: 1px solid var(--overlay-status-sep);
@@ -895,15 +895,53 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            box-shadow: var(--overlay-page-shadow);
+            /* box-shadow: var(--overlay-page-shadow); */
             pointer-events: auto;
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
+            /* backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px); */
             transition: background 0.3s, border-color 0.3s;
         }
 
         .flipper:active {
             transform: scale(0.95);
+        }
+
+        /* Flipper Bottom Layout */
+        .flipper.flipper-bottom {
+            height: 54px;
+            width: 160px;
+            flex-direction: row;
+            align-items: center;
+            border-radius: 27px;
+            position: absolute;
+            bottom: 20px;
+            /* Reset transform from center layout */
+            transform: none !important; 
+        }
+
+        #left-flipper.flipper-bottom {
+            left: 20px;
+        }
+
+        #right-flipper.flipper-bottom {
+            right: 20px;
+        }
+        
+        .flipper.flipper-bottom .flipper-btn {
+            margin: 0 4px;
+        }
+        
+        .flipper.flipper-bottom .icon-previous {
+            transform: rotate(0deg);
+        }
+        
+        .flipper.flipper-bottom .icon-next {
+            transform: rotate(0deg);
+        }
+
+        .flipper.flipper-bottom .page-info-container {
+             padding: 0 4px;
+             flex-direction: row;
         }
 
         #ink-prompt {
@@ -1114,6 +1152,36 @@
         }
 
 
+        #toolbar-handle {
+            position: absolute;
+            width: 32px;
+            height: 12px;
+            bottom: -16px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            pointer-events: auto;
+            z-index: 101;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        #toolbar-handle:hover {
+            opacity: 1;
+        }
+
+        .handle-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background-color: var(--overlay-toolbar-fg);
+            margin: 0 2px;
+            opacity: 0.5;
+        }
+
         #toolbar {
             background: var(--overlay-toolbar-bg);
             border: 0.5px solid var(--overlay-toolbar-border);
@@ -1121,10 +1189,11 @@
             padding: 8px;
             display: flex;
             gap: 4px;
-            box-shadow: var(--overlay-toolbar-shadow);
+            /* box-shadow: var(--overlay-toolbar-shadow); */
             transition: opacity 0.3s, transform 0.3s;
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
+            position: relative;
+            /* backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px); */
         }
         
         .tool-btn {
@@ -1213,8 +1282,8 @@
             border-radius: 12px;
             padding: 16px;
             box-shadow: var(--overlay-popup-shadow);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
+            /* backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px); */
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.2s, transform 0.2s;
@@ -1337,8 +1406,8 @@
             flex-direction: column;
             gap: 12px;
             box-shadow: var(--overlay-popup-shadow);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
+            /* backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px); */
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.2s, transform 0.2s;
@@ -1700,8 +1769,12 @@
     </div>
 
     <div id="toolbar-container">
-        <div id="toolbar-handle" class="interactive"></div>
         <div id="toolbar" class="interactive">
+            <div id="toolbar-handle" onclick="toggleToolbar(false)">
+                <div class="handle-dot"></div>
+                <div class="handle-dot"></div>
+                <div class="handle-dot"></div>
+            </div>
         </div>
     </div>
 
@@ -1742,8 +1815,13 @@
 
         function toggleStatusBar(visible) {
             const sb = document.getElementById('status-bar');
-            if (visible) sb.classList.add('visible');
-            else sb.classList.remove('visible');
+            if (visible) {
+                sb.classList.add('visible');
+                sb.classList.add('interactive');
+            } else {
+                sb.classList.remove('visible');
+                sb.classList.remove('interactive');
+            }
         }
 
         function showInkPrompt() {
@@ -1763,6 +1841,8 @@
             }
         }
 
+        let opacityHelperDiv = null;
+
         function applyOpacity() {
             if (!currentConfig) return;
             
@@ -1776,15 +1856,17 @@
             
             function resolveColor(colorStr, opacity) {
                 if (!colorStr) return '';
-                const temp = document.createElement('div');
-                temp.style.color = colorStr;
-                // Use visibility hidden instead of display none to ensure computed style works in all engines
-                temp.style.visibility = 'hidden';
-                temp.style.position = 'absolute';
-                temp.style.pointerEvents = 'none';
-                document.body.appendChild(temp);
-                const computed = getComputedStyle(temp).color;
-                document.body.removeChild(temp);
+                
+                if (!opacityHelperDiv) {
+                    opacityHelperDiv = document.createElement('div');
+                    opacityHelperDiv.style.visibility = 'hidden';
+                    opacityHelperDiv.style.position = 'absolute';
+                    opacityHelperDiv.style.pointerEvents = 'none';
+                    document.body.appendChild(opacityHelperDiv);
+                }
+                
+                opacityHelperDiv.style.color = colorStr;
+                const computed = getComputedStyle(opacityHelperDiv).color;
                 
                 const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
                 if (match) {
@@ -1831,11 +1913,41 @@
             const pos = config.toolbarPosition || 'bottom';
             toolbarContainer.classList.add('pos-' + pos);
 
+            const flipperPos = config.flipperPosition || 'center';
+            const leftFlipper = document.getElementById('left-flipper');
+            const rightFlipper = document.getElementById('right-flipper');
+            
+            // Reset Flipper styles
+            [leftFlipper, rightFlipper].forEach(el => {
+                if (!el) return;
+                el.classList.remove('flipper-bottom');
+                // Don't reset transform here as it might be set by side toolbar logic later
+                // But we should ensure we start clean if we switch modes
+                if (flipperPos === 'center') {
+                     el.style.position = '';
+                     el.style.bottom = '';
+                     el.style.left = '';
+                     el.style.right = '';
+                }
+            });
+
             const toolbar = document.getElementById('toolbar');
 
             // Apply Scale and SafeArea
             const scale = config.scale || 1.0;
             const safeArea = config.safeArea || 0;
+            
+            // Apply safe area to bottom flippers
+            if (flipperPos === 'bottom') {
+                 [leftFlipper, rightFlipper].forEach(el => {
+                    if (!el) return;
+                    el.classList.add('flipper-bottom');
+                    el.style.bottom = (20 + safeArea) + 'px';
+                });
+                
+                if (leftFlipper) leftFlipper.style.left = (20 + safeArea) + 'px';
+                if (rightFlipper) rightFlipper.style.right = (20 + safeArea) + 'px';
+            }
             
             toolbar.style.transform = `scale(${scale})`;
             toolbar.style.transformOrigin = {
@@ -1890,8 +2002,11 @@
                     toolbarContainer.style.paddingBottom = `calc(20px + ${safeArea}px)`;
                     
                     // Flipper to Top-ish (via transform)
-                    if (leftFlipper) {
-                        leftFlipper.style.transform = `translateY(-15vh)`;
+                    // Only apply if NOT in bottom mode
+                    if (flipperPos !== 'bottom') {
+                        if (leftFlipper) {
+                            leftFlipper.style.transform = `translateY(-15vh)`;
+                        }
                     }
                 } else if (pos === 'right') {
                     // Toolbar to Bottom-ish
@@ -1899,8 +2014,11 @@
                     toolbarContainer.style.paddingBottom = `calc(20px + ${safeArea}px)`;
                     
                     // Flipper to Top-ish
-                    if (rightFlipper) {
-                        rightFlipper.style.transform = `translateY(-15vh)`;
+                    // Only apply if NOT in bottom mode
+                    if (flipperPos !== 'bottom') {
+                        if (rightFlipper) {
+                            rightFlipper.style.transform = `translateY(-15vh)`;
+                        }
                     }
                 }
             }
@@ -2370,23 +2488,7 @@
             setTimeout(sendMaskUpdate, 360);
         }
 
-        function sendMaskUpdate() {
-            if (!bridge) return;
-            requestAnimationFrame(() => {
-                const rects = [];
-                document.querySelectorAll('.interactive').forEach(el => {
-                    if (el.offsetParent === null) return;
-                    const r = el.getBoundingClientRect();
-                    rects.push({
-                        x: r.x,
-                        y: r.y,
-                        width: r.width,
-                        height: r.height
-                    });
-                });
-                bridge.updateMask(rects);
-            });
-        }
+
         // Toolbar Collapse Logic
         let isToolbarCollapsed = false;
         let toolbarTouchStartY = 0;
@@ -2508,10 +2610,13 @@
                 document.querySelectorAll('.interactive').forEach(el => {
                     if (el.offsetParent === null) return;
                     
-                    // Skip toolbar if collapsed
+                    const style = window.getComputedStyle(el);
+                    if (style.opacity === '0' || style.pointerEvents === 'none' || style.visibility === 'hidden') return;
+                    
+                    // Skip toolbar if collapsed (redundant with pointerEvents check but explicit)
                     if (isCollapsed && el.id === 'toolbar') return;
                     
-                    // Skip handle if NOT collapsed
+                    // Skip handle if NOT collapsed (handle is only interactive when collapsed)
                     if (!isCollapsed && el.id === 'toolbar-handle') return;
 
                     const r = el.getBoundingClientRect();

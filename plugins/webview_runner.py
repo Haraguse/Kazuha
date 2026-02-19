@@ -133,6 +133,15 @@ def _apply_chromium_flags():
         "--enable-features=BackForwardCache",
         "--disable-frame-rate-limit",
         "--disable-gpu-vsync",
+        "--disable-renderer-backgrounding",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-breakpad",
+        "--disable-component-update",
+        "--disable-print-preview",
+        "--disable-speech-api",
+        "--disable-web-security",
+        "--wm-window-animations-disabled",
     ]
     
     rate = _get_screen_refresh_rate()

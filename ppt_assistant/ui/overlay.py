@@ -486,6 +486,7 @@ if ($statusValue -eq 4) { $state="Playing" } elseif ($statusValue -eq 5) { $stat
             "showToolbarText": cfg.showToolbarText.value,
             "toolbarOrder": cfg.toolbarOrder.value,
             "toolbarPosition": cfg.toolbarPosition.value,
+            "flipperPosition": cfg.flipperPosition.value,
             "showClear": cfg.showClear.value,
             "clearMode": cfg.clearMode.value,
             "showSpotlight": cfg.showSpotlight.value,
@@ -770,6 +771,7 @@ Item {
     def bind_config_signals(self):
         cfg.toolbarOrder.valueChanged.connect(lambda *_: self.update_config())
         cfg.toolbarPosition.valueChanged.connect(lambda *_: self.update_config())
+        cfg.flipperPosition.valueChanged.connect(lambda *_: self.update_config())
         cfg.quickLaunchApps.valueChanged.connect(lambda *_: self.update_config())
         cfg.showToolbarText.valueChanged.connect(lambda *_: self.update_config())
         cfg.showClear.valueChanged.connect(lambda *_: self.update_config())

@@ -2008,7 +2008,7 @@
 
     .toolbar-preview-hero {
       margin: -32px -48px 24px;
-      padding: 44px 48px 52px;
+      padding: 20px 48px 24px;
       background: linear-gradient(to bottom, var(--bg-app), var(--bg-app) 65%, var(--bg-surface));
       border-radius: 16px 16px 0 0;
       overflow: hidden;
@@ -2023,7 +2023,7 @@
       position: relative;
       width: 100%;
       max-width: 760px;
-      height: 260px;
+      height: 220px;
       border-radius: 18px;
       overflow: hidden;
       display: flex;
@@ -2114,10 +2114,38 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      box-shadow: var(--overlay-page-shadow);
+      /* box-shadow: var(--overlay-page-shadow); */
       backdrop-filter: blur(25px);
       -webkit-backdrop-filter: blur(25px);
       transition: background 0.3s, border-color 0.3s;
+    }
+
+    .toolbar-preview-root .flipper.flipper-bottom {
+        height: 54px;
+        width: 160px;
+        flex-direction: row;
+        align-items: center;
+        border-radius: 27px;
+        position: absolute;
+        bottom: 20px;
+        transform: none !important; 
+    }
+
+    .toolbar-preview-root .flipper.flipper-bottom .flipper-btn {
+        margin: 0 4px;
+    }
+    
+    .toolbar-preview-root .flipper.flipper-bottom .icon-previous {
+        transform: rotate(0deg);
+    }
+    
+    .toolbar-preview-root .flipper.flipper-bottom .icon-next {
+        transform: rotate(0deg);
+    }
+
+    .toolbar-preview-root .flipper.flipper-bottom .page-info-container {
+         padding: 0 4px;
+         flex-direction: row;
     }
 
     .toolbar-preview-root .flipper:active {
@@ -2255,7 +2283,7 @@
       padding: 8px;
       display: flex;
       gap: 4px;
-      box-shadow: var(--overlay-toolbar-shadow);
+      /* box-shadow: var(--overlay-toolbar-shadow); */
       transition: opacity 0.3s, transform 0.3s;
       backdrop-filter: blur(25px);
       -webkit-backdrop-filter: blur(25px);
@@ -4655,6 +4683,18 @@
               </div>
             </div>
           </div>
+          <div class="settings-item">
+            <div class="item-info">
+              <span class="item-label" data-i18n="window.flipperPosition.label">翻页栏位置</span>
+              <span class="item-desc" data-i18n="window.flipperPosition.desc">调整翻页栏的布局方式（两侧中心/两侧底部）</span>
+            </div>
+            <div class="item-state">
+              <select class="styled-select" id="sel-Overlay-FlipperPosition" onchange="setFlipperPosition(this.value)">
+                <option value="center" data-i18n="window.flipperPosition.center">两侧中心</option>
+                <option value="bottom" data-i18n="window.flipperPosition.bottom">两侧底部</option>
+              </select>
+            </div>
+          </div>
 
         </div>
 
@@ -4785,6 +4825,7 @@
                 </div>
               </div>
               <div class="inline-settings-divider"></div>
+
               <div class="inline-settings-row">
                 <div class="item-info">
                   <span class="item-label" data-i18n="overlay.safeArea.label">屏幕内安全区</span>
@@ -5357,6 +5398,10 @@
       "group.debugOptions": "调试选项",
       "window.toolbarPosition.label": "工具栏位置",
       "window.toolbarPosition.desc": "调整工具栏在屏幕上的位置",
+      "window.flipperPosition.label": "翻页栏位置",
+      "window.flipperPosition.desc": "调整翻页栏的布局方式（两侧中心：默认样式；两侧底部：与工具栏同高横向布局）",
+      "window.flipperPosition.center": "两侧中心",
+      "window.flipperPosition.bottom": "两侧底部",
       "window.timerFullscreenBehavior.label": "计时器全屏行为",
       "window.timerFullscreenBehavior.desc": "设置计时器进入全屏时的窗口模式",
       "window.timerFullscreenBehavior.fullscreen": "全屏切换",
@@ -6208,6 +6253,10 @@
       "group.debugOptions": "Debug Options",
       "window.toolbarPosition.label": "Toolbar Position",
       "window.toolbarPosition.desc": "Adjust the position of the toolbar on the screen",
+      "window.flipperPosition.label": "Flipper Position",
+      "window.flipperPosition.desc": "Adjust the layout of the page flipper",
+      "window.flipperPosition.center": "Sides Center",
+      "window.flipperPosition.bottom": "Sides Bottom",
       "window.timerFullscreenBehavior.label": "Timer Fullscreen Behavior",
       "window.timerFullscreenBehavior.desc": "Choose how the timer enters fullscreen",
       "window.timerFullscreenBehavior.fullscreen": "Fullscreen switch",
@@ -7652,9 +7701,27 @@
     updateToolbarIndicatorPosition();
   }
 
+  function setFlipperPosition(pos) {
+    const sel = document.getElementById("sel-Overlay-FlipperPosition");
+    if (sel && sel.value !== pos) {
+        sel.value = pos;
+        refreshCustomSelect(sel);
+    }
+    
+    if (!settings.Overlay) settings.Overlay = {};
+    settings.Overlay.FlipperPosition = pos;
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+      window.pywebview.api.save_setting("Overlay", "FlipperPosition", pos);
+    }
+    renderToolbarPreview();
+  }
+
   function initToolbarPosition() {
     const pos = (settings.Overlay && settings.Overlay.ToolbarPosition) || 'bottom';
     setToolbarPosition(pos);
+    
+    const flipperPos = (settings.Overlay && settings.Overlay.FlipperPosition) || 'center';
+    setFlipperPosition(flipperPos);
     
     if (window.pywebview && window.pywebview.api && window.pywebview.api.get_wallpaper_path) {
         window.pywebview.api.get_wallpaper_path().then(dataUrl => {
@@ -8839,23 +8906,51 @@
     centerArea.style.paddingTop = "";
     centerArea.style.paddingBottom = "";
 
+    const flipperPos = settings.Overlay?.FlipperPosition || 'center';
     const leftFlipper = document.getElementById("left-flipper");
     const rightFlipper = document.getElementById("right-flipper");
-    if (leftFlipper) leftFlipper.style.transform = "";
-    if (rightFlipper) rightFlipper.style.transform = "";
+    
+    [leftFlipper, rightFlipper].forEach(el => {
+        if (!el) return;
+        el.classList.remove('flipper-bottom');
+        el.style.transform = "";
+        el.style.bottom = "";
+        el.style.left = "";
+        el.style.right = "";
+        el.style.position = "";
+    });
 
     toolbarContainer.style.justifyContent = "";
     toolbarContainer.style.paddingTop = "";
     toolbarContainer.style.paddingBottom = "";
+    
+    if (flipperPos === 'bottom') {
+         [leftFlipper, rightFlipper].forEach(el => {
+            if (!el) return;
+            el.classList.add('flipper-bottom');
+            el.style.bottom = (20 + safeArea) + 'px';
+        });
+        
+        if (leftFlipper) leftFlipper.style.left = (20 + safeArea) + 'px';
+        if (rightFlipper) rightFlipper.style.right = (20 + safeArea) + 'px';
+        
+        if (pos === "bottom") {
+             previewRoot.style.height = "120px";
+        } else {
+             previewRoot.style.height = "";
+        }
+    } else {
+        previewRoot.style.height = "";
+    }
 
     if (pos === "left") {
       toolbarContainer.style.justifyContent = "flex-end";
       toolbarContainer.style.paddingBottom = `calc(20px + ${safeArea}px)`;
-      if (leftFlipper) leftFlipper.style.transform = "translateY(-15vh)";
+      if (flipperPos !== 'bottom' && leftFlipper) leftFlipper.style.transform = "translateY(-15vh)";
     } else if (pos === "right") {
       toolbarContainer.style.justifyContent = "flex-end";
       toolbarContainer.style.paddingBottom = `calc(20px + ${safeArea}px)`;
-      if (rightFlipper) rightFlipper.style.transform = "translateY(-15vh)";
+      if (flipperPos !== 'bottom' && rightFlipper) rightFlipper.style.transform = "translateY(-15vh)";
     }
 
     const createBtn = (iconClass, toolId, isActive) => {
