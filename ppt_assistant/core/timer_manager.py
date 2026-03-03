@@ -109,6 +109,8 @@ class TimerManager(QObject):
         self._request_pause.connect(self._worker.pause)
         self._request_resume.connect(self._worker.resume)
         self._request_stop.connect(self._worker.stop)
+        self._request_add_time.connect(self._worker.add_time)
+        self._request_update_time.connect(self._worker.update_time)
         
         # Connect feedback signals
         self._worker.updated.connect(self.updated)

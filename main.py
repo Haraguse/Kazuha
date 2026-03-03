@@ -986,6 +986,7 @@ class PPTAssistantApp:
 
         self.overlay.request_next.connect(self.monitor.go_next)
         self.overlay.request_prev.connect(self.monitor.go_previous)
+        self.overlay.request_goto.connect(self.monitor.go_to_slide)
         self.overlay.request_clear.connect(self.monitor.clear_screen)
         self.overlay.request_end.connect(self.monitor.end_show)
 
@@ -993,6 +994,7 @@ class PPTAssistantApp:
         self.overlay.request_ptr_pen.connect(lambda: self.monitor.set_pointer_type(2))
         self.overlay.request_ptr_eraser.connect(lambda: self.monitor.set_pointer_type(5))
         self.overlay.request_pen_color.connect(self.monitor.set_pen_color)
+        self.overlay.request_thumbnail.connect(lambda idx: self.monitor.export_slide_thumbnail(idx, os.path.join(tempfile.gettempdir(), "kazuha_ppt_thumbs", f"thumb_{idx}.png")))
 
         self.tray.show_settings.connect(self.settings_plugin.execute)
         self.tray.show_board.connect(self.board_plugin.execute)
@@ -1009,6 +1011,7 @@ class PPTAssistantApp:
         self.monitor.window_geometry_changed.connect(self._cache_slideshow_geometry)
         self.monitor.slideshow_hwnd_changed.connect(self.overlay.set_slideshow_hwnd)
         self.monitor.restrictions_changed.connect(self.overlay.set_ppt_restrictions)
+        self.monitor.thumbnail_generated.connect(self.overlay.on_thumbnail_ready)
 
     @Slot()
     def _on_timer_finished(self):
@@ -1199,12 +1202,14 @@ class PPTAssistantApp:
             # Re-connect signals
             new_overlay.request_next.connect(self.monitor.go_next)
             new_overlay.request_prev.connect(self.monitor.go_previous)
+            new_overlay.request_goto.connect(self.monitor.go_to_slide)
             new_overlay.request_clear.connect(self.monitor.clear_screen)
             new_overlay.request_end.connect(self.monitor.end_show)
             new_overlay.request_ptr_arrow.connect(lambda: self.monitor.set_pointer_type(1))
             new_overlay.request_ptr_pen.connect(lambda: self.monitor.set_pointer_type(2))
             new_overlay.request_ptr_eraser.connect(lambda: self.monitor.set_pointer_type(5))
             new_overlay.request_pen_color.connect(self.monitor.set_pen_color)
+            new_overlay.request_thumbnail.connect(lambda idx: self.monitor.export_slide_thumbnail(idx, os.path.join(tempfile.gettempdir(), "kazuha_ppt_thumbs", f"thumb_{idx}.png")))
             
             # Disconnect old overlay slots before connecting new ones
             with warnings.catch_warnings():
@@ -1221,9 +1226,14 @@ class PPTAssistantApp:
                     self.monitor.slideshow_hwnd_changed.disconnect(self.overlay.set_slideshow_hwnd)
                 except Exception:
                     pass
+                try:
+                    self.monitor.thumbnail_generated.disconnect(self.overlay.on_thumbnail_ready)
+                except Exception:
+                    pass
             self.monitor.slide_changed.connect(new_overlay.update_page_info)
             self.monitor.window_geometry_changed.connect(new_overlay.update_geometry)
             self.monitor.slideshow_hwnd_changed.connect(new_overlay.set_slideshow_hwnd)
+            self.monitor.thumbnail_generated.connect(new_overlay.on_thumbnail_ready)
             
             # Swap overlay
             old_overlay = self.overlay

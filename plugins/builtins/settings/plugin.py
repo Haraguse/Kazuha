@@ -13,7 +13,7 @@ class SettingsPlugin(AssistantPlugin):
         self.process = None
 
     def get_name(self):
-        return "设置"
+        return ""
 
     def get_icon(self):
         return "settings.svg" 

@@ -58,6 +58,10 @@ class OverlayBridge(QObject):
     def nextPage(self):
         self._overlay.request_next.emit()
 
+    @Slot(int)
+    def gotoSlide(self, index):
+        self._overlay.request_goto.emit(index)
+
     @Slot()
     def clearScreen(self):
         self._overlay.request_clear.emit()
@@ -109,6 +113,10 @@ class OverlayBridge(QObject):
         except Exception:
             pass
 
+    @Slot(int)
+    def requestThumbnail(self, index):
+        self._overlay.request_thumbnail.emit(index)
+
 class InkPromptBridge(QObject):
     result = Signal(bool)
 
@@ -123,13 +131,16 @@ class InkPromptBridge(QObject):
 class OverlayWindow(QWebEngineView):
     request_next = Signal()
     request_prev = Signal()
+    request_goto = Signal(int)
     request_clear = Signal()
     request_end = Signal()
     request_ptr_arrow = Signal()
     request_ptr_pen = Signal()
     request_ptr_eraser = Signal()
     request_pen_color = Signal(int, int, int)
+    request_thumbnail = Signal(int)
     ink_prompt_result = Signal(bool)
+    thumbnail_ready = Signal(int, str)
     
     def __init__(self):
         super().__init__()
@@ -194,6 +205,13 @@ class OverlayWindow(QWebEngineView):
         if monitor and hasattr(monitor, "set_overlay"):
             monitor.set_overlay(self)
         self.monitor.slide_changed.connect(self.on_slide_changed)
+        self.thumbnail_ready.connect(self.on_thumbnail_ready)
+
+    def on_thumbnail_ready(self, index, path):
+        # Path needs to be converted to file URL
+        url = QUrl.fromLocalFile(path).toString()
+        script = f"if (typeof updatePageThumbnail === 'function') updatePageThumbnail({index}, '{url}');"
+        self.page().runJavaScript(script)
         
     def on_slide_changed(self, current, total):
         script = f"if (typeof updatePageInfo === 'function') updatePageInfo({current}, {total});"
@@ -210,14 +228,38 @@ class OverlayWindow(QWebEngineView):
 
     def update_mask(self, rects_data):
         region = QRegion()
+        
+        # Always include page selector area if it's visible (detected by rect)
+        # We need to detect if any rect corresponds to the page selector sidebar
+        # The page selector is 360px wide, full height, on the right
+        
+        has_sidebar = False
+        sidebar_rect = None
+        
+        w_win = self.width()
+        h_win = self.height()
+        
         for r in rects_data:
             x = math.floor(r['x'])
             y = math.floor(r['y'])
             w = math.ceil(r['x'] + r['width']) - x
             h = math.ceil(r['y'] + r['height']) - y
             
+            # Heuristic to detect the sidebar (now island style)
+            # It should be roughly 260px wide and occupy most of the height
+            # and positioned near the right edge OR left edge
+            is_near_right = (x >= (w_win - w - 50))
+            is_near_left = (x <= 50)
+            
+            if w >= 250 and h >= (h_win * 0.8) and (is_near_right or is_near_left):
+                 has_sidebar = True
+                 sidebar_rect = QRect(x, 0, w, h_win) # Force full height for interaction safety
+            
             rect = QRect(x - 1, y - 1, w + 2, h + 2)
             region += rect
+            
+        if has_sidebar and sidebar_rect:
+            region += sidebar_rect
             
         if not region.isEmpty():
             self.setMask(region)

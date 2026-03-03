@@ -1389,8 +1389,105 @@
             pointer-events: auto !important;
         }
         
+        #page-selector {
+            position: fixed;
+            top: 24px;
+            bottom: 24px;
+            right: 16px; /* Floating gap */
+            left: auto;
+            transform: translateX(calc(100% + 32px));
+            background: var(--overlay-popup-bg);
+            border: 1px solid var(--overlay-popup-border);
+            border-radius: 16px;
+            padding: 12px;
+            box-shadow: none; /* Removed shadow */
+            opacity: 1;
+            pointer-events: auto;
+            transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+            z-index: 200;
+            max-height: none;
+            overflow-y: auto;
+            width: 260px;
+            /* Scrollbar styling */
+            scrollbar-width: thin;
+            scrollbar-color: var(--overlay-thumb-bg) transparent;
+        }
+
+        #page-selector.visible {
+            transform: translateX(0);
+        }
+
+        #page-selector.left-side {
+            right: auto;
+            left: 16px;
+            transform: translateX(calc(-100% - 32px));
+            border: 1px solid var(--overlay-popup-border);
+            box-shadow: none; /* Removed shadow */
+        }
+        
+        #page-selector.left-side.visible {
+            transform: translateX(0);
+        }
+
+        .page-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .page-item {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: var(--overlay-control-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .page-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .page-item.active {
+            border-color: var(--accent-color);
+        }
+        
+        .page-item .page-num {
+            position: absolute;
+            bottom: 4px;
+            right: 8px;
+            font-size: 2em;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+            pointer-events: none;
+            z-index: 2;
+            line-height: 1;
+        }
+        
+        .page-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .page-item img.loaded {
+            opacity: 1;
+        }
+
         #color-picker, #eraser-settings, #toolbar, .flipper, #status-bar {
             z-index: 100;
+        }
+
+        #page-selector {
+            z-index: 200;
         }
 
         #color-picker {
@@ -1532,6 +1629,16 @@
         
         .color-info div {
             white-space: nowrap;
+        }
+        
+        #left-flipper, #right-flipper {
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        
+        #left-flipper.hidden-flipper, #right-flipper.hidden-flipper {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.9);
         }
 
         @keyframes pivotSlideIn {
@@ -1691,6 +1798,12 @@
         </div>
     </div>
 
+    <div id="page-selector" class="interactive">
+        <div class="page-grid" id="page-grid-content">
+            <!-- Items injected by JS -->
+        </div>
+    </div>
+
     <div id="color-picker" class="interactive">
         <div class="pivot-container">
             <div class="pivot-item active" onclick="switchColorTab('theme', this)">主题颜色</div>
@@ -1739,7 +1852,7 @@
             <div class="flipper-btn" onclick="bridge.prevPage()">
                 <div class="icon-mask icon-previous"></div>
             </div>
-            <div class="page-info-container">
+            <div class="page-info-container" onclick="togglePageSelector(event)" style="cursor: pointer;">
                 <div class="page-count-row">
                     <span class="page-curr" id="curr-page-l">1</span>
                     <span class="page-total-grp" id="total-page-l">/1</span>
@@ -1755,7 +1868,7 @@
             <div class="flipper-btn" onclick="bridge.prevPage()">
                 <div class="icon-mask icon-previous"></div>
             </div>
-            <div class="page-info-container">
+            <div class="page-info-container" onclick="togglePageSelector(event)" style="cursor: pointer;">
                 <div class="page-count-row">
                     <span class="page-curr" id="curr-page-r">1</span>
                     <span class="page-total-grp" id="total-page-r">/1</span>
@@ -1806,6 +1919,7 @@
             
             const isClickInside = e.target.closest('#color-picker') || 
                                   e.target.closest('#eraser-settings') ||
+                                  e.target.closest('#page-selector') ||
                                   e.target.closest('.tool-btn');
             
             if (!isClickInside) {
@@ -2213,6 +2327,9 @@
         function closePopup() {
             document.getElementById('color-picker').classList.remove('visible');
             document.getElementById('eraser-settings').classList.remove('visible');
+            document.getElementById('page-selector').classList.remove('visible');
+            document.getElementById('left-flipper').classList.remove('hidden-flipper');
+            document.getElementById('right-flipper').classList.remove('hidden-flipper');
             document.body.classList.remove('popup-active');
             const ae = document.activeElement;
             if (ae && typeof ae.blur === 'function') ae.blur();
@@ -2220,6 +2337,136 @@
                 bridge.releaseFocus();
             }
             if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
+        }
+
+        function togglePageSelector(e) {
+            if (e && typeof e.stopPropagation === 'function') {
+                e.stopPropagation();
+            }
+            const selector = document.getElementById('page-selector');
+            if (selector.classList.contains('visible')) {
+                selector.classList.remove('visible');
+                document.getElementById('left-flipper').classList.remove('hidden-flipper');
+                document.getElementById('right-flipper').classList.remove('hidden-flipper');
+                document.body.classList.remove('popup-active');
+            } else {
+                closePopup();
+                
+                // Only render if empty or page count changed
+                const grid = document.getElementById('page-grid-content');
+                if (grid.children.length !== totalPage) {
+                    renderPageSelector();
+                } else {
+                    // Just update active state
+                    document.querySelectorAll('.page-item').forEach((item, index) => {
+                         if ((index + 1) === currentPage) item.classList.add('active');
+                         else item.classList.remove('active');
+                    });
+                }
+                
+                selector.classList.add('visible');
+                document.body.classList.add('popup-active');
+                
+                // Determine side based on click position
+                let isLeft = false;
+                if (e && e.clientX < window.innerWidth / 2) {
+                    isLeft = true;
+                }
+                
+                if (isLeft) {
+                    selector.classList.add('left-side');
+                    document.getElementById('left-flipper').classList.add('hidden-flipper');
+                } else {
+                    selector.classList.remove('left-side');
+                    document.getElementById('right-flipper').classList.add('hidden-flipper');
+                }
+                
+                // Force layout reset
+                selector.setAttribute('style', '');
+                selector.style.position = 'fixed';
+                selector.style.top = '24px';
+                selector.style.bottom = '24px';
+                selector.style.width = '260px';
+                selector.style.maxHeight = 'none';
+                selector.style.borderRadius = '16px';
+                selector.style.border = '1px solid var(--overlay-popup-border)';
+                
+                if (isLeft) {
+                    selector.style.left = '16px';
+                    selector.style.right = 'auto';
+                } else {
+                    selector.style.right = '16px';
+                    selector.style.left = 'auto';
+                }
+
+                // Important: clear transform to allow CSS class to handle it
+                // We need to do this slightly after adding the class to ensure transition works
+                requestAnimationFrame(() => {
+                    selector.style.transform = ''; 
+                });
+
+                // Notify backend about mask update to include the sidebar
+                // We do this after a small delay to ensure the DOM has updated and transition started
+                setTimeout(() => {
+                    if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
+                }, 50);
+
+                if (typeof bridge !== 'undefined' && bridge && typeof bridge.resizeNudge === 'function') {
+                    bridge.resizeNudge();
+                }
+                
+                // Auto scroll to current page
+                setTimeout(() => {
+                    const activeItem = selector.querySelector('.page-item.active');
+                    if (activeItem) {
+                        activeItem.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    }
+                }, 300); // Wait for transition
+            }
+        }
+
+        function renderPageSelector() {
+            const grid = document.getElementById('page-grid-content');
+            grid.innerHTML = '';
+            
+            for (let i = 1; i <= totalPage; i++) {
+                const item = document.createElement('div');
+                item.className = 'page-item';
+                if (i === currentPage) item.classList.add('active');
+                
+                const img = document.createElement('img');
+                img.id = 'thumb-' + i;
+                img.alt = 'Slide ' + i;
+                
+                const num = document.createElement('div');
+                num.className = 'page-num';
+                num.innerText = i;
+                
+                item.appendChild(img);
+                item.appendChild(num);
+                item.onclick = () => selectPage(i);
+                grid.appendChild(item);
+                
+                // Request thumbnail
+                if (bridge && typeof bridge.requestThumbnail === 'function') {
+                    bridge.requestThumbnail(i);
+                }
+            }
+        }
+
+        function updatePageThumbnail(index, url) {
+            const img = document.getElementById('thumb-' + index);
+            if (img) {
+                img.src = url;
+                img.onload = () => img.classList.add('loaded');
+            }
+        }
+
+        function selectPage(page) {
+            if (bridge && typeof bridge.gotoSlide === 'function') {
+                bridge.gotoSlide(page);
+            }
+            closePopup();
         }
 
         function selectTool(tool) {
@@ -2301,6 +2548,18 @@
             document.getElementById('total-page-l').innerText = '/' + total;
             document.getElementById('curr-page-r').innerText = current;
             document.getElementById('total-page-r').innerText = '/' + total;
+            
+            // If selector is visible, update active state
+            // If page count changed, clear grid so next toggle rebuilds it
+            const grid = document.getElementById('page-grid-content');
+            if (grid.children.length > 0 && grid.children.length !== total) {
+                 grid.innerHTML = ''; // Force rebuild next time
+            } else if (grid.children.length > 0) {
+                 document.querySelectorAll('.page-item').forEach((item, index) => {
+                     if ((index + 1) === currentPage) item.classList.add('active');
+                     else item.classList.remove('active');
+                 });
+            }
             
             const disabledTools = (currentConfig && currentConfig.disabledTools) ? currentConfig.disabledTools : [];
             
@@ -2608,6 +2867,21 @@
                 const isCollapsed = document.getElementById('toolbar-container').classList.contains('collapsed');
                 
                 document.querySelectorAll('.interactive').forEach(el => {
+                    // Special handling for page selector to ensure it's detected even if transition is running
+                    if (el.id === 'page-selector') {
+                        if (el.classList.contains('visible')) {
+                            // Force send full rect for sidebar
+                            const isLeft = el.classList.contains('left-side');
+                            rects.push({
+                                x: isLeft ? 0 : (window.innerWidth - 260 - 64), // Larger buffer for right side
+                                y: 0,
+                                width: 324, // Significantly wider interaction area (260 + 64)
+                                height: window.innerHeight
+                            });
+                        }
+                        return;
+                    }
+                    
                     if (el.offsetParent === null) return;
                     
                     const style = window.getComputedStyle(el);

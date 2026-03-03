@@ -1138,7 +1138,7 @@
 
     .section.active {
       display: block;
-      animation: pivotSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: slideUpFadeIn 0.3s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
     }
 
     @keyframes sectionFadeIn {
@@ -1153,16 +1153,14 @@
       }
     }
 
-    @keyframes pivotSlideIn {
+    @keyframes slideUpFadeIn {
       0% {
         opacity: 0;
-        transform: translateX(30px) scaleX(1.05);
-        filter: blur(8px);
+        transform: translateY(24px);
       }
       100% {
         opacity: 1;
-        transform: translateX(0) scaleX(1);
-        filter: blur(0);
+        transform: translateY(0);
       }
     }
 
@@ -1639,7 +1637,7 @@
 
     .pivot-content.active {
       display: block;
-      animation: pivotSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: slideUpFadeIn 0.3s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
     }
 
     .update-header {
@@ -4170,6 +4168,7 @@
         </svg>
         <span data-i18n="nav.plugins">插件</span>
       </div>
+
       <div class="sidebar-item" data-section="board-in-board">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
           <path d="M11.1238 18.5229H4.1697C3.68755 18.5229 3.27029 18.356 2.91795 18.0223C2.58415 17.6885 2.41724 17.2805 2.41724 16.7983V6.33936H1.10988C0.75754 6.33936 0.451569 6.20955 0.191949 5.94993C-0.0491264 5.69031 -0.169678 5.38433 -0.169678 5.03198C-0.169678 4.67964 -0.0491264 4.37366 0.191949 4.11404C0.451569 3.85442 0.75754 3.72461 1.10988 3.72461H22.8623C23.2332 3.72461 23.5392 3.85442 23.7803 4.11404C24.0399 4.35512 24.1697 4.6611 24.1697 5.03198C24.1697 5.38433 24.0399 5.69031 23.7803 5.94993C23.5392 6.20955 23.2332 6.33936 22.8623 6.33936H21.555V16.7983C21.555 17.2619 21.3881 17.6699 21.0543 18.0223C20.7205 18.356 20.3125 18.5229 19.8303 18.5229H12.8484V20.2476H11.1238V18.5229ZM15.4632 20.2476C15.7042 20.2476 15.9082 20.3403 16.0751 20.5257C16.242 20.6926 16.3254 20.8966 16.3254 21.1377C16.3254 21.3788 16.242 21.5828 16.0751 21.7497C15.9082 21.9166 15.7042 22 15.4632 22H8.50905C8.26797 22 8.064 21.9166 7.89711 21.7497C7.73021 21.5828 7.64676 21.3788 7.64676 21.1377C7.64676 20.8966 7.73021 20.6926 7.89711 20.5257C8.064 20.3403 8.26797 20.2476 8.50905 20.2476H15.4632ZM11.9305 3.72461H11.1238V2.83449C11.1238 2.59341 11.2073 2.38942 11.3742 2.22253C11.5411 2.05563 11.745 1.97218 11.9861 1.97218C12.2272 1.97218 12.4312 2.05563 12.5981 2.22253C12.765 2.38942 12.8484 2.59341 12.8484 2.83449V3.72461H11.9305Z" />
@@ -4551,6 +4550,9 @@
 
 
       </div>
+
+
+
 
       <div class="section" id="section-board-in-board">
         <div class="group-title" data-i18n="group.boardInBoard">板中板</div>
@@ -5367,6 +5369,7 @@
       "nav.about": "关于",
       "nav.window": "窗口",
       "nav.plugins": "工具栏",
+      "nav.pluginSettings": "插件设置",
       "nav.debug": "调试",
       "nav.back": "返回",
       "nav.boardInBoard": "板中板",
@@ -5377,6 +5380,7 @@
       "section.overlay": "放映",
       "section.window": "窗口",
       "section.plugins": "工具栏",
+      "section.plugin-settings": "插件设置",
       "section.board-in-board": "板中板",
       "section.accessibility": "辅助功能",
       "section.about": "关于",
@@ -5390,6 +5394,9 @@
       "group.overlayUi": "顶层窗口",
       "group.toolbar.display": "工具栏显示",
       "group.timer": "计时器",
+      "group.installedPlugins": "已安装插件",
+      "plugins.none.label": "暂无插件",
+      "plugins.none.desc": "此处将显示已安装的第三方插件配置",
       "group.boardInBoard": "板中板",
       "group.accessibility": "辅助功能",
       "accessibility.wip.label": "建设中",
@@ -5613,6 +5620,7 @@
       "nav.overlay": "放映",
       "nav.about": "關於",
       "nav.plugins": "工具列",
+      "nav.pluginSettings": "插件設定",
       "nav.boardInBoard": "板中板",
       "nav.accessibility": "輔助功能",
       "nav.debug": "偵錯",
@@ -5622,6 +5630,7 @@
       "section.fonts": "全域字型",
       "section.overlay": "放映",
       "section.plugins": "工具列",
+      "section.plugin-settings": "插件設定",
       "section.board-in-board": "板中板",
       "section.accessibility": "輔助功能",
       "section.about": "關於",
@@ -5634,6 +5643,9 @@
       "group.overlayUi": "頂層視窗",
       "group.toolbar.display": "工具列顯示",
       "group.timer": "計時器",
+      "group.installedPlugins": "已安裝插件",
+      "plugins.none.label": "暫無插件",
+      "plugins.none.desc": "此處將顯示已安裝的第三方插件配置",
       "window.timerFullscreenBehavior.label": "計時器全螢幕行為",
       "window.timerFullscreenBehavior.desc": "設定計時器進入全螢幕時的視窗模式",
       "window.timerFullscreenBehavior.fullscreen": "全螢幕切換",
@@ -5825,6 +5837,7 @@
       "nav.overlay": "放映",
       "nav.about": "關於",
       "nav.plugins": "工具列",
+      "nav.pluginSettings": "插件設定",
       "nav.boardInBoard": "板中板",
       "nav.debug": "偵錯",
       "nav.back": "返回",
@@ -5833,6 +5846,7 @@
       "section.fonts": "全域字型",
       "section.overlay": "放映",
       "section.plugins": "工具列",
+      "section.plugin-settings": "插件設定",
       "section.board-in-board": "板中板",
       "section.about": "關於",
       "section.debug": "偵錯",
@@ -5844,6 +5858,9 @@
       "group.overlayUi": "頂層視窗",
       "group.toolbar.display": "工具列顯示",
       "group.timer": "計時器",
+      "group.installedPlugins": "已安裝插件",
+      "plugins.none.label": "暫無插件",
+      "plugins.none.desc": "此處將顯示已安裝嘅第三方插件配置",
       "window.timerFullscreenBehavior.label": "計時器全螢幕行為",
       "window.timerFullscreenBehavior.desc": "設定計時器進入全螢幕時嘅視窗模式",
       "window.timerFullscreenBehavior.fullscreen": "全螢幕切換",
@@ -6012,6 +6029,7 @@
       "nav.overlay": "プレゼン",
       "nav.about": "情報",
       "nav.plugins": "ツールバー",
+      "nav.pluginSettings": "プラグイン設定",
       "nav.boardInBoard": "ボードインボード",
       "nav.debug": "デバッグ",
       "nav.back": "戻る",
@@ -6020,6 +6038,7 @@
       "section.fonts": "グローバルフォント",
       "section.overlay": "プレゼン",
       "section.plugins": "ツールバー",
+      "section.plugin-settings": "プラグイン設定",
       "section.board-in-board": "ボードインボード",
       "section.about": "情報",
       "section.debug": "デバッグ",
@@ -6031,6 +6050,9 @@
       "group.overlayUi": "オーバーレイ UI",
       "group.toolbar.display": "ツールバー表示",
       "group.timer": "タイマー",
+      "group.installedPlugins": "インストール済みプラグイン",
+      "plugins.none.label": "プラグインなし",
+      "plugins.none.desc": "インストールされたサードパーティ製プラグインの設定がここに表示されます",
       "window.timerFullscreenBehavior.label": "タイマー全画面動作",
       "window.timerFullscreenBehavior.desc": "タイマーを全画面にする時のウィンドウモードを選択",
       "window.timerFullscreenBehavior.fullscreen": "全画面切替",
@@ -6223,6 +6245,7 @@
       "nav.about": "About",
       "nav.window": "Window",
       "nav.plugins": "Toolbar",
+      "nav.pluginSettings": "Plugin Settings",
       "nav.boardInBoard": "Board in Board",
       "nav.accessibility": "Accessibility",
       "nav.debug": "Debug",
@@ -6233,6 +6256,7 @@
       "section.overlay": "Presentation",
       "section.window": "Window",
       "section.plugins": "Toolbar",
+      "section.pluginSettings": "Plugin Settings",
       "section.board-in-board": "Board in Board",
       "section.accessibility": "Accessibility",
       "section.about": "About",
@@ -6245,6 +6269,9 @@
       "group.overlayUi": "Overlay UI",
       "group.toolbar.display": "Toolbar Display",
       "group.timer": "Timer",
+      "group.installedPlugins": "Installed Plugins",
+      "plugins.none.label": "No Plugins",
+      "plugins.none.desc": "Configuration for installed third-party plugins will appear here",
       "group.boardInBoard": "Board in Board",
       "group.accessibility": "Accessibility",
       "accessibility.wip.label": "Under Construction",
@@ -6455,14 +6482,19 @@
       "nav.fonts": "خەت نۇسخىسى",
       "nav.overlay": "قەۋەت كۆزنەك",
       "nav.plugins": "قىستۇرما",
+      "nav.pluginSettings": "قىستۇرما تەڭشەك",
       "nav.about": "ھەققىدە",
       "nav.debug": "سىناق",
       "nav.back": "قايتىش",
       "section.main": "ئاساسىي",
       "section.theme": "ئۇسلۇب",
       "section.fonts": "خەت نۇسخىسى",
+      "section.pluginSettings": "قىستۇرما تەڭشەك",
       "group.language": "تىل",
       "group.appearance": "كۆرۈنۈش",
+      "group.installedPlugins": "قاچىلانغان قىستۇرما",
+      "plugins.none.label": "قىستۇرما يوق",
+      "plugins.none.desc": "بۇ يەردە قاچىلانغان قىستۇرما تەڭشەكلىرى كۆرسىتىلىدۇ",
       "general.language.label": "ئېكران تىلى",
       "general.language.desc": "تىل ئالماشتۇرغاندىن كېيىن قايتا قوزغىتىش كېرەك",
       "general.language.warning": "ھازىر تاللانغان تىل ئەمەلىي تېكىستلەرنى تولۇق قاپلىماسلىقى ياكى لايىھەدە خاتالىق كۆرۈلىشى مۇمكىن.",
@@ -6595,7 +6627,7 @@
       return "\"Meiryo UI\", \"Meiryo\", \"Microsoft JhengHei\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
     }
     if (lang === "ja-JP") {
-      return "\"Yu Gothic UI\", \"Meiryo\", \"MiSans Latin\", \"HarmonyOS Sans JP\", \"SF Pro\", system-ui, -apple-system, sans-serif";
+      return "\"Hiragino Kaku Gothic Pro\", \"Yu Gothic UI\", \"Meiryo\", \"MiSans Latin\", \"HarmonyOS Sans JP\", \"SF Pro\", system-ui, -apple-system, sans-serif";
     }
     if (lang === "ug-CN") {
       return "\"Microsoft Uighur\", \"ALKATIP Basma Tom\", \"MiSans Latin\", \"HarmonyOS Sans SC\", \"SF Pro\", system-ui, -apple-system, sans-serif";
@@ -6644,7 +6676,7 @@
         return "Microsoft JhengHei / MiSans / SF / PingFang TC";
       }
       if (lang === "ja-JP") {
-        return "Yu Gothic UI / Meiryo / MiSans / SF";
+        return "Hiragino Kaku Gothic Pro / Yu Gothic UI / Meiryo / MiSans / SF";
       }
       return "MiSans / HarmonyOS Sans SC / SF / 苹方";
     }

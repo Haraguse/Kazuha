@@ -3,6 +3,7 @@ import pythoncom
 from PySide6.QtCore import QObject, Signal, QThread, QTimer, QPoint, QRect, Slot
 from PySide6.QtGui import QGuiApplication
 import time
+import os
 from ppt_assistant.core.config import cfg
 
 try:
@@ -947,6 +948,11 @@ class PPTWorker(QObject):
     @Slot(int, str)
     def export_slide_thumbnail(self, index, path):
         try:
+            # Ensure directory exists
+            directory = os.path.dirname(path)
+            if directory and not os.path.exists(directory):
+                os.makedirs(directory, exist_ok=True)
+                
             app = self._get_active_app()
             if app and app.SlideShowWindows.Count > 0:
                 pres = app.SlideShowWindows(1).Presentation

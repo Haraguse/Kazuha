@@ -427,41 +427,37 @@
 
     .view-section.active {
       display: flex;
-      animation: pivotSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: slideUpFadeIn 0.3s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
       z-index: 2;
     }
 
     .view-section.exit-left {
       display: flex;
-      animation: pivotSlideOut 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: fadeOut 0.15s ease-out forwards;
       pointer-events: none;
     }
 
-    @keyframes pivotSlideIn {
+    @keyframes slideUpFadeIn {
       0% {
         opacity: 0;
-        transform: translateX(30px) scaleX(1.05);
+        transform: translateY(24px);
         filter: blur(8px);
       }
 
       100% {
         opacity: 1;
-        transform: translateX(0) scaleX(1);
+        transform: translateY(0);
         filter: blur(0);
       }
     }
 
-    @keyframes pivotSlideOut {
+    @keyframes fadeOut {
       0% {
         opacity: 1;
-        transform: translateX(0) scaleX(1);
-        filter: blur(0);
       }
 
       100% {
         opacity: 0;
-        transform: translateX(-30px) scaleX(1.05);
-        filter: blur(8px);
       }
     }
 
@@ -1688,7 +1684,7 @@
         return "\"Meiryo UI\", \"Meiryo\", \"Microsoft JhengHei\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
       }
       if (lang === "ja-JP") {
-        return "\"Yu Gothic UI\", \"Meiryo\", \"MiSans Latin\", \"HarmonyOS Sans JP\", \"SF Pro\", system-ui, -apple-system, sans-serif";
+        return "\"Hiragino Kaku Gothic Pro\", \"Yu Gothic UI\", \"Meiryo\", \"MiSans Latin\", \"HarmonyOS Sans JP\", \"SF Pro\", system-ui, -apple-system, sans-serif";
       }
       if (lang === "ug-CN") {
         return "\"Microsoft Uighur\", \"ALKATIP Basma Tom\", \"MiSans Latin\", \"HarmonyOS Sans SC\", \"SF Pro\", system-ui, -apple-system, sans-serif";
