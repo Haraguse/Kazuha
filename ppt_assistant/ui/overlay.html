@@ -1482,6 +1482,51 @@
             opacity: 1;
         }
 
+        .loading-spinner {
+            width: 27px;
+            height: 27px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .loading-spinner.hidden {
+            opacity: 0;
+        }
+
+        .loading-spinner svg {
+            width: 27px;
+            height: 27px;
+        }
+
+        .loading-spinner .spinner-ring {
+            fill: none;
+            stroke: var(--overlay-page-hint);
+            stroke-width: 3;
+        }
+
+        .loading-spinner .spinner-dot {
+            fill: var(--overlay-page-hint);
+        }
+
+        .loading-spinner .spinner-orbit {
+            transform-origin: 13.5px 13.5px;
+            animation: spin-rotate 1s linear infinite;
+        }
+
+        @keyframes spin-rotate {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
         #color-picker, #eraser-settings, #toolbar, .flipper, #status-bar {
             z-index: 100;
         }
@@ -2336,7 +2381,7 @@
             if (typeof bridge !== 'undefined' && bridge && typeof bridge.releaseFocus === 'function') {
                 bridge.releaseFocus();
             }
-            if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
+            scheduleMaskUpdate();
         }
 
         function togglePageSelector(e) {
@@ -2438,10 +2483,24 @@
                 img.id = 'thumb-' + i;
                 img.alt = 'Slide ' + i;
                 
+                // Loading Spinner
+                const spinner = document.createElement('div');
+                spinner.className = 'loading-spinner';
+                spinner.id = 'spinner-' + i;
+                spinner.innerHTML = `
+                  <svg viewBox="0 0 27 27">
+                    <circle class="spinner-ring" cx="13.5" cy="13.5" r="10"></circle>
+                    <g class="spinner-orbit">
+                      <circle class="spinner-dot" cx="13.5" cy="8.0" r="2.5"></circle>
+                    </g>
+                  </svg>
+                `;
+                
                 const num = document.createElement('div');
                 num.className = 'page-num';
                 num.innerText = i;
                 
+                item.appendChild(spinner);
                 item.appendChild(img);
                 item.appendChild(num);
                 item.onclick = () => selectPage(i);
@@ -2456,9 +2515,13 @@
 
         function updatePageThumbnail(index, url) {
             const img = document.getElementById('thumb-' + index);
+            const spinner = document.getElementById('spinner-' + index);
             if (img) {
                 img.src = url;
-                img.onload = () => img.classList.add('loaded');
+                img.onload = () => {
+                    img.classList.add('loaded');
+                    if (spinner) spinner.classList.add('hidden');
+                };
             }
         }
 
@@ -2563,21 +2626,25 @@
             
             const disabledTools = (currentConfig && currentConfig.disabledTools) ? currentConfig.disabledTools : [];
             
-            const prevBtns = document.querySelectorAll('#left-flipper .flipper-btn');
-            prevBtns.forEach(btn => {
-                if (current <= 1 || disabledTools.includes('prev')) {
-                    btn.classList.add('disabled');
-                } else {
-                    btn.classList.remove('disabled');
-                }
-            });
-
-            const nextBtns = document.querySelectorAll('#right-flipper .flipper-btn');
-            nextBtns.forEach(btn => {
-                if (current >= total || disabledTools.includes('next')) {
-                    btn.classList.add('disabled');
-                } else {
-                    btn.classList.remove('disabled');
+            // Fix: Select only previous buttons (left arrow)
+            const allBtns = document.querySelectorAll('.flipper-btn');
+            
+            allBtns.forEach(btn => {
+                const isPrev = btn.querySelector('.icon-previous');
+                const isNext = btn.querySelector('.icon-next');
+                
+                if (isPrev) {
+                    if (current <= 1 || disabledTools.includes('prev')) {
+                        btn.classList.add('disabled');
+                    } else {
+                        btn.classList.remove('disabled');
+                    }
+                } else if (isNext) {
+                    if (current >= total || disabledTools.includes('next')) {
+                        btn.classList.add('disabled');
+                    } else {
+                        btn.classList.remove('disabled');
+                    }
                 }
             });
         }

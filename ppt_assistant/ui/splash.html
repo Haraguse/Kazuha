@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Splash</title>
+    <style>
+        :root {
+            --bg-color: rgba(255, 255, 255, 0.94);
+            --border-color: rgba(0, 0, 0, 0.08);
+            --text-primary: #000000;
+            --text-secondary: rgba(0, 0, 0, 0.47);
+            --accent-color: #3275F5;
+            --progress-bg: #e5e5e5;
+            --spinner-color: #666666;
+            --ver-color: #000000;
+            --en-color: rgba(0, 0, 0, 0.47);
+            --chunk-color: #3275F5;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: rgba(47, 47, 47, 0.94);
+            --border-color: rgba(255, 255, 255, 0.15);
+            --text-primary: #ffffff;
+            --text-secondary: #d9d9d9;
+            --accent-color: #E1EBFF;
+            --progress-bg: #454545;
+            --spinner-color: #d9d9d9;
+            --ver-color: #FFFFFF;
+            --en-color: rgba(255, 255, 255, 0.47);
+            --chunk-color: #E1EBFF;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+            overflow: hidden;
+            user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #container {
+            position: relative;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            /* Simulating QGraphicsDropShadowEffect(blur=24, offset=(0,8), color=(0,0,0,60)) */
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24); 
+            overflow: hidden;
+            width: 678px;
+            height: 255px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        /* First Run Mode */
+        body.first-run #container {
+            width: 100vw;
+            height: 100vh;
+            border-radius: 0;
+            border: none;
+            box-shadow: none;
+            background: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Logo */
+        #logo {
+            position: absolute;
+            left: 38px;
+            top: 37px;
+            width: 64px;
+            height: 64px;
+            background-image: url('../../icons/logo.svg');
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+
+        body.first-run #logo {
+            position: static;
+            width: 120px;
+            height: 120px;
+            margin: 0;
+        }
+
+        /* Brand Name */
+        #brand {
+            position: absolute;
+            left: 38px;
+            top: 111px;
+            width: 328px;
+            height: 32px;
+            line-height: 32px;
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--text-primary);
+            font-family: "Yu Gothic UI", "Meiryo UI", sans-serif;
+        }
+
+        /* Version Info */
+        #version {
+            position: absolute;
+            left: 38px;
+            top: 153px;
+            line-height: 20px;
+            font-family: "MiSans", sans-serif;
+        }
+
+        #ver-text {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--ver-color);
+        }
+
+        #code-name {
+            font-size: 11px;
+            font-weight: 300;
+            color: var(--en-color);
+            margin-left: 2px;
+        }
+
+        /* Spinner */
+        #spinner {
+            position: absolute;
+            left: 38px;
+            top: 199px;
+            width: 27px;
+            height: 27px;
+        }
+
+        /* SVG Spinner to match IndeterminateSpinner */
+        .spinner-svg {
+            animation: rotate 1s linear infinite;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .spinner-circle {
+            stroke: var(--spinner-color);
+            stroke-width: 3;
+            fill: none;
+        }
+        
+        .spinner-dot {
+            fill: var(--spinner-color);
+        }
+
+        @keyframes rotate {
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Status Text */
+        #status {
+            position: absolute;
+            left: 76px;
+            top: 200px; /* Aligned with spinner roughly */
+            width: 221px;
+            height: 24px;
+            line-height: 24px;
+            font-size: 15px;
+            font-weight: bold;
+            color: var(--text-secondary);
+            font-family: "HarmonyOS Sans SC", "Meiryo UI", sans-serif;
+        }
+
+        /* Progress Bar */
+        #progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: var(--progress-bg);
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+
+        #progress-value {
+            height: 100%;
+            width: 0%;
+            background: var(--chunk-color);
+            border-bottom-left-radius: 8px;
+            /* Right radius only if full? Or let it be square on right until end. */
+            transition: width 0.2s linear;
+        }
+        
+        /* First Run Hides */
+        body.first-run #brand,
+        body.first-run #version,
+        body.first-run #spinner,
+        body.first-run #status,
+        body.first-run #progress-bar {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="logo"></div>
+        <div id="brand">Kazuha</div>
+        <div id="version">
+            <span id="ver-text"></span>
+            <span id="code-name"></span>
+        </div>
+        <div id="spinner">
+            <svg class="spinner-svg" viewBox="0 0 27 27">
+                <circle class="spinner-circle" cx="13.5" cy="13.5" r="10"></circle>
+                <!-- Dot at top (orbit radius ~7.5?) -->
+                <!-- Python: ring_radius=10, dot_radius=2.5. orbit = 10-3-2.5+1 = 5.5? No.
+                     Let's approximate. ring r=10. dot r=2.5. 
+                     We want dot inside.
+                -->
+                <circle class="spinner-dot" cx="13.5" cy="5" r="2.5"></circle> 
+            </svg>
+        </div>
+        <div id="status">Initializing...</div>
+        <div id="progress-bar">
+            <div id="progress-value"></div>
+        </div>
+    </div>
+
+    <script>
+        function setProgress(value, text) {
+            document.getElementById('progress-value').style.width = value + '%';
+            if (text) {
+                document.getElementById('status').innerText = text + " " + value + "%";
+            }
+        }
+        
+        function setInfo(version, codename, brand) {
+            document.getElementById('ver-text').innerText = version;
+            document.getElementById('code-name').innerText = codename;
+            if(brand) document.getElementById('brand').innerText = brand;
+        }
+
+        function setTheme(mode) { // 'dark' or 'light'
+            document.body.setAttribute('data-theme', mode);
+        }
+
+        function setFirstRun(isFirst) {
+            if(isFirst) document.body.classList.add('first-run');
+            else document.body.classList.remove('first-run');
+        }
+    </script>
+</body>
+</html>

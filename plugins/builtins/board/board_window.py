@@ -59,6 +59,7 @@ def _read_board_settings():
     background_color = "#202020"
     popup_bg = ""
     popup_border = ""
+    eraser_mode = 0 # 0: Point, 1: Stroke
     
     # Read settings file once
     settings_data = {}
@@ -72,6 +73,15 @@ def _read_board_settings():
     # Get ThemeId from settings or fallback to cfg
     theme_id = settings_data.get("Appearance", {}).get("ThemeId", cfg.themeId.value)
     theme_mode = settings_data.get("Appearance", {}).get("ThemeMode", cfg.themeMode.value)
+    
+    board = settings_data.get("BoardInBoard", {}) or {}
+    
+    # Read eraser mode
+    mode_str = board.get("EraserMode", "point")
+    if mode_str == "stroke":
+        eraser_mode = 1
+    else:
+        eraser_mode = 0
 
     # Override for year-of-horse theme
     if theme_id == "year-of-horse":
@@ -85,20 +95,11 @@ def _read_board_settings():
             popup_bg = "#FFF0F0"
             popup_border = "rgba(230, 0, 0, 0.15)"
         
-        # Check if user has explicitly set a custom color in settings, 
-        # but for this specific theme request, we probably want to enforce the theme feel 
-        # unless we want to respect user override. 
-        # Given the user's strong request for "red", let's prioritize the theme defaults 
-        # if the user hasn't touched the board settings recently (which we can't easily know).
-        # However, to be safe and "red enough", we return the theme color.
-        # But we should still read position.
-        board = settings_data.get("BoardInBoard", {}) or {}
         pos = board.get("ToolbarPosition", position)
         if pos in ("top", "bottom"):
             position = pos
-        return position, background_color, popup_bg, popup_border
+        return position, background_color, popup_bg, popup_border, eraser_mode
 
-    board = settings_data.get("BoardInBoard", {}) or {}
     pos = board.get("ToolbarPosition", position)
     if pos in ("top", "bottom"):
         position = pos
@@ -109,10 +110,10 @@ def _read_board_settings():
             background_color = color
         except Exception:
             background_color = "#202020"
-    return position, background_color, popup_bg, popup_border
+    return position, background_color, popup_bg, popup_border, eraser_mode
 
 def _load_board_toolbar_position():
-    position, _, _, _ = _read_board_settings()
+    position, _, _, _, _ = _read_board_settings()
     return position
 
 _TRANSLATIONS = {
@@ -124,6 +125,8 @@ _TRANSLATIONS = {
         "overlay.dev_watermark": "{type}\n不保证最终品质 （{version}）",
         "toolbar.theme_colors": "主题颜色",
         "toolbar.standard_colors": "标准颜色",
+        "toolbar.eraser_point": "掠区擦除",
+        "toolbar.eraser_stroke": "笔画擦除",
         "dialog.save_strokes_title": "提示",
         "dialog.save_strokes_text": "是否保留本次笔迹？",
         "dialog.save_strokes_yes": "保留",
@@ -137,6 +140,8 @@ _TRANSLATIONS = {
         "overlay.dev_watermark": "{type}\n不保證最終品質 （{version}）",
         "toolbar.theme_colors": "主題顏色",
         "toolbar.standard_colors": "標準顏色",
+        "toolbar.eraser_point": "掠區擦除",
+        "toolbar.eraser_stroke": "筆畫擦除",
         "dialog.save_strokes_title": "提示",
         "dialog.save_strokes_text": "是否保留本次筆跡？",
         "dialog.save_strokes_yes": "保留",
@@ -150,6 +155,8 @@ _TRANSLATIONS = {
         "overlay.dev_watermark": "{type}\n品質唔包，出事唔好屌我 ({version})",
         "toolbar.theme_colors": "主題色",
         "toolbar.standard_colors": "標準色",
+        "toolbar.eraser_point": "掠區擦除",
+        "toolbar.eraser_stroke": "筆畫擦除",
         "dialog.save_strokes_title": "提你一提",
         "dialog.save_strokes_text": "要唔要留低呢堆筆跡？",
         "dialog.save_strokes_yes": "留低",
@@ -163,6 +170,8 @@ _TRANSLATIONS = {
         "overlay.dev_watermark": "{type}\nQuality not guaranteed ({version})",
         "toolbar.theme_colors": "Theme Colors",
         "toolbar.standard_colors": "Standard Colors",
+        "toolbar.eraser_point": "Point Eraser",
+        "toolbar.eraser_stroke": "Stroke Eraser",
         "dialog.save_strokes_title": "Tip",
         "dialog.save_strokes_text": "Keep current strokes?",
         "dialog.save_strokes_yes": "Keep",
@@ -176,6 +185,8 @@ _TRANSLATIONS = {
         "overlay.dev_watermark": "{type}\n品質は保証されません ({version})",
         "toolbar.theme_colors": "テーマの色",
         "toolbar.standard_colors": "標準の色",
+        "toolbar.eraser_point": "部分消しゴム",
+        "toolbar.eraser_stroke": "ストローク消しゴム",
         "dialog.save_strokes_title": "ヒント",
         "dialog.save_strokes_text": "今回の筆跡を保存しますか？",
         "dialog.save_strokes_yes": "保存する",
@@ -264,7 +275,7 @@ class BoardWindow(QQuickView):
         icons_url = QUrl.fromLocalFile(icons_dir).toString() + "/"
         self._settings_path = SETTINGS_PATH
         self._settings_mtime = None
-        self._board_toolbar_position, self._board_background_color, self._board_popup_bg, self._board_popup_border = _read_board_settings()
+        self._board_toolbar_position, self._board_background_color, self._board_popup_bg, self._board_popup_border, self._board_eraser_mode = _read_board_settings()
 
         self.rootContext().setContextProperty("iconsDir", icons_url)
         self.rootContext().setContextProperty("showToolText", cfg.showToolbarText.value)
@@ -272,11 +283,14 @@ class BoardWindow(QQuickView):
         self.rootContext().setContextProperty("boardBackgroundColor", self._board_background_color)
         self.rootContext().setContextProperty("boardPopupBackgroundColor", self._board_popup_bg)
         self.rootContext().setContextProperty("boardPopupBorderColor", self._board_popup_border)
+        self.rootContext().setContextProperty("boardEraserMode", self._board_eraser_mode)
         self.rootContext().setContextProperty("penText", _t("toolbar.pen"))
         self.rootContext().setContextProperty("eraserText", _t("toolbar.eraser"))
         self.rootContext().setContextProperty("clearText", _t("toolbar.clear"))
         self.rootContext().setContextProperty("themeColorsText", _t("toolbar.theme_colors"))
         self.rootContext().setContextProperty("standardColorsText", _t("toolbar.standard_colors"))
+        self.rootContext().setContextProperty("eraserPointText", _t("toolbar.eraser_point"))
+        self.rootContext().setContextProperty("eraserStrokeText", _t("toolbar.eraser_stroke"))
         
         # Colors
         theme_bases = [
@@ -338,7 +352,7 @@ class BoardWindow(QQuickView):
         if self._settings_mtime == mtime:
             return
         self._settings_mtime = mtime
-        position, background_color, popup_bg, popup_border = _read_board_settings()
+        position, background_color, popup_bg, popup_border, eraser_mode = _read_board_settings()
         root = self.rootObject()
         if position != self._board_toolbar_position:
             self._board_toolbar_position = position
@@ -356,6 +370,10 @@ class BoardWindow(QQuickView):
             self._board_popup_border = popup_border
             if root:
                 root.setProperty("popupBorderColor", popup_border)
+        if eraser_mode != self._board_eraser_mode:
+            self._board_eraser_mode = eraser_mode
+            if root:
+                root.setProperty("eraserMode", eraser_mode)
 
     def _on_status_changed(self, status):
         if status == QQuickView.Ready:

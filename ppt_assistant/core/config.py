@@ -60,6 +60,13 @@ class Config(QConfig):
         OptionsValidator(["Always", "Never", "HideOnAutoStart", "TimeRange"]),
         restart=False,
     )
+    splashStyle = OptionsConfigItem(
+        "General",
+        "SplashStyle",
+        "default",
+        OptionsValidator(["default", "nina_iseri_1_2"]),
+        restart=False,
+    )
     showDetailedSplash = ConfigItem("General", "ShowDetailedSplash", False, BoolValidator())
     splashStartTime = ConfigItem("General", "SplashStartTime", "08:00", restart=False)
     splashEndTime = ConfigItem("General", "SplashEndTime", "20:00", restart=False)
@@ -215,6 +222,7 @@ def _bind_auto_save():
     cfg.autoHandleInk.valueChanged.connect(lambda *_: _save_cfg())
     cfg.overlayScreen.valueChanged.connect(lambda *_: _save_cfg())
     cfg.splashMode.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.splashStyle.valueChanged.connect(lambda *_: _save_cfg())
     cfg.splashStartTime.valueChanged.connect(lambda *_: _save_cfg())
     cfg.splashEndTime.valueChanged.connect(lambda *_: _save_cfg())
     cfg.disabledTools.valueChanged.connect(lambda *_: _save_cfg())

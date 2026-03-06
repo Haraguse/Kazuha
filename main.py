@@ -23,8 +23,10 @@ if __name__ == "__main__":
         sys.exit(0)
 
 from PySide6.QtWidgets import QApplication, QDialog, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFrame, QGraphicsDropShadowEffect, QProgressBar
-from PySide6.QtCore import Qt, QTimer, Slot, QSize, QPoint, QCoreApplication, QEvent, QObject
-from PySide6.QtGui import QFontDatabase, QFont, QColor, QIcon, QRegion, QPainter, QPen, QBrush
+from PySide6.QtCore import Qt, QTimer, Slot, QSize, QPoint, QCoreApplication, QEvent, QObject, QUrl
+from PySide6.QtGui import QFontDatabase, QFont, QColor, QIcon, QRegion, QPainter, QPen, QBrush, QFontMetrics
+from PySide6.QtWebEngineWidgets import QWebEngineView
+
 
 from ppt_assistant.core.ppt_monitor import PPTMonitor
 from ppt_assistant.ui.overlay import OverlayWindow
@@ -171,8 +173,6 @@ def _apply_graphics_settings():
     flags = [
         "--disable-frame-rate-limit",
         "--disable-gpu-vsync",
-        "--enable-gpu-rasterization",
-        "--enable-zero-copy",
         "--ignore-gpu-blocklist",
     ]
     
@@ -320,14 +320,16 @@ def _is_dev_preview_version(version: str) -> bool:
 class StartupSplash(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._splash_style = cfg.splashStyle.value
+        self._pixmap = None
+        self._progress_value = 0
+        self._status_text = ""
+        
         icon = load_app_icon()
         if not icon.isNull():
             self.setWindowIcon(icon)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
-
-        self._container = QFrame(self)
-        self._container.setObjectName("splashContainer")
 
         self._version_raw, self._code_name_en, self._code_name_cn = _load_version_info()
         self._version_text = _format_version_display(self._version_raw)
@@ -342,13 +344,18 @@ class StartupSplash(QWidget):
         else:
             self._is_dark = theme_val == Theme.DARK
 
-        self._build_ui()
-        self._apply_styles()
-        self._center_on_screen()
+        if self._splash_style == "nina_iseri_1_2" and not self._is_first_run:
+            self._build_ui_nina()
+        else:
+            self._container = QFrame(self)
+            self._container.setObjectName("splashContainer")
+            self._build_ui()
+            self._apply_styles()
 
+        self._center_on_screen()
         self.set_progress(0, "initializing")
 
-        if not self._is_first_run and _is_dev_preview_version(self._version_raw):
+        if self._splash_style != "nina_iseri_1_2" and not self._is_first_run and _is_dev_preview_version(self._version_raw):
             self._dev_watermark = QLabel(self._container)
             i18n_table = SPLASH_I18N.get(self._language, SPLASH_I18N["zh-CN"])
             suffix = self._version_raw.split(".")[-1]
@@ -366,6 +373,141 @@ class StartupSplash(QWidget):
             self._dev_watermark.resize(320, 36)
             self._dev_watermark.move(self._container.width() - self._dev_watermark.width() - 16,
                                      self._container.height() - self._dev_watermark.height() - 12)
+
+    def _build_ui_nina(self):
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons", "1.2_Splash.png")
+        if os.path.exists(icon_path):
+            from PySide6.QtGui import QPixmap
+            original_pixmap = QPixmap(icon_path)
+            if not original_pixmap.isNull():
+                # For High DPI, we should NOT pre-scale the pixmap if possible, or scale it based on devicePixelRatio.
+                # However, QPainter.drawPixmap with SmoothPixmapTransform is usually better than pre-scaling if we want dynamic resizing.
+                # But here we are setting a fixed window size.
+                
+                # Let's keep the original high-res pixmap in memory and only resize the window logic.
+                self._pixmap = original_pixmap
+                
+                # Logic to determine window size:
+                # If image is very large, we define a "logical" size for the window (e.g. 860 width)
+                # and let the paintEvent draw the high-res image scaled down into that rect.
+                
+                target_width = 860
+                aspect_ratio = original_pixmap.height() / original_pixmap.width()
+                target_height = int(target_width * aspect_ratio)
+                
+                self.resize(target_width, target_height)
+            else:
+                # Fallback
+                self.resize(860, 480)
+        else:
+            self.resize(860, 480)
+            
+        # We don't use standard widgets, we paint in paintEvent
+
+    def paintEvent(self, event):
+        if self._splash_style == "nina_iseri_1_2" and not self._is_first_run and self._pixmap:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing)
+            painter.setRenderHint(QPainter.TextAntialiasing)
+            painter.setRenderHint(QPainter.SmoothPixmapTransform)
+            
+            # Draw Background
+            # Use drawPixmap with target rect to ensure it scales to window size
+            painter.drawPixmap(self.rect(), self._pixmap)
+            
+            # Constants
+            margin_left = 40
+            margin_bottom = 40
+            
+            # Fonts
+            # Use "Microsoft YaHei" explicitly for Chinese/CJK support as primary or fallback
+            title_font = QFont("Bahnschrift")
+            title_font.setStyleHint(QFont.SansSerif)
+            # Add fallback families
+            title_font.setFamilies(["Bahnschrift", "Microsoft YaHei", "SimHei", "Segoe UI"])
+            title_font.setPixelSize(36)
+            title_font.setBold(True)
+            
+            sub_font = QFont("Bahnschrift")
+            sub_font.setStyleHint(QFont.SansSerif)
+            sub_font.setFamilies(["Bahnschrift", "Microsoft YaHei", "SimHei", "Segoe UI"])
+            sub_font.setPixelSize(14)
+            
+            # Calculate positions from bottom
+            h = self.height()
+            w = self.width()
+            
+            # Reduce width to ~65% to avoid character more aggressively
+            content_width = w * 0.65
+            
+            progress_h = 6
+            progress_y = h - margin_bottom - progress_h
+            
+            # Title "Kazuha"
+            painter.setPen(QColor("#000000"))
+            painter.setFont(title_font)
+            # Calculate exact height to position tighter
+            fm_title = QFontMetrics(title_font)
+            title_height = fm_title.capHeight()
+            
+            # Subtitle
+            painter.setFont(sub_font)
+            fm_sub = QFontMetrics(sub_font)
+            sub_height = fm_sub.capHeight()
+            
+            # Position calculations
+            # Gap between Title baseline and Subtitle top: e.g. 8px
+            # Gap between Subtitle baseline and Progress bar: e.g. 15px
+            
+            subtitle_baseline_y = progress_y - 15
+            title_baseline_y = subtitle_baseline_y - sub_height - 16 # 20px gap
+            
+            # Draw Title
+            brand_name_map = {
+                "zh-CN": "万演",
+                "zh-TW": "万演",
+                "yue-HK": "萬演",
+                "ja-JP": "カズハ",
+                "en-US": "Kazuha",
+            }
+            brand_name = brand_name_map.get(self._language, "Kazuha")
+            
+            painter.setFont(title_font)
+            painter.setPen(QColor("#000000"))
+            painter.drawText(margin_left, title_baseline_y, brand_name)
+            
+            # Draw Subtitle
+            # Use Microsoft YaHei for potential fallback if needed, but Bahnschrift is primary
+            # QFont combo isn't directly supported in drawText, rely on system fallback or set specific family list
+            # "Bahnschrift, Microsoft YaHei"
+            painter.setFont(sub_font)
+            painter.setPen(QColor("#888888"))
+            subtitle = f"{self._version_text} // {self._code_name_en}"
+            painter.drawText(margin_left, subtitle_baseline_y, subtitle)
+            
+            # Status Text (Right aligned relative to content width)
+            status_text = f"{self._status_text}"
+            status_rect = fm_sub.boundingRect(status_text)
+            
+            # Align status text to the end of the progress bar
+            status_x = margin_left + content_width - status_rect.width()
+            painter.drawText(status_x, subtitle_baseline_y, status_text)
+            
+            # Progress Bar Background
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(QColor("#E0E0E0"))
+            # Width is content_width
+            painter.drawRoundedRect(margin_left, progress_y, content_width, progress_h, 3, 3)
+            
+            # Progress Bar Value
+            if self._progress_value > 0:
+                painter.setBrush(QColor("#404040"))
+                prog_width = content_width * (self._progress_value / 100.0)
+                painter.drawRoundedRect(margin_left, progress_y, prog_width, progress_h, 3, 3)
+                
+            painter.end()
+        else:
+            super().paintEvent(event)
 
     def _build_ui(self):
         if self._is_first_run:
@@ -545,13 +687,7 @@ class StartupSplash(QWidget):
         self.move(x, y)
 
     def set_progress(self, value, text_key="initializing"):
-        # For first run splash (simple logo), we don't show progress
-        if not hasattr(self, '_progress') or not hasattr(self, '_percent_label'):
-            QApplication.processEvents()
-            return
-
         value = min(max(value, 0), 100)
-        self._progress.setValue(value)
         
         # Check if detailed splash is enabled
         if cfg.showDetailedSplash.value:
@@ -561,12 +697,35 @@ class StartupSplash(QWidget):
             init_key = "initializing"
             display_text = SPLASH_I18N.get(self._language, SPLASH_I18N["zh-CN"]).get(init_key, init_key)
 
-        self._percent_label.setText(f"{display_text} {value}%")
+        full_text = f"{display_text} {value}%"
+
+        # Nina style
+        if self._splash_style == "nina_iseri_1_2" and not self._is_first_run:
+            self._progress_value = value
+            self._status_text = full_text
+            self.update()
+            QApplication.processEvents()
+            return
+
+        # For first run splash (simple logo), we don't show progress
+        if not hasattr(self, '_progress') or not hasattr(self, '_percent_label'):
+            QApplication.processEvents()
+            return
+
+        self._progress.setValue(value)
+        self._percent_label.setText(full_text)
         
         # Update spinner if needed, or it spins automatically
         QApplication.processEvents()
 
     def finish(self):
+        if self._splash_style == "nina_iseri_1_2" and not self._is_first_run:
+            self._progress_value = 100
+            self._status_text = "100%"
+            self.update()
+            QTimer.singleShot(250, self.close)
+            return
+
         if hasattr(self, '_progress'):
             self._progress.setValue(100)
         if hasattr(self, '_percent_label'):
@@ -1287,7 +1446,7 @@ class PPTAssistantApp:
 
 if __name__ == "__main__":
     _apply_graphics_settings()
-    # QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     app = QApplication(sys.argv)
     app_icon = load_app_icon()
     if not app_icon.isNull():

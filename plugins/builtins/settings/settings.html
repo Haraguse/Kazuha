@@ -4273,6 +4273,26 @@
                 </div>
             </div>
           </div>
+          <div class="settings-item">
+            <div class="item-info">
+              <span class="item-label" data-i18n="general.splashStyle.label">启动画面样式</span>
+              <span class="item-desc" data-i18n="general.splashStyle.desc">选择启动画面的显示风格</span>
+            </div>
+            <div class="item-state">
+              <select class="styled-select" id="sel-General-SplashStyle" onchange="setSplashStyle(this.value)">
+                <option value="default" data-i18n="general.splashStyle.default">默认</option>
+                <option value="nina_iseri_1_2" data-i18n="general.splashStyle.nina">Nina Iseri - 1.2</option>
+              </select>
+            </div>
+          </div>
+          <div class="settings-item" id="splash-preview-container" style="display: none; padding-top: 0; padding-bottom: 24px; border: none;">
+             <div style="width: 100%; display: flex; justify-content: center;">
+                <div style="position: relative; max-width: 400px; width: 100%; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid var(--divider);">
+                    <img id="splash-preview-img" style="width: 100%; height: auto; display: block;" src="" />
+                    <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; backdrop-filter: blur(4px);" data-i18n="general.splashStyle.preview">预览</div>
+                </div>
+             </div>
+          </div>
           <div class="settings-item" onclick="toggleSwitch('General', 'ShowDetailedSplash')">
             <div class="item-info">
               <span class="item-label" data-i18n="general.showDetailedSplash.label">启动画面显示详细启动进度</span>
@@ -4576,6 +4596,18 @@
             </div>
             <div class="item-state">
               <input type="color" class="color-input" id="color-BoardInBoard-Background" onchange="setBoardInBoardBackgroundColor(this.value)">
+            </div>
+          </div>
+          <div class="settings-item">
+            <div class="item-info">
+              <span class="item-label" data-i18n="boardInBoard.eraserMode.label">橡皮擦模式</span>
+              <span class="item-desc" data-i18n="boardInBoard.eraserMode.desc">选择板中板的橡皮擦行为</span>
+            </div>
+            <div class="item-state">
+              <select class="styled-select" id="sel-BoardInBoard-EraserMode" onchange="setBoardInBoardEraserMode(this.value)">
+                <option value="point" data-i18n="boardInBoard.eraserMode.point">掠区擦除</option>
+                <option value="stroke" data-i18n="boardInBoard.eraserMode.stroke">笔画擦除</option>
+              </select>
             </div>
           </div>
         </div>
@@ -5477,6 +5509,11 @@
       "general.splashMode.timeRange": "特定时间段内显示",
       "general.splashMode.timeRange.start": "开始时间",
       "general.splashMode.timeRange.end": "结束时间",
+      "general.splashStyle.label": "启动画面样式",
+      "general.splashStyle.desc": "选择启动画面的显示风格",
+      "general.splashStyle.default": "默认",
+      "general.splashStyle.nina": "Nina Iseri - 1.2",
+      "general.splashStyle.preview": "预览",
       "general.showDetailedSplash.label": "启动画面显示详细启动进度",
       "general.showDetailedSplash.desc": "开启后显示具体的加载文本（如加载字体、插件等）",
       "watermark.1": "开发中版本",
@@ -5715,6 +5752,11 @@
       "general.splashMode.timeRange": "特定時段內顯示",
       "general.splashMode.timeRange.start": "開始時間",
       "general.splashMode.timeRange.end": "結束時間",
+      "general.splashStyle.label": "啟動畫面樣式",
+      "general.splashStyle.desc": "選擇啟動畫面的顯示風格",
+      "general.splashStyle.default": "預設",
+      "general.splashStyle.nina": "Nina Iseri - 1.2",
+      "general.splashStyle.preview": "預覽",
       "general.showDetailedSplash.label": "啟動畫面顯示詳細啟動進度",
       "general.showDetailedSplash.desc": "開啟後顯示具體的載入文字（如載入字型、插件等）",
       "watermark.1": "開發中版本",
@@ -5927,6 +5969,11 @@
       "general.splashMode.timeRange": "特定時間段顯示",
       "general.splashMode.timeRange.start": "開始時間",
       "general.splashMode.timeRange.end": "結束時間",
+      "general.splashStyle.label": "啟動畫面樣式",
+      "general.splashStyle.desc": "揀啟動畫面嘅風格",
+      "general.splashStyle.default": "預設",
+      "general.splashStyle.nina": "Nina Iseri - 1.2",
+      "general.splashStyle.preview": "預覽",
       "general.showDetailedSplash.label": "啟動畫面顯示詳細啟動進度",
       "general.showDetailedSplash.desc": "開啟後顯示具體嘅載入文字（如載入字型、插件等）",
       "watermark.1": "開發中版本",
@@ -6119,6 +6166,11 @@
       "general.splashMode.timeRange": "特定の時間帯のみ表示",
       "general.splashMode.timeRange.start": "開始時刻",
       "general.splashMode.timeRange.end": "終了時刻",
+      "general.splashStyle.label": "スプラッシュ画面スタイル",
+      "general.splashStyle.desc": "スプラッシュ画面の表示スタイルを選択",
+      "general.splashStyle.default": "デフォルト",
+      "general.splashStyle.nina": "Nina Iseri - 1.2",
+      "general.splashStyle.preview": "プレビュー",
       "watermark.1": "開発中バージョン",
       "watermark.2": "テクニカルプレビュー",
       "watermark.3": "Release Preview",
@@ -6352,6 +6404,11 @@
       "general.splashMode.timeRange": "Show during time range",
       "general.splashMode.timeRange.start": "Start Time",
       "general.splashMode.timeRange.end": "End Time",
+      "general.splashStyle.label": "Splash Screen Style",
+      "general.splashStyle.desc": "Choose the visual style of the splash screen",
+      "general.splashStyle.default": "Default",
+      "general.splashStyle.nina": "Nina Iseri - 1.2",
+      "general.splashStyle.preview": "Preview",
       "general.showDetailedSplash.label": "Show Detailed Splash Progress",
       "general.showDetailedSplash.desc": "Show specific loading text (e.g., loading fonts, plugins) when enabled",
       "watermark.1": "In-Development",
@@ -8290,6 +8347,13 @@
             timeRangeEl.style.display = splashMode === "TimeRange" ? "flex" : "none";
         }
     }
+    const splashStyle = settings.General?.SplashStyle || "default";
+    const splashStyleEl = document.getElementById("sel-General-SplashStyle");
+    if (splashStyleEl) {
+        splashStyleEl.value = splashStyle;
+        refreshCustomSelect(splashStyleEl);
+        updateSplashPreview(splashStyle);
+    }
     const splashStart = settings.General?.SplashStartTime || "08:00";
     const splashEnd = settings.General?.SplashEndTime || "20:00";
     const startEl = document.getElementById("splash-start-time");
@@ -9330,6 +9394,49 @@
       if (window.pywebview && window.pywebview.api.save_setting) {
           window.pywebview.api.save_setting("General", "SplashMode", mode);
       }
+  }
+
+  function setSplashStyle(style) {
+      if (!settings.General) settings.General = {};
+      settings.General.SplashStyle = style;
+      
+      updateSplashPreview(style);
+      
+      if (window.pywebview && window.pywebview.api.save_setting) {
+          window.pywebview.api.save_setting("General", "SplashStyle", style);
+      }
+  }
+
+  function updateSplashPreview(style) {
+      const container = document.getElementById('splash-preview-container');
+      const img = document.getElementById('splash-preview-img');
+      const label = container.querySelector('[data-i18n="general.splashStyle.preview"]');
+      if (!container || !img) return;
+      
+      // Update label text based on current language
+      if (label) {
+          label.textContent = getText("general.splashStyle.preview") || "预览";
+      }
+
+      if (style === 'default') {
+          img.src = '../../../icons/splash_preview_default.png'; 
+          container.style.display = 'flex';
+      } else if (style === 'nina_iseri_1_2') {
+          img.src = '../../../icons/splash_preview_nina.png';
+          container.style.display = 'flex';
+      } else {
+          container.style.display = 'none';
+      }
+      
+      // Fallback if image fails
+      img.onerror = function() {
+          if (style === 'nina_iseri_1_2' && !img.src.includes('1.2_Splash.png')) {
+              // Try fallback to original if preview thumbnail missing
+              img.src = '../../../icons/1.2_Splash.png';
+          } else {
+              container.style.display = 'none';
+          }
+      };
   }
 
   function setSplashTime(type, value) {
