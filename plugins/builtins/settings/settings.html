@@ -8160,6 +8160,18 @@
     updateWindowTitle(sectionKey);
   }
 
+  function rebuildCustomSelects() {
+    const selects = document.querySelectorAll('select.styled-select[data-converted="true"]');
+    selects.forEach(sel => {
+        if (sel.nextSibling && sel.nextSibling.classList.contains("custom-select-container")) {
+            sel.nextSibling.remove();
+        }
+        sel.removeAttribute("data-converted");
+        sel.style.display = "";
+    });
+    convertNativeSelectsToCustom();
+  }
+
   function applyI18n() {
     document.documentElement.lang = currentLanguage;
     const isRtl = rtlTestEnabled ? true : currentLanguage === "ug-CN";
@@ -8209,6 +8221,7 @@
     });
     ThemeSystem.renderThemeGallery("theme-gallery", settings.Appearance?.ThemeId || "default", settings.Appearance?.ThemeMode || "Light");
     updateWindowTitleFromActive();
+    rebuildCustomSelects();
   }
 
   function initNav() {
@@ -8562,6 +8575,10 @@
   }
 
   function applySettingsToUI() {
+    const lang = settings.General && settings.General.Language;
+    if (lang) currentLanguage = lang;
+    applyI18n();
+
     setSwitch("General", "RunAtStartup");
     setSwitch("General", "CompatibilityMode");
     setSwitch("General", "AutoShowOverlay");
@@ -8673,9 +8690,6 @@
 
     // Layout mode UI setup removed
 
-    const lang = settings.General && settings.General.Language;
-    if (lang) currentLanguage = lang;
-
     const mode = settings.Appearance && settings.Appearance.ThemeMode ? settings.Appearance.ThemeMode : "Light";
     document.querySelectorAll(".theme-option").forEach(opt => opt.classList.remove("active"));
     const activeOpt = document.getElementById(`theme-${mode}`);
@@ -8726,7 +8740,6 @@
       }).catch(err => console.error("Failed to get version:", err));
     }
 
-    applyI18n();
     FontManager.switchTab(currentLanguage);
     renderFontSelects();
     loadToolbarApps();
