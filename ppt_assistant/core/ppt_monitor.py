@@ -1,5 +1,9 @@
-import win32com.client
-import pythoncom
+try:
+    import win32com.client
+    import pythoncom
+except ImportError:
+    win32com = None
+    pythoncom = None
 from PySide6.QtCore import QObject, Signal, QThread, QTimer, QPoint, QRect, Slot
 from PySide6.QtGui import QGuiApplication
 import time
@@ -294,6 +298,9 @@ class PPTWorker(QObject):
 
     @Slot()
     def start(self):
+        if not pythoncom:
+            return
+
         if not self._com_initialized:
             pythoncom.CoInitialize()
             self._com_initialized = True
@@ -308,7 +315,7 @@ class PPTWorker(QObject):
             self._timer.stop()
             self._timer.deleteLater()
             self._timer = None
-        if self._com_initialized:
+        if self._com_initialized and pythoncom:
             try:
                 pythoncom.CoUninitialize()
             except Exception:

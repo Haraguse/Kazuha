@@ -1,6 +1,9 @@
 import sys
 import ctypes
-from ctypes import wintypes
+try:
+    from ctypes import wintypes
+except ImportError:
+    wintypes = None
 from typing import Optional
 
 from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
@@ -17,6 +20,8 @@ class _WinEventHookThread(QThread):
         self._thread_id = 0
 
     def stop(self):
+        if sys.platform != "win32":
+            return
         try:
             if not self._thread_id:
                 return

@@ -15,7 +15,10 @@ from qfluentwidgets.common.config import EnumSerializer
 import os
 import json
 import sys
-import winreg
+try:
+    import winreg
+except ImportError:
+    winreg = None
 
 
 class Config(QConfig):
@@ -50,7 +53,7 @@ class Config(QConfig):
     syncOpacity = ConfigItem("Overlay", "SyncOpacity", False, BoolValidator(), restart=False)
 
     autoHandleInk = ConfigItem("PPT", "AutoHandleInk", True, BoolValidator())
-    compatibilityMode = ConfigItem("General", "CompatibilityMode", False, BoolValidator())
+    compatibilityMode = ConfigItem("General", "CompatibilityMode", True if sys.platform != "win32" else False, BoolValidator())
 
     overlayScreen = ConfigItem("Overlay", "OverlayScreen", "Auto", restart=False)
 

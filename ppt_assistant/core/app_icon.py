@@ -17,10 +17,14 @@ def resolve_app_icon_path() -> str | None:
 
     root_dir = resolve_project_root_dir()
     candidates.append(os.path.join(root_dir, "icons", "logo.ico"))
+    candidates.append(os.path.join(root_dir, "icons", "logo.png"))
+    candidates.append(os.path.join(root_dir, "icons", "logo.svg"))
 
     if getattr(sys, "frozen", False):
         exe_dir = os.path.dirname(sys.executable)
         candidates.append(os.path.join(exe_dir, "icons", "logo.ico"))
+        candidates.append(os.path.join(exe_dir, "icons", "logo.png"))
+        candidates.append(os.path.join(exe_dir, "icons", "logo.svg"))
         candidates.append(sys.executable)
 
     for path in candidates:
