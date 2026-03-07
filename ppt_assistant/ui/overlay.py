@@ -11,6 +11,7 @@ from PySide6.QtGui import QColor, QRegion, QGuiApplication, QIcon
 from PySide6.QtQuick import QQuickView
 from PySide6.QtQml import QQmlComponent
 from ppt_assistant.core.config import cfg
+from ppt_assistant.core.i18n import t
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.icon_helper import get_file_icon_base64
 import psutil
@@ -496,7 +497,8 @@ if ($statusValue -eq 4) { $state="Playing" } elseif ($statusValue -eq 5) { $stat
             "board_in_board": "板中板",
             "timer": "计时器",
             "end": "结束放映",
-            "apps": "更多"
+            "apps": "更多",
+            "compatibility": t("overlay.compatibility")
         }
         
         apps_list = []
@@ -537,6 +539,7 @@ if ($statusValue -eq 4) { $state="Playing" } elseif ($statusValue -eq 5) { $stat
             "showToolbarText": cfg.showToolbarText.value,
             "toolbarOrder": cfg.toolbarOrder.value,
             "toolbarPosition": cfg.toolbarPosition.value,
+            "compatibilityMode": cfg.compatibilityMode.value,
             "flipperPosition": cfg.flipperPosition.value,
             "showClear": cfg.showClear.value,
             "clearMode": cfg.clearMode.value,

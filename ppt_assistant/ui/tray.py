@@ -5,6 +5,7 @@ from PySide6.QtSvg import QSvgRenderer
 import os
 from qfluentwidgets import RoundMenu, Action, themeColor, FluentIcon as FIF
 from ppt_assistant.core.i18n import t
+from ppt_assistant.core.config import cfg
 
 ICON_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "icons")
 
@@ -12,6 +13,7 @@ class SystemTray(QObject):
     show_settings = Signal()
     show_board = Signal()
     show_timer = Signal()
+    toggle_overlay = Signal()
     restart_app = Signal()
     exit_app = Signal()
 
@@ -19,8 +21,19 @@ class SystemTray(QObject):
         super().__init__(parent)
         self.tray_icon = QSystemTrayIcon(parent)
         self._update_icon()
-        self.tray_icon.setToolTip(t("tray.tooltip"))
         self.menu = RoundMenu(parent=parent)
+        self._init_menu()
+        
+        self.tray_icon.setContextMenu(self.menu)
+        self.tray_icon.activated.connect(self._on_activated)
+        
+        self.tray_icon.show()
+
+    def _init_menu(self):
+        self.menu.clear()
+        
+        self.tray_icon.setToolTip(t("tray.tooltip"))
+        
         self.act_header = Action(QIcon(os.path.join(ICON_DIR, "logo.svg")), t("tray.title"), self.menu)
         self.menu.addAction(self.act_header)
         
@@ -38,6 +51,11 @@ class SystemTray(QObject):
         self.act_timer.triggered.connect(self.show_timer.emit)
         self.menu.addAction(self.act_timer)
         
+        if cfg.compatibilityMode.value:
+            self.act_toggle = Action(FIF.APPLICATION, t("tray.toggle"), self.menu)
+            self.act_toggle.triggered.connect(self.toggle_overlay.emit)
+            self.menu.addAction(self.act_toggle)
+        
         self.menu.addSeparator()
         
         self.act_restart = Action(FIF.SYNC, t("tray.restart"), self.menu)
@@ -47,11 +65,9 @@ class SystemTray(QObject):
         self.act_exit = Action(FIF.POWER_BUTTON, t("tray.exit"), self.menu)
         self.act_exit.triggered.connect(self.exit_app.emit)
         self.menu.addAction(self.act_exit)
-        
-        self.tray_icon.setContextMenu(self.menu)
-        self.tray_icon.activated.connect(self._on_activated)
-        
-        self.tray_icon.show()
+
+    def refresh_menu(self):
+        self._init_menu()
 
     def _on_activated(self, reason):
         if reason == QSystemTrayIcon.Trigger:

@@ -50,6 +50,7 @@ class Config(QConfig):
     syncOpacity = ConfigItem("Overlay", "SyncOpacity", False, BoolValidator(), restart=False)
 
     autoHandleInk = ConfigItem("PPT", "AutoHandleInk", True, BoolValidator())
+    compatibilityMode = ConfigItem("General", "CompatibilityMode", False, BoolValidator())
 
     overlayScreen = ConfigItem("Overlay", "OverlayScreen", "Auto", restart=False)
 

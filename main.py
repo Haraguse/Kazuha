@@ -1050,6 +1050,9 @@ class PPTAssistantApp:
         yield 95, "finalizing"
         self.monitor.start_monitoring()
 
+        if cfg.compatibilityMode.value:
+            self.overlay.show()
+
         if self._splash is not None:
             self._splash.finish()
 
@@ -1172,6 +1175,7 @@ class PPTAssistantApp:
         self.tray.show_settings.connect(self.settings_plugin.execute)
         self.tray.show_board.connect(self.board_plugin.execute)
         self.tray.show_timer.connect(self.timer_plugin.execute)
+        self.tray.toggle_overlay.connect(self.toggle_overlay_visibility)
         self.tray.restart_app.connect(self.restart)
         self.tray.exit_app.connect(self.app.quit)
 
@@ -1185,6 +1189,16 @@ class PPTAssistantApp:
         self.monitor.slideshow_hwnd_changed.connect(self.overlay.set_slideshow_hwnd)
         self.monitor.restrictions_changed.connect(self.overlay.set_ppt_restrictions)
         self.monitor.thumbnail_generated.connect(self.overlay.on_thumbnail_ready)
+
+    @Slot()
+    def toggle_overlay_visibility(self):
+        if self.overlay:
+            if self.overlay.isVisible():
+                self.overlay.hide()
+            else:
+                self.overlay.show()
+                self.overlay.raise_()
+                self.overlay.activateWindow()
 
     @Slot()
     def _on_timer_finished(self):
@@ -1294,6 +1308,7 @@ class PPTAssistantApp:
             old_scale = cfg.scale.value
             old_overlay_screen = cfg.overlayScreen.value
             old_rebuild_at = getattr(self, "_overlay_rebuild_at", None)
+            old_compat = cfg.compatibilityMode.value
             # old_layout_mode = cfg.toolbarLayout.value
 
             reload_cfg()
@@ -1345,12 +1360,23 @@ class PPTAssistantApp:
                             self._reload_timer.start()
                     if cfg.showStatusBar.value != old_status_bar:
                         self.overlay._on_status_bar_visibility_changed(cfg.showStatusBar.value)
+
+                    if cfg.compatibilityMode.value != old_compat:
+                        self.overlay.update_config()
+                        if cfg.compatibilityMode.value:
+                            self.overlay.show()
+                        elif not self._slideshow_running:
+                            self.overlay.hide()
             
             # Layout mode change is now handled by auto-reload above, no restart prompt needed
             
             if cfg.themeMode.value != old_theme:
                 if hasattr(self, 'tray'):
                     self.tray._update_icon()
+
+            if new_lang != old_lang or cfg.compatibilityMode.value != old_compat:
+                if hasattr(self, 'tray'):
+                    self.tray.refresh_menu()
             
             if new_rebuild_at is not None:
                 self._overlay_rebuild_at = new_rebuild_at

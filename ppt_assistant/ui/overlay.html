@@ -2253,10 +2253,28 @@
 
             toolbar.innerHTML = '';
             
+            // Compatibility Mode Label
+            if (config.compatibilityMode) {
+                let compatLabel = document.createElement('div');
+                compatLabel.className = 'compat-label';
+                compatLabel.innerText = config.texts && config.texts.compatibility ? config.texts.compatibility : "兼容模式";
+                compatLabel.style.fontSize = '13px';
+                compatLabel.style.color = 'var(--accent-color)';
+                compatLabel.style.fontWeight = '600';
+                compatLabel.style.marginRight = '8px';
+                compatLabel.style.padding = '4px 8px';
+                compatLabel.style.background = 'rgba(50, 117, 245, 0.1)';
+                compatLabel.style.borderRadius = '6px';
+                toolbar.appendChild(compatLabel);
+            }
+
             const order = config.toolbarOrder || ["select", "pen", "eraser", "clear", "spotlight", "board_in_board", "timer", "apps"];
             
             order.forEach(item => {
                 if (item === 'clear') return;
+                
+                if (config.compatibilityMode && (item === 'pen' || item === 'eraser')) return;
+
                 if (item === 'spotlight' && !config.showSpotlight) return;
                 if (item === 'board_in_board' && !config.showBoardInBoard) return;
                 if (item === 'timer' && !config.showTimer) return;
@@ -2607,15 +2625,25 @@
         function updatePageInfo(current, total) {
             currentPage = current;
             totalPage = total;
-            document.getElementById('curr-page-l').innerText = current;
-            document.getElementById('total-page-l').innerText = '/' + total;
-            document.getElementById('curr-page-r').innerText = current;
-            document.getElementById('total-page-r').innerText = '/' + total;
+            
+            const isCompat = currentConfig && currentConfig.compatibilityMode;
+
+            if (isCompat) {
+                document.getElementById('curr-page-l').innerText = '-';
+                document.getElementById('total-page-l').innerText = '';
+                document.getElementById('curr-page-r').innerText = '-';
+                document.getElementById('total-page-r').innerText = '';
+            } else {
+                document.getElementById('curr-page-l').innerText = current;
+                document.getElementById('total-page-l').innerText = '/' + total;
+                document.getElementById('curr-page-r').innerText = current;
+                document.getElementById('total-page-r').innerText = '/' + total;
+            }
             
             // If selector is visible, update active state
             // If page count changed, clear grid so next toggle rebuilds it
             const grid = document.getElementById('page-grid-content');
-            if (grid.children.length > 0 && grid.children.length !== total) {
+            if (!isCompat && grid.children.length > 0 && grid.children.length !== total) {
                  grid.innerHTML = ''; // Force rebuild next time
             } else if (grid.children.length > 0) {
                  document.querySelectorAll('.page-item').forEach((item, index) => {
@@ -2634,13 +2662,13 @@
                 const isNext = btn.querySelector('.icon-next');
                 
                 if (isPrev) {
-                    if (current <= 1 || disabledTools.includes('prev')) {
+                    if ((!isCompat && current <= 1) || disabledTools.includes('prev')) {
                         btn.classList.add('disabled');
                     } else {
                         btn.classList.remove('disabled');
                     }
                 } else if (isNext) {
-                    if (current >= total || disabledTools.includes('next')) {
+                    if ((!isCompat && current >= total) || disabledTools.includes('next')) {
                         btn.classList.add('disabled');
                     } else {
                         btn.classList.remove('disabled');

@@ -560,9 +560,10 @@ class PPTWorker(QObject):
                 pass
             self._degraded_current = 0
             self._degraded_total = 0
-            if self._overlay_visible is not False:
-                self._overlay_visible = False
-                self.overlay_visibility_changed.emit(False)
+            if not cfg.compatibilityMode.value:
+                if self._overlay_visible is not False:
+                    self._overlay_visible = False
+                    self.overlay_visibility_changed.emit(False)
             if self._slideshow_hwnd:
                 self._slideshow_hwnd = 0
                 self.slideshow_hwnd_changed.emit(0)
@@ -681,6 +682,8 @@ class PPTWorker(QObject):
             return False
 
     def _update_overlay_visibility(self, ss_win, rect):
+        if cfg.compatibilityMode.value:
+            return
         try:
             if not win32gui or not win32api or not win32con:
                 return
@@ -728,6 +731,21 @@ class PPTWorker(QObject):
     # --- Control Slots ---
     @Slot()
     def go_next(self):
+        if cfg.compatibilityMode.value:
+            try:
+                hwnd = int(self._slideshow_hwnd or 0) or self._find_ppt_slideshow_hwnd()
+                if hwnd and win32gui:
+                    try:
+                        win32gui.SetForegroundWindow(int(hwnd))
+                    except Exception:
+                        pass
+                if win32api and win32con:
+                    win32api.keybd_event(win32con.VK_DOWN, 0, 0, 0)
+                    win32api.keybd_event(win32con.VK_DOWN, 0, win32con.KEYEVENTF_KEYUP, 0)
+            except Exception:
+                pass
+            return
+
         try:
             app = self._get_active_app()
             if app and app.SlideShowWindows.Count > 0:
@@ -753,6 +771,21 @@ class PPTWorker(QObject):
 
     @Slot()
     def go_previous(self):
+        if cfg.compatibilityMode.value:
+            try:
+                hwnd = int(self._slideshow_hwnd or 0) or self._find_ppt_slideshow_hwnd()
+                if hwnd and win32gui:
+                    try:
+                        win32gui.SetForegroundWindow(int(hwnd))
+                    except Exception:
+                        pass
+                if win32api and win32con:
+                    win32api.keybd_event(win32con.VK_UP, 0, 0, 0)
+                    win32api.keybd_event(win32con.VK_UP, 0, win32con.KEYEVENTF_KEYUP, 0)
+            except Exception:
+                pass
+            return
+
         try:
             app = self._get_active_app()
             if app and app.SlideShowWindows.Count > 0:
