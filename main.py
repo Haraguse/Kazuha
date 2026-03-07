@@ -899,6 +899,10 @@ def _handle_multi_instance(app: QApplication):
     for p in psutil.process_iter(["pid", "cmdline"]):
         if p.info.get("pid") == current_pid: continue
         cmd = p.info.get("cmdline") or []
+        
+        if "--webview-runner" in cmd:
+            continue
+
         for part in cmd:
             try:
                 if os.path.abspath(part) == main_path or os.path.basename(part).lower() == "main.py":
@@ -906,7 +910,8 @@ def _handle_multi_instance(app: QApplication):
                     break
             except: continue
     
-    if not pids: return
+    if not pids: 
+        return
     
     proc = show_webview_dialog(
         title="",
@@ -920,15 +925,24 @@ def _handle_multi_instance(app: QApplication):
     
     # Wait for the process to exit and check stdout for result
     stdout, _ = proc.communicate()
-    if "DIALOG_CONFIRMED" in stdout:
+    
+    # Option 1: Close New Instance
+    if "CLOSE_NEW" in stdout:
+        app.quit()
+        sys.exit(0)
+    
+    # Option 2: Continue New Instance
+    elif "CONTINUE_NEW" in stdout:
+        return
+        
+    # Option 3: Restart Existing Instance (Kill old, continue new)
+    elif "RESTART_OLD" in stdout:
         for pid in pids:
             try: psutil.Process(pid).terminate()
             except: pass
         return
-    
-    for pid in pids:
-        try: psutil.Process(pid).terminate()
-        except: pass
+
+    # Fallback: If dialog closed or cancelled, exit new instance
     app.quit()
     sys.exit(0)
 
@@ -1455,7 +1469,7 @@ if __name__ == "__main__":
         app.installEventFilter(app._window_icon_filter)
     _apply_global_font(app)
     crash_handler = CrashHandler(app)
-    # _handle_multi_instance(app)
+    _handle_multi_instance(app)
 
     show_splash = True
     try:

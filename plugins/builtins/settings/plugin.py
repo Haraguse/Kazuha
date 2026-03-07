@@ -19,25 +19,6 @@ class SettingsPlugin(AssistantPlugin):
         return "settings.svg" 
 
     def execute(self):
-        settings_data = {}
-        try:
-            if os.path.exists(SETTINGS_PATH):
-                with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
-                    settings_data = json.load(f)
-        except Exception:
-            settings_data = {}
-        security = settings_data.get("Security") or {}
-        enabled = bool(security.get("EnablePassword"))
-        password = security.get("Password")
-        if enabled and isinstance(password, str) and password:
-            entered = show_webview_input_dialog("", "", confirm_text="", cancel_text="")
-            if entered is None:
-                return
-            if entered != password:
-                proc = show_webview_dialog("密码错误", "设置密码不正确", confirm_text="关闭", cancel_text="", is_error=True, hide_cancel=True)
-                proc.communicate()
-                return
-
         if self.process and self.process.poll() is None:
             if sys.platform == "win32":
                 try:

@@ -10,6 +10,7 @@
   <style>
     :root,
     .theme-preview-root[data-theme-id="default"][data-theme-variant="light"] {
+      --bg-body: transparent;
       --bg-app: #f2f3f5;
       --bg-surface: #ffffff;
       --bg-color: #ffffff;
@@ -759,6 +760,156 @@
       --overlay-reload-card: rgba(46, 28, 16, 0.92);
       --overlay-reload-text: rgba(255, 255, 255, 0.94);
       --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+    }
+
+    /* Lock Screen - Adapted from dialog.html */
+    .lock-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .lock-overlay.visible {
+      display: flex;
+      opacity: 1;
+    }
+
+    .lock-window {
+      background: var(--bg-surface);
+      width: 650px;
+      height: 500px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      transform: scale(0.95);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .lock-overlay.visible .lock-window {
+      transform: scale(1);
+    }
+
+    .lock-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 16px 24px 20px 24px;
+      gap: 16px;
+      position: relative;
+    }
+
+    .lock-title {
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: var(--text-primary);
+      padding: 0 4px;
+    }
+
+    .lock-content-box {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: var(--bg-app);
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px solid var(--divider);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+    }
+
+    [data-theme="dark"] .lock-content-box {
+      background: var(--bg-app);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .lock-text {
+      font-size: 14.5px;
+      line-height: 1.6;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+    }
+
+    .lock-input-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .lock-input {
+      width: 100%;
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 10px;
+      border: 1px solid var(--divider);
+      background: rgba(255, 255, 255, 0.6);
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+    }
+
+    [data-theme="dark"] .lock-input {
+      background: rgba(30, 30, 30, 0.6);
+    }
+
+    .lock-error {
+      font-size: 12px;
+      color: #ff4d4f;
+      min-height: 18px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .lock-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 0 4px;
+    }
+
+    .lock-btn {
+      min-width: 88px;
+      height: 34px;
+      border-radius: 17px;
+      border: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      outline: none;
+    }
+
+    .lock-btn.btn-confirm {
+      background: transparent;
+      color: var(--accent-blue);
+      border: 1px solid var(--accent-blue);
+    }
+
+    .lock-btn.btn-confirm:hover {
+      background: var(--accent-blue);
+      color: #FFFFFF;
+    }
+
+    .lock-btn:active {
+      transform: translateY(0);
+      filter: brightness(0.9);
     }
 
     /* Year of Horse Background Pattern */
@@ -4116,6 +4267,23 @@
 </head>
 
 <body>
+  <div id="lock-overlay" class="lock-overlay">
+    <div class="lock-window">
+      <div class="lock-container">
+        <div class="lock-title" data-i18n="dialog.password.title">验证设置密码</div>
+        <div class="lock-content-box">
+          <div class="lock-text" data-i18n="dialog.password.text">请输入设置密码后继续。</div>
+          <div class="lock-input-wrapper">
+             <input type="password" id="lock-input" class="lock-input" placeholder="请输入密码">
+          </div>
+          <div id="lock-error" class="lock-error" data-i18n="dialog.password.error">密码错误</div>
+        </div>
+        <div class="lock-footer">
+          <button id="lock-btn" class="lock-btn btn-confirm" data-i18n="dialog.password.confirm">验证</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="toast-message" class="toast-container">
     <div class="toast-icon"></div>
     <div id="toast-text">已经存在打开的窗口！</div>
@@ -5460,6 +5628,11 @@
       "fonts.custom.warning.title": "自定义字体风险提示",
       "fonts.custom.warning.text": "自定义字体可能会导致界面布局错位、文字显示不全或软件崩溃。开发者将不负责处理由自定义字体引起的问题。建议仅在了解风险的情况下开启。",
       "fonts.custom.warning.confirm": "我知道了",
+      "dialog.password.title": "验证设置密码",
+      "dialog.password.text": "请输入设置密码后继续。",
+      "dialog.password.confirm": "验证",
+      "dialog.password.placeholder": "请输入密码",
+      "dialog.password.error": "密码错误",
       "fonts.custom.confirm.title": "确认更换字体",
       "fonts.custom.confirm.text": "您当前选择的字体是：{font}\n\n请务必确认该字体不会对软件布局造成破坏性更改。开发者将不会受理并处理因自定义字体导致的任何界面显示或稳定性问题。",
       "fonts.option.default": "默认",
@@ -5703,6 +5876,11 @@
       "fonts.custom.warning.title": "自定義字型風險提示",
       "fonts.custom.warning.text": "自定義字型可能會導致介面佈局錯位、文字顯示不全或軟體崩潰。開發者將不負責處理由自定義字型引起的問題。建議僅在了解風險的情況下開啟。",
       "fonts.custom.warning.confirm": "我知道了",
+      "dialog.password.title": "驗證設定密碼",
+      "dialog.password.text": "請輸入設定密碼後繼續。",
+      "dialog.password.confirm": "驗證",
+      "dialog.password.placeholder": "請輸入密碼",
+      "dialog.password.error": "密碼錯誤",
       "fonts.custom.confirm.title": "確認更換字型",
       "fonts.custom.confirm.text": "您目前選擇的字型是：{font}\n\n請務必確認該字型不會對軟體佈局造成破壞性更改。開發者將不會受理並處理因自定義字型導致的任何介面顯示或穩定性問題。",
       "fonts.option.default": "預設",
@@ -5920,6 +6098,11 @@
       "fonts.custom.warning.title": "自訂字型風險提示",
       "fonts.custom.warning.text": "自訂字型有機會搞到版面亂晒龍、文字爆格甚至崩潰。開發者唔會幫你執手尾，開之前諗清楚。",
       "fonts.custom.warning.confirm": "知喇",
+      "dialog.password.title": "驗證設定密碼",
+      "dialog.password.text": "輸入設定密碼先繼續。",
+      "dialog.password.confirm": "驗證",
+      "dialog.password.placeholder": "輸入密碼",
+      "dialog.password.error": "密碼錯誤",
       "fonts.custom.confirm.title": "確認換字型",
       "fonts.custom.confirm.text": "你而家揀嘅字型係：{font}\n\n請確認唔會搞到版面崩壞。因自訂字型導致嘅顯示或穩定性問題，開發者一概唔理。",
       "fonts.option.default": "預設",
@@ -6117,6 +6300,11 @@
       "fonts.custom.warning.title": "カスタムフォントのリスクについて",
       "fonts.custom.warning.text": "カスタムフォントを使用すると、レイアウトの崩れ、文字切れ、またはアプリのクラッシュが発生する可能性があります。開発者はカスタムフォントに起因する問題について責任を負いません。リスクを理解した上での使用をお勧めします。",
       "fonts.custom.warning.confirm": "了解しました",
+      "dialog.password.title": "設定パスワードの確認",
+      "dialog.password.text": "設定パスワードを入力してください。",
+      "dialog.password.confirm": "確認",
+      "dialog.password.placeholder": "パスワードを入力",
+      "dialog.password.error": "パスワードが間違っています",
       "fonts.custom.confirm.title": "フォント変更の確認",
       "fonts.custom.confirm.text": "現在選択されているフォントは：{font}\n\nこのフォントがアプリのレイアウトに破壊的な変更を与えないことを確認してください。開発者は、カスタムフォントによる表示や安定性の問題については対応いたしかねます。",
       "fonts.option.default": "デフォルト",
@@ -6355,6 +6543,11 @@
       "fonts.custom.warning.title": "Custom Font Risk Warning",
       "fonts.custom.warning.text": "Custom fonts may cause layout misalignment, incomplete text display, or software crashes. The developer is not responsible for issues caused by custom fonts. It is recommended to enable only if you understand the risks.",
       "fonts.custom.warning.confirm": "I understand",
+      "dialog.password.title": "Verify Settings Password",
+      "dialog.password.text": "Enter the settings password to continue.",
+      "dialog.password.confirm": "Verify",
+      "dialog.password.placeholder": "Enter password",
+      "dialog.password.error": "Incorrect password",
       "fonts.custom.confirm.title": "Confirm Font Change",
       "fonts.custom.confirm.text": "The font you currently selected is: {font}\n\nPlease ensure that this font does not cause destructive changes to the software layout. The developer will not accept or handle any interface display or stability issues caused by custom fonts.",
       "fonts.option.default": "Default",
@@ -6555,6 +6748,11 @@
       "general.language.label": "ئېكران تىلى",
       "general.language.desc": "تىل ئالماشتۇرغاندىن كېيىن قايتا قوزغىتىش كېرەك",
       "general.language.warning": "ھازىر تاللانغان تىل ئەمەلىي تېكىستلەرنى تولۇق قاپلىماسلىقى ياكى لايىھەدە خاتالىق كۆرۈلىشى مۇمكىن.",
+      "dialog.password.title": "تەڭشەك مەخپىي نومۇرىنى دەلىللەش",
+      "dialog.password.text": "داۋاملاشتۇرۇش ئۈچۈن تەڭشەك مەخپىي نومۇرىنى كىرگۈزۈڭ.",
+      "dialog.password.confirm": "دەلىللەش",
+      "dialog.password.placeholder": "مەخپىي نومۇرنى كىرگۈزۈڭ",
+      "dialog.password.error": "مەخپىي نومۇر خاتا",
       "appearance.mode.label": "كۆرۈنۈش ھالىتى",
       "appearance.mode.desc": "ئەپ كۆرۈنۈش ھالىتىنى تاللاڭ",
       "appearance.mode.light": "يېنىك",
@@ -8077,8 +8275,86 @@
   });
 
   initNav();
+  initLockScreen();
   convertNativeSelectsToCustom();
   window.addEventListener("resize", updateAllSelectSliders);
+
+  let isUnlocked = false;
+  let settingsLoaded = false;
+
+  function initLockScreen() {
+      const btn = document.getElementById("lock-btn");
+      const input = document.getElementById("lock-input");
+      const error = document.getElementById("lock-error");
+
+      function verify() {
+          const val = input.value;
+          const correct = settings.Security && settings.Security.Password;
+          if (val === correct) {
+              document.getElementById("lock-overlay").classList.remove("visible");
+              isUnlocked = true;
+              error.style.opacity = "0";
+          } else {
+              error.textContent = getText("dialog.password.error") || "密码错误";
+              error.style.opacity = "1";
+              // Shake animation
+              input.animate([
+                  { transform: 'translateX(0)' },
+                  { transform: 'translateX(-10px)' },
+                  { transform: 'translateX(10px)' },
+                  { transform: 'translateX(-10px)' },
+                  { transform: 'translateX(0)' }
+              ], { duration: 300 });
+          }
+      }
+
+      if (btn) btn.addEventListener("click", verify);
+      if (input) input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") verify();
+      });
+  }
+
+  function checkLockState() {
+      if (!settingsLoaded) return;
+      const enabled = settings.Security && settings.Security.EnablePassword;
+      
+      if (!enabled) {
+          isUnlocked = true;
+          const overlay = document.getElementById("lock-overlay");
+          if (overlay) overlay.classList.remove("visible");
+          return;
+      }
+
+      if (isUnlocked) {
+          const overlay = document.getElementById("lock-overlay");
+          if (overlay) overlay.classList.remove("visible");
+          return;
+      }
+
+      const overlay = document.getElementById("lock-overlay");
+      if (overlay) {
+          overlay.classList.add("visible");
+          const input = document.getElementById("lock-input");
+          if (input) {
+              input.value = "";
+              input.placeholder = getText("dialog.password.placeholder") || "请输入密码";
+              setTimeout(() => input.focus(), 100);
+          }
+          const error = document.getElementById("lock-error");
+          if (error) {
+              error.style.opacity = "0";
+              error.textContent = getText("dialog.password.error") || "密码错误";
+          }
+          
+          // Update text content
+          const title = overlay.querySelector(".lock-title");
+          const desc = overlay.querySelector(".lock-text");
+          const btn = overlay.querySelector("#lock-btn");
+          if (title) title.textContent = getText("dialog.password.title") || "验证设置密码";
+          if (desc) desc.textContent = getText("dialog.password.text") || "请输入设置密码后继续。";
+          if (btn) btn.textContent = getText("dialog.password.confirm") || "验证";
+      }
+  }
 
   let settings = window.initialSettings || {
     General: { RunAtStartup: false, AutoShowOverlay: true, CompatibilityMode: false, Language: "zh-CN" },
@@ -8098,6 +8374,7 @@
   }
 
   if (window.initialSettings) {
+    settingsLoaded = true;
     applySettingsToUI();
   }
 
@@ -8109,6 +8386,7 @@
     window.pywebview.api.get_settings().then(function (res) {
       if (res && Object.keys(res).length > 0) {
         settings = res;
+        settingsLoaded = true;
         const lang = settings.General && settings.General.Language;
         if (lang) currentLanguage = lang;
         applySettingsToUI();
@@ -8474,6 +8752,8 @@
         removeSelectedToolbarApp();
       };
     }
+
+    checkLockState();
   }
 
   function setTheme(mode) {
