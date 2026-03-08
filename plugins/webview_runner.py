@@ -7,6 +7,9 @@ import subprocess
 import base64
 from json import JSONDecodeError
 
+if sys.platform == "linux" and "QT_QPA_PLATFORM" not in os.environ:
+    os.environ["QT_QPA_PLATFORM"] = "xcb"
+
 from PySide6.QtWidgets import QApplication, QFileDialog
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineSettings, QWebEngineProfile

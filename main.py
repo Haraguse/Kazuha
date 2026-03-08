@@ -9,6 +9,9 @@ import importlib.util
 import time
 import warnings
 
+if sys.platform == "linux" and "QT_QPA_PLATFORM" not in os.environ:
+    os.environ["QT_QPA_PLATFORM"] = "xcb"
+
 # Delay heavy imports or move them inside if __name__ == "__main__" logic
 # to allow --webview-runner to start fast and clean.
 
