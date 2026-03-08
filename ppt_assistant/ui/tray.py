@@ -47,7 +47,7 @@ class SystemTray(QObject):
         self.act_board.triggered.connect(self.show_board.emit)
         self.menu.addAction(self.act_board)
 
-        self.act_timer = Action(QIcon(os.path.join(ICON_DIR, "Timer.svg")), t("tray.timer"), self.menu)
+        self.act_timer = Action(QIcon(os.path.join(ICON_DIR, "timer.svg")), t("tray.timer"), self.menu)
         self.act_timer.triggered.connect(self.show_timer.emit)
         self.menu.addAction(self.act_timer)
         
@@ -74,26 +74,47 @@ class SystemTray(QObject):
             self.menu.exec(QCursor.pos())
 
     def _update_icon(self):
+        import sys
         logo_path = os.path.join(ICON_DIR, "logo.svg")
         if not os.path.exists(logo_path):
              logo_path = os.path.join(ICON_DIR, "Pen.svg")
         
-        color = themeColor()
-        
-        pixmap = QPixmap(64, 64)
-        pixmap.fill(Qt.transparent)
-        
-        painter = QPainter(pixmap)
-        painter.setRenderHint(QPainter.Antialiasing)
-        
-        renderer = QSvgRenderer(logo_path)
-        renderer.render(painter)
-        
-        painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
-        painter.fillRect(pixmap.rect(), color)
-        painter.end()
-        
-        self.tray_icon.setIcon(QIcon(pixmap))
+        # On Linux, try to use a simple approach first if things are flaky
+        if sys.platform == "linux":
+            # Just try setting the icon directly first
+            if os.path.exists(logo_path):
+                 self.tray_icon.setIcon(QIcon(logo_path))
+                 # If we want to tint it, we can continue, but often direct icon is safer
+                 # Return to skip complex tinting if we want simple stability
+                 # return 
+
+        try:
+            color = themeColor()
+            
+            pixmap = QPixmap(64, 64)
+            pixmap.fill(Qt.transparent)
+            
+            painter = QPainter(pixmap)
+            painter.setRenderHint(QPainter.Antialiasing)
+            
+            renderer = QSvgRenderer(logo_path)
+            if not renderer.isValid():
+                # Fallback to direct icon load
+                self.tray_icon.setIcon(QIcon(logo_path))
+                painter.end()
+                return
+
+            renderer.render(painter)
+            
+            painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
+            painter.fillRect(pixmap.rect(), color)
+            painter.end()
+            
+            self.tray_icon.setIcon(QIcon(pixmap))
+        except Exception as e:
+            print(f"Error updating tray icon: {e}")
+            if os.path.exists(logo_path):
+                self.tray_icon.setIcon(QIcon(logo_path))
     
     def show_message(self, title, message):
         self.tray_icon.showMessage(title, message, QSystemTrayIcon.Information, 2000)
