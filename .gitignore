@@ -8,3 +8,4 @@ _pycache_/
 *.pyc
 ppt_assistant/core/__pycache__/ppt_monitor.cpython-313.pyc
 ppt_assistant/ui/__pycache__/overlay.cpython-313.pyc
+build_linux.py

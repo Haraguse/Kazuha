@@ -1,5 +1,3 @@
 PySide6
-PySide6-Fluent-Widgets
+QFluentWidgets
 psutil
-pywin32
-winsdk

@@ -3,6 +3,12 @@ import sys
 import shutil
 import subprocess
 
+if sys.platform == "win32":
+    print("Error: PyInstaller does not support cross-compilation.")
+    print("You are running this script on Windows, which will produce a Windows executable (.exe).")
+    print("To build a Linux executable, please run this script in a Linux environment (e.g., WSL, Docker, or a Linux VM).")
+    sys.exit(1)
+
 
 def _remove_pdb_files(root_dir):
     for dirpath, _, filenames in os.walk(root_dir):
