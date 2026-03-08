@@ -887,11 +887,16 @@ class CrashHandler:
                 f.write(error_msg)
                 temp_path = f.name
             
-            creationflags = 0x00000008 # DETACHED_PROCESS
+            if sys.platform == "win32":
+                creationflags = 0x00000008 # DETACHED_PROCESS
+            else:
+                creationflags = 0
+
             if getattr(sys, "frozen", False):
                 cmd = [sys.executable, "--webview-runner", "--crash-file", temp_path]
             else:
                 cmd = [sys.executable, main_path, "--webview-runner", "--crash-file", temp_path]
+            
             subprocess.Popen(cmd, creationflags=creationflags, close_fds=True)
         except Exception as e:
             print(f"Failed to launch crash dialog: {e}", file=sys.stderr)
