@@ -169,6 +169,13 @@ def _get_screen_refresh_rate():
 
 
 def _apply_graphics_settings():
+    if sys.platform == "linux":
+        # Force software rendering on Linux to avoid compatibility issues with Mesa/drivers
+        os.environ["QT_XCB_FORCE_SOFTWARE_OPENGL"] = "1"
+        os.environ["QT_QUICK_BACKEND"] = "software"
+        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu --disable-software-rasterizer --no-sandbox"
+        return
+
     # Base flags for high performance
     flags = [
         "--disable-frame-rate-limit",
