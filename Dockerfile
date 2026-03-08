@@ -3,8 +3,8 @@ FROM python:3.11-slim
 
 # Install system dependencies required by PySide6
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
-    libegl1-mesa \
+    libgl1 \
+    libegl1 \
     libxkbcommon-x11-0 \
     libdbus-1-3 \
     libfontconfig1 \
