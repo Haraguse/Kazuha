@@ -10,9 +10,9 @@ import time
 import warnings
 
 if sys.platform == "linux":
-    # Force Qt to use xcb on Linux to avoid issues with custom platform plugins like dxcb (Deepin)
+    _HAS_DISPLAY = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
     if "QT_QPA_PLATFORM" not in os.environ:
-        os.environ["QT_QPA_PLATFORM"] = "xcb"
+        os.environ["QT_QPA_PLATFORM"] = "xcb" if _HAS_DISPLAY else "offscreen"
     # Add --no-sandbox to avoid zygote crash on some Linux environments
     # This must be done BEFORE any Qt import or QApp creation
     if "--no-sandbox" not in sys.argv:
@@ -180,9 +180,20 @@ def _get_screen_refresh_rate():
 def _apply_graphics_settings():
     if sys.platform == "linux":
         # Force software rendering on Linux to avoid compatibility issues with Mesa/drivers
+        os.environ["QT_OPENGL"] = "software"
+        os.environ["QT_RHI_BACKEND"] = "software"
+        os.environ["QT_VULKAN_DISABLE"] = "1"
         os.environ["QT_XCB_FORCE_SOFTWARE_OPENGL"] = "1"
         os.environ["QT_QUICK_BACKEND"] = "software"
-        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu --disable-software-rasterizer --no-sandbox"
+        flags = ["--disable-gpu", "--no-sandbox"]
+        if _HAS_DISPLAY:
+            flags.append("--disable-software-rasterizer")
+        current = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
+        merged = current.split()
+        for flag in flags:
+            if flag not in merged:
+                merged.append(flag)
+        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(merged)
         return
 
     # Base flags for high performance
@@ -1518,6 +1529,8 @@ if __name__ == "__main__":
     # Platform settings moved to top of file to ensure they apply before any Qt import
     
     _apply_graphics_settings()
+    if sys.platform == "linux" and not _HAS_DISPLAY:
+        QCoreApplication.setAttribute(Qt.AA_UseSoftwareOpenGL)
     QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     app = QApplication(sys.argv)
     app_icon = load_app_icon()
