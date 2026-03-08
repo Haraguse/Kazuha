@@ -296,7 +296,7 @@ class OverlayWindow(QWebEngineView):
         color_str = t_color.name()
         
         theme_id = cfg.themeId.value
-        js = f"setTheme({'false' if is_light else 'true'}, '{color_str}', '{theme_id}');"
+        js = f"if (typeof setTheme === 'function') setTheme({'false' if is_light else 'true'}, '{color_str}', '{theme_id}');"
         self.page().runJavaScript(js)
         if self._ink_prompt_view:
             self._apply_ink_prompt_context(self._ink_prompt_view.rootContext())
