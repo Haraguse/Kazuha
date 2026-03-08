@@ -698,7 +698,7 @@ Rectangle {
             id: grid
             anchors.centerIn: parent
             spacing: 4
-            columns: isVertical ? 1 : 999
+            columns: toolbar.isVertical ? 1 : 999
             
             // Pen
             Item {

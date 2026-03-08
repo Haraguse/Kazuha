@@ -14,15 +14,11 @@ from ppt_assistant.core.config import cfg
 from ppt_assistant.core.i18n import t
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.icon_helper import get_file_icon_base64
+from ppt_assistant.core.system import get_system_api
 import psutil
 import asyncio
 import threading
 import subprocess
-try:
-    from winsdk.windows.media.control import GlobalSystemMediaTransportControlsSessionManager
-    WINSDK_AVAILABLE = True
-except ImportError:
-    WINSDK_AVAILABLE = False
 
 PLUGIN_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "plugins", "builtins")
 
@@ -301,118 +297,12 @@ class OverlayWindow(QWebEngineView):
         if self._ink_prompt_view:
             self._apply_ink_prompt_context(self._ink_prompt_view.rootContext())
 
-    def _get_media_info_from_powershell(self):
-        script = r'''
-$ErrorActionPreference="SilentlyContinue"
-Add-Type -AssemblyName System.Runtime.WindowsRuntime
-$manager=[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync().GetAwaiter().GetResult()
-$session=$manager.GetCurrentSession()
-if ($session -eq $null) { @{status=""; title=""} | ConvertTo-Json -Compress; exit }
-$props=$session.TryGetMediaPropertiesAsync().GetAwaiter().GetResult()
-$statusValue=[int]$session.GetPlaybackInfo().PlaybackStatus
-$title=$props.Title
-$artist=$props.Artist
-$display=$title
-if ($artist) { $display="$title - $artist" }
-$state="Stopped"
-if ($statusValue -eq 4) { $state="Playing" } elseif ($statusValue -eq 5) { $state="Paused" }
-@{status=$state; title=$display} | ConvertTo-Json -Compress
-'''
-        try:
-            creationflags = 0
-            startupinfo = None
-            if sys.platform == "win32":
-                startupinfo = subprocess.STARTUPINFO()
-                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                startupinfo.wShowWindow = 0
-                creationflags = subprocess.CREATE_NO_WINDOW
-            result = subprocess.run(
-                ["powershell", "-NoProfile", "-Command", script],
-                capture_output=True,
-                text=True,
-                timeout=1.5,
-                creationflags=creationflags,
-                startupinfo=startupinfo
-            )
-            raw = (result.stdout or "").strip()
-            if raw:
-                data = json.loads(raw)
-                if isinstance(data, dict):
-                    return {
-                        "status": data.get("status", "") or "",
-                        "title": data.get("title", "") or ""
-                    }
-        except Exception:
-            pass
-        return {"status": "", "title": ""}
-
     def _start_smtc_thread(self):
         def smtc_loop():
-            loop = None
-            manager = None
-
-            if WINSDK_AVAILABLE:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-                async def init_manager():
-                    return await GlobalSystemMediaTransportControlsSessionManager.request_async()
-
-                try:
-                    manager = loop.run_until_complete(init_manager())
-                except Exception:
-                    manager = None
-
-                async def get_media_info():
-                    if not manager:
-                        return {"status": "", "title": ""}
-                    try:
-                        session = None
-                        try:
-                            sessions = await manager.get_sessions_async()
-                        except Exception:
-                            sessions = None
-                        if sessions:
-                            for s in sessions:
-                                try:
-                                    info = s.get_playback_info()
-                                    if info and info.playback_status == 4:
-                                        session = s
-                                        break
-                                except Exception:
-                                    pass
-                        if not session:
-                            try:
-                                session = manager.get_current_session()
-                            except Exception:
-                                session = None
-                        if session:
-                            info = await session.try_get_media_properties_async()
-                            title = info.title if info else ""
-                            artist = info.artist if info else ""
-                            status = session.get_playback_info().playback_status
-
-                            display_text = title
-                            if artist:
-                                display_text = f"{title} - {artist}"
-
-                            status_str = "Stopped"
-                            if status == 4:
-                                status_str = "Playing"
-                            elif status == 5:
-                                status_str = "Paused"
-
-                            return {"status": status_str, "title": display_text}
-                    except Exception:
-                        pass
-                    return {"status": "", "title": ""}
-
+            api = get_system_api()
             while not self._stop_smtc:
                 try:
-                    if WINSDK_AVAILABLE and loop:
-                        info = loop.run_until_complete(get_media_info())
-                    else:
-                        info = self._get_media_info_from_powershell()
+                    info = api.get_media_info()
                     self._smtc_info = info
                 except Exception:
                     pass
@@ -421,12 +311,6 @@ if ($statusValue -eq 4) { $state="Playing" } elseif ($statusValue -eq 5) { $stat
                         break
                     import time
                     time.sleep(0.1)
-
-            if loop:
-                try:
-                    loop.close()
-                except Exception:
-                    pass
 
         self._smtc_thread = threading.Thread(target=smtc_loop, daemon=True)
         self._smtc_thread.start()

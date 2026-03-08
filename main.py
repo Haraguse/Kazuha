@@ -804,7 +804,16 @@ def show_webview_dialog(title, text, confirm_text="确认", cancel_text="取消"
     accent = "#3275F5"
     try:
         from ppt_assistant.core.config import cfg, Theme, qconfig
-        theme = cfg.themeMode.value.lower() if hasattr(cfg.themeMode, "value") else "auto"
+        raw_theme = cfg.themeMode.value if hasattr(cfg.themeMode, "value") else "auto"
+        if isinstance(raw_theme, Theme):
+            if raw_theme == Theme.DARK:
+                theme = "dark"
+            elif raw_theme == Theme.LIGHT:
+                theme = "light"
+            else:
+                theme = "auto"
+        else:
+            theme = str(raw_theme).lower()
         resolved_theme = theme
         if theme == "auto":
             try:
