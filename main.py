@@ -1485,6 +1485,14 @@ class PPTAssistantApp:
 
 
 if __name__ == "__main__":
+    if sys.platform == "linux":
+        # Force Qt to use xcb on Linux to avoid issues with custom platform plugins like dxcb (Deepin)
+        if "QT_QPA_PLATFORM" not in os.environ:
+            os.environ["QT_QPA_PLATFORM"] = "xcb"
+        # Add --no-sandbox to avoid zygote crash on some Linux environments
+        if "--no-sandbox" not in sys.argv:
+            sys.argv.append("--no-sandbox")
+
     _apply_graphics_settings()
     QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     app = QApplication(sys.argv)
