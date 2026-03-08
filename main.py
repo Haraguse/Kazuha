@@ -9,8 +9,14 @@ import importlib.util
 import time
 import warnings
 
-if sys.platform == "linux" and "QT_QPA_PLATFORM" not in os.environ:
-    os.environ["QT_QPA_PLATFORM"] = "xcb"
+if sys.platform == "linux":
+    # Force Qt to use xcb on Linux to avoid issues with custom platform plugins like dxcb (Deepin)
+    if "QT_QPA_PLATFORM" not in os.environ:
+        os.environ["QT_QPA_PLATFORM"] = "xcb"
+    # Add --no-sandbox to avoid zygote crash on some Linux environments
+    # This must be done BEFORE any Qt import or QApp creation
+    if "--no-sandbox" not in sys.argv:
+        sys.argv.append("--no-sandbox")
 
 # Delay heavy imports or move them inside if __name__ == "__main__" logic
 # to allow --webview-runner to start fast and clean.
@@ -1509,14 +1515,8 @@ class PPTAssistantApp:
 
 
 if __name__ == "__main__":
-    if sys.platform == "linux":
-        # Force Qt to use xcb on Linux to avoid issues with custom platform plugins like dxcb (Deepin)
-        if "QT_QPA_PLATFORM" not in os.environ:
-            os.environ["QT_QPA_PLATFORM"] = "xcb"
-        # Add --no-sandbox to avoid zygote crash on some Linux environments
-        if "--no-sandbox" not in sys.argv:
-            sys.argv.append("--no-sandbox")
-
+    # Platform settings moved to top of file to ensure they apply before any Qt import
+    
     _apply_graphics_settings()
     QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     app = QApplication(sys.argv)
