@@ -185,7 +185,7 @@ class OverlayWindow(QWebEngineView):
 
         theme_path = resolve_user_theme_path(theme_name)
 
-        if not os.path.exists(theme_path):
+        if not theme_path:
              theme_path = resolve_user_theme_path("default")
         if not theme_path:
              theme_path = os.path.join(root_dir, "themes", theme_name, "index.html")

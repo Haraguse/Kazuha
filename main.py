@@ -352,6 +352,22 @@ def _get_user_root_dir() -> str:
     return root_dir
 
 
+def _ensure_user_dirs():
+    """Ensure user directories exist for themes and splash screens."""
+    try:
+        root_dir = _get_user_root_dir()
+        user_dir = os.path.join(root_dir, "user")
+        if not os.path.exists(user_dir):
+            os.makedirs(user_dir)
+            
+        for sub in ["themes", "splash"]:
+            path = os.path.join(user_dir, sub)
+            if not os.path.exists(path):
+                os.makedirs(path)
+    except Exception as e:
+        print(f"Error ensuring user directories: {e}")
+
+
 def _resolve_user_splash_dir(splash_style: str) -> Optional[str]:
     if not splash_style:
         return None
@@ -1598,6 +1614,7 @@ class PPTAssistantApp:
 if __name__ == "__main__":
     # Platform settings moved to top of file to ensure they apply before any Qt import
     
+    _ensure_user_dirs()
     _apply_graphics_settings()
     if sys.platform == "linux" and not _HAS_DISPLAY:
         QCoreApplication.setAttribute(Qt.AA_UseSoftwareOpenGL)
