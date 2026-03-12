@@ -78,6 +78,10 @@ class SystemTray(QObject):
         logo_path = os.path.join(ICON_DIR, "logo.svg")
         if not os.path.exists(logo_path):
              logo_path = os.path.join(ICON_DIR, "Pen.svg")
+        if sys.platform == "win32":
+            if os.path.exists(logo_path):
+                self.tray_icon.setIcon(QIcon(logo_path))
+            return
         
         # On Linux, try to use a simple approach first if things are flaky
         if sys.platform == "linux":

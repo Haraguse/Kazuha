@@ -887,11 +887,12 @@
         }
 
         .flipper {
-            width: 54px;
-            height: 160px;
+            width: 56px;
+            height: auto;
+            min-height: 160px;
             background: var(--overlay-page-bg);
             border: 0.5px solid var(--overlay-page-border);
-            border-radius: 27px;
+            border-radius: 28px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -900,48 +901,99 @@
             /* backdrop-filter: blur(25px);
             -webkit-backdrop-filter: blur(25px); */
             transition: background 0.3s, border-color 0.3s;
+            padding: 8px 0;
+            justify-content: space-between;
         }
 
         .flipper:active {
-            transform: scale(0.95);
+            transform: scale(0.98);
         }
 
         /* Flipper Bottom Layout */
         .flipper.flipper-bottom {
-            height: 54px;
-            width: 160px;
+            height: 64px;
+            width: 260px;
             flex-direction: row;
             align-items: center;
-            border-radius: 27px;
+            border-radius: 16px;
             position: absolute;
-            bottom: 20px;
+            bottom: 24px;
+            padding: 0 12px;
             /* Reset transform from center layout */
             transform: none !important; 
         }
 
         #left-flipper.flipper-bottom {
-            left: 20px;
+            left: 24px;
         }
 
         #right-flipper.flipper-bottom {
-            right: 20px;
+            right: 24px;
         }
         
         .flipper.flipper-bottom .flipper-btn {
-            margin: 0 4px;
+            margin: 0;
+            width: auto;
+            height: 40px;
+            border-radius: 8px;
+            padding: 0 12px;
+            gap: 6px;
+        }
+        
+        .flipper.flipper-bottom .flipper-btn:hover {
+            background: var(--overlay-button-hover);
         }
         
         .flipper.flipper-bottom .icon-previous {
             transform: rotate(0deg);
+            width: 16px;
+            height: 16px;
         }
         
         .flipper.flipper-bottom .icon-next {
             transform: rotate(0deg);
+            width: 16px;
+            height: 16px;
         }
 
         .flipper.flipper-bottom .page-info-container {
              padding: 0 4px;
-             flex-direction: row;
+             flex-direction: column;
+             gap: 0;
+        }
+        
+        .flipper-text {
+            display: none;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--overlay-page-fg);
+        }
+        
+        .flipper.flipper-bottom .flipper-text {
+            display: block;
+        }
+        
+        .page-sep {
+            width: 24px;
+            height: 1px;
+            background: var(--overlay-page-hint);
+            opacity: 0.3;
+            margin: 4px 0;
+        }
+        
+        .flipper.flipper-bottom .page-sep {
+            display: none;
+        }
+        
+        .page-label {
+            display: none;
+            font-size: 10px;
+            color: var(--overlay-page-hint);
+            margin-top: -2px;
+        }
+        
+        .flipper.flipper-bottom .page-label {
+            display: block;
         }
 
         #ink-prompt {
@@ -1185,8 +1237,8 @@
         #toolbar {
             background: var(--overlay-toolbar-bg);
             border: 0.5px solid var(--overlay-toolbar-border);
-            border-radius: 999px;
-            padding: 8px 8px 8px 12px;
+            border-radius: 12px;
+            padding: 6px;
             display: flex;
             gap: 4px;
             /* box-shadow: var(--overlay-toolbar-shadow); */
@@ -1220,15 +1272,18 @@
         }
         
         .tool-btn {
-            width: 38px;
-            height: 38px;
-            border-radius: 19px;
+            width: 56px;
+            height: 52px;
+            border-radius: 8px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: background 0.2s;
             position: relative;
+            gap: 2px;
+            color: var(--overlay-toolbar-fg);
         }
         
         .tool-btn:hover {
@@ -1236,7 +1291,18 @@
         }
         
         .tool-btn.active {
-            background: var(--overlay-button-active);
+            background: #00C853 !important;
+            color: #FFFFFF !important;
+        }
+        
+        .tool-btn.active .icon-mask {
+            background-color: #FFFFFF !important;
+        }
+
+        .tool-btn-text {
+            font-size: 10px;
+            font-weight: 500;
+            line-height: 1.2;
         }
         
         .tool-btn img {
@@ -1263,19 +1329,19 @@
             mask-position: center;
         }
 
-        .icon-mouse { -webkit-mask-image: url('../../icons/Mouse.svg'); mask-image: url('../../icons/Mouse.svg'); }
-        .icon-previous { -webkit-mask-image: url('../../icons/Previous.svg'); mask-image: url('../../icons/Previous.svg'); }
-        .icon-next { -webkit-mask-image: url('../../icons/Next.svg'); mask-image: url('../../icons/Next.svg'); }
-        .icon-pen { -webkit-mask-image: url('../../icons/Pen.svg'); mask-image: url('../../icons/Pen.svg'); }
-        .icon-eraser { -webkit-mask-image: url('../../icons/Eraser.svg'); mask-image: url('../../icons/Eraser.svg'); }
-        .icon-clear { -webkit-mask-image: url('../../icons/Clear.svg'); mask-image: url('../../icons/Clear.svg'); }
-        .icon-spotlight { -webkit-mask-image: url('../../icons/spotlight.svg'); mask-image: url('../../icons/spotlight.svg'); }
-        .icon-board { -webkit-mask-image: url('../../icons/board-in-board.svg'); mask-image: url('../../icons/board-in-board.svg'); }
-        .icon-timer { -webkit-mask-image: url('../../icons/timer.svg'); mask-image: url('../../icons/timer.svg'); }
-        .icon-app { -webkit-mask-image: url('../../icons/More.svg'); mask-image: url('../../icons/More.svg'); }
+        .icon-mouse { -webkit-mask-image: url('../../../icons/Mouse.svg'); mask-image: url('../../../icons/Mouse.svg'); }
+        .icon-previous { -webkit-mask-image: url('../../../icons/Previous.svg'); mask-image: url('../../../icons/Previous.svg'); }
+        .icon-next { -webkit-mask-image: url('../../../icons/Next.svg'); mask-image: url('../../../icons/Next.svg'); }
+        .icon-pen { -webkit-mask-image: url('../../../icons/Pen.svg'); mask-image: url('../../../icons/Pen.svg'); }
+        .icon-eraser { -webkit-mask-image: url('../../../icons/Eraser.svg'); mask-image: url('../../../icons/Eraser.svg'); }
+        .icon-clear { -webkit-mask-image: url('../../../icons/Clear.svg'); mask-image: url('../../../icons/Clear.svg'); }
+        .icon-spotlight { -webkit-mask-image: url('../../../icons/spotlight.svg'); mask-image: url('../../../icons/spotlight.svg'); }
+        .icon-board { -webkit-mask-image: url('../../../icons/board-in-board.svg'); mask-image: url('../../../icons/board-in-board.svg'); }
+        .icon-timer { -webkit-mask-image: url('../../../icons/timer.svg'); mask-image: url('../../../icons/timer.svg'); }
+        .icon-app { -webkit-mask-image: url('../../../icons/More.svg'); mask-image: url('../../../icons/More.svg'); }
         .icon-minimize { 
-            -webkit-mask-image: url('../../icons/Minimize.svg'); 
-            mask-image: url('../../icons/Minimize.svg');
+            -webkit-mask-image: url('../../../icons/Minimize.svg'); 
+            mask-image: url('../../../icons/Minimize.svg');
             background-color: var(--overlay-toolbar-fg);
         }
         
@@ -1874,11 +1940,11 @@
 
     <div id="color-picker" class="interactive">
         <div class="pivot-container">
-            <div class="pivot-item active" onclick="switchColorTab('pen', this)">普通笔</div>
-            <div class="pivot-item" onclick="switchColorTab('highlight', this)">荧光笔</div>
+            <div class="pivot-item active" onclick="switchColorTab('theme', this)">主题颜色</div>
+            <div class="pivot-item" onclick="switchColorTab('standard', this)">标准颜色</div>
         </div>
 
-        <div id="tab-pen" class="pivot-content active">
+        <div id="tab-theme" class="pivot-content active">
             <div class="color-row">
                 <div class="color-option" style="background-color: #FFFFFF;" onclick="selectColor(255,255,255, this)" onmouseover="updateColorInfo('白色', '255 255 255', '#FFFFFF')"></div>
                 <div class="color-option" style="background-color: #000000;" onclick="selectColor(0,0,0, this)" onmouseover="updateColorInfo('黑色', '0 0 0', '#000000')"></div>
@@ -1893,7 +1959,7 @@
             </div>
         </div>
 
-        <div id="tab-highlight" class="pivot-content">
+        <div id="tab-standard" class="pivot-content">
             <div class="color-row">
                 <div class="color-option" style="background-color: #C00000;" onclick="selectColor(192,0,0, this)" onmouseover="updateColorInfo('深红色', '192 0 0', '#C00000')"></div>
                 <div class="color-option" style="background-color: #FF0000;" onclick="selectColor(255,0,0, this)" onmouseover="updateColorInfo('红色', '255 0 0', '#FF0000')"></div>
@@ -1917,34 +1983,36 @@
 
     <div id="center-area">
         <div id="left-flipper" class="interactive flipper">
-            <div class="flipper-btn" onclick="bridge.prevPage()">
+            <div class="flipper-btn prev-btn" onclick="bridge.prevPage()">
                 <div class="icon-mask icon-previous"></div>
+                <span class="flipper-text">上一页</span>
             </div>
             <div class="page-info-container" onclick="togglePageSelector(event)" style="cursor: pointer;">
-                <div class="page-count-row">
-                    <span class="page-curr" id="curr-page-l">1</span>
-                    <span class="page-total-grp" id="total-page-l">/1</span>
-                </div>
-
+                <span class="page-curr" id="curr-page-l">1</span>
+                <div class="page-sep"></div>
+                <span class="page-total-grp" id="total-page-l">1</span>
+                <span class="page-label">页码</span>
             </div>
-            <div class="flipper-btn" onclick="bridge.nextPage()">
+            <div class="flipper-btn next-btn" onclick="bridge.nextPage()">
                 <div class="icon-mask icon-next"></div>
+                <span class="flipper-text">下一页</span>
             </div>
         </div>
 
         <div id="right-flipper" class="interactive flipper">
-            <div class="flipper-btn" onclick="bridge.prevPage()">
+            <div class="flipper-btn prev-btn" onclick="bridge.prevPage()">
                 <div class="icon-mask icon-previous"></div>
+                <span class="flipper-text">上一页</span>
             </div>
             <div class="page-info-container" onclick="togglePageSelector(event)" style="cursor: pointer;">
-                <div class="page-count-row">
-                    <span class="page-curr" id="curr-page-r">1</span>
-                    <span class="page-total-grp" id="total-page-r">/1</span>
-                </div>
-
+                <span class="page-curr" id="curr-page-r">1</span>
+                <div class="page-sep"></div>
+                <span class="page-total-grp" id="total-page-r">1</span>
+                <span class="page-label">页码</span>
             </div>
-            <div class="flipper-btn" onclick="bridge.nextPage()">
+            <div class="flipper-btn next-btn" onclick="bridge.nextPage()">
                 <div class="icon-mask icon-next"></div>
+                <span class="flipper-text">下一页</span>
             </div>
         </div>
     </div>
@@ -2286,8 +2354,37 @@
 
             const order = config.toolbarOrder || ["select", "pen", "eraser", "clear", "spotlight", "board_in_board", "timer", "apps"];
             
+            const textMap = {
+                "select": "选择",
+                "pen": "笔",
+                "eraser": "橡皮",
+                "clear": "撤消",
+                "spotlight": "聚光灯",
+                "board_in_board": "板中板",
+                "timer": "计时器",
+                "apps": "应用"
+            };
+
             order.forEach(item => {
-                if (item === 'clear') return;
+                if (item === 'clear') {
+                    // Special handling for clear/undo if needed, assuming 'clear' tool is what user wants for 4th button
+                    // User image shows "撤消" (Undo) with back arrow.
+                    // If system supports undo, we should map 'undo' tool.
+                    // But config has 'clear'. I'll map 'clear' to "撤消" text and use back arrow icon if possible.
+                    // But 'clear' function is clearScreen. 
+                    // If I change text to "撤消", it might be confusing if it clears screen.
+                    // But I must follow user request.
+                    // Wait, earlier I said "清屏". The image shows "撤消".
+                    // The icon in image is Back Arrow.
+                    // The existing 'clear' tool is usually Trash Can.
+                    // I'll stick to "清屏" and clear icon unless I can change icon too.
+                    // User image 1 shows: Select, Pen, Eraser, Undo.
+                    // If the user wants EXACTLY that, they might be using a version with Undo.
+                    // But `webview_runner.py` only lists `clear`.
+                    // I will use "清屏" and clear icon to be safe, but style it as requested.
+                    // Wait, I see `webview_runner.py` has `undo` mapped to `clear`? No.
+                    // Let's stick to "清屏" for Clear.
+                }
                 
                 if (config.compatibilityMode && (item === 'pen' || item === 'eraser')) return;
 
@@ -2305,6 +2402,7 @@
                 
                 let iconClass = '';
                 let clickHandler = '';
+                let btnText = textMap[item] || item;
 
                 
                 switch(item) {
@@ -2322,6 +2420,23 @@
                         iconClass = 'icon-eraser';
                         clickHandler = "selectTool('eraser')";
                         if (currentTool === 'eraser') btn.classList.add('active');
+                        break;
+                    case 'clear':
+                        // If user wants "撤消", I can label it "撤消" but function is clear.
+                        // I'll label it "清屏" (Clear Screen) to avoid confusion.
+                        // Or "清除".
+                        btnText = "清屏"; 
+                        iconClass = 'icon-clear';
+                        clickHandler = "bridge.clearScreen()"; // Use direct call or selectTool?
+                        // Original used selectTool('clear') or bridge call?
+                        // Looking at original code: 'clear' was skipped in loop!
+                        // `if (item === 'clear') return;` was in original code.
+                        // Wait, why was it skipped?
+                        // Ah, line 2435: `if (item === 'clear') return;`
+                        // Because Clear was a separate slider/button outside the loop in original theme!
+                        // But in this new design, it's part of the toolbar (flat buttons).
+                        // So I should NOT skip it.
+                        // I'll assign iconClass and handler.
                         break;
                     case 'spotlight':
                         iconClass = 'icon-spotlight';
@@ -2353,7 +2468,10 @@
                                 }
                                 appBtn.appendChild(appIconDiv);
                                 
-
+                                let textSpan = document.createElement('span');
+                                textSpan.className = 'tool-btn-text';
+                                textSpan.innerText = app.name || "应用";
+                                appBtn.appendChild(textSpan);
                                 
                                 toolbar.appendChild(appBtn);
                             });
@@ -2369,18 +2487,26 @@
                 iconDiv.className = 'icon-mask ' + iconClass;
                 btn.appendChild(iconDiv);
                 
-
+                let textSpan = document.createElement('span');
+                textSpan.className = 'tool-btn-text';
+                textSpan.innerText = btnText;
+                btn.appendChild(textSpan);
                 
                 toolbar.appendChild(btn);
             });
 
+            // Remove separator and endBtn if not needed, or style them.
+            // User image doesn't show minimize.
+            // I'll keep them but style consistent.
+            
             let separator = document.createElement('div');
             separator.className = 'separator';
             separator.addEventListener('dblclick', (e) => {
                 e.stopPropagation();
                 toggleToolbar(true);
             });
-            toolbar.appendChild(separator);
+            // toolbar.appendChild(separator); // Maybe remove separator for flat look? 
+            // The image doesn't show separator. I'll comment it out.
             
             let endBtn = document.createElement('div');
             endBtn.className = 'tool-btn';
@@ -2396,7 +2522,10 @@
             endIcon.className = 'icon-mask icon-minimize';
             endBtn.appendChild(endIcon);
             
-
+            let endText = document.createElement('span');
+            endText.className = 'tool-btn-text';
+            endText.innerText = "退出";
+            endBtn.appendChild(endText);
             
             toolbar.appendChild(endBtn);
             updatePageInfo(currentPage, totalPage);
@@ -2643,6 +2772,7 @@
             totalPage = total;
             
             const isCompat = currentConfig && currentConfig.compatibilityMode;
+            const isHorizontal = document.querySelector('.flipper-bottom') !== null;
 
             if (isCompat) {
                 document.getElementById('curr-page-l').innerText = '-';
@@ -2650,10 +2780,19 @@
                 document.getElementById('curr-page-r').innerText = '-';
                 document.getElementById('total-page-r').innerText = '';
             } else {
-                document.getElementById('curr-page-l').innerText = current;
-                document.getElementById('total-page-l').innerText = '/' + total;
-                document.getElementById('curr-page-r').innerText = current;
-                document.getElementById('total-page-r').innerText = '/' + total;
+                if (isHorizontal) {
+                    // Horizontal: "1/1" in curr-page, total-page hidden or empty
+                    document.getElementById('curr-page-l').innerText = current + '/' + total;
+                    document.getElementById('total-page-l').innerText = ''; 
+                    document.getElementById('curr-page-r').innerText = current + '/' + total;
+                    document.getElementById('total-page-r').innerText = '';
+                } else {
+                    // Vertical: "1" in curr, "1" in total
+                    document.getElementById('curr-page-l').innerText = current;
+                    document.getElementById('total-page-l').innerText = total;
+                    document.getElementById('curr-page-r').innerText = current;
+                    document.getElementById('total-page-r').innerText = total;
+                }
             }
             
             // If selector is visible, update active state
@@ -2674,8 +2813,8 @@
             const allBtns = document.querySelectorAll('.flipper-btn');
             
             allBtns.forEach(btn => {
-                const isPrev = btn.querySelector('.icon-previous');
-                const isNext = btn.querySelector('.icon-next');
+                const isPrev = btn.classList.contains('prev-btn') || btn.querySelector('.icon-previous');
+                const isNext = btn.classList.contains('next-btn') || btn.querySelector('.icon-next');
                 
                 if (isPrev) {
                     if ((!isCompat && current <= 1) || disabledTools.includes('prev')) {

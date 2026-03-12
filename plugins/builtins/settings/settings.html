@@ -55,7 +55,14 @@
               const items = child.querySelectorAll('.settings-item');
               items.forEach(item => {
                 // Skip hidden items or layout wrappers if needed
-                if (item.offsetParent === null && !item.classList.contains('sub-item') && !item.closest('.version-expander')) return; 
+                const isHidden = item.offsetParent === null;
+                const sectionIsActive = section.classList.contains('active');
+
+                if (isHidden) {
+                    // Allow hidden items if they are in an inactive section, or are sub-items/inside expanders
+                    const isAcceptableHidden = !sectionIsActive || item.classList.contains('sub-item') || item.closest('.version-expander');
+                    if (!isAcceptableHidden) return;
+                }
 
                 const labelEl = item.querySelector('.item-label');
                 const descEl = item.querySelector('.item-desc');
@@ -67,7 +74,8 @@
                         sectionName: sectionName,
                         groupName: currentGroupName,
                         label: labelEl.textContent.trim(),
-                        desc: descEl ? descEl.textContent.trim() : ''
+                        desc: descEl ? descEl.textContent.trim() : '',
+                        i18nKey: labelEl.getAttribute('data-i18n') || ''
                     });
                 }
               });
@@ -118,7 +126,8 @@
     const lowerQuery = query.toLowerCase();
     const results = searchIndex.filter(item => {
         return item.label.toLowerCase().includes(lowerQuery) || 
-               item.desc.toLowerCase().includes(lowerQuery);
+               item.desc.toLowerCase().includes(lowerQuery) ||
+               (item.i18nKey && item.i18nKey.toLowerCase().includes(lowerQuery));
     });
     
     renderSearchResults(results, query);
@@ -138,17 +147,23 @@
         return;
     }
     
+    const group = document.createElement('div');
+    group.className = 'settings-group';
+
     results.forEach(item => {
         const el = document.createElement('div');
-        el.className = 'search-result-item';
+        el.className = 'settings-item search-result-item';
         el.onclick = () => navigateToSetting(item);
         
+        const info = document.createElement('div');
+        info.className = 'item-info';
+
         const title = document.createElement('div');
-        title.className = 'search-result-title';
+        title.className = 'item-label search-result-title';
         title.innerHTML = highlightText(item.label, query);
         
         const path = document.createElement('div');
-        path.className = 'search-result-path';
+        path.className = 'item-desc search-result-path';
         
         // Construct path: Section / Group / Item
         let pathText = item.sectionName;
@@ -157,10 +172,12 @@
         
         path.innerText = pathText;
         
-        el.appendChild(title);
-        el.appendChild(path);
-        container.appendChild(el);
+        info.appendChild(title);
+        info.appendChild(path);
+        el.appendChild(info);
+        group.appendChild(el);
     });
+    container.appendChild(group);
   }
   
   function highlightText(text, query) {
@@ -1457,6 +1474,98 @@
     }
     
     .theme-gallery-item.active .theme-gallery-name {
+      color: var(--accent-blue);
+      font-weight: 500;
+    }
+
+    .media-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      width: 100%;
+    }
+
+    .media-gallery-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .media-gallery-preview {
+      width: 100%;
+      aspect-ratio: 16/10;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      transition: all 0.2s;
+      position: relative;
+      display: flex;
+      box-shadow: var(--shadow-main);
+      overflow: hidden;
+      background: var(--card-bg);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .media-gallery-item:hover .media-gallery-preview {
+      transform: scale(1.02);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    }
+
+    .media-gallery-item.active .media-gallery-preview {
+      border: 2px solid var(--accent-blue);
+      transform: scale(1.02);
+    }
+
+    .media-gallery-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .media-gallery-fallback {
+      width: 100%;
+      height: 100%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      font-size: 12px;
+      background: var(--card-bg);
+    }
+
+    .media-gallery-check {
+      width: 24px;
+      height: 24px;
+      background: var(--accent-blue);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      z-index: 10;
+    }
+
+    .media-gallery-check svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    .media-gallery-name {
+      font-size: 12px;
+      color: var(--text-secondary);
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    .media-gallery-item.active .media-gallery-name {
       color: var(--accent-blue);
       font-weight: 500;
     }
@@ -4790,6 +4899,12 @@
       pointer-events: none;
       flex-shrink: 0;
       margin-bottom: -60px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .content-blur-overlay.visible {
+      opacity: 1;
     }
 
     /* Content wrapper for padding */
@@ -5004,38 +5119,16 @@
     }
 
     .search-result-item {
-      padding: 12px 16px;
-      background: var(--bg-surface);
-      border-radius: 12px;
-      border: 1px solid var(--divider);
-      margin-bottom: 8px;
       cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      box-shadow: var(--shadow-main);
-    }
-
-    .search-result-item:hover {
-      background: var(--item-hover);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
 
     .search-result-path {
-      font-size: 12px;
-      color: var(--text-secondary);
-      opacity: 0.6;
       display: flex;
       align-items: center;
       gap: 6px;
     }
     
     .search-result-title {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--accent-blue);
     }
 
     .highlight-text {
@@ -5146,13 +5239,6 @@
         </svg>
         <span data-i18n="nav.fonts">字体</span>
       </div>
-      <div class="sidebar-item" data-section="overlay">
-        <svg class="sidebar-icon" viewBox="0 0 24 24">
-          <path
-            d="M18 8a3 3 0 013 3 3 3 0 01-3 3h-1V8h1zM14 8h-4v6h4V8zM19 19H5a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2z" />
-        </svg>
-        <span data-i18n="nav.overlay">顶层窗口</span>
-      </div>
       <div class="sidebar-item" data-section="plugins">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
           <path d="M4 5h16v2H4z" />
@@ -5248,36 +5334,6 @@
             </div>
             <div class="switch" id="sw-General-RunAtStartup"></div>
           </div>
-          <div class="settings-item" style="flex-direction: column; align-items: stretch; gap: 12px; padding-bottom: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <div class="item-info">
-                  <span class="item-label" data-i18n="general.splashMode.label">启动画面</span>
-                </div>
-                <select id="sel-General-SplashMode" class="styled-select" onchange="setSplashMode(this.value)">
-                    <option value="Always" data-i18n="general.splashMode.always">每次都显示</option>
-                    <option value="HideOnAutoStart" data-i18n="general.splashMode.hideOnAutoStart">仅开机启动时不显示</option>
-                    <option value="TimeRange" data-i18n="general.splashMode.timeRange">特定时间段内显示</option>
-                    <option value="Never" data-i18n="general.splashMode.never">不显示</option>
-                </select>
-            </div>
-            <div id="splash-time-range" style="display: none; align-items: center; gap: 12px; padding-left: 0; justify-content: flex-end;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span data-i18n="general.splashMode.timeRange.start" style="font-size: 13px; color: var(--text-secondary);">开始</span>
-                    <input type="time" id="splash-start-time" class="styled-input" onchange="setSplashTime('Start', this.value)">
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span data-i18n="general.splashMode.timeRange.end" style="font-size: 13px; color: var(--text-secondary);">结束</span>
-                    <input type="time" id="splash-end-time" class="styled-input" onchange="setSplashTime('End', this.value)">
-                </div>
-            </div>
-          </div>
-          <div class="settings-item" onclick="toggleSwitch('General', 'ShowDetailedSplash')">
-            <div class="item-info">
-              <span class="item-label" data-i18n="general.showDetailedSplash.label">启动画面显示详细启动进度</span>
-              <span class="item-desc" data-i18n="general.showDetailedSplash.desc">开启后显示具体的加载文本（如加载字体、插件等）</span>
-            </div>
-            <div class="switch" id="sw-General-ShowDetailedSplash"></div>
-          </div>
         </div>
 
 
@@ -5370,37 +5426,57 @@
         </div>
 
         <div class="pivot-content settings-group" data-pivot-group="theme" data-pivot-content="splash">
-          <div class="settings-item">
+          <div class="settings-item" style="flex-direction: column; align-items: stretch; gap: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="general.splashMode.label">启动画面</span>
+                </div>
+                <select id="sel-General-SplashMode" class="styled-select" onchange="setSplashMode(this.value)">
+                    <option value="Always" data-i18n="general.splashMode.always">每次都显示</option>
+                    <option value="HideOnAutoStart" data-i18n="general.splashMode.hideOnAutoStart">仅开机启动时不显示</option>
+                    <option value="TimeRange" data-i18n="general.splashMode.timeRange">特定时间段内显示</option>
+                    <option value="Never" data-i18n="general.splashMode.never">不显示</option>
+                </select>
+            </div>
+            <div id="splash-time-range" style="display: none; align-items: center; gap: 12px; padding-left: 0; justify-content: flex-end;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span data-i18n="general.splashMode.timeRange.start" style="font-size: 13px; color: var(--text-secondary);">开始</span>
+                    <input type="time" id="splash-start-time" class="styled-input" onchange="setSplashTime('Start', this.value)">
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span data-i18n="general.splashMode.timeRange.end" style="font-size: 13px; color: var(--text-secondary);">结束</span>
+                    <input type="time" id="splash-end-time" class="styled-input" onchange="setSplashTime('End', this.value)">
+                </div>
+            </div>
+          </div>
+          <div class="settings-item" onclick="toggleSwitch('General', 'ShowDetailedSplash')">
             <div class="item-info">
+              <span class="item-label" data-i18n="general.showDetailedSplash.label">启动画面显示详细启动进度</span>
+              <span class="item-desc" data-i18n="general.showDetailedSplash.desc">开启后显示具体的加载文本（如加载字体、插件等）</span>
+            </div>
+            <div class="switch" id="sw-General-ShowDetailedSplash"></div>
+          </div>
+          <div class="settings-item no-divider" style="flex-direction: column; align-items: flex-start;">
+            <div class="item-info" style="margin-bottom: 16px;">
               <span class="item-label" data-i18n="general.splashStyle.label">启动画面样式</span>
               <span class="item-desc" data-i18n="general.splashStyle.desc">选择启动画面的显示风格</span>
             </div>
-            <div class="item-state">
-              <select class="styled-select" id="sel-General-SplashStyle" onchange="setSplashStyle(this.value)">
-                <option value="default" data-i18n="general.splashStyle.default">默认</option>
-                <option value="nina_iseri_1_2" data-i18n="general.splashStyle.nina">Nina Iseri - 1.2</option>
-              </select>
-            </div>
-          </div>
-          <div class="settings-item" id="splash-preview-container" style="display: none; padding-top: 0; padding-bottom: 24px; border: none;">
-             <div style="width: 100%; display: flex; justify-content: center;">
-                <div style="position: relative; max-width: 400px; width: 100%; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid var(--divider);">
-                    <img id="splash-preview-img" style="width: 100%; height: auto; display: block;" src="" />
-                    <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; backdrop-filter: blur(4px);" data-i18n="general.splashStyle.preview">预览</div>
-                </div>
-             </div>
+            <div id="splash-gallery" class="media-gallery"></div>
+            <select id="sel-General-SplashStyle" style="display: none;">
+              <option value="default" data-i18n="general.splashStyle.default">默认</option>
+              <option value="nina_iseri_1_2" data-i18n="general.splashStyle.nina">Nina Iseri - 1.2</option>
+            </select>
           </div>
         </div>
           
         <div class="pivot-content settings-group" data-pivot-group="theme" data-pivot-content="overlay">
-          <div class="settings-item">
-            <div class="item-info">
+          <div class="settings-item no-divider" style="flex-direction: column; align-items: flex-start;">
+            <div class="item-info" style="margin-bottom: 16px;">
               <span class="item-label" data-i18n="appearance.overlayTheme.title">Overlay 主题</span>
               <span class="item-desc" data-i18n="appearance.overlayTheme.desc">自定义 Overlay 的 HTML/CSS/JS</span>
             </div>
-            <div class="item-state">
-              <select class="styled-select" id="sel-Appearance-OverlayTheme" onchange="updateOverlayTheme(this.value)"></select>
-            </div>
+            <div id="overlay-theme-gallery" class="media-gallery"></div>
+            <select id="sel-Appearance-OverlayTheme" style="display: none;"></select>
           </div>
         </div>
       </div>
@@ -5444,13 +5520,6 @@
               </div>
               <div class="font-dropdown" data-font-lang="zh-CN" data-font-scene="qt"></div>
             </div>
-            <div class="settings-item">
-              <div class="item-info">
-                <span class="item-label" data-i18n="fonts.scene.overlay.label">悬浮窗</span>
-                <span class="item-desc" data-i18n="fonts.scene.overlay.desc">PPT 放映时的工具栏与面板</span>
-              </div>
-              <div class="font-dropdown" data-font-lang="zh-CN" data-font-scene="overlay"></div>
-            </div>
           </div>
 
           <!-- zh-TW -->
@@ -5468,13 +5537,6 @@
                 <span class="item-desc" data-i18n="fonts.scene.qt.desc">Qt 界面（托盘、设置入口等）</span>
               </div>
               <div class="font-dropdown" data-font-lang="zh-TW" data-font-scene="qt"></div>
-            </div>
-            <div class="settings-item">
-              <div class="item-info">
-                <span class="item-label" data-i18n="fonts.scene.overlay.label">悬浮窗</span>
-                <span class="item-desc" data-i18n="fonts.scene.overlay.desc">PPT 放映时的工具栏与面板</span>
-              </div>
-              <div class="font-dropdown" data-font-lang="zh-TW" data-font-scene="overlay"></div>
             </div>
           </div>
 
@@ -5494,13 +5556,6 @@
               </div>
               <div class="font-dropdown" data-font-lang="yue-HK" data-font-scene="qt"></div>
             </div>
-            <div class="settings-item">
-              <div class="item-info">
-                <span class="item-label" data-i18n="fonts.scene.overlay.label">悬浮窗</span>
-                <span class="item-desc" data-i18n="fonts.scene.overlay.desc">PPT 放映时的工具栏与面板</span>
-              </div>
-              <div class="font-dropdown" data-font-lang="yue-HK" data-font-scene="overlay"></div>
-            </div>
           </div>
 
           <!-- ja-JP -->
@@ -5518,13 +5573,6 @@
                 <span class="item-desc" data-i18n="fonts.scene.qt.desc">Qt 界面（托盘、设置入口等）</span>
               </div>
               <div class="font-dropdown" data-font-lang="ja-JP" data-font-scene="qt"></div>
-            </div>
-            <div class="settings-item">
-              <div class="item-info">
-                <span class="item-label" data-i18n="fonts.scene.overlay.label">悬浮窗</span>
-                <span class="item-desc" data-i18n="fonts.scene.overlay.desc">PPT 放映时的工具栏与面板</span>
-              </div>
-              <div class="font-dropdown" data-font-lang="ja-JP" data-font-scene="overlay"></div>
             </div>
           </div>
 
@@ -5544,13 +5592,6 @@
               </div>
               <div class="font-dropdown" data-font-lang="ug-CN" data-font-scene="qt"></div>
             </div>
-            <div class="settings-item">
-              <div class="item-info">
-                <span class="item-label" data-i18n="fonts.scene.overlay.label">悬浮窗</span>
-                <span class="item-desc" data-i18n="fonts.scene.overlay.desc">PPT 放映时的工具栏与面板</span>
-              </div>
-              <div class="font-dropdown" data-font-lang="ug-CN" data-font-scene="overlay"></div>
-            </div>
           </div>
 
           <!-- en-US -->
@@ -5569,56 +5610,9 @@
               </div>
               <div class="font-dropdown" data-font-lang="en-US" data-font-scene="qt"></div>
             </div>
-            <div class="settings-item">
-              <div class="item-info">
-                <span class="item-label" data-i18n="fonts.scene.overlay.label">悬浮窗</span>
-                <span class="item-desc" data-i18n="fonts.scene.overlay.desc">PPT 放映时的工具栏与面板</span>
-              </div>
-              <div class="font-dropdown" data-font-lang="en-US" data-font-scene="overlay"></div>
-            </div>
           </div>
         </div>
       </div>
-
-      <div class="section" id="section-overlay">
-        <div class="group-title" data-i18n="group.presentation">放映</div>
-        <div class="settings-group">
-          <div class="settings-item" onclick="toggleSwitch('General', 'AutoShowOverlay')">
-            <div class="item-info">
-              <span class="item-label" data-i18n="general.autoShowOverlay.label">自动显示悬浮窗</span>
-              <span class="item-desc" data-i18n="general.autoShowOverlay.desc">检测到 PPT 放映时自动显示工具栏</span>
-            </div>
-            <div class="switch" id="sw-General-AutoShowOverlay"></div>
-          </div>
-          <div class="settings-item" onclick="toggleSwitch('PPT', 'AutoHandleInk')">
-            <div class="item-info">
-              <span class="item-label" data-i18n="interaction.autoHandleInk.label">自动处理墨迹</span>
-              <span class="item-desc" data-i18n="interaction.autoHandleInk.desc">退出放映时自动处理"是否保留墨迹"</span>
-            </div>
-            <div class="switch" id="sw-PPT-AutoHandleInk"></div>
-          </div>
-          <div class="settings-item">
-            <div class="item-info">
-              <span class="item-label" data-i18n="overlay.clearMode.label">清屏模式</span>
-              <span class="item-desc">
-                <span data-i18n="overlay.clearMode.desc">选择清屏方式</span>
-                <span style="color: #F5A623; display: block; margin-top: 4px; font-size: 12px;" data-i18n="overlay.clearMode.warning">对此项的更改将在重新启动后生效</span>
-              </span>
-            </div>
-            <div class="item-state">
-              <select class="styled-select" id="sel-Overlay-ClearMode" onchange="setClearMode(this.value)">
-                <option value="slide" data-i18n="overlay.clearMode.slide">滑动清屏</option>
-                <option value="button" data-i18n="overlay.clearMode.button">独立按钮清屏</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-
-      </div>
-
-
-
 
       <div class="section" id="section-board-in-board">
         <div class="group-title" data-i18n="group.boardInBoard">板中板</div>
@@ -5702,15 +5696,25 @@
 
         <div class="group-title" data-i18n="group.toolbar.display">显示</div>
         <div class="settings-group">
+          <div class="settings-item" onclick="toggleSwitch('General', 'AutoShowOverlay')">
+            <div class="item-info">
+              <span class="item-label" data-i18n="general.autoShowOverlay.label">自动显示悬浮窗</span>
+              <span class="item-desc" data-i18n="general.autoShowOverlay.desc">检测到 PPT 放映时自动显示工具栏</span>
+            </div>
+            <div class="switch" id="sw-General-AutoShowOverlay"></div>
+          </div>
           <div class="settings-item">
             <div class="item-info">
               <span class="item-label" data-i18n="interaction.clearMode.label">清屏模式</span>
-              <span class="item-desc" data-i18n="interaction.clearMode.desc">选择清屏按钮的交互方式</span>
+              <span class="item-desc">
+                <span data-i18n="interaction.clearMode.desc">选择如何触发清屏功能（需重启生效）</span>
+                <span style="color: #F5A623; display: block; margin-top: 4px; font-size: 12px;" data-i18n="interaction.clearMode.restart">对此项的更改将在重新启动后生效</span>
+              </span>
             </div>
             <div class="item-state">
-              <select class="styled-select" id="sel-Toolbar-ClearMode" onchange="setToolbarClearMode(this.value)">
+              <select class="styled-select" id="sel-Overlay-ClearMode" onchange="setClearMode(this.value)">
                 <option value="slide" data-i18n="interaction.clearMode.slide">滑动清屏</option>
-                <option value="button" data-i18n="interaction.clearMode.button">独立按钮</option>
+                <option value="button" data-i18n="interaction.clearMode.button">独立按钮清屏</option>
               </select>
             </div>
           </div>
@@ -5842,6 +5846,13 @@
                 <option value="Screen 3" data-i18n="general.overlayScreen.screen3">显示器 3</option>
               </select>
             </div>
+          </div>
+          <div class="settings-item" onclick="toggleSwitch('PPT', 'AutoHandleInk')">
+            <div class="item-info">
+              <span class="item-label" data-i18n="interaction.autoHandleInk.label">自动处理墨迹</span>
+              <span class="item-desc" data-i18n="interaction.autoHandleInk.desc">退出放映时自动处理"是否保留墨迹"</span>
+            </div>
+            <div class="switch" id="sw-PPT-AutoHandleInk"></div>
           </div>
           <div class="settings-item" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 40px; padding: 24px 20px;">
             <div style="flex: 1 1 360px; max-width: 480px; display: flex; flex-direction: column; gap: 12px;">
@@ -9826,6 +9837,8 @@
     }
   }
 
+  let overlayThemeList = [];
+
   function updateOverlayTheme(theme) {
     if (!settings.Appearance) settings.Appearance = {};
     const oldTheme = settings.Appearance.OverlayTheme || "default";
@@ -9837,6 +9850,9 @@
       }
       showRestartIsland();
     }
+    const select = document.getElementById("sel-Appearance-OverlayTheme");
+    if (select) select.value = theme;
+    renderOverlayThemeGallery(overlayThemeList, theme);
   }
 
   function loadOverlayThemes() {
@@ -9844,21 +9860,25 @@
     if (!select) return;
 
     const applyOptions = (themes) => {
-        select.innerHTML = "";
-        const defaultOpt = document.createElement("option");
-        defaultOpt.value = "default";
-        defaultOpt.text = getText("appearance.overlayTheme.default") || "默认主题";
-        select.appendChild(defaultOpt);
+        const current = settings.Appearance?.OverlayTheme || "default";
+        const list = [{ id: "default", name: getText("appearance.overlayTheme.default") || "默认主题" }];
         (themes || []).forEach(theme => {
             if (!theme || theme.id === "default") return;
+            list.push({ id: theme.id, name: theme.name || theme.id });
+        });
+        if (!list.some(t => t.id === current)) {
+            list.push({ id: current, name: current });
+        }
+        overlayThemeList = list;
+        select.innerHTML = "";
+        list.forEach(theme => {
             const option = document.createElement("option");
             option.value = theme.id;
             option.textContent = theme.name || theme.id;
+            if (theme.id === current) option.selected = true;
             select.appendChild(option);
         });
-        const current = settings.Appearance?.OverlayTheme || "default";
-        select.value = current;
-        refreshCustomSelect(select);
+        renderOverlayThemeGallery(overlayThemeList, current);
     };
 
     if (window.pywebview && window.pywebview.api && window.pywebview.api.get_overlay_themes) {
@@ -9872,6 +9892,109 @@
     } else {
         applyOptions([]);
     }
+  }
+
+  function renderOverlayThemeGallery(themes, current) {
+    const gallery = document.getElementById("overlay-theme-gallery");
+    if (!gallery) return;
+    gallery.innerHTML = "";
+    const list = Array.isArray(themes) ? themes : [];
+    list.forEach(theme => {
+        if (!theme || !theme.id) return;
+        const item = document.createElement("div");
+        item.className = "media-gallery-item" + (theme.id === current ? " active" : "");
+        item.onclick = () => updateOverlayTheme(theme.id);
+
+        const preview = document.createElement("div");
+        preview.className = "media-gallery-preview";
+
+        const img = document.createElement("img");
+        img.className = "media-gallery-img";
+        const fallback = document.createElement("div");
+        fallback.className = "media-gallery-fallback";
+        fallback.textContent = getText("general.splashStyle.preview") || "预览";
+
+        if (theme.id === "default") {
+            img.style.display = "none";
+            fallback.style.display = "flex";
+        } else {
+            img.src = `../../../user/themes/${theme.id}/preview.png`;
+            img.onerror = () => {
+                if (img.dataset.retry !== "1") {
+                    img.dataset.retry = "1";
+                    img.src = `../../../user/themes/${theme.id}/preview.jpg`;
+                } else {
+                    img.style.display = "none";
+                    fallback.style.display = "flex";
+                }
+            };
+        }
+
+        preview.appendChild(img);
+        preview.appendChild(fallback);
+
+        if (theme.id === current) {
+            const check = document.createElement("div");
+            check.className = "media-gallery-check";
+            check.innerHTML = `<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`;
+            preview.appendChild(check);
+        }
+
+        const name = document.createElement("div");
+        name.className = "media-gallery-name";
+        name.textContent = theme.name || theme.id;
+
+        item.appendChild(preview);
+        item.appendChild(name);
+        gallery.appendChild(item);
+    });
+  }
+
+  function renderSplashGallery(currentStyle) {
+    const gallery = document.getElementById("splash-gallery");
+    if (!gallery) return;
+    const styles = [
+        { id: "default", nameKey: "general.splashStyle.default", fallback: "默认", preview: "../../../user/splash/default/preview.png" },
+        { id: "nina_iseri_1_2", nameKey: "general.splashStyle.nina", fallback: "Nina Iseri - 1.2", preview: "../../../user/splash/nina_iseri_1_2/preview.png" }
+    ];
+    gallery.innerHTML = "";
+    styles.forEach(style => {
+        const item = document.createElement("div");
+        item.className = "media-gallery-item" + (style.id === currentStyle ? " active" : "");
+        item.onclick = () => setSplashStyle(style.id);
+
+        const preview = document.createElement("div");
+        preview.className = "media-gallery-preview";
+
+        const img = document.createElement("img");
+        img.className = "media-gallery-img";
+        img.src = style.preview;
+        const fallback = document.createElement("div");
+        fallback.className = "media-gallery-fallback";
+        fallback.textContent = getText("general.splashStyle.preview") || "预览";
+        img.onerror = () => {
+            img.style.display = "none";
+            fallback.style.display = "flex";
+        };
+
+        preview.appendChild(img);
+        preview.appendChild(fallback);
+
+        if (style.id === currentStyle) {
+            const check = document.createElement("div");
+            check.className = "media-gallery-check";
+            check.innerHTML = `<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`;
+            preview.appendChild(check);
+        }
+
+        const name = document.createElement("div");
+        name.className = "media-gallery-name";
+        name.textContent = getText(style.nameKey) || style.fallback;
+
+        item.appendChild(preview);
+        item.appendChild(name);
+        gallery.appendChild(item);
+    });
   }
 
   function applySettingsToUI() {
@@ -9947,9 +10070,8 @@
     const splashStyleEl = document.getElementById("sel-General-SplashStyle");
     if (splashStyleEl) {
         splashStyleEl.value = splashStyle;
-        refreshCustomSelect(splashStyleEl);
-        updateSplashPreview(splashStyle);
     }
+    updateSplashPreview(splashStyle);
     const splashStart = settings.General?.SplashStartTime || "08:00";
     const splashEnd = settings.General?.SplashEndTime || "20:00";
     const startEl = document.getElementById("splash-start-time");
@@ -11025,34 +11147,7 @@
   }
 
   function updateSplashPreview(style) {
-      const container = document.getElementById('splash-preview-container');
-      const img = document.getElementById('splash-preview-img');
-      const label = container.querySelector('[data-i18n="general.splashStyle.preview"]');
-      if (!container || !img) return;
-      
-      // Update label text based on current language
-      if (label) {
-          label.textContent = getText("general.splashStyle.preview") || "预览";
-      }
-
-      if (style === 'default') {
-          img.src = '../../../user/splash/default/preview.png'; 
-          container.style.display = 'flex';
-      } else if (style === 'nina_iseri_1_2') {
-          img.src = '../../../user/splash/nina_iseri_1_2/preview.png';
-          container.style.display = 'flex';
-      } else {
-          container.style.display = 'none';
-      }
-      
-      // Fallback if image fails
-      img.onerror = function() {
-          if (style === 'nina_iseri_1_2' && !img.src.includes('preview.png')) {
-              img.src = '../../../user/splash/nina_iseri_1_2/preview.png';
-          } else {
-              container.style.display = 'none';
-          }
-      };
+      renderSplashGallery(style);
   }
 
   function setSplashTime(type, value) {
@@ -11648,6 +11743,20 @@
           }}
         ]
       );
+  }
+
+  // Scroll blur effect
+  const content = document.getElementById('content');
+  const blurOverlay = document.querySelector('.content-blur-overlay');
+  
+  if (content && blurOverlay) {
+    content.addEventListener('scroll', () => {
+      if (content.scrollTop > 20) {
+        blurOverlay.classList.add('visible');
+      } else {
+        blurOverlay.classList.remove('visible');
+      }
+    });
   }
 </script>
 
