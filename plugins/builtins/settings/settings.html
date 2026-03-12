@@ -6,12 +6,239 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Settings</title>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+  // --- Search Functionality ---
+  let searchIndex = [];
+  let preSearchSectionId = null;
+
+  function initSearch() {
+    // Inject I18N keys
+    const extraI18n = {
+      "zh-CN": { "search.placeholder": "搜索设置...", "search.results": "搜索结果", "search.noResult": "未找到相关结果" },
+      "zh-TW": { "search.placeholder": "搜尋設定...", "search.results": "搜尋結果", "search.noResult": "未找到相關結果" },
+      "yue-HK": { "search.placeholder": "搜尋設定...", "search.results": "搜尋結果", "search.noResult": "未找到相關結果" },
+      "ja-JP": { "search.placeholder": "設定を検索...", "search.results": "検索結果", "search.noResult": "結果が見つかりません" },
+      "en-US": { "search.placeholder": "Search settings...", "search.results": "Search Results", "search.noResult": "No results found" },
+      "ug-CN": { "search.placeholder": "تەڭشەكلەرنى ئىزدەش...", "search.results": "ئىزدەش نەتىجىسى", "search.noResult": "نەتىجە تېپىلمىدى" }
+    };
+    
+    Object.keys(extraI18n).forEach(lang => {
+      if (I18N[lang]) {
+        Object.assign(I18N[lang], extraI18n[lang]);
+      }
+    });
+    
+    // Update placeholder
+    const input = document.getElementById('search-input');
+    if (input) {
+        input.placeholder = getText('search.placeholder');
+    }
+  }
+
+  function buildSearchIndex() {
+    searchIndex = [];
+    const sections = document.querySelectorAll('.section:not(#section-search)');
+    sections.forEach(section => {
+      const sectionId = section.id;
+      // Find sidebar item name
+      const sidebarId = sectionId.replace('section-', '');
+      const sidebarItem = document.querySelector(`.sidebar-item[data-section="${sidebarId}"]`);
+      const sectionName = sidebarItem ? sidebarItem.innerText.trim() : '';
+
+      // Iterate through section children to handle Groups
+      let currentGroupName = '';
+      
+      Array.from(section.children).forEach(child => {
+          if (child.classList.contains('group-title')) {
+              currentGroupName = child.innerText.trim();
+          } else if (child.classList.contains('settings-group')) {
+              const items = child.querySelectorAll('.settings-item');
+              items.forEach(item => {
+                // Skip hidden items or layout wrappers if needed
+                if (item.offsetParent === null && !item.classList.contains('sub-item') && !item.closest('.version-expander')) return; 
+
+                const labelEl = item.querySelector('.item-label');
+                const descEl = item.querySelector('.item-desc');
+                
+                if (labelEl) {
+                    searchIndex.push({
+                        element: item,
+                        sectionId: sectionId,
+                        sectionName: sectionName,
+                        groupName: currentGroupName,
+                        label: labelEl.textContent.trim(),
+                        desc: descEl ? descEl.textContent.trim() : ''
+                    });
+                }
+              });
+          }
+      });
+    });
+  }
+
+  function performSearch(query) {
+    const searchSection = document.getElementById('section-search');
+    const resultsContainer = document.getElementById('search-results');
+    const clearBtn = document.getElementById('search-clear');
+    const titleEl = document.getElementById('section-title');
+    
+    if (!query || query.trim() === '') {
+        if (searchSection.classList.contains('active')) {
+            searchSection.classList.remove('active');
+            clearBtn.classList.remove('visible');
+            restoreActiveSection();
+            // Restore title
+            const activeSection = document.querySelector('.section.active');
+            if (activeSection) {
+                const sidebarId = activeSection.id.replace('section-', '');
+                const sidebarItem = document.querySelector(`.sidebar-item[data-section="${sidebarId}"]`);
+                if (sidebarItem) titleEl.textContent = sidebarItem.innerText.trim();
+            }
+        }
+        return;
+    }
+    
+    // Switch to search view if not already
+    if (!searchSection.classList.contains('active')) {
+        const currentActive = document.querySelector('.section.active');
+        if (currentActive && currentActive.id !== 'section-search') {
+            preSearchSectionId = currentActive.id;
+        }
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        searchSection.classList.add('active');
+        clearBtn.classList.add('visible');
+        titleEl.textContent = getText('search.results');
+        
+        // Deselect sidebar items
+        document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+    }
+    
+    buildSearchIndex(); 
+    
+    const lowerQuery = query.toLowerCase();
+    const results = searchIndex.filter(item => {
+        return item.label.toLowerCase().includes(lowerQuery) || 
+               item.desc.toLowerCase().includes(lowerQuery);
+    });
+    
+    renderSearchResults(results, query);
+  }
+
+  function renderSearchResults(results, query) {
+    const container = document.getElementById('search-results');
+    container.innerHTML = '';
+    
+    if (results.length === 0) {
+        container.innerHTML = `
+            <div class="search-empty">
+                <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <span>${getText('search.noResult')}</span>
+            </div>
+        `;
+        return;
+    }
+    
+    results.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'search-result-item';
+        el.onclick = () => navigateToSetting(item);
+        
+        const title = document.createElement('div');
+        title.className = 'search-result-title';
+        title.innerHTML = highlightText(item.label, query);
+        
+        const path = document.createElement('div');
+        path.className = 'search-result-path';
+        
+        // Construct path: Section / Group / Item
+        let pathText = item.sectionName;
+        if (item.groupName) pathText += ` / ${item.groupName}`;
+        pathText += ` / ${item.label}`;
+        
+        path.innerText = pathText;
+        
+        el.appendChild(title);
+        el.appendChild(path);
+        container.appendChild(el);
+    });
+  }
+  
+  function highlightText(text, query) {
+      if (!query) return text;
+      // Escape special regex characters
+      const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(${escapedQuery})`, 'gi');
+      return text.replace(regex, '<span class="highlight-text">$1</span>');
+  }
+
+  function clearSearch() {
+      const input = document.getElementById('search-input');
+      input.value = '';
+      performSearch('');
+      input.focus();
+  }
+  
+  function restoreActiveSection() {
+      if (preSearchSectionId) {
+          const sectionId = preSearchSectionId.replace('section-', '');
+          const sidebarItem = document.querySelector(`.sidebar-item[data-section="${sectionId}"]`);
+          if (sidebarItem) {
+              sidebarItem.click();
+          } else {
+              document.getElementById(preSearchSectionId).classList.add('active');
+          }
+      } else {
+           const sidebarItem = document.querySelector(`.sidebar-item[data-section="main"]`);
+           if (sidebarItem) sidebarItem.click();
+      }
+  }
+
+  function navigateToSetting(item) {
+      const sectionId = item.sectionId.replace('section-', '');
+      const sidebarItem = document.querySelector(`.sidebar-item[data-section="${sectionId}"]`);
+      if (sidebarItem) sidebarItem.click();
+      
+      const searchSection = document.getElementById('section-search');
+      searchSection.classList.remove('active');
+      const clearBtn = document.getElementById('search-clear');
+      clearBtn.classList.remove('visible');
+      document.getElementById('search-input').value = '';
+      
+      setTimeout(() => {
+          // Handle expanders if item is hidden inside one
+          let parent = item.element.parentElement;
+          while (parent) {
+              if (parent.classList.contains('version-expander')) {
+                  parent.style.maxHeight = '1000px'; 
+                  parent.classList.add('open');
+                  // Find the toggle for this expander if possible, or just open it
+                  // Assuming the expander follows a toggle item
+                  const toggleItem = parent.previousElementSibling;
+                  if (toggleItem && toggleItem.querySelector('.chevron')) {
+                      // Optionally rotate chevron
+                      toggleItem.querySelector('.chevron').style.transform = 'rotate(180deg)';
+                  }
+              }
+              parent = parent.parentElement;
+          }
+
+          item.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          item.element.classList.remove('highlight-flash');
+          void item.element.offsetWidth; 
+          item.element.classList.add('highlight-flash');
+      }, 50);
+  }
+  
+  // Initialize Search
+  // Moved to applyI18n() to ensure DOM and I18N are ready
+  // initSearch();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <style>
     :root,
     .theme-preview-root[data-theme-id="default"][data-theme-variant="light"] {
       --bg-body: transparent;
-      --bg-app: #f2f3f5;
+      --bg-app: #f7f8f9;
       --bg-surface: #ffffff;
       --bg-color: #ffffff;
       --sidebar-bg: #ffffff;
@@ -153,7 +380,7 @@
 
     :root[data-theme-id="default"][data-theme-variant="dark"],
     .theme-preview-root[data-theme-id="default"][data-theme-variant="dark"] {
-      --bg-app: #121212;
+      --bg-app: #151515;
       --bg-surface: #1E1E1E;
       --bg-color: #1E1E1E;
       --sidebar-bg: #1E1E1E;
@@ -982,6 +1209,258 @@
       flex-direction: row-reverse;
     }
 
+    .theme-select {
+      display: flex;
+      background: var(--card-border);
+      padding: 3px;
+      border-radius: 8px;
+      gap: 4px;
+    }
+
+    .theme-option {
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+
+    .theme-option.active {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      font-weight: 500;
+    }
+
+    .theme-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 12px;
+      width: 100%;
+    }
+
+    .theme-gallery-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .theme-gallery-preview {
+      width: 100%;
+      aspect-ratio: 16/10;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      transition: all 0.2s;
+      position: relative;
+      display: flex;
+      box-shadow: var(--shadow-main);
+      overflow: hidden;
+    }
+    
+    .theme-gallery-item:hover .theme-gallery-preview {
+      transform: scale(1.03);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    }
+    
+    .theme-gallery-item.active .theme-gallery-preview {
+      border: 2px solid var(--accent-blue);
+      transform: scale(1.03);
+    }
+    
+    .theme-gallery-check {
+      width: 24px;
+      height: 24px;
+      background: var(--accent-blue);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      z-index: 10;
+    }
+
+    /* Abstract Preview Structure - Island Style */
+    .preview-layout {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      background: var(--preview-bg-app, #f2f3f5);
+      overflow: hidden;
+      padding: 6px;
+      gap: 6px;
+    }
+    
+    .preview-sidebar {
+      width: 25%;
+      height: 100%;
+      /* background: var(--preview-bg-surface, #ffffff); */
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      padding: 4px 0;
+      gap: 4px;
+      border-right: none;
+    }
+    
+    .preview-sidebar-item {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
+    }
+    
+    .preview-sidebar-item.active {
+      background: var(--preview-card-bg, rgba(0,0,0,0.05));
+    }
+    
+    .preview-sidebar-text {
+      height: 3px;
+      width: 60%;
+      border-radius: 1.5px;
+      background: var(--preview-text-sec, rgba(0,0,0,0.4));
+      opacity: 0.5;
+    }
+    
+    .preview-sidebar-item.active .preview-sidebar-text {
+      background: var(--preview-accent, #3275F5);
+      opacity: 1;
+      width: 70%;
+    }
+    
+    .preview-content {
+      flex: 1;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: var(--preview-bg-surface, #ffffff);
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .preview-title {
+      width: 30%;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--preview-text-pri, rgba(0,0,0,0.8));
+      opacity: 0.8;
+      margin-bottom: 2px;
+    }
+    
+    .preview-group {
+      width: 100%;
+      background: var(--preview-card-bg, #ffffff);
+      border-radius: 6px;
+      /* border: 1px solid rgba(0,0,0,0.05); */
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .preview-item {
+      width: 100%;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .preview-item:last-child {
+      border-bottom: none;
+    }
+    
+    .preview-text-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+    }
+    
+    .preview-text-line {
+      height: 3px;
+      border-radius: 1.5px;
+      background: var(--preview-text-pri, rgba(0,0,0,0.8));
+      opacity: 0.7;
+    }
+    
+    .preview-text-line.sub {
+      height: 2px;
+      background: var(--preview-text-sec, rgba(0,0,0,0.4));
+      opacity: 0.5;
+    }
+    
+    .preview-control-toggle {
+      width: 12px;
+      height: 7px;
+      border-radius: 3.5px;
+      background: rgba(0,0,0,0.1);
+      position: relative;
+    }
+    
+    .preview-control-toggle::after {
+      content: "";
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0.5px 1.5px rgba(0,0,0,0.2);
+    }
+    
+    .preview-control-toggle.active {
+      background: var(--preview-accent, #3275F5);
+    }
+    
+    .preview-control-toggle.active::after {
+      left: auto;
+      right: 1px;
+    }
+    
+    .preview-control-chevron {
+      width: 5px;
+      height: 5px;
+      border-right: 1px solid var(--preview-text-sec, rgba(0,0,0,0.3));
+      border-bottom: 1px solid var(--preview-text-sec, rgba(0,0,0,0.3));
+      transform: rotate(-45deg);
+      opacity: 0.5;
+    }
+
+    [data-theme-variant="dark"] .preview-content { border-color: rgba(255,255,255,0.08); box-shadow: none; }
+    [data-theme-variant="dark"] .preview-group { border-color: rgba(255,255,255,0.08); }
+    [data-theme-variant="dark"] .preview-item { border-bottom-color: rgba(255,255,255,0.08); }
+    
+    .theme-gallery-check svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    .theme-gallery-name {
+      font-size: 12px;
+      color: var(--text-secondary);
+      text-align: center;
+      line-height: 1.2;
+    }
+    
+    .theme-gallery-item.active .theme-gallery-name {
+      color: var(--accent-blue);
+      font-weight: 500;
+    }
+
     .layout {
       display: flex;
       flex: 1;
@@ -1047,15 +1526,15 @@
 
     .sidebar {
       width: 220px;
-      padding: 10px;
+      padding: 20px 10px 10px 10px;
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
       gap: 4px;
-      background: var(--bg-surface);
-      border-radius: 16px;
-      border: 1px solid var(--divider);
-      box-shadow: var(--shadow-main);
+      background: transparent;
+      /* border-radius: 16px; */
+      /* border: 1px solid var(--divider); */
+      /* box-shadow: var(--shadow-main); */
       transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
     }
 
@@ -1172,6 +1651,37 @@
     .icon-back {
       mask-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>');
       -webkit-mask-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>');
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background-color: var(--divider);
+      margin: 8px 14px;
+      width: calc(100% - 28px);
+      flex-shrink: 0;
+      display: none; /* Hidden by default */
+    }
+
+    .layout.three-island .sidebar-divider {
+      display: block; /* Show in three-island mode */
+    }
+
+    #sidebar-back-btn {
+      display: none; /* Hidden by default */
+    }
+
+    .layout.three-island #sidebar-back-btn {
+      display: flex; /* Show in three-island mode */
+    }
+
+    /* Hide search container in three-island mode */
+    .layout.three-island .search-container {
+      display: none;
+    }
+
+    /* Hide all sidebar items except About and Back button in three-island mode */
+    .layout.three-island .sidebar-item:not(#sidebar-back-btn):not([data-section="about"]) {
+      display: none;
     }
 
     .sidebar-item {
@@ -1359,6 +1869,18 @@
       color: var(--text-primary);
     }
 
+    .settings-group-header {
+      padding: 12px 20px 8px;
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .settings-group-header h2 {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
     .settings-item {
       padding: 16px 20px;
       display: flex;
@@ -1371,6 +1893,16 @@
 
     .settings-item:last-child {
       border-bottom: none;
+    }
+
+    .settings-item.no-divider {
+      border-bottom: none;
+    }
+
+    .settings-item.sub-item {
+      min-height: 0;
+      padding-top: 8px;
+      padding-bottom: 12px;
     }
 
     .settings-item:hover {
@@ -1424,23 +1956,25 @@
     input[type="range"] {
       -webkit-appearance: none;
       appearance: none;
-      width: 100px;
-      height: 4px;
-      background: var(--divider);
-      border-radius: 2px;
+      width: 140px;
+      height: 24px;
+      background: linear-gradient(90deg, var(--accent-blue) var(--slider-percent, 0%), var(--divider) var(--slider-percent, 0%));
+      border-radius: 12px;
       outline: none;
+      box-sizing: border-box;
+      border: 1px solid var(--divider);
     }
 
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 14px;
-      height: 14px;
-      background: var(--accent-blue);
+      width: 22px;
+      height: 22px;
+      background: #ffffff;
       border-radius: 50%;
       cursor: pointer;
       transition: transform 0.1s;
-      border: 2px solid var(--bg-surface);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
     input[type="range"]::-webkit-slider-thumb:hover {
@@ -2778,7 +3312,6 @@
     .slider-container {
       height: 36px;
       background: transparent;
-      border-radius: 18px;
       position: relative;
       display: flex;
       align-items: center;
@@ -2793,9 +3326,9 @@
       right: 0;
       top: 50%;
       transform: translateY(-50%);
-      height: 4px;
+      height: 24px;
       background: var(--divider);
-      border-radius: 2px;
+      border-radius: 12px;
     }
 
     .slider-fill {
@@ -2803,31 +3336,106 @@
       left: 0;
       top: 50%;
       transform: translateY(-50%);
-      height: 4px;
+      height: 24px;
       width: 50%;
       background: var(--accent-blue);
-      border-radius: 2px;
+      border-radius: 12px;
       pointer-events: none;
     }
 
-    .slider-input {
+    .slider-handle {
       position: absolute;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
-      cursor: pointer;
-      z-index: 2;
+      top: 50%;
+      width: 20px;
+      height: 20px;
+      background: #ffffff;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 2px 4px var(--shadow-color);
+      pointer-events: none;
+      transition: box-shadow 0.2s, transform 0.2s;
+      z-index: 3;
+    }
+
+    .slider-container:hover .slider-handle {
+       box-shadow: 0 3px 6px var(--shadow-color);
+       transform: translate(-50%, -50%) scale(1.1);
+    }
+    
+    .slider-container:active .slider-handle {
+       box-shadow: 0 1px 2px var(--shadow-color);
+       transform: translate(-50%, -50%) scale(1.0);
+    }
+
+    input[type=range] {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 24px;
+        background: transparent;
+        cursor: pointer;
+        outline: none;
+        margin: 0;
+        padding: 0;
+        z-index: 4;
+        position: relative;
+    }
+
+    /* Slider Track */
+    input[type=range]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 24px;
+        background: var(--divider);
+        border-radius: 12px;
+        cursor: pointer;
+        border: none;
+        overflow: hidden; /* Ensure gradient respects border-radius */
+    }
+
+    /* Slider Thumb */
+    input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 18px;
+        width: 18px;
+        border-radius: 50%;
+        background: #ffffff;
+        cursor: pointer;
+        margin-top: 3px; /* (24 - 18) / 2 */
+        /* 
+           1. Drop shadow for the thumb
+           2. Blue rim (3px) to create the rounded cap (18+6=24px height)
+           3. Long blue shadow to fill the left side
+        */
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 0 0 3px var(--accent-blue), -400px 0 0 400px var(--accent-blue);
+        transition: transform 0.1s;
+        position: relative;
+        z-index: 5;
+        border: none;
+    }
+
+    input[type=range]:hover::-webkit-slider-thumb {
+        transform: scale(1.1);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2), 0 0 0 3px var(--accent-blue), -400px 0 0 400px var(--accent-blue);
+    }
+
+    input[type=range]:active::-webkit-slider-thumb {
+        transform: scale(1.0);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2), 0 0 0 3px var(--accent-blue), -400px 0 0 400px var(--accent-blue);
     }
 
     .switch {
-      width: 44px;
-      height: 22px;
+      width: 48px;
+      height: 24px;
       background: var(--divider);
-      border-radius: 11px;
+      border-radius: 12px;
       position: relative;
       cursor: pointer;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       flex-shrink: 0;
+      overflow: visible;
+      border: none;
+      margin-right: 20px;
+      display: inline-block;
+      vertical-align: middle;
     }
 
     .switch.active {
@@ -2837,18 +3445,39 @@
     .switch::after {
       content: "";
       position: absolute;
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 16px;
       background: var(--bg-surface);
-      border-radius: 50%;
-      top: 2px;
-      left: 2px;
+      border-radius: 8px;
+      top: 50%;
+      left: 4px;
+      margin-top: -8px;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 2px 4px var(--shadow-color);
+      box-shadow: 0 1px 2px var(--shadow-color);
     }
 
     .switch.active::after {
-      transform: translateX(20px);
+      left: calc(100% - 24px);
+      background: #fff;
+    }
+
+    .switch::before {
+      content: "关";
+      position: absolute;
+      right: -24px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      pointer-events: none;
+      transition: color 0.2s;
+      line-height: 1;
+    }
+
+    .switch.active::before {
+      content: "开";
+      color: var(--accent-blue);
     }
 
     .styled-select {
@@ -3006,6 +3635,23 @@
       white-space: nowrap;
       text-overflow: ellipsis;
       margin-right: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .custom-select-text {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .custom-select-color-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid var(--divider);
+      flex-shrink: 0;
     }
 
     .custom-select-icon {
@@ -3063,6 +3709,9 @@
       color: var(--text-primary);
       white-space: nowrap;
       transition: background 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .custom-select-option:hover {
@@ -3130,6 +3779,36 @@
         font-size: 13px;
         outline: none;
         width: 100px;
+    }
+
+    button, .btn, .settings-button, .modal-btn, .lock-btn, .btn-primary, .btn-secondary, .btn-confirm, .btn-cancel {
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        border: 1px solid var(--divider);
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: none;
+        outline: none;
+        height: auto;
+        line-height: normal;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    button:hover, .btn:hover, .settings-button:hover, .modal-btn:hover, .lock-btn:hover, .btn-primary:hover, .btn-secondary:hover, .btn-confirm:hover, .btn-cancel:hover {
+        background: var(--item-hover);
+        border-color: var(--divider);
+        color: var(--text-primary);
+    }
+
+    button:active, .btn:active, .settings-button:active, .modal-btn:active, .lock-btn:active, .btn-primary:active, .btn-secondary:active, .btn-confirm:active, .btn-cancel:active {
+        background: var(--card-bg);
+        transform: scale(0.98);
     }
 
     .theme-select {
@@ -4263,6 +4942,140 @@
                         radial-gradient(circle at 50% 50%, rgba(255, 69, 0, 0.03) 0%, transparent 40%);
       background-attachment: fixed;
     }
+
+    .search-container {
+      margin-bottom: 12px;
+      padding: 0;
+    }
+
+    .search-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+      background: var(--bg-surface);
+      border-radius: 12px;
+      border: 1px solid var(--divider);
+      transition: all 0.2s;
+      box-shadow: var(--shadow-main);
+    }
+
+    .search-wrapper:focus-within {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 2px rgba(50, 117, 245, 0.2);
+    }
+
+    .search-icon {
+      width: 18px;
+      height: 18px;
+      fill: var(--text-secondary);
+      margin-left: 12px;
+      opacity: 0.6;
+    }
+
+    .search-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 10px 10px;
+      font-size: 14px;
+      color: var(--text-primary);
+      outline: none;
+      width: 100%;
+    }
+
+    .search-clear {
+      width: 16px;
+      height: 16px;
+      fill: var(--text-secondary);
+      margin-right: 12px;
+      cursor: pointer;
+      display: none;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+    
+    .search-clear:hover {
+      opacity: 1;
+    }
+
+    .search-clear.visible {
+      display: block;
+    }
+
+    .search-result-item {
+      padding: 12px 16px;
+      background: var(--bg-surface);
+      border-radius: 12px;
+      border: 1px solid var(--divider);
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      box-shadow: var(--shadow-main);
+    }
+
+    .search-result-item:hover {
+      background: var(--item-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .search-result-path {
+      font-size: 12px;
+      color: var(--text-secondary);
+      opacity: 0.6;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .search-result-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--accent-blue);
+    }
+
+    .highlight-text {
+      background: rgba(255, 235, 59, 0.3);
+      color: inherit;
+      border-radius: 2px;
+      padding: 0 2px;
+    }
+
+    [data-theme-variant="dark"] .highlight-text {
+      background: rgba(255, 215, 0, 0.25);
+      color: #fff;
+    }
+
+    @keyframes flashHighlight {
+        0% { background-color: var(--accent-blue); }
+        100% { background-color: transparent; }
+    }
+    
+    .settings-item.highlight-flash {
+        animation: flashHighlight 1.5s ease-out;
+    }
+    
+    .search-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 0;
+        color: var(--text-secondary);
+        gap: 16px;
+    }
+    
+    .search-empty svg {
+        width: 48px;
+        height: 48px;
+        opacity: 0.3;
+        fill: currentColor;
+    }
+
   </style>
 </head>
 
@@ -4289,14 +5102,26 @@
     <div id="toast-text">已经存在打开的窗口！</div>
   </div>
   <div class="layout" id="layout">
-    <div class="sidebar-mini" id="sidebar-mini">
-      <div class="nav-item" onclick="hideUpdate()">
-        <div class="nav-icon icon-back"></div>
+    <!-- Sidebar Mini removed -->
+    <div class="sidebar">
+      <!-- Back Button (Hidden by default, controlled by CSS) -->
+      <div class="sidebar-item" id="sidebar-back-btn" onclick="hideUpdate()">
+        <svg class="sidebar-icon" viewBox="0 0 24 24" style="fill: currentColor; stroke: none;">
+          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        </svg>
         <span data-i18n="nav.back">返回</span>
       </div>
-    </div>
-    <div class="sidebar">
-      <div class="sidebar-title">设置</div>
+      
+      <!-- Divider (Hidden by default, controlled by CSS) -->
+      <div class="sidebar-divider" id="sidebar-divider"></div>
+
+      <div class="search-container">
+        <div class="search-wrapper">
+            <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <input type="text" class="search-input" id="search-input" placeholder="Search settings..." data-i18n-placeholder="search.placeholder" oninput="performSearch(this.value)">
+            <svg class="search-clear" id="search-clear" viewBox="0 0 24 24" onclick="clearSearch()"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </div>
+      </div>
       <div class="sidebar-item active" data-section="main">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
           <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
@@ -4310,7 +5135,7 @@
           <path d="M12 3a9 9 0 100 18 9 9 0 000-18z" />
           <path d="M12 7a5 5 0 000 10V7z" />
         </svg>
-        <span data-i18n="nav.theme">主题</span>
+        <span data-i18n="nav.theme">个性化设置</span>
       </div>
       <div class="sidebar-item" data-section="fonts">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
@@ -4378,6 +5203,11 @@
       <div class="content-blur-overlay"></div>
       <div class="content-body">
       <div class="page-title" id="section-title" data-i18n="section.main">主程序</div>
+      
+      <div class="section" id="section-search">
+        <div class="group-title" data-i18n="search.results">搜索结果</div>
+        <div class="search-results" id="search-results"></div>
+      </div>
 
       <div class="section active" id="section-main">
         <div class="group-title" data-i18n="group.language">语言</div>
@@ -4441,26 +5271,6 @@
                 </div>
             </div>
           </div>
-          <div class="settings-item">
-            <div class="item-info">
-              <span class="item-label" data-i18n="general.splashStyle.label">启动画面样式</span>
-              <span class="item-desc" data-i18n="general.splashStyle.desc">选择启动画面的显示风格</span>
-            </div>
-            <div class="item-state">
-              <select class="styled-select" id="sel-General-SplashStyle" onchange="setSplashStyle(this.value)">
-                <option value="default" data-i18n="general.splashStyle.default">默认</option>
-                <option value="nina_iseri_1_2" data-i18n="general.splashStyle.nina">Nina Iseri - 1.2</option>
-              </select>
-            </div>
-          </div>
-          <div class="settings-item" id="splash-preview-container" style="display: none; padding-top: 0; padding-bottom: 24px; border: none;">
-             <div style="width: 100%; display: flex; justify-content: center;">
-                <div style="position: relative; max-width: 400px; width: 100%; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid var(--divider);">
-                    <img id="splash-preview-img" style="width: 100%; height: auto; display: block;" src="" />
-                    <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; backdrop-filter: blur(4px);" data-i18n="general.splashStyle.preview">预览</div>
-                </div>
-             </div>
-          </div>
           <div class="settings-item" onclick="toggleSwitch('General', 'ShowDetailedSplash')">
             <div class="item-info">
               <span class="item-label" data-i18n="general.showDetailedSplash.label">启动画面显示详细启动进度</span>
@@ -4512,8 +5322,13 @@
       </div>
 
       <div class="section" id="section-theme">
-        <div class="group-title" data-i18n="group.appearance">外观</div>
-        <div class="settings-group">
+        <div class="pivot-container" style="margin-bottom: 12px; padding: 0 4px;">
+            <div class="pivot-item active" data-pivot-group="theme" data-pivot="appearance" onclick="switchThemeTab('appearance')" data-i18n="group.appearance">外观</div>
+            <div class="pivot-item" data-pivot-group="theme" data-pivot="splash" onclick="switchThemeTab('splash')" data-i18n="group.splash">启动画面</div>
+            <div class="pivot-item" data-pivot-group="theme" data-pivot="overlay" onclick="switchThemeTab('overlay')" data-i18n="appearance.overlayTheme.title">Overlay 主题</div>
+        </div>
+
+        <div class="pivot-content active settings-group" data-pivot-group="theme" data-pivot-content="appearance">
           <div class="settings-item">
             <div class="item-info">
               <span class="item-label" data-i18n="appearance.mode.label">外观模式</span>
@@ -4528,12 +5343,64 @@
               </div>
             </div>
           </div>
-          <div class="settings-item" style="flex-direction: column; align-items: stretch; gap: 12px;">
-            <div class="item-info">
-              <span class="item-label" data-i18n="appearance.theme.label">主题</span>
+          <div class="settings-item no-divider" style="flex-direction: column; align-items: flex-start;">
+            <div class="item-info" style="margin-bottom: 16px;">
+              <span class="item-label" data-i18n="appearance.colorScheme.title">配色方案</span>
               <span class="item-desc" data-i18n="appearance.theme.desc">选择一个主题并预览效果</span>
             </div>
-            <div class="theme-gallery" id="theme-gallery"></div>
+            <div id="theme-gallery" class="theme-gallery">
+                <!-- Theme items will be rendered here by ThemeSystem -->
+            </div>
+            <!-- Hidden select for compatibility -->
+            <select id="color-scheme-select" style="display: none;"></select>
+          </div>
+          
+          <div class="settings-item sub-item no-divider" id="monet-config-container" style="display: none;">
+             <div style="width: 100%; display: flex; gap: 8px; justify-content: flex-end;">
+                 <button class="settings-button" onclick="openMonetSourceModal()" data-i18n="appearance.theme.monet.config">配置取色源</button>
+             </div>
+          </div>
+          
+          <div class="settings-item sub-item no-divider" id="custom-color-container" style="display: none;">
+             <div style="width: 100%; display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                 <span data-i18n="appearance.theme.custom.color">选择颜色</span>
+                 <input type="color" id="custom-theme-color" class="color-input" onchange="applyCustomTheme(this.value)">
+             </div>
+          </div>
+        </div>
+
+        <div class="pivot-content settings-group" data-pivot-group="theme" data-pivot-content="splash">
+          <div class="settings-item">
+            <div class="item-info">
+              <span class="item-label" data-i18n="general.splashStyle.label">启动画面样式</span>
+              <span class="item-desc" data-i18n="general.splashStyle.desc">选择启动画面的显示风格</span>
+            </div>
+            <div class="item-state">
+              <select class="styled-select" id="sel-General-SplashStyle" onchange="setSplashStyle(this.value)">
+                <option value="default" data-i18n="general.splashStyle.default">默认</option>
+                <option value="nina_iseri_1_2" data-i18n="general.splashStyle.nina">Nina Iseri - 1.2</option>
+              </select>
+            </div>
+          </div>
+          <div class="settings-item" id="splash-preview-container" style="display: none; padding-top: 0; padding-bottom: 24px; border: none;">
+             <div style="width: 100%; display: flex; justify-content: center;">
+                <div style="position: relative; max-width: 400px; width: 100%; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid var(--divider);">
+                    <img id="splash-preview-img" style="width: 100%; height: auto; display: block;" src="" />
+                    <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; backdrop-filter: blur(4px);" data-i18n="general.splashStyle.preview">预览</div>
+                </div>
+             </div>
+          </div>
+        </div>
+          
+        <div class="pivot-content settings-group" data-pivot-group="theme" data-pivot-content="overlay">
+          <div class="settings-item">
+            <div class="item-info">
+              <span class="item-label" data-i18n="appearance.overlayTheme.title">Overlay 主题</span>
+              <span class="item-desc" data-i18n="appearance.overlayTheme.desc">自定义 Overlay 的 HTML/CSS/JS</span>
+            </div>
+            <div class="item-state">
+              <select class="styled-select" id="sel-Appearance-OverlayTheme" onchange="updateOverlayTheme(this.value)"></select>
+            </div>
           </div>
         </div>
       </div>
@@ -5574,7 +6441,7 @@
       "app.settings": "设置",
       "app.name": "Kazuha",
       "nav.main": "常规",
-      "nav.theme": "主题",
+      "nav.theme": "个性化设置",
       "nav.fonts": "全局应用字体",
       "nav.overlay": "放映",
       "nav.about": "关于",
@@ -5586,7 +6453,7 @@
       "nav.boardInBoard": "板中板",
       "nav.accessibility": "辅助功能",
       "section.main": "常规",
-      "section.theme": "主题",
+      "section.theme": "个性化设置",
       "section.fonts": "全局应用字体",
       "section.overlay": "放映",
       "section.window": "窗口",
@@ -5614,6 +6481,14 @@
       "accessibility.wip.desc": "更多功能敬请期待",
       "group.window": "窗口设置",
       "group.debugOptions": "调试选项",
+      "appearance.colorScheme.title": "配色方案",
+      "appearance.overlayTheme.title": "Overlay 主题",
+      "appearance.overlayTheme.label": "选择主题",
+      "appearance.overlayTheme.desc": "自定义 Overlay 的 HTML/CSS/JS",
+      "appearance.overlayTheme.default": "默认主题",
+      "group.splash": "启动画面",
+      "appearance.theme.custom": "自定义",
+      "appearance.theme.custom.color": "选择颜色",
       "window.toolbarPosition.label": "工具栏位置",
       "window.toolbarPosition.desc": "调整工具栏在屏幕上的位置",
       "window.flipperPosition.label": "翻页栏位置",
@@ -5654,7 +6529,7 @@
       "appearance.mode.dark": "深色",
       "appearance.mode.auto": "跟随系统",
       "appearance.theme.label": "主题",
-      "appearance.theme.desc": "选择一个主题并预览效果",
+      "appearance.theme.desc": "选择配色方案，影响设置页与工具栏外观",
       "appearance.theme.default": "默认",
       "appearance.theme.default.desc": "Kazuha 默认主题",
       "appearance.theme.materialYou": "紫色",
@@ -5843,6 +6718,7 @@
       "nav.fonts": "全域字型",
       "nav.overlay": "放映",
       "nav.about": "關於",
+      "nav.window": "視窗",
       "nav.plugins": "工具列",
       "nav.pluginSettings": "插件設定",
       "nav.boardInBoard": "板中板",
@@ -5853,6 +6729,7 @@
       "section.theme": "主題",
       "section.fonts": "全域字型",
       "section.overlay": "放映",
+      "section.window": "視窗",
       "section.plugins": "工具列",
       "section.plugin-settings": "插件設定",
       "section.board-in-board": "板中板",
@@ -5862,6 +6739,7 @@
       "group.language": "語言",
       "group.appearance": "外觀",
       "group.startup": "啟動",
+      "group.compatibility": "相容性",
       "group.fonts": "全域字型",
       "group.presentation": "放映",
       "group.overlayUi": "頂層視窗",
@@ -5870,15 +6748,34 @@
       "group.installedPlugins": "已安裝插件",
       "plugins.none.label": "暫無插件",
       "plugins.none.desc": "此處將顯示已安裝的第三方插件配置",
-      "window.timerFullscreenBehavior.label": "計時器全螢幕行為",
-      "window.timerFullscreenBehavior.desc": "設定計時器進入全螢幕時的視窗模式",
-      "window.timerFullscreenBehavior.fullscreen": "全螢幕切換",
-      "window.timerFullscreenBehavior.maximize": "最大化",
       "group.boardInBoard": "板中板",
       "group.accessibility": "輔助功能",
       "accessibility.wip.label": "建設中",
       "accessibility.wip.desc": "更多功能敬請期待",
+      "group.window": "視窗設定",
       "group.debugOptions": "偵錯選項",
+      "appearance.colorScheme.title": "配色方案",
+      "appearance.overlayTheme.title": "Overlay 主題",
+      "appearance.overlayTheme.label": "選擇主題",
+      "appearance.overlayTheme.desc": "自定義 Overlay 的 HTML/CSS/JS",
+      "appearance.overlayTheme.default": "預設主題",
+      "group.splash": "啟動畫面",
+      "appearance.theme.custom": "自定義",
+      "appearance.theme.custom.color": "選擇顏色",
+      "window.toolbarPosition.label": "工具列位置",
+      "window.toolbarPosition.desc": "調整工具列在螢幕上的位置",
+      "window.flipperPosition.label": "翻頁欄位置",
+      "window.flipperPosition.desc": "調整翻頁欄的佈局方式（兩側中心：預設樣式；兩側底部：與工具列同高橫向佈局）",
+      "window.flipperPosition.center": "兩側中心",
+      "window.flipperPosition.bottom": "兩側底部",
+      "window.timerFullscreenBehavior.label": "計時器全螢幕行為",
+      "window.timerFullscreenBehavior.desc": "設定計時器進入全螢幕時的視窗模式",
+      "window.timerFullscreenBehavior.fullscreen": "全螢幕切換",
+      "window.timerFullscreenBehavior.maximize": "最大化",
+      "window.position.top": "頂部",
+      "window.position.bottom": "底部",
+      "window.position.left": "左側",
+      "window.position.right": "右側",
       "fonts.scene.web.label": "網頁介面",
       "fonts.scene.web.desc": "設定 / 計時器 / 對話框",
       "fonts.scene.qt.label": "主程式介面",
@@ -5918,19 +6815,19 @@
       "appearance.theme.mungBean.desc": "清新薄荷與涼感綠意",
       "appearance.theme.orangeWish": "心想事橙",
       "appearance.theme.orangeWish.desc": "柑橘微甜與活力暖色",
-      "appearance.theme.monet": "动态取色",
-      "appearance.theme.monet.desc": "從桌面桌布提取顏色",
+      "appearance.theme.monet": "動態取色",
+      "appearance.theme.monet.desc": "從桌面桌布擷取顏色",
       "appearance.theme.monet.source.title": "選擇取色來源",
-      "appearance.theme.monet.source.desc": "請選擇從桌面桌布或本地圖片取色",
-      "appearance.theme.monet.preview.title": "动态取色預覽",
-      "appearance.theme.monet.preview.desc": "提取到以下配色，確認後將套用到主題",
+      "appearance.theme.monet.source.desc": "請選擇從桌面桌布或本機圖片取色",
+      "appearance.theme.monet.preview.title": "動態取色預覽",
+      "appearance.theme.monet.preview.desc": "擷取到以下配色，確認後將套用到主題",
       "appearance.theme.monet.preview.loading": "正在從桌面桌布取色...",
       "appearance.theme.monet.preview.empty": "未能從桌布取得顏色",
       "appearance.theme.monet.preview.loading.custom": "正在從圖片取色...",
       "appearance.theme.monet.preview.empty.custom": "未能從圖片取得顏色",
       "appearance.theme.monet.preview.error": "取色失敗",
       "appearance.theme.monet.wallpaper": "從桌面桌布取色",
-      "appearance.theme.monet.custom": "從本地圖片取色",
+      "appearance.theme.monet.custom": "從本機圖片取色",
       "appearance.theme.monet.apply": "套用",
       "appearance.theme.monet.color.primary": "主色",
       "appearance.theme.monet.color.background": "背景",
@@ -5958,7 +6855,6 @@
       "general.devWatermark": "{type}\n不保證最終品質 （{version}）",
       "general.autoShowOverlay.label": "自動顯示懸浮窗",
       "general.autoShowOverlay.desc": "偵測到 PPT 播放時自動顯示工具列",
-      "group.compatibility": "相容性",
       "general.compatibilityMode.label": "相容模式",
       "general.compatibilityMode.desc": "啟用後將停用自動顯隱、翻頁欄頁碼及部分工具，翻頁改為模擬鍵盤輸入",
       "general.overlayScreen.label": "顯示螢幕",
@@ -5979,17 +6875,33 @@
       "language.ug-CN": "ئۇيغۇرچە",
       "interaction.autoHandleInk.label": "自動處理墨跡",
       "interaction.autoHandleInk.desc": "結束播放時自動處理「是否保留墨跡」",
-
       "interaction.showStatusBar.label": "頂部狀態列",
       "interaction.showStatusBar.desc": "在懸浮窗頂部顯示時間與狀態",
       "overlay.safeArea.label": "螢幕內安全區",
       "overlay.safeArea.desc": "調整組件與螢幕邊緣的距離",
       "overlay.scale.label": "組件縮放倍率",
       "overlay.scale.desc": "調整懸浮窗組件的整體顯示大小",
+      "overlay.popWindowScale.label": "色板縮放倍率",
+      "overlay.popWindowScale.desc": "調整顏色選擇彈窗的大小",
+      "overlay.toolbarOpacity.label": "工具列透明度",
+      "overlay.toolbarOpacity.desc": "調整工具列背景的不透明度",
+      "overlay.syncOpacity.label": "同步兩側翻頁欄透明度調節",
+      "overlay.syncOpacity.desc": "勾選後將同步調節兩側翻頁欄的透明度",
+      "overlay.sidePageOpacity.label": "兩側翻頁欄透明度",
+      "overlay.sidePageOpacity.desc": "調整兩側翻頁欄背景的不透明度",
       "overlay.rebuild.label": "重建頂層視窗",
       "overlay.rebuild.desc": "重新建立頂層效果視窗以套用所有變更",
       "overlay.rebuild.action": "立即重建",
       "interaction.showClear.label": "顯示清屏",
+      "interaction.clearMode.desc": "選擇如何觸發清屏功能（需重啟生效）",
+      "interaction.clearMode.restart": "對此項的更改將在重新啟動後生效",
+      "interaction.clearMode.slide": "滑動清屏",
+      "interaction.clearMode.button": "獨立按鈕清屏",
+      "restart.island.text": "需要重新啟動",
+      "restart.confirm.title": "重啟應用程式",
+      "restart.confirm.text": "部分設定需要重啟才能生效。是否立即重啟？",
+      "restart.confirm.yes": "立即重啟",
+      "restart.confirm.no": "稍後",
       "interaction.showSpotlight.label": "顯示聚光燈",
       "interaction.showBoardInBoard.label": "顯示板中板",
       "boardInBoard.toolbarPosition.label": "工具列位置",
@@ -6002,7 +6914,7 @@
       "boardInBoard.backgroundColor.desc": "選擇板中板黑板的背景顏色",
       "interaction.showTimer.label": "顯示計時器",
       "interaction.toolbar.customization.label": "工具列固定項",
-      "interaction.toolbar.customization.desc": "管理工具列上的快速啟動項",
+      "interaction.toolbar.customization.desc": "預覽並管理工具列上的快速啟動項",
       "interaction.toolbar.preview.label": "工具列預覽",
       "interaction.toolbar.addApp": "新增項",
       "interaction.toolbar.removeApp": "移除項",
@@ -6073,15 +6985,17 @@
       "nav.fonts": "全域字型",
       "nav.overlay": "放映",
       "nav.about": "關於",
+      "nav.window": "視窗",
       "nav.plugins": "工具列",
       "nav.pluginSettings": "插件設定",
       "nav.boardInBoard": "板中板",
       "nav.debug": "偵錯",
-      "nav.back": "返回",
+      "nav.back": "返去",
       "section.main": "一般",
       "section.theme": "主題",
       "section.fonts": "全域字型",
       "section.overlay": "放映",
+      "section.window": "視窗",
       "section.plugins": "工具列",
       "section.plugin-settings": "插件設定",
       "section.board-in-board": "板中板",
@@ -6090,6 +7004,7 @@
       "group.language": "語言",
       "group.appearance": "外觀",
       "group.startup": "啟動",
+      "group.compatibility": "相容性",
       "group.fonts": "全域字型",
       "group.presentation": "放映",
       "group.overlayUi": "頂層視窗",
@@ -6097,13 +7012,35 @@
       "group.timer": "計時器",
       "group.installedPlugins": "已安裝插件",
       "plugins.none.label": "暫無插件",
-      "plugins.none.desc": "此處將顯示已安裝嘅第三方插件配置",
+      "plugins.none.desc": "呢度會顯示已安裝嘅第三方插件配置",
+      "group.boardInBoard": "板中板",
+      "group.accessibility": "輔助功能",
+      "accessibility.wip.label": "起緊",
+      "accessibility.wip.desc": "更多功能遲啲有",
+      "group.window": "視窗設定",
+      "group.debugOptions": "偵錯選項",
+      "appearance.colorScheme.title": "配色方案",
+      "appearance.overlayTheme.title": "Overlay 主題",
+      "appearance.overlayTheme.label": "揀主題",
+      "appearance.overlayTheme.desc": "自定義 Overlay 嘅 HTML/CSS/JS",
+      "appearance.overlayTheme.default": "預設主題",
+      "group.splash": "啟動畫面",
+      "appearance.theme.custom": "自定義",
+      "appearance.theme.custom.color": "揀顏色",
+      "window.toolbarPosition.label": "工具列位置",
+      "window.toolbarPosition.desc": "調整工具列喺螢幕嘅位置",
+      "window.flipperPosition.label": "翻頁欄位置",
+      "window.flipperPosition.desc": "調整翻頁欄嘅佈局方式（兩側中心：預設樣式；兩側底部：同工具列同高橫向佈局）",
+      "window.flipperPosition.center": "兩側中心",
+      "window.flipperPosition.bottom": "兩側底部",
       "window.timerFullscreenBehavior.label": "計時器全螢幕行為",
-      "window.timerFullscreenBehavior.desc": "設定計時器進入全螢幕時嘅視窗模式",
+      "window.timerFullscreenBehavior.desc": "設定計時器入全螢幕時嘅視窗模式",
       "window.timerFullscreenBehavior.fullscreen": "全螢幕切換",
       "window.timerFullscreenBehavior.maximize": "最大化",
-      "group.boardInBoard": "板中板",
-      "group.debugOptions": "偵錯選項",
+      "window.position.top": "頂部",
+      "window.position.bottom": "底部",
+      "window.position.left": "左邊",
+      "window.position.right": "右邊",
       "fonts.scene.web.label": "網頁介面",
       "fonts.scene.web.desc": "設定 / 計時器 / Dialog",
       "fonts.scene.qt.label": "主程式介面",
@@ -6144,11 +7081,11 @@
       "appearance.theme.orangeWish": "橙色",
       "appearance.theme.orangeWish.desc": "柑橘活力",
       "appearance.theme.monet": "動態取色",
-      "appearance.theme.monet.desc": "由桌面壁紙撈色",
+      "appearance.theme.monet.desc": "由桌面壁紙度撈色",
       "appearance.theme.monet.source.title": "揀取色來源",
-      "appearance.theme.monet.source.desc": "由壁紙或者本地圖片撈色",
+      "appearance.theme.monet.source.desc": "由壁紙或者本地圖片度撈色",
       "appearance.theme.monet.preview.title": "動態取色預覽",
-      "appearance.theme.monet.preview.desc": "確認配色後套用",
+      "appearance.theme.monet.preview.desc": "攞到下面呢啲色，確認無誤就套用",
       "appearance.theme.monet.preview.loading": "撈緊壁紙色...",
       "appearance.theme.monet.preview.empty": "撈唔到色",
       "appearance.theme.monet.preview.loading.custom": "撈緊圖片色...",
@@ -6181,8 +7118,10 @@
       "watermark.3": "Release Preview",
       "watermark.4": "重新評估版本",
       "general.devWatermark": "{type}\n品質唔包 ({version})",
-      "general.autoShowOverlay.label": "自動顯示悬浮窗",
+      "general.autoShowOverlay.label": "自動顯示懸浮窗",
       "general.autoShowOverlay.desc": "偵測到 PPT 放映就自動開工具列",
+      "general.compatibilityMode.label": "相容模式",
+      "general.compatibilityMode.desc": "啟用後將停用自動顯隱、翻頁欄頁碼及部分工具，翻頁改為模擬鍵盤輸入",
       "general.overlayScreen.label": "顯示屏幕",
       "general.overlayScreen.desc": "揀工具列出現喺邊個屏幕",
       "general.overlayScreen.auto": "自動識別",
@@ -6202,10 +7141,6 @@
       "interaction.autoHandleInk.label": "自動處理墨跡",
       "interaction.autoHandleInk.desc": "放映完自動處理「保留墨跡」",
 
-      "interaction.toolbarLayout.label": "工具列佈局",
-      "interaction.toolbarLayout.desc": "揀工具列同翻頁按鈕點擺",
-      "interaction.layout.horizontal": "橫向",
-      "interaction.layout.verticalSplit": "兩邊直向",
       "interaction.showStatusBar.label": "頂部狀態列",
       "interaction.showStatusBar.desc": "頂部顯示時間同狀態",
       "overlay.safeArea.label": "螢幕安全區",
@@ -6214,10 +7149,25 @@
       "overlay.scale.desc": "調整元件顯示大小",
       "overlay.popWindowScale.label": "色板縮放",
       "overlay.popWindowScale.desc": "調整色板彈窗大小",
+      "overlay.toolbarOpacity.label": "工具列透明度",
+      "overlay.toolbarOpacity.desc": "較工具列背景有幾透",
+      "overlay.syncOpacity.label": "同步兩邊翻頁欄透明度",
+      "overlay.syncOpacity.desc": "揀咗就會同步較埋兩邊翻頁欄嘅透明度",
+      "overlay.sidePageOpacity.label": "兩邊翻頁欄透明度",
+      "overlay.sidePageOpacity.desc": "較兩邊翻頁欄背景有幾透",
       "overlay.rebuild.label": "重建頂層窗口",
       "overlay.rebuild.desc": "重建頂層效果窗套用變更",
       "overlay.rebuild.action": "即刻重建",
       "interaction.showClear.label": "顯示清屏",
+      "interaction.clearMode.desc": "揀點樣清屏（要重啟先有效）",
+      "interaction.clearMode.restart": "改呢個設定要重啟先會生效",
+      "interaction.clearMode.slide": "滑動清屏",
+      "interaction.clearMode.button": "獨立掣清屏",
+      "restart.island.text": "要重啟",
+      "restart.confirm.title": "重啟程式",
+      "restart.confirm.text": "有啲設定要重啟先會生效。即刻重啟？",
+      "restart.confirm.yes": "即刻",
+      "restart.confirm.no": "遲啲先",
       "interaction.showSpotlight.label": "顯示聚光燈",
       "interaction.showBoardInBoard.label": "顯示板中板",
       "boardInBoard.toolbarPosition.label": "工具列位置",
@@ -6229,15 +7179,13 @@
       "boardInBoard.backgroundColor.label": "黑板背景",
       "boardInBoard.backgroundColor.desc": "揀板中板黑板背景色",
       "interaction.showTimer.label": "顯示計時器",
-      "interaction.toolbar.layout.label": "工具列佈局",
-      "interaction.toolbar.layout.horizontal": "橫向",
-      "interaction.toolbar.layout.vertical": "兩邊直向",
       "interaction.toolbar.customization.label": "工具列固定項",
-      "interaction.toolbar.customization.desc": "管理工具列快速啟動項",
+      "interaction.toolbar.customization.desc": "預覽並管理工具列快速啟動項",
       "interaction.toolbar.preview.label": "工具列預覽",
       "interaction.toolbar.addApp": "加項",
       "interaction.toolbar.removeApp": "刪項",
       "interaction.toolbar.appList.label": "已加項",
+      "interaction.toolbar.renameApp": "改名",
       "toolbar.select": "選取",
       "toolbar.pen": "畫筆",
       "toolbar.eraser": "橡皮擦",
@@ -6246,8 +7194,36 @@
       "toolbar.timer": "計時器",
       "toolbar.clear": "清屏",
       "toolbar.end_show": "結束放映",
+      "update.status.ready": "準備檢查更新",
+      "update.status.latest": "你用緊最新版本",
+      "update.status.checking": "檢查緊更新...",
+      "update.status.error": "檢查更新失敗",
+      "update.status.hint": "Kazuha 嘅更新係為咗減少碳排放",
+      "update.lastCheck": "上次檢查時間",
+      "update.checkNow": "檢查更新",
+      "update.pivot.changelog": "更新日誌",
+      "update.pivot.settings": "更新設定",
+      "update.idle.title": "點擊上方按鈕檢查更新",
+      "update.idle.desc": "由揀選嘅更新來源攞最新版本資訊",
+      "update.error.title": "檢查更新失敗",
+      "update.error.desc": "請檢查網絡連線後重試",
+      "update.latest.title": "已經係最新版本",
+      "update.latest.desc": "唔洗更新",
+      "update.latest.changelogTitle": "最新公佈版本嘅可用更新日誌",
+      "update.available.title": "發現新版本",
+      "update.changelog.title": "更新內容",
+      "update.retry": "重試",
+      "update.later": "遲啲提醒",
+      "update.download": "下載更新",
+      "update.settings.autoCheck.label": "自動檢查更新",
+      "update.settings.autoCheck.desc": "啟動時自動檢查有無新版本",
+      "update.settings.source.label": "更新來源",
+      "update.settings.source.desc": "揀 GitHub、bgithub 或 kkgithub 鏡像來源",
+      "update.settings.source.github": "GitHub",
+      "update.settings.source.bgithub": "bgithub 鏡像",
+      "update.settings.source.kkgithub": "kkgithub 鏡像",
       "about.version.label": "軟體版本",
-      "about.version.copyright": "COPYRIGHT 2025-2026 Seirai Haraguchi / YunoFactory │ 本程式依據 GNU General Public License 3 授權",
+      "about.version.copyright": "COPYRIGHT 2025-2026 SECTL │ 本程式依據 GNU General Public License 3 授權",
       "about.version.github": "GitHub 儲存庫",
       "about.version.qq": "QQ群",
       "about.credits.label": "鳴謝",
@@ -6275,23 +7251,28 @@
       "nav.fonts": "グローバルフォント",
       "nav.overlay": "プレゼン",
       "nav.about": "情報",
+      "nav.window": "ウィンドウ",
       "nav.plugins": "ツールバー",
       "nav.pluginSettings": "プラグイン設定",
       "nav.boardInBoard": "ボードインボード",
+      "nav.accessibility": "アクセシビリティ",
       "nav.debug": "デバッグ",
       "nav.back": "戻る",
       "section.main": "一般",
       "section.theme": "テーマ",
       "section.fonts": "グローバルフォント",
       "section.overlay": "プレゼン",
+      "section.window": "ウィンドウ",
       "section.plugins": "ツールバー",
       "section.plugin-settings": "プラグイン設定",
       "section.board-in-board": "ボードインボード",
+      "section.accessibility": "アクセシビリティ",
       "section.about": "情報",
       "section.debug": "デバッグ",
       "group.language": "言語",
       "group.appearance": "外観",
       "group.startup": "起動",
+      "group.compatibility": "互換性",
       "group.fonts": "グローバルフォント",
       "group.presentation": "プレゼン",
       "group.overlayUi": "オーバーレイ UI",
@@ -6300,12 +7281,34 @@
       "group.installedPlugins": "インストール済みプラグイン",
       "plugins.none.label": "プラグインなし",
       "plugins.none.desc": "インストールされたサードパーティ製プラグインの設定がここに表示されます",
+      "group.boardInBoard": "ボードインボード",
+      "group.accessibility": "アクセシビリティ",
+      "accessibility.wip.label": "建設中",
+      "accessibility.wip.desc": "その他の機能は近日公開予定",
+      "group.window": "ウィンドウ設定",
+      "group.debugOptions": "デバッグオプション",
+      "appearance.colorScheme.title": "配色",
+      "appearance.overlayTheme.title": "オーバーレイテーマ",
+      "appearance.overlayTheme.label": "テーマを選択",
+      "appearance.overlayTheme.desc": "オーバーレイの HTML/CSS/JS をカスタマイズ",
+      "appearance.overlayTheme.default": "デフォルトテーマ",
+      "group.splash": "スプラッシュ画面",
+      "appearance.theme.custom": "カスタム",
+      "appearance.theme.custom.color": "色を選択",
+      "window.toolbarPosition.label": "ツールバー位置",
+      "window.toolbarPosition.desc": "画面上のツールバーの位置を調整します",
+      "window.flipperPosition.label": "ページめくりバーの位置",
+      "window.flipperPosition.desc": "ページめくりバーのレイアウトを調整します（両側中央：デフォルト、両側下部：ツールバーと同じ高さで横配置）",
+      "window.flipperPosition.center": "両側中央",
+      "window.flipperPosition.bottom": "両側下部",
       "window.timerFullscreenBehavior.label": "タイマー全画面動作",
       "window.timerFullscreenBehavior.desc": "タイマーを全画面にする時のウィンドウモードを選択",
       "window.timerFullscreenBehavior.fullscreen": "全画面切替",
       "window.timerFullscreenBehavior.maximize": "最大化",
-      "group.boardInBoard": "ボードインボード",
-      "group.debugOptions": "デバッグオプション",
+      "window.position.top": "上",
+      "window.position.bottom": "下",
+      "window.position.left": "左",
+      "window.position.right": "右",
       "fonts.scene.web.label": "ウェブインターフェース",
       "fonts.scene.web.desc": "設定 / タイマー / ダイアログ",
       "fonts.scene.qt.label": "メインプログラム",
@@ -6345,24 +7348,24 @@
       "appearance.theme.mungBean.desc": "ミントの清涼感と若草色",
       "appearance.theme.orangeWish": "柑橘",
       "appearance.theme.orangeWish.desc": "柑橘の甘さと温かい色味",
-      "appearance.theme.monet": "デスクトップの壁紙から色を抽出",
+      "appearance.theme.monet": "ダイナミックカラー",
       "appearance.theme.monet.desc": "デスクトップの壁紙から色を抽出",
-      "appearance.theme.monet.source.title": "取色元を選択",
-      "appearance.theme.monet.source.desc": "壁紙またはローカル画像から配色を取得します",
-      "appearance.theme.monet.preview.title": "动态取色プレビュー",
-      "appearance.theme.monet.preview.desc": "抽出した配色を確認して適用します",
-      "appearance.theme.monet.preview.loading": "壁紙から配色を取得中...",
+      "appearance.theme.monet.source.title": "抽出元を選択",
+      "appearance.theme.monet.source.desc": "壁紙またはローカル画像から色を抽出します",
+      "appearance.theme.monet.preview.title": "ダイナミックカラーのプレビュー",
+      "appearance.theme.monet.preview.desc": "抽出された配色を確認し、テーマに適用します",
+      "appearance.theme.monet.preview.loading": "壁紙から色を抽出中...",
       "appearance.theme.monet.preview.empty": "壁紙から色を取得できませんでした",
-      "appearance.theme.monet.preview.loading.custom": "画像から配色を取得中...",
+      "appearance.theme.monet.preview.loading.custom": "画像から色を抽出中...",
       "appearance.theme.monet.preview.empty.custom": "画像から色を取得できませんでした",
-      "appearance.theme.monet.preview.error": "色の取得に失敗しました",
-      "appearance.theme.monet.wallpaper": "壁紙から配色を取得",
-      "appearance.theme.monet.custom": "ローカル画像から取色",
+      "appearance.theme.monet.preview.error": "色の抽出に失敗しました",
+      "appearance.theme.monet.wallpaper": "壁紙から抽出",
+      "appearance.theme.monet.custom": "画像から抽出",
       "appearance.theme.monet.apply": "適用",
       "appearance.theme.monet.color.primary": "メイン",
       "appearance.theme.monet.color.background": "背景",
       "appearance.theme.monet.color.surface": "サーフェス",
-      "appearance.theme.monet.color.text": "文字",
+      "appearance.theme.monet.color.text": "テキスト",
       "general.runAtStartup.label": "起動時に自動実行",
       "general.splashMode.label": "スプラッシュ画面",
       "general.splashMode.always": "常に表示",
@@ -6376,6 +7379,8 @@
       "general.splashStyle.default": "デフォルト",
       "general.splashStyle.nina": "Nina Iseri - 1.2",
       "general.splashStyle.preview": "プレビュー",
+      "general.showDetailedSplash.label": "詳細な起動進捗を表示",
+      "general.showDetailedSplash.desc": "有効にすると、詳細な読み込みテキスト（フォント、プラグインなど）を表示します",
       "watermark.1": "開発中バージョン",
       "watermark.2": "テクニカルプレビュー",
       "watermark.3": "Release Preview",
@@ -6383,7 +7388,6 @@
       "general.devWatermark": "{type}\n品質は保証されません （{version}）",
       "general.autoShowOverlay.label": "オーバーレイを自動表示",
       "general.autoShowOverlay.desc": "PPT スライドショーを検出したらツールバーを自動表示します",
-      "group.compatibility": "互換性",
       "general.compatibilityMode.label": "互換モード",
       "general.compatibilityMode.desc": "自動表示、ページ番号、一部のツールを無効にし、キーボードシミュレーションでページをめくります",
       "general.overlayScreen.label": "表示ディスプレイ",
@@ -6401,23 +7405,37 @@
       "language.yue-HK": "広東語（繁体字）",
       "language.ja-JP": "日本語",
       "language.en-US": "英語",
+      "language.ug-CN": "ئۇيغۇرچە",
       "interaction.autoHandleInk.label": "インクを自動処理",
       "interaction.autoHandleInk.desc": "スライドショー終了時に「インクを保持するか」を自動処理します",
 
-      "interaction.toolbarLayout.label": "ツールバーのレイアウト",
-      "interaction.toolbarLayout.desc": "ツールバーとページめくりボタンの配置を選択します",
-      "interaction.layout.horizontal": "水平配置",
-      "interaction.layout.verticalSplit": "両側縦向き",
       "interaction.showStatusBar.label": "上部ステータスバー",
       "interaction.showStatusBar.desc": "オーバーレイの上部に時間とステータスを表示します",
       "overlay.safeArea.label": "画面内の安全領域",
       "overlay.safeArea.desc": "コンポーネントと画面端の距離を調整します",
       "overlay.scale.label": "コンポーネント倍率",
       "overlay.scale.desc": "オーバーレイコンポーネント全体の表示サイズを調整します",
+      "overlay.popWindowScale.label": "色板の倍率",
+      "overlay.popWindowScale.desc": "カラーパレットウィンドウのサイズを調整します",
+      "overlay.toolbarOpacity.label": "ツールバーの不透明度",
+      "overlay.toolbarOpacity.desc": "ツールバー背景の不透明度を調整します",
+      "overlay.syncOpacity.label": "ページめくりバーの透明度を同期",
+      "overlay.syncOpacity.desc": "チェックすると、両側のページめくりバーの透明度も同期して調整されます",
+      "overlay.sidePageOpacity.label": "ページめくりバーの不透明度",
+      "overlay.sidePageOpacity.desc": "両側のページめくりバー背景の不透明度を調整します",
       "overlay.rebuild.label": "オーバーレイを再作成",
       "overlay.rebuild.desc": "すべての変更を反映するために再作成します",
       "overlay.rebuild.action": "今すぐ再作成",
       "interaction.showClear.label": "クリアを表示",
+      "interaction.clearMode.desc": "クリア機能のトリガー方法を選択（再起動が必要）",
+      "interaction.clearMode.restart": "この変更を適用するには再起動が必要です",
+      "interaction.clearMode.slide": "スライドしてクリア",
+      "interaction.clearMode.button": "独立ボタン",
+      "restart.island.text": "再起動が必要です",
+      "restart.confirm.title": "アプリを再起動",
+      "restart.confirm.text": "一部の設定を適用するには再起動が必要です。今すぐ再起動しますか？",
+      "restart.confirm.yes": "今すぐ再起動",
+      "restart.confirm.no": "後で",
       "interaction.showSpotlight.label": "スポットライトを表示",
       "interaction.showBoardInBoard.label": "ボードインボードを表示",
       "boardInBoard.toolbarPosition.label": "ツールバー位置",
@@ -6429,15 +7447,13 @@
       "boardInBoard.backgroundColor.label": "黒板の背景",
       "boardInBoard.backgroundColor.desc": "ボードインボードの黒板背景色を選択します",
       "interaction.showTimer.label": "タイマーを表示",
-      "interaction.toolbar.layout.label": "ツールバーレイアウト",
-      "interaction.toolbar.layout.horizontal": "水平配置",
-      "interaction.toolbar.layout.vertical": "両側垂直",
       "interaction.toolbar.customization.label": "ツールバー固定プログラム",
       "interaction.toolbar.customization.desc": "ツールバーのクイック起動アプリを管理します",
       "interaction.toolbar.preview.label": "ツールバープレビュー",
       "interaction.toolbar.addApp": "アプリを追加",
       "interaction.toolbar.removeApp": "アプリを削除",
       "interaction.toolbar.appList.label": "追加済みアプリ",
+      "interaction.toolbar.renameApp": "名前を変更",
       "toolbar.select": "選択",
       "toolbar.pen": "ペン",
       "toolbar.eraser": "消しゴム",
@@ -6475,7 +7491,7 @@
       "update.settings.source.bgithub": "bgithub ミラー",
       "update.settings.source.kkgithub": "kkgithub ミラー",
       "about.version.label": "ソフトウェアバージョン",
-      "about.version.copyright": "copyright 2025-2026 SECTL 丨 本プログラムは GNU General Public License 3 に基づきライセンスされています",
+      "about.version.copyright": "COPYRIGHT 2025-2026 SECTL │ 本プログラムは GNU General Public License 3 に基づきライセンスされています",
       "about.version.github": "GitHub リポジトリ",
       "about.version.qq": "QQ グループ",
       "about.credits.label": "謝辞",
@@ -6516,7 +7532,7 @@
       "section.overlay": "Presentation",
       "section.window": "Window",
       "section.plugins": "Toolbar",
-      "section.pluginSettings": "Plugin Settings",
+      "section.plugin-settings": "Plugin Settings",
       "section.board-in-board": "Board in Board",
       "section.accessibility": "Accessibility",
       "section.about": "About",
@@ -6524,6 +7540,7 @@
       "group.language": "Language",
       "group.appearance": "Appearance",
       "group.startup": "Startup",
+      "group.compatibility": "Compatibility",
       "group.fonts": "Global Fonts",
       "group.presentation": "Presentation",
       "group.overlayUi": "Overlay UI",
@@ -6591,19 +7608,19 @@
       "appearance.theme.mungBean.desc": "Minty freshness and mellow greens",
       "appearance.theme.orangeWish": "Orange Wish",
       "appearance.theme.orangeWish.desc": "Sweet citrus with warm energy",
-      "appearance.theme.monet": "Dynamic palette",
+      "appearance.theme.monet": "Dynamic Color",
       "appearance.theme.monet.desc": "Extract colors from desktop wallpaper",
-      "appearance.theme.monet.source.title": "Choose color source",
-      "appearance.theme.monet.source.desc": "Pick colors from wallpaper or a local image",
-      "appearance.theme.monet.preview.title": "Dynamic palette preview",
-      "appearance.theme.monet.preview.desc": "Preview the extracted palette and apply it to the theme",
-      "appearance.theme.monet.preview.loading": "Extracting colors from wallpaper...",
-      "appearance.theme.monet.preview.empty": "No colors extracted from wallpaper",
-      "appearance.theme.monet.preview.loading.custom": "Extracting colors from image...",
-      "appearance.theme.monet.preview.empty.custom": "No colors extracted from image",
-      "appearance.theme.monet.preview.error": "Failed to extract colors",
-      "appearance.theme.monet.wallpaper": "Pick Wallpaper Colors",
-      "appearance.theme.monet.custom": "Pick Local Image Colors",
+      "appearance.theme.monet.source.title": "Select Color Source",
+      "appearance.theme.monet.source.desc": "Extract colors from wallpaper or a local image",
+      "appearance.theme.monet.preview.title": "Dynamic Color Preview",
+      "appearance.theme.monet.preview.desc": "Preview extracted colors and apply to theme",
+      "appearance.theme.monet.preview.loading": "Extracting from wallpaper...",
+      "appearance.theme.monet.preview.empty": "Failed to get colors from wallpaper",
+      "appearance.theme.monet.preview.loading.custom": "Extracting from image...",
+      "appearance.theme.monet.preview.empty.custom": "Failed to get colors from image",
+      "appearance.theme.monet.preview.error": "Extraction failed",
+      "appearance.theme.monet.wallpaper": "From Wallpaper",
+      "appearance.theme.monet.custom": "From Local Image",
       "appearance.theme.monet.apply": "Apply",
       "appearance.theme.monet.color.primary": "Primary",
       "appearance.theme.monet.color.background": "Background",
@@ -6631,7 +7648,6 @@
       "general.devWatermark": "{type}\nFinal quality not guaranteed ({version})",
       "general.autoShowOverlay.label": "Auto show overlay",
       "general.autoShowOverlay.desc": "Automatically show toolbar when PPT slideshow is detected",
-      "group.compatibility": "Compatibility",
       "general.compatibilityMode.label": "Compatibility Mode",
       "general.compatibilityMode.desc": "Disables auto-hide, page numbers, and some tools; page turning uses keyboard simulation.",
       "general.overlayScreen.label": "Display Screen",
@@ -6649,30 +7665,43 @@
       "language.yue-HK": "Cantonese (Traditional)",
       "language.ja-JP": "Japanese",
       "language.en-US": "English",
+      "language.ug-CN": "ئۇيغۇرچە",
       "interaction.autoHandleInk.label": "Auto handle ink",
       "interaction.autoHandleInk.desc": "Automatically handle \"keep ink\" prompt when slideshow ends",
+      "appearance.colorScheme.title": "Color Scheme",
+      "appearance.overlayTheme.title": "Overlay Theme",
+      "appearance.overlayTheme.label": "Select Theme",
+      "appearance.overlayTheme.desc": "Custom Overlay HTML/CSS/JS",
+      "appearance.overlayTheme.default": "Default Theme",
+      "group.splash": "Splash Screen",
+      "appearance.theme.custom": "Custom",
+      "appearance.theme.custom.color": "Select Color",
 
-      "interaction.toolbarLayout.label": "Toolbar layout",
-      "interaction.toolbarLayout.desc": "Choose how the toolbar and page flippers are arranged",
-      "interaction.layout.horizontal": "Horizontal",
-      "interaction.layout.verticalSplit": "Vertical Split",
       "interaction.showStatusBar.label": "Top status bar",
       "interaction.showStatusBar.desc": "Show time and status at top of overlay",
       "overlay.safeArea.label": "Safe Area",
       "overlay.safeArea.desc": "Adjust distance between components and screen edge",
       "overlay.scale.label": "Component Scaling",
       "overlay.scale.desc": "Adjust the overall display size of overlay components",
+      "overlay.popWindowScale.label": "Palette Scaling",
+      "overlay.popWindowScale.desc": "Adjust color palette window size",
+      "overlay.toolbarOpacity.label": "Toolbar Opacity",
+      "overlay.toolbarOpacity.desc": "Adjust the opacity of the toolbar background",
+      "overlay.syncOpacity.label": "Sync Side Flippers Opacity",
+      "overlay.syncOpacity.desc": "Sync opacity adjustment for side page flippers",
+      "overlay.sidePageOpacity.label": "Side Flippers Opacity",
+      "overlay.sidePageOpacity.desc": "Adjust the opacity of side page flippers background",
       "overlay.rebuild.label": "Rebuild Overlay",
       "overlay.rebuild.desc": "Recreate the overlay to apply all changes",
       "overlay.rebuild.action": "Rebuild Now",
       "interaction.showClear.label": "Show Clear",
-      "interaction.clearMode.desc": "Choose how to trigger clear screen on overlay (Restart required)",
-      "interaction.clearMode.restart": "Changes to this setting require a restart to take effect",
+      "interaction.clearMode.desc": "Choose how to clear screen (Restart required)",
+      "interaction.clearMode.restart": "Changes require a restart to take effect",
       "interaction.clearMode.slide": "Slide to Clear",
       "interaction.clearMode.button": "Independent Button",
       "restart.island.text": "Restart Required",
       "restart.confirm.title": "Restart Application",
-      "restart.confirm.text": "Some settings require a restart to take effect. Do you want to restart now?",
+      "restart.confirm.text": "Some settings require a restart to take effect. Restart now?",
       "restart.confirm.yes": "Restart Now",
       "restart.confirm.no": "Later",
       "interaction.showSpotlight.label": "Show Spotlight",
@@ -6681,6 +7710,8 @@
       "boardInBoard.toolbarPosition.desc": "Choose where the Board in Board toolbar docks",
       "boardInBoard.toolbarPosition.top": "Top",
       "boardInBoard.toolbarPosition.bottom": "Bottom",
+      "boardInBoard.toolbarPosition.left": "Left",
+      "boardInBoard.toolbarPosition.right": "Right",
       "boardInBoard.backgroundColor.label": "Blackboard Background",
       "boardInBoard.backgroundColor.desc": "Choose the blackboard background color",
       "interaction.showTimer.label": "Show Timer",
@@ -6690,10 +7721,12 @@
       "interaction.toolbar.addApp": "Add application",
       "interaction.toolbar.removeApp": "Remove application",
       "interaction.toolbar.appList.label": "Added applications",
+      "interaction.toolbar.renameApp": "Rename",
       "toolbar.select": "Select",
       "toolbar.pen": "Pen",
       "toolbar.eraser": "Eraser",
       "toolbar.spotlight": "Spotlight",
+      "toolbar.board_in_board": "Board in Board",
       "toolbar.timer": "Timer",
       "toolbar.clear": "Clear",
       "toolbar.end_show": "End slideshow",
@@ -6726,7 +7759,7 @@
       "update.settings.source.bgithub": "bgithub mirror",
       "update.settings.source.kkgithub": "kkgithub mirror",
       "about.version.label": "Software version",
-      "about.version.copyright": "copyright 2025-2026 SECTL │ Licensed under the GNU General Public License 3",
+      "about.version.copyright": "COPYRIGHT 2025-2026 SECTL │ Licensed under the GNU General Public License 3",
       "about.version.github": "GitHub repository",
       "about.version.qq": "QQ group",
       "about.credits.label": "Credits",
@@ -6744,8 +7777,7 @@
       "debug.rtlTest.label": "RTL Layout Test",
       "debug.rtlTest.desc": "Force right-to-left layout",
       "debug.rotateTest.label": "Rotate Window Test",
-      "debug.rotateTest.desc": "Continuously rotate the settings page",
-      "general.language.warning": "The currently selected language is not Simplified Chinese. For the best experience, it is recommended to use Simplified Chinese. Other languages may have incomplete translations or layout issues."
+      "debug.rotateTest.desc": "Continuously rotate the settings page"
     },
     "ug-CN": {
       "app.settings": "تەڭشەك",
@@ -7746,12 +8778,55 @@
     settings.Appearance.ThemeId = "monet";
     MonetTheme.palette = palette;
     ThemeSystem.applyTheme("monet", settings.Appearance.ThemeMode || "Light");
-    ThemeSystem.renderThemeGallery("theme-gallery", "monet", settings.Appearance.ThemeMode || "Light");
+    ThemeSystem.renderThemeSelect("color-scheme-select", "monet", settings.Appearance.ThemeMode || "Light");
     if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
       window.pywebview.api.save_setting("Appearance", "MonetPalette", palette);
       window.pywebview.api.save_setting("Appearance", "ThemeId", "monet");
     }
     closeMonetModal();
+  }
+
+  function applyCustomTheme(color) {
+      const palette = {
+          primary: color,
+          background: mixColor(color, "#FFFFFF", 0.95),
+          surface: "#FFFFFF",
+          text: "#1a1c1e"
+      };
+
+      if (!settings.Appearance) settings.Appearance = {};
+      settings.Appearance.MonetPalette = palette;
+      settings.Appearance.ThemeId = "custom";
+      MonetTheme.palette = palette;
+
+      const mode = settings.Appearance.ThemeMode || "Light";
+      ThemeSystem.applyTheme("custom", mode);
+      ThemeSystem.renderThemeSelect("color-scheme-select", "custom", mode);
+
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+          window.pywebview.api.save_setting("Appearance", "MonetPalette", palette);
+          window.pywebview.api.save_setting("Appearance", "ThemeId", "custom");
+      }
+  }
+
+  function switchThemeTab(tabId) {
+    const items = document.querySelectorAll('.pivot-item[data-pivot-group="theme"]');
+    items.forEach(el => {
+      if (el.dataset.pivot === tabId) {
+        el.classList.add('active');
+      } else {
+        el.classList.remove('active');
+      }
+    });
+
+    const contents = document.querySelectorAll('.pivot-content[data-pivot-group="theme"]');
+    contents.forEach(el => {
+      if (el.dataset.pivotContent === tabId) {
+        el.classList.add('active');
+      } else {
+        el.classList.remove('active');
+      }
+    });
   }
 
   const ThemeSystem = {
@@ -7762,7 +8837,8 @@
       document.documentElement.setAttribute("data-theme-id", id);
       document.documentElement.setAttribute("data-theme-variant", variant);
       document.documentElement.setAttribute("data-theme", variant);
-      if (id === "monet") {
+
+      if (id === "monet" || id === "custom") {
         const palette = getMonetPalette();
         if (palette) {
           applyMonetPalette(palette, m);
@@ -7772,12 +8848,73 @@
       } else {
         clearMonetPalette();
       }
+
+      const monetConfig = document.getElementById("monet-config-container");
+      const customConfig = document.getElementById("custom-color-container");
+      if (monetConfig) monetConfig.style.display = id === "monet" ? "flex" : "none";
+      if (customConfig) {
+          customConfig.style.display = id === "custom" ? "flex" : "none";
+          if (id === "custom" && MonetTheme.palette && MonetTheme.palette.primary) {
+               const input = document.getElementById("custom-theme-color");
+               if (input) input.value = MonetTheme.palette.primary;
+          }
+      }
+
+      const prevThemeId = settings.Appearance ? settings.Appearance.ThemeId : undefined;
+      if (!settings.Appearance) settings.Appearance = {};
+      settings.Appearance.ThemeId = id;
+      if (prevThemeId !== id && window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+          window.pywebview.api.save_setting("Appearance", "ThemeId", id);
+      }
     },
-    renderThemeGallery: (containerId, themeId, mode) => {
-       const container = typeof containerId === "string" ? document.getElementById(containerId) : containerId;
-       if (!container) return;
+    renderThemeSelect: (selectId, themeId, mode) => {
+       const select = typeof selectId === "string" ? document.getElementById(selectId) : selectId;
+       if (!select) return;
        
-       const themes = [
+      const isDark = getThemeVariant(mode) === "dark";
+      const customColor = MonetTheme.palette && MonetTheme.palette.primary ? MonetTheme.palette.primary : "#808080";
+      
+      // Define colors for each theme
+      const themeColors = {
+          "default": { 
+              light: { bg: "#f2f3f5", surface: "#ffffff", accent: "#3275F5", card: "rgba(0, 0, 0, 0.03)", textPri: "rgba(0,0,0,0.8)", textSec: "rgba(0,0,0,0.4)" },
+              dark: { bg: "#121212", surface: "#1E1E1E", accent: "#4A85F6", card: "rgba(255, 255, 255, 0.03)", textPri: "rgba(255,255,255,0.8)", textSec: "rgba(255,255,255,0.4)" }
+          },
+          "material-you": {
+              light: { bg: "#F6F0FF", surface: "#FFF7FF", accent: "#7A3BDB", card: "rgba(122, 59, 219, 0.1)", textPri: "#1D1B20", textSec: "#49454F" },
+              dark: { bg: "#1C1329", surface: "#2A1D3B", accent: "#CDA7FF", card: "rgba(208, 188, 255, 0.1)", textPri: "#E6E1E5", textSec: "#CAC4D0" }
+          },
+          "red-sunrise": {
+              light: { bg: "#FFF5F3", surface: "#FFFFFF", accent: "#E5523C", card: "rgba(229, 82, 60, 0.1)", textPri: "#2B1512", textSec: "#5D403A" },
+              dark: { bg: "#1A0B0A", surface: "#2B1512", accent: "#FF907B", card: "rgba(255, 144, 123, 0.15)", textPri: "#FFDAD5", textSec: "#E7BDB7" }
+          },
+          "emptiness-color": {
+              light: { bg: "#F5F6F8", surface: "#FFFFFF", accent: "#6B7280", card: "rgba(107, 114, 128, 0.1)", textPri: "#111827", textSec: "#4B5563" },
+              dark: { bg: "#101113", surface: "#1B1C1F", accent: "#A1A6AD", card: "rgba(161, 166, 173, 0.15)", textPri: "#F9FAFB", textSec: "#9CA3AF" }
+          },
+          "mung-bean": {
+              light: { bg: "#F3FFF7", surface: "#FFFFFF", accent: "#45B97C", card: "rgba(69, 185, 124, 0.1)", textPri: "#002113", textSec: "#404944" },
+              dark: { bg: "#0D1A14", surface: "#16231C", accent: "#7FE3B1", card: "rgba(127, 227, 177, 0.15)", textPri: "#E0F5EB", textSec: "#A0A8A4" }
+          },
+          "orange-wish": {
+              light: { bg: "#FFF6EE", surface: "#FFFFFF", accent: "#FF8A3D", card: "rgba(255, 138, 61, 0.1)", textPri: "#361904", textSec: "#584232" },
+              dark: { bg: "#1C1108", surface: "#2A190D", accent: "#FFB677", card: "rgba(255, 182, 119, 0.15)", textPri: "#FFDCC0", textSec: "#D6C3B6" }
+          },
+          "year-of-horse": {
+              light: { bg: "#FFF0F0", surface: "#FFFFFF", accent: "#E60000", card: "rgba(211, 47, 47, 0.15)", textPri: "#410002", textSec: "#690005" },
+              dark: { bg: "#2A0505", surface: "#451212", accent: "#FF4500", card: "rgba(255, 69, 0, 0.15)", textPri: "#FFDAD6", textSec: "#93000A" }
+          },
+          "monet": {
+              light: { bg: "#F2F3F5", surface: "#FFFFFF", accent: "linear-gradient(135deg, #4285f4, #ea4335, #fbbc05, #34a853)", card: "rgba(0, 0, 0, 0.03)", textPri: "rgba(0,0,0,0.8)", textSec: "rgba(0,0,0,0.4)" },
+              dark: { bg: "#121212", surface: "#1E1E1E", accent: "linear-gradient(135deg, #4285f4, #ea4335, #fbbc05, #34a853)", card: "rgba(255, 255, 255, 0.03)", textPri: "rgba(255,255,255,0.8)", textSec: "rgba(255,255,255,0.4)" }
+          },
+          "custom": {
+              light: { bg: "#F2F3F5", surface: "#FFFFFF", accent: customColor, card: "rgba(0, 0, 0, 0.03)", textPri: "rgba(0,0,0,0.8)", textSec: "rgba(0,0,0,0.4)" },
+              dark: { bg: "#121212", surface: "#1E1E1E", accent: customColor, card: "rgba(255, 255, 255, 0.03)", textPri: "rgba(255,255,255,0.8)", textSec: "rgba(255,255,255,0.4)" }
+          }
+      };
+
+      const themes = [
           { id: "default", nameKey: "appearance.theme.default", fallback: "默认主题" },
           { id: "material-you", nameKey: "appearance.theme.materialYou", fallback: "紫色心情" },
           { id: "red-sunrise", nameKey: "appearance.theme.redSunrise", fallback: "红日东升" },
@@ -7785,75 +8922,110 @@
           { id: "mung-bean", nameKey: "appearance.theme.mungBean", fallback: "绿豆冰沙" },
           { id: "orange-wish", nameKey: "appearance.theme.orangeWish", fallback: "心想事橙" },
           { id: "year-of-horse", nameKey: "appearance.theme.yearOfHorse", fallback: "马年大吉" },
-          { id: "monet", nameKey: "appearance.theme.monet", fallback: "动态取色", isMonet: true }
+          { id: "monet", nameKey: "appearance.theme.monet", fallback: "动态取色", isMonet: true },
+          { id: "custom", nameKey: "appearance.theme.custom", fallback: "自定义", isCustom: true }
        ];
        
-       const m = mode || "Light";
-       const variant = getThemeVariant(m);
-       
-       container.innerHTML = "";
+       // Update hidden select for compatibility
+       select.innerHTML = "";
        themes.forEach(theme => {
-           const card = document.createElement("div");
-           card.className = "theme-card" + (theme.id === themeId ? " active" : "");
-           
-           const preview = document.createElement("div");
-           preview.className = "theme-preview";
-           
-           const root = document.createElement("div");
-           root.className = "theme-preview-root";
-           if (theme.isMonet) {
-             const palette = getMonetPalette();
-             if (palette) {
-               root.style.background = palette.background;
-               root.innerHTML = `
-                 <div style="width: 100%; height: 100%; padding: 8px; display: flex; flex-direction: column; gap: 4px;">
-                   <div style="height: 8px; width: 40%; background: ${palette.text}; opacity: 0.6; border-radius: 4px;"></div>
-                   <div style="height: 20px; width: 100%; background: ${palette.surface}; border: 1px solid ${rgba(palette.text, 0.15)}; border-radius: 6px;"></div>
-                   <div style="height: 20px; width: 100%; background: ${palette.primary}; border-radius: 6px; margin-top: auto;"></div>
-                 </div>
-               `;
-             } else {
-               root.setAttribute("data-theme-id", "default");
-               root.setAttribute("data-theme-variant", variant);
-               root.innerHTML = `
-                 <div style="width: 100%; height: 100%; background: var(--bg-app); padding: 8px; display: flex; flex-direction: column; gap: 4px;">
-                   <div style="height: 8px; width: 40%; background: var(--text-primary); opacity: 0.5; border-radius: 4px;"></div>
-                   <div style="height: 20px; width: 100%; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 6px;"></div>
-                   <div style="height: 20px; width: 100%; background: var(--accent-blue); border-radius: 6px; margin-top: auto;"></div>
-                 </div>
-               `;
-             }
-           } else {
-             root.setAttribute("data-theme-id", theme.id);
-             root.setAttribute("data-theme-variant", variant);
-             root.innerHTML = `
-               <div style="width: 100%; height: 100%; background: var(--bg-app); padding: 8px; display: flex; flex-direction: column; gap: 4px;">
-                 <div style="height: 8px; width: 40%; background: var(--text-primary); opacity: 0.5; border-radius: 4px;"></div>
-                 <div style="height: 20px; width: 100%; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 6px;"></div>
-                 <div style="height: 20px; width: 100%; background: var(--accent-blue); border-radius: 6px; margin-top: auto;"></div>
-               </div>
-             `;
-           }
-           preview.appendChild(root);
-           card.appendChild(preview);
-           
-           const meta = document.createElement("div");
-           meta.className = "theme-meta";
-           const nameEl = document.createElement("div");
-           nameEl.className = "theme-meta-name";
-           nameEl.textContent = getText(theme.nameKey) || theme.fallback || theme.id;
-           meta.appendChild(nameEl);
-           card.appendChild(meta);
-           
-          card.addEventListener("click", () => {
-            if (theme.isMonet) {
-              openMonetSourceModal();
-            } else {
-              setThemeId(theme.id);
-            }
-          });
-           container.appendChild(card);
+           const option = document.createElement("option");
+           option.value = theme.id;
+           option.textContent = getText(theme.nameKey) || theme.fallback;
+           if (theme.id === themeId) option.selected = true;
+           select.appendChild(option);
        });
+       
+       // Render Gallery
+       const gallery = document.getElementById("theme-gallery");
+       if (gallery) {
+           gallery.innerHTML = "";
+           themes.forEach(theme => {
+               const item = document.createElement("div");
+               item.className = "theme-gallery-item" + (theme.id === themeId ? " active" : "");
+               item.onclick = () => ThemeSystem.applyTheme(theme.id, settings.Appearance.ThemeMode);
+               
+               const colors = themeColors[theme.id] ? (isDark ? themeColors[theme.id].dark : themeColors[theme.id].light) : themeColors["default"].light;
+               
+               const preview = document.createElement("div");
+               preview.className = "theme-gallery-preview";
+               // Set CSS variables for this specific preview
+               preview.style.setProperty('--preview-bg-app', colors.bg);
+               preview.style.setProperty('--preview-bg-surface', colors.surface);
+               preview.style.setProperty('--preview-accent', colors.accent);
+               preview.style.setProperty('--preview-card-bg', colors.card);
+               preview.style.setProperty('--preview-text-pri', colors.textPri);
+               preview.style.setProperty('--preview-text-sec', colors.textSec);
+               
+               preview.innerHTML = `
+                 <div class="preview-layout">
+                   <div class="preview-sidebar">
+                     <div class="preview-sidebar-item">
+                       <div class="preview-sidebar-text"></div>
+                     </div>
+                     <div class="preview-sidebar-item active">
+                       <div class="preview-sidebar-text"></div>
+                     </div>
+                     <div class="preview-sidebar-item">
+                       <div class="preview-sidebar-text"></div>
+                     </div>
+                   </div>
+                   <div class="preview-content">
+                     <div class="preview-title"></div>
+                     <div class="preview-group">
+                       <div class="preview-item">
+                          <div class="preview-text-col">
+                             <div class="preview-text-line" style="width: 40%"></div>
+                             <div class="preview-text-line sub" style="width: 60%"></div>
+                          </div>
+                          <div class="preview-control-toggle active"></div>
+                       </div>
+                       <div class="preview-item">
+                          <div class="preview-text-col">
+                             <div class="preview-text-line" style="width: 50%"></div>
+                          </div>
+                          <div class="preview-control-chevron"></div>
+                       </div>
+                     </div>
+                     <div class="preview-group">
+                        <div class="preview-item" style="border-bottom: none">
+                           <div class="preview-text-col">
+                              <div class="preview-text-line" style="width: 30%"></div>
+                           </div>
+                        </div>
+                     </div>
+                   </div>
+                 </div>
+               `;
+               
+               const name = document.createElement("div");
+               name.className = "theme-gallery-name";
+               name.textContent = getText(theme.nameKey) || theme.fallback;
+               
+               if (theme.id === themeId) {
+                   const check = document.createElement("div");
+                   check.className = "theme-gallery-check";
+                   check.innerHTML = `<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`;
+                   preview.appendChild(check);
+               }
+               
+               item.appendChild(preview);
+               item.appendChild(name);
+               gallery.appendChild(item);
+           });
+       }
+
+       const monetConfig = document.getElementById("monet-config-container");
+       const customConfig = document.getElementById("custom-color-container");
+       
+       if (monetConfig) monetConfig.style.display = themeId === "monet" ? "flex" : "none";
+       if (customConfig) {
+           customConfig.style.display = themeId === "custom" ? "flex" : "none";
+           if (themeId === "custom" && MonetTheme.palette && MonetTheme.palette.primary) {
+               const input = document.getElementById("custom-theme-color");
+               if (input) input.value = MonetTheme.palette.primary;
+           }
+       }
     }
   };
 
@@ -7863,15 +9035,6 @@
     position: "bottom",
     size_percent: 0
   };
-
-  function setOverlayScreen(value) {
-    if (!settings.Overlay) settings.Overlay = {};
-    settings.Overlay.OverlayScreen = value;
-    if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
-      window.pywebview.api.save_setting("Overlay", "OverlayScreen", value);
-    }
-    updateTaskbarPreview();
-  }
 
   function updateTaskbarPreview() {
     const screenSel = document.getElementById("sel-Overlay-OverlayScreen");
@@ -7924,6 +9087,15 @@
             updateToolbarIndicatorPosition();
         });
     }
+  }
+
+  function setOverlayScreen(value) {
+    if (!settings.Overlay) settings.Overlay = {};
+    settings.Overlay.OverlayScreen = value;
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+      window.pywebview.api.save_setting("Overlay", "OverlayScreen", value);
+    }
+    updateTaskbarPreview();
   }
 
   function updateToolbarIndicatorPosition() {
@@ -8130,7 +9302,6 @@
     if (!settings.Appearance) settings.Appearance = {};
     settings.Appearance.ThemeId = themeId;
     ThemeSystem.applyTheme(themeId, settings.Appearance.ThemeMode || "Light");
-    ThemeSystem.renderThemeGallery("theme-gallery", themeId, settings.Appearance.ThemeMode || "Light");
     if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
       window.pywebview.api.save_setting("Appearance", "ThemeId", themeId);
     }
@@ -8141,7 +9312,8 @@
     document.documentElement.style.setProperty("--font-stack", fontStack);
   }
 
-  document.addEventListener("click", () => {
+  document.addEventListener("pointerdown", (e) => {
+    if (e.target.closest(".custom-select-container") || e.target.closest(".font-dropdown")) return;
     document.querySelectorAll(".font-dropdown.open, .custom-select-container.open").forEach(dd => dd.classList.remove("open"));
   });
 
@@ -8195,6 +9367,11 @@
     convertNativeSelectsToCustom();
   }
 
+  function refreshAllCustomSelects() {
+    const selects = document.querySelectorAll('select.styled-select[data-converted="true"]');
+    selects.forEach(sel => refreshCustomSelect(sel));
+  }
+
   function applyI18n() {
     document.documentElement.lang = currentLanguage;
     const isRtl = rtlTestEnabled ? true : currentLanguage === "ug-CN";
@@ -8242,9 +9419,10 @@
         btn.classList.remove("active");
       }
     });
-    ThemeSystem.renderThemeGallery("theme-gallery", settings.Appearance?.ThemeId || "default", settings.Appearance?.ThemeMode || "Light");
+    ThemeSystem.renderThemeSelect("color-scheme-select", settings.Appearance?.ThemeId || "default", settings.Appearance?.ThemeMode || "Light");
     updateWindowTitleFromActive();
-    rebuildCustomSelects();
+    refreshAllCustomSelects();
+    if (typeof initSearch === 'function') initSearch();
   }
 
   function initNav() {
@@ -8441,6 +9619,52 @@
     window.addEventListener('pywebviewready', onPywebviewReady);
   }
 
+  function setSelectLabel(label, option) {
+    if (!label) return;
+    label.innerHTML = "";
+    const color = option && option.dataset ? option.dataset.color : "";
+    if (color) {
+      const dot = document.createElement("span");
+      dot.className = "custom-select-color-dot";
+      dot.style.background = color;
+      label.appendChild(dot);
+    }
+    const text = document.createElement("span");
+    text.className = "custom-select-text";
+    text.textContent = option ? option.text : "";
+    label.appendChild(text);
+  }
+
+  function buildCustomSelectOption(sel, label, container, menu, opt) {
+    const item = document.createElement('div');
+    item.className = 'custom-select-option';
+    const color = opt.dataset ? opt.dataset.color : "";
+    if (color) {
+      const dot = document.createElement("span");
+      dot.className = "custom-select-color-dot";
+      dot.style.background = color;
+      item.appendChild(dot);
+    }
+    const text = document.createElement("span");
+    text.className = "custom-select-text";
+    text.textContent = opt.text;
+    item.appendChild(text);
+    item.dataset.value = opt.value;
+    if (opt.selected) item.classList.add('selected');
+
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sel.value = opt.value;
+      sel.dispatchEvent(new Event('change'));
+      setSelectLabel(label, opt);
+      menu.querySelectorAll('.custom-select-option').forEach(o => o.classList.remove('selected'));
+      item.classList.add('selected');
+      container.classList.remove('open');
+    });
+
+    menu.appendChild(item);
+  }
+
   function convertNativeSelectsToCustom() {
     const selects = document.querySelectorAll('select.styled-select:not([data-converted])');
     selects.forEach(sel => {
@@ -8455,8 +9679,8 @@
 
       const label = document.createElement('span');
       const selectedOption = sel.options[sel.selectedIndex];
-      label.textContent = selectedOption ? selectedOption.text : '';
       label.className = 'custom-select-label';
+      setSelectLabel(label, selectedOption);
       
       const arrow = document.createElement('div');
       arrow.className = 'custom-select-arrow';
@@ -8469,26 +9693,14 @@
       menu.className = 'custom-select-menu';
 
       Array.from(sel.options).forEach(opt => {
-        const item = document.createElement('div');
-        item.className = 'custom-select-option';
-        item.textContent = opt.text;
-        item.dataset.value = opt.value;
-        if (opt.selected) item.classList.add('selected');
-
-        item.addEventListener('click', (e) => {
-          e.stopPropagation();
-          sel.value = opt.value;
-          sel.dispatchEvent(new Event('change'));
-          label.textContent = opt.text;
-          menu.querySelectorAll('.custom-select-option').forEach(o => o.classList.remove('selected'));
-          item.classList.add('selected');
-          container.classList.remove('open');
-        });
-
-        menu.appendChild(item);
+        buildCustomSelectOption(sel, label, container, menu, opt);
       });
 
       container.appendChild(menu);
+
+      container.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+      });
 
       toggle.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -8508,14 +9720,31 @@
     const container = sel.nextSibling;
     const label = container.querySelector('.custom-select-label');
     const selectedOption = sel.options[sel.selectedIndex];
-    if (label && selectedOption) label.textContent = selectedOption.text;
+    if (label && selectedOption) setSelectLabel(label, selectedOption);
     
     const menu = container.querySelector('.custom-select-menu');
     if (menu) {
-        menu.querySelectorAll('.custom-select-option').forEach(opt => {
-            if (opt.dataset.value === sel.value) opt.classList.add('selected');
-            else opt.classList.remove('selected');
-        });
+        const options = Array.from(sel.options);
+        const items = Array.from(menu.querySelectorAll('.custom-select-option'));
+        if (items.length !== options.length) {
+          menu.innerHTML = "";
+          options.forEach(opt => buildCustomSelectOption(sel, label, container, menu, opt));
+        } else {
+          items.forEach((opt, idx) => {
+              const option = options[idx];
+              if (option) {
+                  opt.dataset.value = option.value;
+                  const text = opt.querySelector(".custom-select-text");
+                  if (text) text.textContent = option.text;
+                  const dot = opt.querySelector(".custom-select-color-dot");
+                  if (dot && option.dataset && option.dataset.color) {
+                      dot.style.background = option.dataset.color;
+                  }
+              }
+              if (opt.dataset.value === sel.value) opt.classList.add('selected');
+              else opt.classList.remove('selected');
+          });
+        }
     }
   }
 
@@ -8597,7 +9826,56 @@
     }
   }
 
+  function updateOverlayTheme(theme) {
+    if (!settings.Appearance) settings.Appearance = {};
+    const oldTheme = settings.Appearance.OverlayTheme || "default";
+    
+    if (oldTheme !== theme) {
+      settings.Appearance.OverlayTheme = theme;
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+        window.pywebview.api.save_setting("Appearance", "OverlayTheme", theme);
+      }
+      showRestartIsland();
+    }
+  }
+
+  function loadOverlayThemes() {
+    const select = document.getElementById("sel-Appearance-OverlayTheme");
+    if (!select) return;
+
+    const applyOptions = (themes) => {
+        select.innerHTML = "";
+        const defaultOpt = document.createElement("option");
+        defaultOpt.value = "default";
+        defaultOpt.text = getText("appearance.overlayTheme.default") || "默认主题";
+        select.appendChild(defaultOpt);
+        (themes || []).forEach(theme => {
+            if (!theme || theme.id === "default") return;
+            const option = document.createElement("option");
+            option.value = theme.id;
+            option.textContent = theme.name || theme.id;
+            select.appendChild(option);
+        });
+        const current = settings.Appearance?.OverlayTheme || "default";
+        select.value = current;
+        refreshCustomSelect(select);
+    };
+
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.get_overlay_themes) {
+        window.pywebview.api.get_overlay_themes().then(res => {
+            if (Array.isArray(res)) {
+                applyOptions(res);
+            } else {
+                applyOptions([]);
+            }
+        }).catch(() => applyOptions([]));
+    } else {
+        applyOptions([]);
+    }
+  }
+
   function applySettingsToUI() {
+    loadOverlayThemes();
     const lang = settings.General && settings.General.Language;
     if (lang) currentLanguage = lang;
     applyI18n();
@@ -8711,8 +9989,6 @@
         boardBackgroundEl.value = boardBackgroundColor;
     }
 
-    // Layout mode UI setup removed
-
     const mode = settings.Appearance && settings.Appearance.ThemeMode ? settings.Appearance.ThemeMode : "Light";
     document.querySelectorAll(".theme-option").forEach(opt => opt.classList.remove("active"));
     const activeOpt = document.getElementById(`theme-${mode}`);
@@ -8724,7 +10000,7 @@
     MonetTheme.palette = normalizeMonetPalette(settings.Appearance?.MonetPalette);
     const themeId = settings.Appearance && settings.Appearance.ThemeId ? settings.Appearance.ThemeId : "default";
     ThemeSystem.applyTheme(themeId, mode);
-    ThemeSystem.renderThemeGallery("theme-gallery", themeId, mode);
+    ThemeSystem.renderThemeSelect("color-scheme-select", themeId, mode);
 
     renderToolbarPreview();
     initToolbarPosition();
@@ -8902,32 +10178,63 @@
     const val = settings[cat]?.[key] ?? defaultVal;
     const rangeEl = document.getElementById(`range-${cat}-${key}`);
     const valEl = document.getElementById(`val-${cat}-${key}`);
+
+    const updateVisuals = (v) => {
+        // Update track fill via CSS variable
+        const min = parseFloat(rangeEl.min) || 0;
+        const max = parseFloat(rangeEl.max) || 100;
+        const percent = ((v - min) / (max - min)) * 100;
+        rangeEl.style.setProperty('--slider-percent', `${percent}%`);
+    };
+    
+    const updateLabel = (v) => {
+        if (valEl) {
+            valEl.textContent = Number(v).toFixed(decimals) + unit;
+        }
+    };
+
     if (rangeEl) {
       rangeEl.value = val;
-    }
-    if (valEl) {
-      valEl.textContent = Number(val).toFixed(decimals) + unit;
+      updateVisuals(val);
+      updateLabel(val);
+      
+      rangeEl.addEventListener('input', (e) => {
+          const v = e.target.value;
+          updateVisuals(v);
+          updateLabel(v);
+      });
     }
   }
 
   function updateRangeValue(cat, key, val) {
+    // Show external value label if it exists
     const valEl = document.getElementById(`val-${cat}-${key}`);
     if (valEl) {
-      let unit = "";
-      let decimals = 0;
-      if (key === "SafeArea") unit = "px";
-      if (key === "Scale") {
-        unit = "x";
-        decimals = 2;
-      }
-      if (key === "PopWindowScale") {
-        unit = "x";
-        decimals = 1;
-      }
-      if (key === "ToolbarOpacity" || key === "SidePageOpacity") {
-        decimals = 2;
-      }
-      valEl.textContent = Number(val).toFixed(decimals) + unit;
+        valEl.style.display = '';
+        let unit = "";
+        let decimals = 0;
+        if (key === "SafeArea") unit = "px";
+        if (key === "Scale") {
+          unit = "x";
+          decimals = 2;
+        }
+        if (key === "PopWindowScale") {
+          unit = "x";
+          decimals = 1;
+        }
+        if (key === "ToolbarOpacity" || key === "SidePageOpacity") {
+          decimals = 2;
+        }
+        valEl.textContent = Number(val).toFixed(decimals) + unit;
+    }
+    
+    // Update visuals for this slider
+    const rangeEl = document.getElementById(`range-${cat}-${key}`);
+    if (rangeEl) {
+        const min = parseFloat(rangeEl.min) || 0;
+        const max = parseFloat(rangeEl.max) || 100;
+        const percent = ((val - min) / (max - min)) * 100;
+        rangeEl.style.setProperty('--slider-percent', `${percent}%`);
     }
     
     // Update settings object
@@ -9128,33 +10435,24 @@
     const active = container.querySelector(".theme-option.active");
     if (!active) {
       container.classList.remove("has-slider");
-      container.style.setProperty("--select-slider-opacity", "0");
+      container.style.removeProperty("--select-slider-opacity");
       return;
     }
     const containerRect = container.getBoundingClientRect();
     const activeRect = active.getBoundingClientRect();
     const x = activeRect.left - containerRect.left - 4;
     const y = activeRect.top - containerRect.top - 4;
-    const width = activeRect.width;
-    const height = activeRect.height;
     
-    container.style.setProperty("--select-slider-x", `${Math.max(0, x)}px`);
-    container.style.setProperty("--select-slider-y", `${Math.max(0, y)}px`);
-    container.style.setProperty("--select-slider-width", `${Math.max(0, width)}px`);
-    container.style.setProperty("--select-slider-height", `${Math.max(0, height)}px`);
+    container.style.setProperty("--select-slider-x", `${x}px`);
+    container.style.setProperty("--select-slider-y", `${y}px`);
+    container.style.setProperty("--select-slider-width", `${activeRect.width}px`);
+    container.style.setProperty("--select-slider-height", `${activeRect.height}px`);
     container.classList.add("has-slider");
     container.style.setProperty("--select-slider-opacity", "1");
   }
 
   function updateAllSelectSliders() {
-    const run = () => {
       document.querySelectorAll(".theme-select").forEach(updateSelectSlider);
-    };
-    if (typeof requestAnimationFrame === "function") {
-      requestAnimationFrame(run);
-    } else {
-      run();
-    }
   }
 
   window.addEventListener('resize', updateAllSelectSliders);
@@ -9212,6 +10510,9 @@
 
     const rawOrder = (settings.Toolbar && settings.Toolbar.ToolbarOrder) || ["select", "pen", "eraser", "spotlight", "timer", "clear", "apps"];
     const order = normalizeToolbarOrder(rawOrder);
+    if (toolbarApps && toolbarApps.length > 0 && !order.includes("apps")) {
+      order.push("apps");
+    }
     const disabledTools = (settings.Toolbar && settings.Toolbar.DisabledTools) || [];
     const showSpotlight = !!(settings.Toolbar && settings.Toolbar.ShowSpotlight);
     const showBoardInBoard = !!(settings.Toolbar && settings.Toolbar.ShowBoardInBoard);
@@ -9735,10 +11036,10 @@
       }
 
       if (style === 'default') {
-          img.src = '../../../icons/splash_preview_default.png'; 
+          img.src = '../../../user/splash/default/preview.png'; 
           container.style.display = 'flex';
       } else if (style === 'nina_iseri_1_2') {
-          img.src = '../../../icons/splash_preview_nina.png';
+          img.src = '../../../user/splash/nina_iseri_1_2/preview.png';
           container.style.display = 'flex';
       } else {
           container.style.display = 'none';
@@ -9746,9 +11047,8 @@
       
       // Fallback if image fails
       img.onerror = function() {
-          if (style === 'nina_iseri_1_2' && !img.src.includes('1.2_Splash.png')) {
-              // Try fallback to original if preview thumbnail missing
-              img.src = '../../../icons/1.2_Splash.png';
+          if (style === 'nina_iseri_1_2' && !img.src.includes('preview.png')) {
+              img.src = '../../../user/splash/nina_iseri_1_2/preview.png';
           } else {
               container.style.display = 'none';
           }
@@ -10197,21 +11497,42 @@
   function showUpdate() {
     const layout = document.getElementById('layout');
     const sections = document.querySelectorAll(".section");
-    const navItems = document.querySelectorAll(".sidebar-item");
+    // backBtn and divider visibility is now handled by CSS via .three-island class
     const title = document.getElementById("section-title");
 
     layout.classList.add('three-island');
 
-    navItems.forEach(item => {
-      item.classList.add('disabled');
-      if (item.classList.contains('active')) {
-        const span = item.querySelector('span');
+    // JS visibility toggling removed in favor of CSS
+
+    // No longer need to disable items as they are hidden by CSS
+    // Just ensure 'about' is active if we want it to be highlighted, 
+    // or maybe we don't need to highlight anything specific if it's just update view.
+    // The user request says "return to 'General' (Main)". 
+    // But while in update view, what should be active?
+    // "Except About options... including search return directly to 'General'".
+    // It seems the user wants the sidebar to only show "Back" and "About".
+    // And "Back" should go to "General" (Main).
+    
+    // Let's set About as active just in case, or leave it.
+    // The original code modified text of active item.
+    // Since we are hiding most items, we might not need that text modification anymore 
+    // unless the active item was 'about'.
+    
+    const aboutItem = document.querySelector('.sidebar-item[data-section="about"]');
+    if (aboutItem) {
+        // Optional: select About item or deselect all?
+        // Usually update is a sub-function of About.
+        // Let's keep About active.
+        document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+        aboutItem.classList.add('active');
+        
+        // Update text? "About / Software Update"
+        const span = aboutItem.querySelector('span');
         if (span) {
-          const aboutText = getText("nav.about") || "关于";
-          span.textContent = `${aboutText} / 软件更新`;
+             const aboutText = getText("nav.about") || "关于";
+             span.textContent = `${aboutText} / 软件更新`;
         }
-      }
-    });
+    }
 
     sections.forEach(sec => sec.classList.remove('active'));
     document.getElementById('section-update').classList.add('active');
@@ -10226,31 +11547,44 @@
   function hideUpdate() {
     const layout = document.getElementById('layout');
     const sections = document.querySelectorAll(".section");
-    const navItems = document.querySelectorAll(".sidebar-item");
+    // backBtn and divider visibility is now handled by CSS via .three-island class
     const title = document.getElementById("section-title");
 
     layout.classList.remove('three-island');
+    
+    // Restore About text
+    const aboutItem = document.querySelector('.sidebar-item[data-section="about"]');
+    if (aboutItem) {
+        const span = aboutItem.querySelector('span');
+        if (span) {
+            const aboutText = getText("nav.about") || "关于";
+            span.textContent = aboutText;
+        }
+    }
 
-    navItems.forEach(item => {
-      item.classList.remove('disabled');
-      const span = item.querySelector('span');
-      const key = item.getAttribute('data-section');
-      if (span && key) {
-        const text = getText("nav." + key);
-        if (text) span.textContent = text;
+    // Always return to 'main' (General) as requested
+    const targetSection = 'main';
+
+    sections.forEach(sec => {
+      if (sec.id === `section-${targetSection}`) {
+        sec.classList.add('active');
+      } else {
+        sec.classList.remove('active');
       }
     });
 
-    sections.forEach(sec => {
-      sec.classList.toggle('active', sec.id === 'section-about');
-    });
-
+    const navItems = document.querySelectorAll(".sidebar-item");
     navItems.forEach(item => {
-      item.classList.toggle('active', item.getAttribute('data-section') === 'about');
+      if (item.getAttribute('data-section') === targetSection) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
     });
 
     if (title) {
-      title.style.display = 'none';
+        title.style.display = 'block';
+        title.textContent = getText("section.main") || "主程序";
     }
   }
   // --- Restart Notification & Generic Modal ---

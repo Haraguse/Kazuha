@@ -98,6 +98,12 @@ class PPTWorker(QObject):
                     return False
                 if not win32gui.IsWindowVisible(int(hwnd)):
                     return False
+                try:
+                    title = win32gui.GetWindowText(int(hwnd)) or ""
+                except Exception:
+                    title = ""
+                if title in {"PowerPoint幻灯片放映", "WPS Persentation Slide Show"}:
+                    return True
                 if win32gui.GetClassName(int(hwnd)) != "screenClass":
                     return False
                 if win32process and win32api:
@@ -332,14 +338,33 @@ class PPTWorker(QObject):
         if self.wps_app: return self.wps_app
         return None
 
+    def _safe_get_active_object(self, prog_id: str):
+        if not win32com:
+            return None
+        try:
+            return win32com.client.GetActiveObject(prog_id)
+        except Exception:
+            return None
+
     def _check_ppt_state(self):
         try:
+            if not win32com:
+                return
+            if self._active_kind == "wps":
+                self._check_wps_state()
+                return
+
             # 1. Try PowerPoint
-            try:
-                self.ppt_app = win32com.client.GetActiveObject("PowerPoint.Application")
-            except Exception:
-                self.ppt_app = None
+            self.ppt_app = self._safe_get_active_object("PowerPoint.Application")
+
+            # If no PPT app, we might want to check WPS, but current logic returns if PPT fails
+            # and `_handle_stop` is called. 
+            # We should probably restructure to try both.
+            
+            if not self.ppt_app:
+                # Try WPS logic here or just cleanup
                 self._handle_stop("ppt")
+                self._check_wps_state()
                 return
 
             try:
@@ -463,11 +488,14 @@ class PPTWorker(QObject):
             
         # If not running PPT, check WPS
         if not self._running:
+            self._check_wps_state()
             return
 
     def _check_wps_state(self):
+        if not win32com:
+            return
         try:
-            self.wps_app = win32com.client.GetActiveObject("KWPP.Application")
+            self.wps_app = self._safe_get_active_object("KWPP.Application")
         except BaseException:
             self.wps_app = None
             self._handle_stop("wps")
@@ -499,57 +527,51 @@ class PPTWorker(QObject):
                         ss_win = self.wps_app.SlideShowWindows(1)
 
                 view = ss_win.View
-                # WPS State might differ, usually 1=Running
-                state = getattr(view, "State", 1)
-                
-                if state in [1, 2]:
-                    if not self._running:
-                        self._running = True
-                        self._set_active_kind("wps")
-                        try:
-                            hwnd = int(getattr(ss_win, "HWND", 0) or 0)
-                            if hwnd and hwnd != self._slideshow_hwnd:
-                                self._slideshow_hwnd = hwnd
-                                self.slideshow_hwnd_changed.emit(hwnd)
-                        except Exception:
-                            pass
-                        self._slideshow_started_at = time.monotonic()
-                        self.slideshow_started.emit()
-
-                    if True:
-                        current = 0
-                        total = 0
-                        try:
-                            current = int(getattr(view, "CurrentShowPosition", 0) or 0)
-                        except Exception:
-                            current = 0
-                        if not current:
-                            try:
-                                current = int(getattr(getattr(view, "Slide", None), "SlideIndex", 0) or 0)
-                            except Exception:
-                                current = 0
-                        try:
-                            presentation = getattr(ss_win, "Presentation", None)
-                            total = int(getattr(getattr(presentation, "Slides", None), "Count", 0) or 0) if presentation is not None else 0
-                        except Exception:
-                            total = 0
-
-                        if not total:
-                            total = int(self._total_slides or 0)
-                        if current > 0 and total > 0 and (current != self._current_slide or total != self._total_slides):
-                            self._current_slide = current
-                            self._total_slides = total
-                            self.slide_changed.emit(current, total)
-                            self._degraded_current = current
-                            self._degraded_total = total
-
+                if not self._running:
+                    self._running = True
+                    self._set_active_kind("wps")
                     try:
-                        self._update_window_rect(ss_win)
-                        self._update_video_state(ss_win)
+                        hwnd = int(getattr(ss_win, "HWND", 0) or 0)
+                        if hwnd and hwnd != self._slideshow_hwnd:
+                            self._slideshow_hwnd = hwnd
+                            self.slideshow_hwnd_changed.emit(hwnd)
                     except Exception:
                         pass
-                else:
-                    self._handle_stop("wps")
+                    self._slideshow_started_at = time.monotonic()
+                    self.slideshow_started.emit()
+
+                if True:
+                    current = 0
+                    total = 0
+                    try:
+                        current = int(getattr(view, "CurrentShowPosition", 0) or 0)
+                    except Exception:
+                        current = 0
+                    if not current:
+                        try:
+                            current = int(getattr(getattr(view, "Slide", None), "SlideIndex", 0) or 0)
+                        except Exception:
+                            current = 0
+                    try:
+                        presentation = getattr(ss_win, "Presentation", None)
+                        total = int(getattr(getattr(presentation, "Slides", None), "Count", 0) or 0) if presentation is not None else 0
+                    except Exception:
+                        total = 0
+
+                    if not total:
+                        total = int(self._total_slides or 0)
+                    if current > 0 and total > 0 and (current != self._current_slide or total != self._total_slides):
+                        self._current_slide = current
+                        self._total_slides = total
+                        self.slide_changed.emit(current, total)
+                        self._degraded_current = current
+                        self._degraded_total = total
+
+                try:
+                    self._update_window_rect(ss_win)
+                    self._update_video_state(ss_win)
+                except Exception:
+                    pass
             else:
                 self._handle_stop("wps")
         except BaseException:
@@ -822,19 +844,57 @@ class PPTWorker(QObject):
             app = self._get_active_app()
             if app and app.SlideShowWindows.Count > 0:
                 ss_win = app.SlideShowWindows(1)
-                hwnd = int(getattr(ss_win, "HWND", 0) or 0)
+                try:
+                    # 'E' key clears screen in PPT. 
+                    # If we use COM, we might not have a direct 'Clear' method in OM for View?
+                    # View.EraseDrawing() clears annotations but maybe not "black/white screen".
+                    # If we mean "Black Screen" or "White Screen", there are methods.
+                    # But usually "Clear" in this context means "Erase All Ink on Slide".
+                    # Let's assume it means EraseDrawing.
+                    # BUT the error log says "clear_screen_com failed: TypeError: int() ... not 'method'"
+                    # This suggests we are calling int() on something wrong inside this block.
+                    # Look at: hwnd = int(getattr(ss_win, "HWND", 0) or 0)
+                    # getattr(ss_win, "HWND", 0) might be returning a method?
+                    # In some COM wrappers, properties might be methods if not wrapped correctly.
+                    # Or maybe I am doing something else.
+                    
+                    # Wait, lines 836:
+                    # hwnd = int(getattr(ss_win, "HWND", 0) or 0)
+                    
+                    # If getattr returns a bound method (unlikely for HWND property but possible if COM interface is weird), int() fails.
+                    # Let's make it robust.
+                    val = getattr(ss_win, "HWND", 0)
+                    if callable(val):
+                        val = val()
+                    hwnd = int(val or 0)
+                except Exception:
+                    hwnd = 0
+
                 if hwnd and win32gui:
                     try:
                         win32gui.SetForegroundWindow(hwnd)
                     except Exception:
                         pass
-                if win32api and win32con:
-                    try:
+                
+                # Send 'E' key via keyboard event as fallback/primary if no COM method exists for "Erase All"
+                # View.EraseDrawing() exists?
+                try:
+                    view = ss_win.View
+                    if hasattr(view, "EraseDrawing"):
+                        view.EraseDrawing()
+                    else:
+                        # Fallback to key
+                        if win32api and win32con:
+                            vk = ord("E")
+                            win32api.keybd_event(vk, 0, 0, 0)
+                            win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)
+                except Exception:
+                     # Fallback to key
+                    if win32api and win32con:
                         vk = ord("E")
                         win32api.keybd_event(vk, 0, 0, 0)
                         win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)
-                    except Exception:
-                        pass
+
                 self._control_mode = "com"
                 return
         except Exception as e:

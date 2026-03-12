@@ -217,6 +217,18 @@ class WindowsFocusWatcher(QObject):
             pass
         return ""
 
+    def _get_window_title(self, hwnd: int) -> str:
+        if not hwnd:
+            return ""
+        try:
+            user32 = ctypes.windll.user32
+            buf = ctypes.create_unicode_buffer(512)
+            if user32.GetWindowTextW(wintypes.HWND(hwnd), buf, 512):
+                return buf.value or ""
+        except Exception:
+            pass
+        return ""
+
     def _is_window_visible(self, hwnd: int) -> bool:
         if not hwnd:
             return False
@@ -246,6 +258,17 @@ class WindowsFocusWatcher(QObject):
         except Exception:
             return 0
 
+    def _get_pid(self, hwnd: int) -> int:
+        if not hwnd:
+            return 0
+        try:
+            user32 = ctypes.windll.user32
+            pid = wintypes.DWORD()
+            user32.GetWindowThreadProcessId(wintypes.HWND(hwnd), ctypes.byref(pid))
+            return int(pid.value or 0)
+        except Exception:
+            return 0
+
     def _recompute(self, foreground_hwnd: Optional[int] = None):
         if sys.platform != "win32":
             return
@@ -257,6 +280,7 @@ class WindowsFocusWatcher(QObject):
         if self._slideshow_running:
             hwnd = int(self._slideshow_hwnd or 0)
             cls = self._get_class_name(int(foreground_hwnd or 0))
+            title = self._get_window_title(int(foreground_hwnd or 0))
             if hwnd:
                 if self._is_iconic(hwnd) or not self._is_window_visible(hwnd):
                     focus_on_slideshow = False
@@ -267,10 +291,16 @@ class WindowsFocusWatcher(QObject):
                     focus_on_slideshow = bool(root and root == hwnd)
                     if not focus_on_slideshow and cls in {"screenClass", "PPTFrameClass", "wppSlideShowWindowClass"}:
                         focus_on_slideshow = True
+                    if not focus_on_slideshow and title in {"PowerPoint幻灯片放映", "WPS Persentation Slide Show"}:
+                        focus_on_slideshow = True
+                    if not focus_on_slideshow:
+                        fg_pid = self._get_pid(int(foreground_hwnd or 0))
+                        ss_pid = self._get_pid(int(hwnd))
+                        if fg_pid and ss_pid and fg_pid == ss_pid:
+                            focus_on_slideshow = True
             else:
-                focus_on_slideshow = cls in {"screenClass", "PPTFrameClass", "wppSlideShowWindowClass"}
+                focus_on_slideshow = cls in {"screenClass", "PPTFrameClass", "wppSlideShowWindowClass"} or title in {"PowerPoint幻灯片放映", "WPS Persentation Slide Show"}
 
         if focus_on_slideshow != self._last_focus_on_slideshow:
             self._last_focus_on_slideshow = focus_on_slideshow
             self.focus_on_slideshow_changed.emit(bool(focus_on_slideshow))
-

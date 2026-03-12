@@ -3,6 +3,8 @@ import ctypes
 import os
 import json
 import base64
+import subprocess
+import time
 from .base import SystemAPI
 
 try:
@@ -18,26 +20,20 @@ except ImportError:
     win32com = None
     wintypes = None
 
-try:
-    from winsdk.windows.media.control import GlobalSystemMediaTransportControlsSessionManager
-    WINSDK_AVAILABLE = True
-except ImportError:
-    WINSDK_AVAILABLE = False
-
 class WindowsSystemAPI(SystemAPI):
     def __init__(self):
         self._focus_thread = None
+        self._smtc_next_allowed = 0.0
 
     def get_media_info(self):
-        if not WINSDK_AVAILABLE:
+        now = time.monotonic()
+        if now < self._smtc_next_allowed:
             return {"title": "", "artist": "", "status": "Stopped"}
-        
-        # Note: winsdk calls must be awaited or run in async loop if they return coroutines.
-        # However, GlobalSystemMediaTransportControlsSessionManager.request_async() returns an IAsyncOperation.
-        # In a synchronous context like this, we might need a helper or use the PowerShell fallback if async is tricky.
-        # The existing code in overlay.py used a subprocess call to PowerShell for this reason.
-        # Let's reuse that approach for simplicity and robustness against async issues in Qt threads.
-        return self._get_media_info_from_powershell()
+        try:
+            return self._get_media_info_from_powershell()
+        except Exception:
+            self._smtc_next_allowed = now + 5.0
+            return {"title": "", "artist": "", "status": "Stopped"}
 
     def _get_media_info_from_powershell(self):
         script = r'''
@@ -63,12 +59,12 @@ if ($statusValue -eq 4) { $state="Playing" } elseif ($statusValue -eq 5) { $stat
             creationflags = subprocess.CREATE_NO_WINDOW
             
             result = subprocess.run(
-                ["powershell", "-Command", script],
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
                 capture_output=True,
                 text=True,
                 creationflags=creationflags,
                 startupinfo=startupinfo,
-                timeout=2
+                timeout=1.5
             )
             if result.returncode == 0 and result.stdout.strip():
                 data = json.loads(result.stdout)

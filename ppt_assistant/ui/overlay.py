@@ -4,6 +4,7 @@ import sys
 import math
 import json
 import importlib.util
+from typing import Optional
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QObject, Slot, Signal, Qt, QUrl, QTimer, QRect, QPoint, QEvent, QByteArray
@@ -153,8 +154,48 @@ class OverlayWindow(QWebEngineView):
         self.channel.registerObject("bridge", self.bridge)
         self.page().setWebChannel(self.channel)
         
-        html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "overlay.html")
-        url = QUrl.fromLocalFile(html_path)
+        theme_name = cfg.overlayTheme.value
+
+        root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        if getattr(sys, "frozen", False):
+            root_dir = os.path.dirname(sys.executable)
+            
+        def resolve_user_theme_path(name: str) -> Optional[str]:
+            theme_dir = os.path.join(root_dir, "user", "themes", name)
+            if not os.path.isdir(theme_dir):
+                return None
+            manifest_path = os.path.join(theme_dir, "manifest.json")
+            preview_png = os.path.join(theme_dir, "preview.png")
+            preview_jpg = os.path.join(theme_dir, "preview.jpg")
+            html_path = os.path.join(theme_dir, "index.html")
+            if not os.path.exists(html_path):
+                return None
+            if not os.path.exists(manifest_path):
+                return None
+            if not (os.path.exists(preview_png) or os.path.exists(preview_jpg)):
+                return None
+            try:
+                with open(manifest_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if data.get("name") != name:
+                    return None
+            except Exception:
+                return None
+            return html_path
+
+        theme_path = resolve_user_theme_path(theme_name)
+
+        if not os.path.exists(theme_path):
+             theme_path = resolve_user_theme_path("default")
+        if not theme_path:
+             theme_path = os.path.join(root_dir, "themes", theme_name, "index.html")
+        if not os.path.exists(theme_path):
+             theme_path = os.path.join(root_dir, "themes", "default", "index.html")
+
+        if not os.path.exists(theme_path):
+             theme_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "overlay.html")
+
+        url = QUrl.fromLocalFile(theme_path)
         self.load(url)
         
         self.monitor = None
@@ -187,6 +228,13 @@ class OverlayWindow(QWebEngineView):
         icon = load_app_icon()
         if not icon.isNull():
             self.setWindowIcon(icon)
+            
+        self.renderProcessTerminated.connect(self._on_render_process_terminated)
+
+    def _on_render_process_terminated(self, status, exit_code):
+        print(f"[Overlay] Render process terminated: status={status}, exit_code={exit_code}")
+        # Try to reload the page to recover from crash (grey screen)
+        QTimer.singleShot(100, self.reload)
     
     def nudge_size(self):
         try:
@@ -387,11 +435,19 @@ class OverlayWindow(QWebEngineView):
         
         apps_list = []
         if hasattr(cfg, 'quickLaunchApps'):
-            for app in cfg.quickLaunchApps.value:
-                path = ""
-                name = ""
-                
-                if isinstance(app, str):
+            # quickLaunchApps.value is a string (JSON), need to parse if not list
+            raw_val = cfg.quickLaunchApps.value
+            apps_data = []
+            if isinstance(raw_val, str):
+                try:
+                    apps_data = json.loads(raw_val)
+                except Exception:
+                    apps_data = []
+            elif isinstance(raw_val, list):
+                apps_data = raw_val
+            
+            for app in apps_data:
+                if isinstance(app, str): # Handle list of strings (paths) if any
                     path = app
                     name = os.path.basename(app)
                     if name.lower().endswith('.exe'):
@@ -399,6 +455,8 @@ class OverlayWindow(QWebEngineView):
                 elif isinstance(app, dict):
                     path = app.get("path", "")
                     name = app.get("name", "")
+                else:
+                    continue
                 
                 if not path:
                     continue
@@ -418,10 +476,16 @@ class OverlayWindow(QWebEngineView):
                     "icon": icon_data
                 })
 
+        toolbar_order = cfg.toolbarOrder.value
+        if not isinstance(toolbar_order, list):
+            toolbar_order = []
+        if apps_list and "apps" not in toolbar_order:
+            toolbar_order = toolbar_order + ["apps"]
+
         config_data = {
             "showStatusBar": cfg.showStatusBar.value,
             "showToolbarText": cfg.showToolbarText.value,
-            "toolbarOrder": cfg.toolbarOrder.value,
+            "toolbarOrder": toolbar_order,
             "toolbarPosition": cfg.toolbarPosition.value,
             "compatibilityMode": cfg.compatibilityMode.value,
             "flipperPosition": cfg.flipperPosition.value,

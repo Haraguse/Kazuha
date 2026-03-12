@@ -16,6 +16,7 @@ from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineSettings, QWebEn
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QObject, Slot, QUrl, QFile, QIODevice, Qt, QTimer, QBuffer, QByteArray, QJsonValue, QCoreApplication
 from PySide6.QtGui import QColor, QImage, QGuiApplication, QIcon
+from ppt_assistant.core.icon_helper import get_file_icon_base64
 
 DWMWA_WINDOW_CORNER_PREFERENCE = 33
 DWMWCP_ROUND = 2
@@ -41,6 +42,44 @@ def _resolve_logo_ico_path() -> str | None:
         if path and os.path.exists(path):
             return path
     return None
+
+
+def _get_user_root_dir() -> str:
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if getattr(sys, "frozen", False):
+        root_dir = os.path.dirname(sys.executable)
+    return root_dir
+
+
+def _list_user_themes() -> list[dict]:
+    root_dir = _get_user_root_dir()
+    themes_dir = os.path.join(root_dir, "user", "themes")
+    results: list[dict] = []
+    if not os.path.isdir(themes_dir):
+        return results
+    for name in os.listdir(themes_dir):
+        theme_dir = os.path.join(themes_dir, name)
+        if not os.path.isdir(theme_dir):
+            continue
+        manifest_path = os.path.join(theme_dir, "manifest.json")
+        preview_png = os.path.join(theme_dir, "preview.png")
+        preview_jpg = os.path.join(theme_dir, "preview.jpg")
+        html_path = os.path.join(theme_dir, "index.html")
+        if not os.path.exists(html_path):
+            continue
+        if not os.path.exists(manifest_path):
+            continue
+        if not (os.path.exists(preview_png) or os.path.exists(preview_jpg)):
+            continue
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if data.get("name") != name:
+                continue
+        except Exception:
+            continue
+        results.append({"id": name, "name": data.get("name", name)})
+    return results
 
 
 def _load_app_icon() -> QIcon:
@@ -358,6 +397,7 @@ class Api(QObject):
         self.settings = {}
         self.version = {}
         self.dialog_data = {}
+        self._icon_cache = {}
 
     def set_window(self, window):
         self._window = window
@@ -444,6 +484,10 @@ class Api(QObject):
     def get_version(self):
         return self.version
 
+    @Slot(result="QVariant")
+    def get_overlay_themes(self):
+        return _list_user_themes()
+
     @Slot(str, result=str)
     def get_toolbar_icon(self, icon_name):
         if not icon_name:
@@ -514,6 +558,28 @@ class Api(QObject):
             settings_path = os.path.join(base_dir, "settings.json")
         return settings_path
 
+    def _attach_quick_launch_icons(self, apps):
+        if not isinstance(apps, list):
+            return apps
+        for app in apps:
+            if not isinstance(app, dict):
+                continue
+            path = app.get("path")
+            if not path:
+                continue
+            icon_val = app.get("icon")
+            if icon_val:
+                continue
+            if path in self._icon_cache:
+                icon_data = self._icon_cache[path]
+            else:
+                icon_data = get_file_icon_base64(path)
+                if icon_data:
+                    self._icon_cache[path] = icon_data
+            if icon_data:
+                app["icon"] = icon_data
+        return apps
+
     @Slot(result="QVariant")
     def get_quick_launch_apps(self):
         settings_path = self._get_settings_path()
@@ -533,6 +599,7 @@ class Api(QObject):
         apps = toolbar.get("QuickLaunchApps") or []
         if not isinstance(apps, list):
             apps = []
+        apps = self._attach_quick_launch_icons(apps)
         self.settings = data
         return apps
 
@@ -571,7 +638,7 @@ class Api(QObject):
             with open(settings_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
             self.settings = data
-            return apps
+            return self.get_quick_launch_apps()
         except Exception:
             return self.get_quick_launch_apps()
 
@@ -601,7 +668,7 @@ class Api(QObject):
             with open(settings_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
             self.settings = data
-            return apps
+            return self.get_quick_launch_apps()
         except Exception:
             return self.get_quick_launch_apps()
 
@@ -626,7 +693,7 @@ class Api(QObject):
             with open(settings_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
             self.settings = data
-            return apps
+            return self.get_quick_launch_apps()
         except Exception:
             return self.get_quick_launch_apps()
 
@@ -677,12 +744,17 @@ class Api(QObject):
             return {"is_visible": False}
             
         try:
+            if not tb_rect or tb_rect[2] <= 0 or tb_rect[3] <= 0:
+                return {"is_visible": False}
             pixmap = target_screen.grabWindow(0, tb_rect[0], tb_rect[1], tb_rect[2], tb_rect[3])
-            
+            if pixmap.isNull():
+                return {"is_visible": False}
+
             byte_array = QByteArray()
             buffer = QBuffer(byte_array)
             buffer.open(QIODevice.WriteOnly)
-            pixmap.save(buffer, "PNG")
+            if not pixmap.save(buffer, "PNG"):
+                return {"is_visible": False}
             base64_data = byte_array.toBase64().data().decode()
             data_url = f"data:image/png;base64,{base64_data}"
             
@@ -1163,6 +1235,13 @@ class MainWindow(QWebEngineView):
             self.load(target_url)
         self.loadFinished.connect(lambda *_: self._schedule_backdrop_apply())
         self._schedule_backdrop_apply()
+        
+        self.renderProcessTerminated.connect(self._on_render_process_terminated)
+
+    def _on_render_process_terminated(self, status, exit_code):
+        print(f"[WebView] Render process terminated: status={status}, exit_code={exit_code}")
+        # Try to reload to recover from grey screen
+        QTimer.singleShot(100, self.reload)
 
     def _apply_page_background(self):
         if self._mini_mode:
@@ -1355,11 +1434,12 @@ def main():
         else:
             api.settings = settings
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        html_path = os.path.join(os.path.dirname(base_dir), "ppt_assistant", "ui", "dialog.html")
         if mode == "--crash-file":
+            html_path = os.path.join(os.path.dirname(base_dir), "ppt_assistant", "ui", "crash_dialog.html")
             win_width = 900
             win_height = 600
         else:
+            html_path = os.path.join(os.path.dirname(base_dir), "ppt_assistant", "ui", "dialog.html")
             win_width = 650
             win_height = 500
         defer_load = os.environ.get("DEFER_WEBENGINE_LOAD", "").strip().lower() in ["1", "true", "yes", "on"]

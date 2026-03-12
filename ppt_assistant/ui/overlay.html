@@ -1186,7 +1186,7 @@
             background: var(--overlay-toolbar-bg);
             border: 0.5px solid var(--overlay-toolbar-border);
             border-radius: 999px;
-            padding: 8px;
+            padding: 8px 8px 8px 12px;
             display: flex;
             gap: 4px;
             /* box-shadow: var(--overlay-toolbar-shadow); */
@@ -1194,6 +1194,29 @@
             position: relative;
             /* backdrop-filter: blur(25px);
             -webkit-backdrop-filter: blur(25px); */
+        }
+
+        .compat-label {
+            position: relative;
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 12px;
+            color: var(--accent-color);
+            font-weight: 600;
+            background: rgba(50, 117, 245, 0.1);
+            margin: auto 8px auto 0;
+        }
+
+        .compat-label::after {
+            content: "";
+            position: absolute;
+            inset: -3px;
+            border-radius: 50%;
+            border: 1px solid rgba(50, 117, 245, 0.35);
         }
         
         .tool-btn {
@@ -2257,14 +2280,7 @@
             if (config.compatibilityMode) {
                 let compatLabel = document.createElement('div');
                 compatLabel.className = 'compat-label';
-                compatLabel.innerText = config.texts && config.texts.compatibility ? config.texts.compatibility : "兼容模式";
-                compatLabel.style.fontSize = '13px';
-                compatLabel.style.color = 'var(--accent-color)';
-                compatLabel.style.fontWeight = '600';
-                compatLabel.style.marginRight = '8px';
-                compatLabel.style.padding = '4px 8px';
-                compatLabel.style.background = 'rgba(50, 117, 245, 0.1)';
-                compatLabel.style.borderRadius = '6px';
+                compatLabel.innerText = "兼";
                 toolbar.appendChild(compatLabel);
             }
 

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Kazuha Crash Report</title>
+  <style>
+    :root {
+      --bg-app: #f9f9f9;
+      --bg-panel: #ffffff;
+      --text-primary: #191919;
+      --text-secondary: #666666;
+      --border-color: rgba(0, 0, 0, 0.1);
+      --code-bg: #f5f5f5;
+      --accent-color: #3275F5;
+      --accent-hover: #2a63d9;
+      --error-color: #d32f2f;
+    }
+
+    [data-theme="dark"] {
+      --bg-app: #202020;
+      --bg-panel: #2d2d2d;
+      --text-primary: #e5e5e5;
+      --text-secondary: #a0a0a0;
+      --border-color: rgba(255, 255, 255, 0.1);
+      --code-bg: #1e1e1e;
+      --accent-color: #4A85F6;
+      --accent-hover: #5b92ff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-app);
+      color: var(--text-primary);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      font-weight: 600;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-panel);
+      -webkit-app-region: drag;
+    }
+
+    .container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .log-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      border-right: 1px solid var(--border-color);
+      min-width: 300px;
+    }
+
+    .log-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .log-content {
+      flex: 1;
+      background: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: "Consolas", "Monaco", monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--text-secondary);
+    }
+
+    .action-panel {
+      width: 280px;
+      background: var(--bg-panel);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .action-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .action-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .btn {
+      height: 36px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: transparent;
+      color: var(--text-primary);
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    [data-theme="dark"] .btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .btn-primary {
+      background: var(--accent-color);
+      color: white;
+      border: none;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-danger {
+      color: var(--error-color);
+      border-color: rgba(211, 47, 47, 0.3);
+    }
+
+    .btn-danger:hover {
+      background: rgba(211, 47, 47, 0.05);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">Kazuha Crash Handler</div>
+  <div class="container">
+    <div class="log-panel">
+      <div class="log-title">
+        <span style="color: var(--error-color)">●</span> Error Log
+      </div>
+      <div class="log-content" id="log-text">Loading error details...</div>
+    </div>
+    <div class="action-panel">
+      <div>
+        <div class="action-title">Oops!</div>
+        <div class="action-desc">
+          Something went wrong and the application has crashed. You can copy the error log to report this issue.
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="copyLog()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        Copy Error Log
+      </button>
+
+      <button class="btn" onclick="ignoreAndContinue()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        Ignore & Continue
+      </button>
+
+      <div style="flex: 1"></div>
+
+      <button class="btn btn-danger" onclick="quitApp()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+          <line x1="12" y1="2" x2="12" y2="12"></line>
+        </svg>
+        Quit Application
+      </button>
+    </div>
+  </div>
+  <div class="toast" id="toast">Copied to clipboard</div>
+
+  <script>
+    let dialogData = {};
+
+    window.addEventListener('pywebviewready', () => {
+      if (window.pywebview.api && window.pywebview.api.get_dialog_data) {
+        window.pywebview.api.get_dialog_data().then(data => {
+          dialogData = data;
+          init(data);
+        });
+      }
+    });
+
+    function init(data) {
+      document.getElementById('log-text').textContent = data.text || "No error details available.";
+      
+      const theme = data.theme || 'auto';
+      if (theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+
+      if (data.accentColor) {
+        document.documentElement.style.setProperty('--accent-color', data.accentColor);
+      }
+    }
+
+    function copyLog() {
+      const text = document.getElementById('log-text').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("Copied to clipboard");
+      }).catch(() => {
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast("Copied to clipboard");
+      });
+    }
+
+    function ignoreAndContinue() {
+      if (window.pywebview && window.pywebview.api) {
+        window.pywebview.api.on_confirm(); // Reuse confirm as "Continue"
+      } else {
+        window.close();
+      }
+    }
+
+    function quitApp() {
+      if (window.pywebview && window.pywebview.api) {
+        window.pywebview.api.on_cancel(); // Reuse cancel as "Quit"
+      } else {
+        window.close();
+      }
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2000);
+    }
+  </script>
+</body>
+</html>

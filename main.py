@@ -6,6 +6,7 @@ import subprocess
 import json
 import importlib
 import importlib.util
+from typing import Optional
 import time
 import warnings
 
@@ -344,6 +345,46 @@ def _is_dev_preview_version(version: str) -> bool:
     return suffix in ["1", "2", "3", "4"]
 
 
+def _get_user_root_dir() -> str:
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    if getattr(sys, "frozen", False):
+        root_dir = os.path.dirname(sys.executable)
+    return root_dir
+
+
+def _resolve_user_splash_dir(splash_style: str) -> Optional[str]:
+    if not splash_style:
+        return None
+    root_dir = _get_user_root_dir()
+    splash_dir = os.path.join(root_dir, "user", "splash", splash_style)
+    if os.path.exists(splash_dir):
+        return splash_dir
+    return None
+
+
+def _is_valid_splash_package(splash_dir: str, splash_style: str) -> bool:
+    if not splash_dir or not os.path.isdir(splash_dir):
+        return False
+    manifest_path = os.path.join(splash_dir, "manifest.json")
+    preview_png = os.path.join(splash_dir, "preview.png")
+    preview_jpg = os.path.join(splash_dir, "preview.jpg")
+    splash_path = os.path.join(splash_dir, "splash.py")
+    if not os.path.exists(splash_path):
+        return False
+    if not os.path.exists(manifest_path):
+        return False
+    if not (os.path.exists(preview_png) or os.path.exists(preview_jpg)):
+        return False
+    try:
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if data.get("name") != splash_style:
+            return False
+    except Exception:
+        return False
+    return True
+
+
 class StartupSplash(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -371,13 +412,18 @@ class StartupSplash(QWidget):
         else:
             self._is_dark = theme_val == Theme.DARK
 
-        if self._splash_style == "nina_iseri_1_2" and not self._is_first_run:
-            self._build_ui_nina()
-        else:
-            self._container = QFrame(self)
-            self._container.setObjectName("splashContainer")
-            self._build_ui()
-            self._apply_styles()
+        applied_user = False
+        if not (self._splash_style == "nina_iseri_1_2" and self._is_first_run):
+            applied_user = self._apply_user_splash()
+
+        if not applied_user:
+            if self._splash_style == "nina_iseri_1_2" and not self._is_first_run:
+                self._build_ui_nina()
+            else:
+                self._container = QFrame(self)
+                self._container.setObjectName("splashContainer")
+                self._build_ui()
+                self._apply_styles()
 
         self._center_on_screen()
         self.set_progress(0, "initializing")
@@ -402,7 +448,8 @@ class StartupSplash(QWidget):
                                      self._container.height() - self._dev_watermark.height() - 12)
 
     def _build_ui_nina(self):
-        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons", "1.2_Splash.png")
+        root_dir = _get_user_root_dir()
+        icon_path = os.path.join(root_dir, "user", "splash", "nina_iseri_1_2", "1.2_Splash.png")
         if os.path.exists(icon_path):
             from PySide6.QtGui import QPixmap
             original_pixmap = QPixmap(icon_path)
@@ -430,6 +477,26 @@ class StartupSplash(QWidget):
             self.resize(860, 480)
             
         # We don't use standard widgets, we paint in paintEvent
+
+    def _apply_user_splash(self) -> bool:
+        splash_dir = _resolve_user_splash_dir(self._splash_style)
+        if not splash_dir or not _is_valid_splash_package(splash_dir, self._splash_style):
+            return False
+        module_path = os.path.join(splash_dir, "splash.py")
+        try:
+            module_name = f"user_splash_{self._splash_style}"
+            spec = importlib.util.spec_from_file_location(module_name, module_path)
+            if not spec or not spec.loader:
+                return False
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            apply_fn = getattr(module, "apply", None)
+            if not callable(apply_fn):
+                return False
+            apply_fn(self)
+            return True
+        except Exception:
+            return False
 
     def paintEvent(self, event):
         if self._splash_style == "nina_iseri_1_2" and not self._is_first_run and self._pixmap:
@@ -1239,7 +1306,7 @@ class PPTAssistantApp:
             else:
                 self.overlay.show()
                 self.overlay.raise_()
-                self.overlay.activateWindow()
+                # self.overlay.activateWindow()
 
     @Slot()
     def _on_timer_finished(self):
@@ -1302,6 +1369,8 @@ class PPTAssistantApp:
     @Slot(bool)
     def _on_focus_on_slideshow_changed(self, focused: bool):
         try:
+            if cfg.compatibilityMode.value:
+                return
             if not self._slideshow_running or not cfg.autoShowOverlay.value:
                 self.overlay.set_active_on_slideshow(False, animate=True)
                 return
@@ -1381,6 +1450,7 @@ class PPTAssistantApp:
                 new_lang != old_lang
                 or new_overlay_font != old_overlay_font
                 or cfg.themeMode.value != old_theme
+                or cfg.compatibilityMode.value != old_compat
                 or (hasattr(cfg, "themeId") and cfg.themeId.value != old_theme_id)
                 or cfg.showClear.value != old_clear
                 or cfg.showSpotlight.value != old_spotlight

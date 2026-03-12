@@ -31,6 +31,7 @@ class Config(QConfig):
         restart=False,
     )
     themeId = ConfigItem("Appearance", "ThemeId", "default", restart=False)
+    overlayTheme = ConfigItem("Appearance", "OverlayTheme", "default", restart=False)
 
     runAtStartup = ConfigItem("General", "RunAtStartup", False, BoolValidator())
     autoShowOverlay = ConfigItem("General", "AutoShowOverlay", True, BoolValidator())
