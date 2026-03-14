@@ -9798,17 +9798,25 @@
 
     window.pywebview.api.get_settings().then(function (res) {
       if (res && Object.keys(res).length > 0) {
+        const prevSerialized = JSON.stringify(settings || {});
+        const nextSerialized = JSON.stringify(res || {});
         settings = res;
         settingsLoaded = true;
         const lang = settings.General && settings.General.Language;
         if (lang) currentLanguage = lang;
-        applySettingsToUI();
-      } else {
+        if (prevSerialized !== nextSerialized) {
+          applySettingsToUI();
+        }
+      } else if (!settingsLoaded) {
+        settingsLoaded = true;
         applySettingsToUI();
       }
     }).catch(err => {
       console.error("Failed to get settings:", err);
-      applySettingsToUI();
+      if (!settingsLoaded) {
+        settingsLoaded = true;
+        applySettingsToUI();
+      }
     });
   };
 
@@ -10361,7 +10369,6 @@
     }
 
     FontManager.switchTab(currentLanguage);
-    renderFontSelects();
     loadToolbarApps();
     updateAllSelectSliders();
 

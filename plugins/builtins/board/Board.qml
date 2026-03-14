@@ -44,6 +44,7 @@ Rectangle {
             
             property color drawColor: darkBackground ? "white" : "black"
             property int lineWidth: 3
+            property int eraserWidth: 20
             property bool isEraser: false
             property int eraserMode: root.eraserMode // Bind to root property
             property int currentStrokeId: 0
@@ -91,7 +92,7 @@ Rectangle {
                 ctx.beginPath();
                 if (line.isEraser) {
                      ctx.globalCompositeOperation = "destination-out";
-                     ctx.lineWidth = 20; 
+                     ctx.lineWidth = line.width || canvas.eraserWidth;
                 } else {
                     ctx.globalCompositeOperation = "source-over";
                     ctx.strokeStyle = line.color;
@@ -215,7 +216,7 @@ Rectangle {
                         }
                     } else {
                         // Point Eraser or Pen
-                        var width = canvas.lineWidth;
+                        var width = canvas.isEraser ? canvas.eraserWidth : canvas.lineWidth;
                         if (canvas.penStrokeEnabled && !canvas.isEraser) {
                             var dx = currentX - canvas.lastX;
                             var dy = currentY - canvas.lastY;
@@ -343,7 +344,7 @@ Rectangle {
                 ? toolbar.y - height - 12
                 : toolbar.y + (toolbar.height - height) / 2
         width: 300
-        height: 200
+        height: 230
         padding: 0
         
         background: Rectangle {
@@ -544,6 +545,36 @@ Rectangle {
                         }
                     }
                 }
+
+                Row {
+                    id: penSizeRow
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 8
+                    spacing: 8
+
+                    Text {
+                        text: penSizeText
+                        color: darkBackground ? "white" : "black"
+                        font.pixelSize: 12
+                    }
+
+                    Slider {
+                        id: penSizeSlider
+                        from: 1
+                        to: 18
+                        stepSize: 1
+                        value: canvas.lineWidth
+                        width: 140
+                        onValueChanged: canvas.lineWidth = Math.round(value)
+                    }
+
+                    Text {
+                        text: Math.round(canvas.lineWidth)
+                        color: darkBackground ? "#AAA" : "#666"
+                        font.pixelSize: 11
+                    }
+                }
             }
             
             // Info Box
@@ -630,6 +661,63 @@ Rectangle {
             // Translations can be handled if needed, but for now English/Generic is fine or we can add a map property
             // If the color matches exactly one of our known ones, return a name.
             return map[upper] || upper;
+        }
+    }
+
+    // Eraser Size Popup
+    Popup {
+        id: eraserPopup
+        parent: root
+        x: toolbarPosition === "left"
+            ? toolbar.x + toolbar.width + 12
+            : toolbarPosition === "right"
+                ? toolbar.x - width - 12
+                : (root.width - width) / 2
+        y: toolbarPosition === "top"
+            ? toolbar.y + toolbar.height + 12
+            : toolbarPosition === "bottom"
+                ? toolbar.y - height - 12
+                : toolbar.y + (toolbar.height - height) / 2
+        width: 260
+        height: 120
+        padding: 12
+        closePolicy: Popup.CloseOnPressOutside | Popup.CloseOnEscape
+
+        background: Rectangle {
+            color: root.popupBackgroundColor !== "" ? root.popupBackgroundColor : (darkBackground ? "#202020" : "#FFFFFF")
+            radius: 12
+            border.color: root.popupBorderColor !== "" ? root.popupBorderColor : (darkBackground ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.1))
+            border.width: 1
+            layer.enabled: true
+        }
+
+        contentItem: Column {
+            anchors.fill: parent
+            anchors.margins: 6
+            spacing: 10
+
+            Text {
+                text: eraserSizeText
+                color: darkBackground ? "white" : "black"
+                font.pixelSize: 12
+            }
+
+            Slider {
+                id: eraserSizeSlider
+                from: 8
+                to: 40
+                stepSize: 1
+                value: canvas.eraserWidth
+                enabled: canvas.eraserMode === 0
+                onValueChanged: canvas.eraserWidth = Math.round(value)
+            }
+
+            Text {
+                text: Math.round(canvas.eraserWidth)
+                color: darkBackground ? "#AAA" : "#666"
+                font.pixelSize: 11
+                horizontalAlignment: Text.AlignRight
+            }
         }
     }
 
@@ -764,10 +852,12 @@ Rectangle {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         if (!canvas.isEraser) {
-                            colorPopup.open()
+                            if (colorPopup.opened) colorPopup.close();
+                            else colorPopup.open();
                         } else {
                             canvas.isEraser = false
                         }
+                        if (eraserPopup.opened) eraserPopup.close();
                     }
                 }
             }
@@ -818,7 +908,13 @@ Rectangle {
                     cursorShape: Qt.PointingHandCursor
                     enabled: true
                     onClicked: {
-                        canvas.isEraser = true
+                        if (canvas.isEraser) {
+                            if (eraserPopup.opened) eraserPopup.close();
+                            else eraserPopup.open();
+                        } else {
+                            canvas.isEraser = true
+                            if (colorPopup.opened) colorPopup.close();
+                        }
                     }
                 }
             }

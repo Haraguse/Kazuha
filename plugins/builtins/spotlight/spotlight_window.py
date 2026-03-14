@@ -321,15 +321,20 @@ class SpotlightWindow(QWidget):
                 current_screen = QApplication.primaryScreen()
             screen_geo = current_screen.geometry()
             
-            # 边界检查
-            if panel_pos.x() < screen_geo.left() + 10:
-                panel_pos.setX(screen_geo.left() + 10)
-            if panel_pos.x() + panel_width > screen_geo.right() - 10:
-                panel_pos.setX(screen_geo.right() - panel_width - 10)
+            # 边界检查（预留阴影空间）
+            shadow_margin = 24
+            if panel_pos.x() < screen_geo.left() + shadow_margin:
+                panel_pos.setX(screen_geo.left() + shadow_margin)
+            if panel_pos.x() + panel_width > screen_geo.right() - shadow_margin:
+                panel_pos.setX(screen_geo.right() - panel_width - shadow_margin)
+            if panel_pos.y() < screen_geo.top() + shadow_margin:
+                panel_pos.setY(screen_geo.top() + shadow_margin)
             
             # 如果下方放不下，或者超出了当前屏幕底部
-            if panel_pos.y() + panel_height > screen_geo.bottom() - 10:
+            if panel_pos.y() + panel_height > screen_geo.bottom() - shadow_margin:
                 panel_pos.setY(selection_global_rect.top() - panel_height - 12)
+            if panel_pos.y() < screen_geo.top() + shadow_margin:
+                panel_pos.setY(screen_geo.top() + shadow_margin)
             
             self.control_panel.move(panel_pos)
             self.control_panel.show()

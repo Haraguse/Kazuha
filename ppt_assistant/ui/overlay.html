@@ -2566,6 +2566,18 @@
             closePopup();
         }
 
+        function setActiveToolUI(tool) {
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            const btn = document.getElementById('btn-' + tool);
+            if (btn) btn.classList.add('active');
+            currentTool = tool;
+        }
+
+        function resetToolState(tool) {
+            closePopup();
+            setActiveToolUI(tool || 'select');
+        }
+
         function selectTool(tool) {
             const picker = document.getElementById('color-picker');
             const eraserSettings = document.getElementById('eraser-settings');
@@ -2600,11 +2612,7 @@
                 closePopup();
             }
 
-            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-            let btn = document.getElementById('btn-' + tool);
-            if(btn) btn.classList.add('active');
-            
-            currentTool = tool;
+            setActiveToolUI(tool);
             
             if (bridge) {
                 if (tool === 'select') bridge.setTool('arrow');

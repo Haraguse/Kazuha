@@ -32,6 +32,7 @@ class OverlayBridge(QObject):
     def requestInitState(self):
         if self._overlay.monitor:
             pass
+        self._overlay.reset_tool_state_ui()
         self._overlay.update_theme()
         self._overlay.update_config()
 
@@ -510,6 +511,14 @@ class OverlayWindow(QWebEngineView):
         except RuntimeError:
             pass
 
+    def reset_tool_state_ui(self, tool: str = "select"):
+        try:
+            tool = (tool or "select").replace("'", "")
+            js = f"if (window.resetToolState) resetToolState('{tool}');"
+            self.page().runJavaScript(js)
+        except RuntimeError:
+            pass
+
     def show_ink_prompt(self):
         try:
             self._ensure_ink_prompt_view()
@@ -808,7 +817,7 @@ Item {
                 pass
 
     def on_slideshow_start_cleanup(self):
-        pass
+        self.reset_tool_state_ui("select")
 
     def on_slideshow_end_cleanup(self):
         pass

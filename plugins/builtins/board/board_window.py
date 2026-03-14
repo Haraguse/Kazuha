@@ -127,6 +127,8 @@ _TRANSLATIONS = {
         "overlay.dev_watermark": "{type}\n不保证最终品质 （{version}）",
         "toolbar.theme_colors": "主题颜色",
         "toolbar.standard_colors": "标准颜色",
+        "toolbar.pen_size": "画笔粗细",
+        "toolbar.eraser_size": "橡皮粗细",
         "toolbar.eraser_point": "掠区擦除",
         "toolbar.eraser_stroke": "笔画擦除",
         "dialog.save_strokes_title": "提示",
@@ -142,6 +144,8 @@ _TRANSLATIONS = {
         "overlay.dev_watermark": "{type}\n不保證最終品質 （{version}）",
         "toolbar.theme_colors": "主題顏色",
         "toolbar.standard_colors": "標準顏色",
+        "toolbar.pen_size": "畫筆粗細",
+        "toolbar.eraser_size": "橡皮粗細",
         "toolbar.eraser_point": "掠區擦除",
         "toolbar.eraser_stroke": "筆畫擦除",
         "dialog.save_strokes_title": "提示",
@@ -157,6 +161,8 @@ _TRANSLATIONS = {
         "overlay.dev_watermark": "{type}\n品質唔包，出事唔好屌我 ({version})",
         "toolbar.theme_colors": "主題色",
         "toolbar.standard_colors": "標準色",
+        "toolbar.pen_size": "畫筆粗細",
+        "toolbar.eraser_size": "橡皮粗細",
         "toolbar.eraser_point": "掠區擦除",
         "toolbar.eraser_stroke": "筆畫擦除",
         "dialog.save_strokes_title": "提你一提",
@@ -172,6 +178,8 @@ _TRANSLATIONS = {
         "overlay.dev_watermark": "{type}\nQuality not guaranteed ({version})",
         "toolbar.theme_colors": "Theme Colors",
         "toolbar.standard_colors": "Standard Colors",
+        "toolbar.pen_size": "Pen Size",
+        "toolbar.eraser_size": "Eraser Size",
         "toolbar.eraser_point": "Point Eraser",
         "toolbar.eraser_stroke": "Stroke Eraser",
         "dialog.save_strokes_title": "Tip",
@@ -187,6 +195,8 @@ _TRANSLATIONS = {
         "overlay.dev_watermark": "{type}\n品質は保証されません ({version})",
         "toolbar.theme_colors": "テーマの色",
         "toolbar.standard_colors": "標準の色",
+        "toolbar.pen_size": "ペンの太さ",
+        "toolbar.eraser_size": "消しゴムの太さ",
         "toolbar.eraser_point": "部分消しゴム",
         "toolbar.eraser_stroke": "ストローク消しゴム",
         "dialog.save_strokes_title": "ヒント",
@@ -294,6 +304,8 @@ class BoardWindow(QQuickView):
         self.rootContext().setContextProperty("standardColorsText", _t("toolbar.standard_colors"))
         self.rootContext().setContextProperty("eraserPointText", _t("toolbar.eraser_point"))
         self.rootContext().setContextProperty("eraserStrokeText", _t("toolbar.eraser_stroke"))
+        self.rootContext().setContextProperty("penSizeText", _t("toolbar.pen_size"))
+        self.rootContext().setContextProperty("eraserSizeText", _t("toolbar.eraser_size"))
         
         # Colors
         theme_bases = [

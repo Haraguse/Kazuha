@@ -1,9 +1,9 @@
 from PySide6.QtWidgets import QSystemTrayIcon
-from PySide6.QtGui import QIcon, QPainter, QPixmap, QCursor
+from PySide6.QtGui import QIcon, QPainter, QPixmap, QCursor, QColor
 from PySide6.QtCore import Signal, QObject, Qt
 from PySide6.QtSvg import QSvgRenderer
 import os
-from qfluentwidgets import RoundMenu, Action, themeColor, FluentIcon as FIF
+from qfluentwidgets import RoundMenu, Action, themeColor, FluentIcon as FIF, isDarkTheme
 from ppt_assistant.core.i18n import t
 from ppt_assistant.core.config import cfg
 
@@ -28,6 +28,26 @@ class SystemTray(QObject):
         self.tray_icon.activated.connect(self._on_activated)
         
         self.tray_icon.show()
+        try:
+            cfg.themeMode.valueChanged.connect(lambda *_: self.refresh_menu())
+        except Exception:
+            pass
+
+    def _render_menu_icon(self, path, size=16):
+        if not os.path.exists(path):
+            return QIcon()
+        color = QColor(245, 245, 245) if isDarkTheme() else QColor(32, 32, 32)
+        pixmap = QPixmap(size, size)
+        pixmap.fill(Qt.transparent)
+        renderer = QSvgRenderer(path)
+        if not renderer.isValid():
+            return QIcon(path)
+        painter = QPainter(pixmap)
+        renderer.render(painter)
+        painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
+        painter.fillRect(pixmap.rect(), color)
+        painter.end()
+        return QIcon(pixmap)
 
     def _init_menu(self):
         self.menu.clear()
@@ -43,11 +63,13 @@ class SystemTray(QObject):
         self.act_settings.triggered.connect(self.show_settings.emit)
         self.menu.addAction(self.act_settings)
         
-        self.act_board = Action(QIcon(os.path.join(ICON_DIR, "board-in-board.svg")), t("tray.board"), self.menu)
+        board_icon = self._render_menu_icon(os.path.join(ICON_DIR, "board-in-board.svg"))
+        self.act_board = Action(board_icon, t("tray.board"), self.menu)
         self.act_board.triggered.connect(self.show_board.emit)
         self.menu.addAction(self.act_board)
 
-        self.act_timer = Action(QIcon(os.path.join(ICON_DIR, "timer.svg")), t("tray.timer"), self.menu)
+        timer_icon = self._render_menu_icon(os.path.join(ICON_DIR, "timer.svg"))
+        self.act_timer = Action(timer_icon, t("tray.timer"), self.menu)
         self.act_timer.triggered.connect(self.show_timer.emit)
         self.menu.addAction(self.act_timer)
         
@@ -68,6 +90,7 @@ class SystemTray(QObject):
 
     def refresh_menu(self):
         self._init_menu()
+        self._update_icon()
 
     def _on_activated(self, reason):
         if reason == QSystemTrayIcon.Trigger:
