@@ -60,6 +60,7 @@ def _read_board_settings():
     popup_bg = ""
     popup_border = ""
     eraser_mode = 0 # 0: Point, 1: Stroke
+    pen_stroke_enabled = False
     
     # Read settings file once
     settings_data = {}
@@ -82,6 +83,7 @@ def _read_board_settings():
         eraser_mode = 1
     else:
         eraser_mode = 0
+    pen_stroke_enabled = bool(board.get("PenStrokeEnabled", False))
 
     # Override for year-of-horse theme
     if theme_id == "year-of-horse":
@@ -98,7 +100,7 @@ def _read_board_settings():
         pos = board.get("ToolbarPosition", position)
         if pos in ("top", "bottom"):
             position = pos
-        return position, background_color, popup_bg, popup_border, eraser_mode
+        return position, background_color, popup_bg, popup_border, eraser_mode, pen_stroke_enabled
 
     pos = board.get("ToolbarPosition", position)
     if pos in ("top", "bottom"):
@@ -110,10 +112,10 @@ def _read_board_settings():
             background_color = color
         except Exception:
             background_color = "#202020"
-    return position, background_color, popup_bg, popup_border, eraser_mode
+    return position, background_color, popup_bg, popup_border, eraser_mode, pen_stroke_enabled
 
 def _load_board_toolbar_position():
-    position, _, _, _, _ = _read_board_settings()
+    position, _, _, _, _, _ = _read_board_settings()
     return position
 
 _TRANSLATIONS = {
@@ -275,7 +277,7 @@ class BoardWindow(QQuickView):
         icons_url = QUrl.fromLocalFile(icons_dir).toString() + "/"
         self._settings_path = SETTINGS_PATH
         self._settings_mtime = None
-        self._board_toolbar_position, self._board_background_color, self._board_popup_bg, self._board_popup_border, self._board_eraser_mode = _read_board_settings()
+        self._board_toolbar_position, self._board_background_color, self._board_popup_bg, self._board_popup_border, self._board_eraser_mode, self._board_pen_stroke_enabled = _read_board_settings()
 
         self.rootContext().setContextProperty("iconsDir", icons_url)
         self.rootContext().setContextProperty("showToolText", cfg.showToolbarText.value)
@@ -284,6 +286,7 @@ class BoardWindow(QQuickView):
         self.rootContext().setContextProperty("boardPopupBackgroundColor", self._board_popup_bg)
         self.rootContext().setContextProperty("boardPopupBorderColor", self._board_popup_border)
         self.rootContext().setContextProperty("boardEraserMode", self._board_eraser_mode)
+        self.rootContext().setContextProperty("boardPenStrokeEnabled", self._board_pen_stroke_enabled)
         self.rootContext().setContextProperty("penText", _t("toolbar.pen"))
         self.rootContext().setContextProperty("eraserText", _t("toolbar.eraser"))
         self.rootContext().setContextProperty("clearText", _t("toolbar.clear"))
@@ -352,7 +355,7 @@ class BoardWindow(QQuickView):
         if self._settings_mtime == mtime:
             return
         self._settings_mtime = mtime
-        position, background_color, popup_bg, popup_border, eraser_mode = _read_board_settings()
+        position, background_color, popup_bg, popup_border, eraser_mode, pen_stroke_enabled = _read_board_settings()
         root = self.rootObject()
         if position != self._board_toolbar_position:
             self._board_toolbar_position = position
@@ -374,6 +377,10 @@ class BoardWindow(QQuickView):
             self._board_eraser_mode = eraser_mode
             if root:
                 root.setProperty("eraserMode", eraser_mode)
+        if pen_stroke_enabled != self._board_pen_stroke_enabled:
+            self._board_pen_stroke_enabled = pen_stroke_enabled
+            if root:
+                root.setProperty("penStrokeEnabled", pen_stroke_enabled)
 
     def _on_status_changed(self, status):
         if status == QQuickView.Ready:

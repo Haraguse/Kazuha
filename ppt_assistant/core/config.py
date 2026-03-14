@@ -35,6 +35,22 @@ class Config(QConfig):
 
     runAtStartup = ConfigItem("General", "RunAtStartup", False, BoolValidator())
     autoShowOverlay = ConfigItem("General", "AutoShowOverlay", True, BoolValidator())
+    crashAutoHandleEnabled = ConfigItem("General", "CrashAutoHandleEnabled", False, BoolValidator())
+    crashAutoHandleMode = OptionsConfigItem(
+        "General",
+        "CrashAutoHandleMode",
+        "ShowAnalyzer",
+        OptionsValidator(["ShowAnalyzer", "Exit", "RestartSilent", "Toast"]),
+        restart=False,
+    )
+    systemBackdropEnabled = ConfigItem("General", "SystemBackdropEnabled", False, BoolValidator())
+    systemBackdropType = OptionsConfigItem(
+        "General",
+        "SystemBackdropType",
+        "Opaque",
+        OptionsValidator(["Opaque", "Mica", "Acrylic", "MicaAlt"]),
+        restart=False,
+    )
 
     showClear = ConfigItem("Toolbar", "ShowClear", True, BoolValidator())
     showSpotlight = ConfigItem("Toolbar", "ShowSpotlight", True, BoolValidator())
@@ -87,6 +103,9 @@ _root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 # 路径配置：开发环境保持原样，打包环境迁移到程序同级
 if getattr(sys, "frozen", False):
     # 打包环境：settings.json 和 plugins 文件夹都在 exe 同级
+    pass
+# Path config: keep dev layout; package layout lives next to the exe.
+if getattr(sys, "frozen", False):
     _base_exe_dir = os.path.dirname(sys.executable)
     SETTINGS_PATH = os.path.join(_base_exe_dir, "settings.json")
     PLUGINS_DIR = os.path.join(_base_exe_dir, "plugins")
@@ -212,6 +231,8 @@ def _bind_auto_save():
     cfg.themeId.valueChanged.connect(lambda *_: _save_cfg())
     cfg.runAtStartup.valueChanged.connect(_on_run_at_startup_changed)
     cfg.autoShowOverlay.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.crashAutoHandleEnabled.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.crashAutoHandleMode.valueChanged.connect(lambda *_: _save_cfg())
     cfg.showClear.valueChanged.connect(lambda *_: _save_cfg())
     cfg.showSpotlight.valueChanged.connect(lambda *_: _save_cfg())
     cfg.showTimer.valueChanged.connect(lambda *_: _save_cfg())

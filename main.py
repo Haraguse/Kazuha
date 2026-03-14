@@ -962,22 +962,33 @@ class CrashHandler:
 
     def set_app_instance(self, instance):
         self.app_instance = instance
+    
+    def _resolve_crash_action(self):
+        mode = "ShowAnalyzer"
+        enabled = False
+        try:
+            if hasattr(cfg, "crashAutoHandleMode"):
+                mode = cfg.crashAutoHandleMode.value
+        except Exception:
+            mode = "ShowAnalyzer"
+        try:
+            if hasattr(cfg, "crashAutoHandleEnabled"):
+                enabled = bool(cfg.crashAutoHandleEnabled.value)
+        except Exception:
+            enabled = False
 
-    def handle_thread_exception(self, args):
-        self.handle_exception(args.exc_type, args.exc_value, args.exc_traceback)
+        # Legacy fallback: if no explicit toggle exists, treat non-analyzer mode as enabled
+        if not enabled and not hasattr(cfg, "crashAutoHandleEnabled"):
+            if mode in ("Exit", "RestartSilent", "Toast"):
+                enabled = True
 
-    def handle_exception(self, exc_type, exc_value, exc_traceback):
-        if self._handling:
-            sys.__excepthook__(exc_type, exc_value, exc_traceback)
-            return
-        self._handling = True
-        if issubclass(exc_type, KeyboardInterrupt):
-            sys.__excepthook__(exc_type, exc_value, exc_traceback)
-            return
-        
-        error_msg = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
-        print(f"CRASH DETECTED:\n{error_msg}", file=sys.stderr)
-        
+        if not enabled:
+            return "ShowAnalyzer"
+        if mode in ("Exit", "RestartSilent", "Toast"):
+            return mode
+        return "RestartSilent"
+
+    def _launch_crash_dialog(self, error_msg: str):
         try:
             base_dir = os.path.dirname(os.path.abspath(__file__))
             root_dir = base_dir
@@ -1000,6 +1011,61 @@ class CrashHandler:
             subprocess.Popen(cmd, creationflags=creationflags, close_fds=True)
         except Exception as e:
             print(f"Failed to launch crash dialog: {e}", file=sys.stderr)
+
+    def _restart_silent(self):
+        try:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            main_path = os.path.join(base_dir, "main.py")
+            filtered_args = [
+                a for a in sys.argv[1:]
+                if a not in ("--silent", "--webview-runner", "--dialog", "--crash-file")
+            ]
+            if "--silent" not in filtered_args:
+                filtered_args.append("--silent")
+            
+            if getattr(sys, "frozen", False):
+                cmd = [sys.executable] + filtered_args
+            else:
+                cmd = [sys.executable, main_path] + filtered_args
+
+            if sys.platform == "win32":
+                creationflags = 0x00000008 # DETACHED_PROCESS
+            else:
+                creationflags = 0
+
+            subprocess.Popen(cmd, creationflags=creationflags, close_fds=True)
+        except Exception as e:
+            print(f"Failed to restart silently: {e}", file=sys.stderr)
+
+    def _show_crash_toast(self):
+        try:
+            if self.app_instance is not None and hasattr(self.app_instance, "tray") and self.app_instance.tray:
+                self.app_instance.tray.show_message(t("crash.toast.title"), t("crash.toast.body"))
+        except Exception as e:
+            print(f"Failed to show crash toast: {e}", file=sys.stderr)
+
+    def handle_thread_exception(self, args):
+        self.handle_exception(args.exc_type, args.exc_value, args.exc_traceback)
+
+    def handle_exception(self, exc_type, exc_value, exc_traceback):
+        if self._handling:
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+        self._handling = True
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+        
+        error_msg = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+        print(f"CRASH DETECTED:\n{error_msg}", file=sys.stderr)
+        
+        action = self._resolve_crash_action()
+        if action == "ShowAnalyzer":
+            self._launch_crash_dialog(error_msg)
+        elif action == "RestartSilent":
+            self._restart_silent()
+        elif action == "Toast":
+            self._show_crash_toast()
         
         try:
             if self.app_instance is not None:

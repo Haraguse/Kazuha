@@ -12,6 +12,7 @@ Rectangle {
     property string popupBackgroundColor: typeof boardPopupBackgroundColor !== "undefined" ? boardPopupBackgroundColor : ""
     property string popupBorderColor: typeof boardPopupBorderColor !== "undefined" ? boardPopupBorderColor : ""
     property int eraserMode: typeof boardEraserMode !== "undefined" ? boardEraserMode : 0
+    property bool penStrokeEnabled: typeof boardPenStrokeEnabled !== "undefined" ? boardPenStrokeEnabled : false
     property bool darkBackground: isDarkColor(backgroundColor)
     Keys.onEscapePressed: backend.closeWindow()
 
@@ -46,6 +47,8 @@ Rectangle {
             property bool isEraser: false
             property int eraserMode: root.eraserMode // Bind to root property
             property int currentStrokeId: 0
+            property bool penStrokeEnabled: root.penStrokeEnabled
+            property real lastWidth: lineWidth
             
             property var lastX
             property var lastY
@@ -194,9 +197,11 @@ Rectangle {
                     canvas.lastX = mouse.x / canvas.width
                     canvas.lastY = mouse.y / canvas.height
                     canvas.currentStrokeId++;
+                    canvas.lastWidth = canvas.lineWidth;
                 }
                 onReleased: (mouse) => {
                     canvas.currentStrokeId++;
+                    canvas.lastWidth = canvas.lineWidth;
                 }
                 onPositionChanged: (mouse) => {
                     var currentX = mouse.x / canvas.width;
@@ -210,13 +215,26 @@ Rectangle {
                         }
                     } else {
                         // Point Eraser or Pen
+                        var width = canvas.lineWidth;
+                        if (canvas.penStrokeEnabled && !canvas.isEraser) {
+                            var dx = currentX - canvas.lastX;
+                            var dy = currentY - canvas.lastY;
+                            var dist = Math.sqrt(dx * dx + dy * dy);
+                            var speed = dist * Math.max(canvas.width, canvas.height);
+                            var minW = Math.max(1, canvas.lineWidth * 0.6);
+                            var maxW = canvas.lineWidth * 1.8;
+                            var t = Math.min(1, speed / 25);
+                            width = maxW - (maxW - minW) * t;
+                            width = (width + canvas.lastWidth) / 2;
+                            canvas.lastWidth = width;
+                        }
                         var line = {
                             x1: canvas.lastX,
                             y1: canvas.lastY,
                             x2: currentX,
                             y2: currentY,
                             color: canvas.drawColor.toString(),
-                            width: canvas.lineWidth,
+                            width: width,
                             isEraser: canvas.isEraser,
                             strokeId: canvas.currentStrokeId
                         };

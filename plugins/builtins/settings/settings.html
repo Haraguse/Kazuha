@@ -1189,6 +1189,44 @@
       overflow: hidden;
     }
 
+    :root[data-system-backdrop="true"],
+    :root[data-system-backdrop="true"] body {
+      background: transparent !important;
+    }
+
+    :root[data-system-backdrop-mode="system"] .sidebar,
+    :root[data-system-backdrop-mode="system"] .sidebar-mini {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+
+    :root[data-system-backdrop-mode="fallback"] .sidebar,
+    :root[data-system-backdrop-mode="fallback"] .sidebar-mini {
+      background: rgba(255, 255, 255, 0.32) !important;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    :root[data-system-backdrop-mode="fallback"][data-theme="dark"] .sidebar,
+    :root[data-system-backdrop-mode="fallback"][data-theme="dark"] .sidebar-mini {
+      background: rgba(16, 16, 16, 0.55) !important;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    }
+
+    :root[data-system-backdrop-mode="system"] .content,
+    :root[data-system-backdrop-mode="fallback"] .content {
+      background: rgba(255, 255, 255, 0.86) !important;
+    }
+
+    :root[data-system-backdrop-mode="system"][data-theme="dark"] .content,
+    :root[data-system-backdrop-mode="fallback"][data-theme="dark"] .content {
+      background: rgba(20, 20, 20, 0.82) !important;
+    }
+
     body {
       color: var(--text-primary);
       font-family: var(--font-stack);
@@ -2032,6 +2070,22 @@
       letter-spacing: 0.2px;
     }
 
+    .beta-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 6px;
+      margin-left: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      border-radius: 999px;
+      background: rgba(50, 117, 245, 0.12);
+      color: var(--accent-blue);
+      border: 1px solid rgba(50, 117, 245, 0.35);
+    }
+
     .item-desc {
       font-size: 13px;
       color: var(--text-secondary);
@@ -2045,6 +2099,10 @@
       color: var(--text-secondary);
       font-size: 14px;
       font-weight: 400;
+    }
+
+    .crash-auto-handle-state {
+      gap: 10px;
     }
 
     .slider-container {
@@ -3738,6 +3796,15 @@
       background-color: var(--item-hover);
     }
 
+    .custom-select-container.disabled {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .custom-select-container.disabled .custom-select-toggle {
+      cursor: not-allowed;
+    }
+
     .custom-select-label {
       flex: 1;
       overflow: hidden;
@@ -5326,13 +5393,41 @@
           </div>
         </div>
 
-        <div class="group-title" data-i18n="group.startup">启动</div>
+        <div class="group-title" data-i18n="group.startup">默认行为</div>
         <div class="settings-group">
           <div class="settings-item" onclick="toggleSwitch('General', 'RunAtStartup')">
             <div class="item-info">
               <span class="item-label" data-i18n="general.runAtStartup.label">开机自启</span>
             </div>
             <div class="switch" id="sw-General-RunAtStartup"></div>
+          </div>
+          <div class="settings-item" onclick="toggleCrashAutoHandleEnabled()">
+            <div class="item-info">
+              <span class="item-label" data-i18n="general.crashAutoHandle.label">异常退出处理</span>
+              <span class="item-desc" data-i18n="general.crashAutoHandle.desc">设定程序异常时的处理方式</span>
+            </div>
+            <div class="item-state crash-auto-handle-state">
+              <select id="sel-General-CrashAutoHandleMode" class="styled-select" onchange="setCrashAutoHandleMode(this.value)">
+                <option value="ShowAnalyzer" data-i18n="general.crashAutoHandle.analyzer">打开崩溃详情</option>
+              </select>
+              <div class="switch" id="sw-General-CrashAutoHandleEnabled" onclick="event.stopPropagation(); toggleCrashAutoHandleEnabled();"></div>
+            </div>
+          </div>
+          <div class="settings-item" onclick="toggleSystemBackdropEnabled()">
+            <div class="item-info">
+              <span class="item-label"><span data-i18n="general.systemBackdrop.label">系统材质效果</span><span class="beta-badge">Beta</span></span>
+              <span class="item-desc" data-i18n="general.systemBackdrop.desc">在设置与计时器窗口的非内容区使用 Windows 材质</span>
+              <span class="item-desc" data-i18n="general.systemBackdrop.requirements">需要 Windows 11</span>
+            </div>
+            <div class="item-state">
+              <select id="sel-General-SystemBackdropType" class="styled-select" onchange="setSystemBackdropType(this.value)">
+                <option value="Opaque" data-i18n="general.systemBackdrop.type.opaque">不透明</option>
+                <option value="Mica" data-i18n="general.systemBackdrop.type.mica">Mica</option>
+                <option value="Acrylic" data-i18n="general.systemBackdrop.type.acrylic">Acrylic</option>
+                <option value="MicaAlt" data-i18n="general.systemBackdrop.type.micaAlt">Mica Alt</option>
+              </select>
+              <div class="switch" id="sw-General-SystemBackdropEnabled" onclick="event.stopPropagation(); toggleSystemBackdropEnabled();"></div>
+            </div>
           </div>
         </div>
 
@@ -5649,6 +5744,13 @@
                 <option value="stroke" data-i18n="boardInBoard.eraserMode.stroke">笔画擦除</option>
               </select>
             </div>
+          </div>
+          <div class="settings-item" onclick="toggleSwitch('BoardInBoard', 'PenStrokeEnabled')">
+            <div class="item-info">
+              <span class="item-label" data-i18n="boardInBoard.penStroke.label">笔锋</span>
+              <span class="item-desc" data-i18n="boardInBoard.penStroke.desc">开启后笔画带有笔锋效果</span>
+            </div>
+            <div class="switch" id="sw-BoardInBoard-PenStrokeEnabled"></div>
           </div>
         </div>
       </div>
@@ -6476,7 +6578,7 @@
       "section.debug": "调试",
       "group.language": "语言",
       "group.appearance": "外观",
-      "group.startup": "启动",
+      "group.startup": "默认行为",
       "group.compatibility": "兼容性",
       "group.fonts": "全局应用字体",
       "group.presentation": "放映",
@@ -6572,6 +6674,19 @@
       "appearance.theme.monet.color.surface": "表面",
       "appearance.theme.monet.color.text": "文字",
       "general.runAtStartup.label": "开机自启",
+      "general.crashAutoHandle.label": "异常退出处理",
+      "general.crashAutoHandle.desc": "设定程序异常时的处理方式",
+      "general.crashAutoHandle.analyzer": "打开崩溃详情",
+      "general.crashAutoHandle.exit": "立即退出应用",
+      "general.crashAutoHandle.restartSilent": "后台重启（不显示启动画面）",
+      "general.crashAutoHandle.toast": "仅发送 Windows 通知",
+      "general.systemBackdrop.label": "系统材质效果",
+      "general.systemBackdrop.desc": "在设置与计时器窗口的非内容区使用 Windows 材质",
+      "general.systemBackdrop.requirements": "需要 Windows 11",
+      "general.systemBackdrop.type.opaque": "不透明",
+      "general.systemBackdrop.type.mica": "Mica",
+      "general.systemBackdrop.type.acrylic": "Acrylic",
+      "general.systemBackdrop.type.micaAlt": "Mica Alt",
       "general.splashMode.label": "启动画面",
       "general.splashMode.always": "每次都显示",
       "general.splashMode.never": "不显示",
@@ -6654,6 +6769,8 @@
       "boardInBoard.toolbarPosition.right": "右侧",
       "boardInBoard.backgroundColor.label": "黑板背景",
       "boardInBoard.backgroundColor.desc": "选择板中板黑板的背景颜色",
+      "boardInBoard.penStroke.label": "笔锋",
+      "boardInBoard.penStroke.desc": "开启后笔画带有笔锋效果",
       "interaction.showTimer.label": "显示计时器",
 
       "interaction.toolbar.customization.label": "工具栏固定项",
@@ -6749,7 +6866,7 @@
       "section.debug": "偵錯",
       "group.language": "語言",
       "group.appearance": "外觀",
-      "group.startup": "啟動",
+      "group.startup": "預設行為",
       "group.compatibility": "相容性",
       "group.fonts": "全域字型",
       "group.presentation": "放映",
@@ -6845,6 +6962,19 @@
       "appearance.theme.monet.color.surface": "表面",
       "appearance.theme.monet.color.text": "文字",
       "general.runAtStartup.label": "開機自啟",
+      "general.crashAutoHandle.label": "異常結束處理",
+      "general.crashAutoHandle.desc": "設定程式異常時的處理方式",
+      "general.crashAutoHandle.analyzer": "開啟當機詳情",
+      "general.crashAutoHandle.exit": "立即退出應用程式",
+      "general.crashAutoHandle.restartSilent": "背景重啟（不顯示啟動畫面）",
+      "general.crashAutoHandle.toast": "僅發送 Windows 通知",
+      "general.systemBackdrop.label": "系統材質效果",
+      "general.systemBackdrop.desc": "在設定與計時器視窗的非內容區使用 Windows 材質",
+      "general.systemBackdrop.requirements": "需要 Windows 11",
+      "general.systemBackdrop.type.opaque": "不透明",
+      "general.systemBackdrop.type.mica": "Mica",
+      "general.systemBackdrop.type.acrylic": "Acrylic",
+      "general.systemBackdrop.type.micaAlt": "Mica Alt",
       "general.splashMode.label": "啟動畫面",
       "general.splashMode.always": "每次都顯示",
       "general.splashMode.never": "不顯示",
@@ -6923,6 +7053,8 @@
       "boardInBoard.toolbarPosition.right": "右側",
       "boardInBoard.backgroundColor.label": "黑板背景",
       "boardInBoard.backgroundColor.desc": "選擇板中板黑板的背景顏色",
+      "boardInBoard.penStroke.label": "筆鋒",
+      "boardInBoard.penStroke.desc": "開啟後筆畫帶有筆鋒效果",
       "interaction.showTimer.label": "顯示計時器",
       "interaction.toolbar.customization.label": "工具列固定項",
       "interaction.toolbar.customization.desc": "預覽並管理工具列上的快速啟動項",
@@ -7014,7 +7146,7 @@
       "section.debug": "偵錯",
       "group.language": "語言",
       "group.appearance": "外觀",
-      "group.startup": "啟動",
+      "group.startup": "預設行為",
       "group.compatibility": "相容性",
       "group.fonts": "全域字型",
       "group.presentation": "放映",
@@ -7110,6 +7242,19 @@
       "appearance.theme.monet.color.surface": "表面",
       "appearance.theme.monet.color.text": "文字",
       "general.runAtStartup.label": "開機自啟",
+      "general.crashAutoHandle.label": "異常退出處理",
+      "general.crashAutoHandle.desc": "設定程式異常時嘅處理方式",
+      "general.crashAutoHandle.analyzer": "打開當機詳情",
+      "general.crashAutoHandle.exit": "即刻退出程式",
+      "general.crashAutoHandle.restartSilent": "背景重啟（唔顯示啟動畫面）",
+      "general.crashAutoHandle.toast": "淨係發 Windows 通知",
+      "general.systemBackdrop.label": "系統材質效果",
+      "general.systemBackdrop.desc": "喺設定同計時器視窗嘅非內容區使用 Windows 材質",
+      "general.systemBackdrop.requirements": "需要 Windows 11",
+      "general.systemBackdrop.type.opaque": "不透明",
+      "general.systemBackdrop.type.mica": "Mica",
+      "general.systemBackdrop.type.acrylic": "Acrylic",
+      "general.systemBackdrop.type.micaAlt": "Mica Alt",
       "general.splashMode.label": "啟動畫面",
       "general.splashMode.always": "每次都顯示",
       "general.splashMode.never": "唔顯示",
@@ -7189,6 +7334,8 @@
       "boardInBoard.toolbarPosition.right": "右邊",
       "boardInBoard.backgroundColor.label": "黑板背景",
       "boardInBoard.backgroundColor.desc": "揀板中板黑板背景色",
+      "boardInBoard.penStroke.label": "筆鋒",
+      "boardInBoard.penStroke.desc": "開啟後筆畫有筆鋒效果",
       "interaction.showTimer.label": "顯示計時器",
       "interaction.toolbar.customization.label": "工具列固定項",
       "interaction.toolbar.customization.desc": "預覽並管理工具列快速啟動項",
@@ -7282,7 +7429,7 @@
       "section.debug": "デバッグ",
       "group.language": "言語",
       "group.appearance": "外観",
-      "group.startup": "起動",
+      "group.startup": "既定の動作",
       "group.compatibility": "互換性",
       "group.fonts": "グローバルフォント",
       "group.presentation": "プレゼン",
@@ -7378,6 +7525,19 @@
       "appearance.theme.monet.color.surface": "サーフェス",
       "appearance.theme.monet.color.text": "テキスト",
       "general.runAtStartup.label": "起動時に自動実行",
+      "general.crashAutoHandle.label": "クラッシュ時の動作",
+      "general.crashAutoHandle.desc": "異常終了時の処理を選択します",
+      "general.crashAutoHandle.analyzer": "クラッシュ詳細を開く",
+      "general.crashAutoHandle.exit": "直ちに終了",
+      "general.crashAutoHandle.restartSilent": "バックグラウンド再起動（スプラッシュなし）",
+      "general.crashAutoHandle.toast": "Windows 通知のみ",
+      "general.systemBackdrop.label": "システム素材効果",
+      "general.systemBackdrop.desc": "設定とタイマーの非コンテンツ領域で Windows の素材を使用",
+      "general.systemBackdrop.requirements": "Windows 11 が必要です",
+      "general.systemBackdrop.type.opaque": "不透明",
+      "general.systemBackdrop.type.mica": "Mica",
+      "general.systemBackdrop.type.acrylic": "Acrylic",
+      "general.systemBackdrop.type.micaAlt": "Mica Alt",
       "general.splashMode.label": "スプラッシュ画面",
       "general.splashMode.always": "常に表示",
       "general.splashMode.never": "表示しない",
@@ -7457,6 +7617,8 @@
       "boardInBoard.toolbarPosition.right": "右",
       "boardInBoard.backgroundColor.label": "黒板の背景",
       "boardInBoard.backgroundColor.desc": "ボードインボードの黒板背景色を選択します",
+      "boardInBoard.penStroke.label": "筆圧",
+      "boardInBoard.penStroke.desc": "有効にすると筆画に筆圧が付きます",
       "interaction.showTimer.label": "タイマーを表示",
       "interaction.toolbar.customization.label": "ツールバー固定プログラム",
       "interaction.toolbar.customization.desc": "ツールバーのクイック起動アプリを管理します",
@@ -7550,7 +7712,7 @@
       "section.debug": "Debug",
       "group.language": "Language",
       "group.appearance": "Appearance",
-      "group.startup": "Startup",
+      "group.startup": "Default Behavior",
       "group.compatibility": "Compatibility",
       "group.fonts": "Global Fonts",
       "group.presentation": "Presentation",
@@ -7638,6 +7800,19 @@
       "appearance.theme.monet.color.surface": "Surface",
       "appearance.theme.monet.color.text": "Text",
       "general.runAtStartup.label": "Run at startup",
+      "general.crashAutoHandle.label": "Crash Response",
+      "general.crashAutoHandle.desc": "Choose what happens when the app exits unexpectedly",
+      "general.crashAutoHandle.analyzer": "Open crash details",
+      "general.crashAutoHandle.exit": "Exit immediately",
+      "general.crashAutoHandle.restartSilent": "Restart in background (no splash)",
+      "general.crashAutoHandle.toast": "Only show a Windows notification",
+      "general.systemBackdrop.label": "System material effects",
+      "general.systemBackdrop.desc": "Use Windows materials in non-content areas of Settings and Timer",
+      "general.systemBackdrop.requirements": "Requires Windows 11",
+      "general.systemBackdrop.type.opaque": "Opaque",
+      "general.systemBackdrop.type.mica": "Mica",
+      "general.systemBackdrop.type.acrylic": "Acrylic",
+      "general.systemBackdrop.type.micaAlt": "Mica Alt",
       "general.splashMode.label": "Startup Splash",
       "general.splashMode.always": "Always show",
       "general.splashMode.never": "Never show",
@@ -7725,6 +7900,8 @@
       "boardInBoard.toolbarPosition.right": "Right",
       "boardInBoard.backgroundColor.label": "Blackboard Background",
       "boardInBoard.backgroundColor.desc": "Choose the blackboard background color",
+      "boardInBoard.penStroke.label": "Pen taper",
+      "boardInBoard.penStroke.desc": "Add taper to board strokes",
       "interaction.showTimer.label": "Show Timer",
       "interaction.toolbar.customization.label": "Toolbar fixed program",
       "interaction.toolbar.customization.desc": "Manage quick launch applications on the toolbar",
@@ -9436,6 +9613,16 @@
     if (typeof initSearch === 'function') initSearch();
   }
 
+  function applySystemBackdropDocument() {
+    const enabled = !!settings.General?.SystemBackdropEnabled;
+    const supported = !!window.__SYSTEM_BACKDROP_SUPPORTED;
+    document.documentElement.setAttribute("data-system-backdrop", enabled ? "true" : "false");
+    document.documentElement.setAttribute(
+      "data-system-backdrop-mode",
+      enabled ? (supported ? "system" : "fallback") : "off"
+    );
+  }
+
   function initNav() {
     const items = document.querySelectorAll(".sidebar-item");
     const sections = document.querySelectorAll(".section");
@@ -9447,6 +9634,7 @@
     items.forEach(function (item) {
       item.addEventListener("click", function () {
         const key = item.getAttribute("data-section");
+        if (!key) return;
         
         // Check if user is on the third island (Update section) and clicked a disabled middle sidebar item
         if (key === "plugins" && item.classList.contains("disabled")) {
@@ -9582,12 +9770,12 @@
   }
 
   let settings = window.initialSettings || {
-    General: { RunAtStartup: false, AutoShowOverlay: true, CompatibilityMode: false, Language: "zh-CN" },
+    General: { RunAtStartup: false, AutoShowOverlay: true, CompatibilityMode: false, Language: "zh-CN", SystemBackdropEnabled: false, SystemBackdropType: "Opaque" },
     PPT: { AutoHandleInk: true },
     Overlay: { ShowStatusBar: true, ClearMode: "slide" },
     Toolbar: { ShowClear: true, ShowToolbarText: true },
     Window: { TimerFullscreenBehavior: "fullscreen" },
-    BoardInBoard: { ToolbarPosition: "bottom", BackgroundColor: "#202020" },
+    BoardInBoard: { ToolbarPosition: "bottom", BackgroundColor: "#202020", PenStrokeEnabled: false },
     Debug: { ShowLog: false, RtlTest: false, RotateTest: false },
     Update: { AutoCheck: true, Source: "github" },
     Security: { EnablePassword: false, Password: "" },
@@ -9684,6 +9872,9 @@
 
       const container = document.createElement('div');
       container.className = 'custom-select-container';
+      if (sel.disabled) {
+        container.classList.add('disabled');
+      }
 
       const toggle = document.createElement('div');
       toggle.className = 'custom-select-toggle';
@@ -9715,6 +9906,7 @@
 
       toggle.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (container.classList.contains('disabled')) return;
         document.querySelectorAll('.custom-select-container.open').forEach(c => {
           if (c !== container) c.classList.remove('open');
         });
@@ -9729,6 +9921,7 @@
   function refreshCustomSelect(sel) {
     if (!sel || !sel.nextSibling || !sel.nextSibling.classList.contains('custom-select-container')) return;
     const container = sel.nextSibling;
+    container.classList.toggle('disabled', !!sel.disabled);
     const label = container.querySelector('.custom-select-label');
     const selectedOption = sel.options[sel.selectedIndex];
     if (label && selectedOption) setSelectLabel(label, selectedOption);
@@ -10002,8 +10195,11 @@
     const lang = settings.General && settings.General.Language;
     if (lang) currentLanguage = lang;
     applyI18n();
+    applySystemBackdropDocument();
 
     setSwitch("General", "RunAtStartup");
+    setSwitch("General", "CrashAutoHandleEnabled");
+    setSwitch("General", "SystemBackdropEnabled");
     setSwitch("General", "CompatibilityMode");
     setSwitch("General", "AutoShowOverlay");
     setSwitch("PPT", "AutoHandleInk");
@@ -10012,12 +10208,15 @@
     setSwitch("Toolbar", "ShowBoardInBoard");
     setSwitch("Toolbar", "ShowTimer");
     setSwitch("Toolbar", "ShowToolbarText");
+    setSwitch("BoardInBoard", "PenStrokeEnabled");
     setSwitch("Debug", "ShowLog");
     setSwitch("Debug", "RtlTest");
     setSwitch("Debug", "RotateTest");
     setSwitch("Update", "AutoCheck");
     setSwitch("Fonts", "CustomFont");
     setSwitch("Security", "EnablePassword");
+    renderCrashAutoHandleSelect();
+    renderSystemBackdropSelect();
 
     const disabledTools = (settings.Toolbar && settings.Toolbar.DisabledTools) || [];
     ['select', 'pen', 'eraser', 'prev', 'next'].forEach(toolId => {
@@ -10219,6 +10418,172 @@
       if (val) el.classList.add('active');
       else el.classList.remove('active');
     }
+  }
+
+  function getCrashAutoHandleEnabled() {
+    return !!settings.General?.CrashAutoHandleEnabled;
+  }
+
+  function renderCrashAutoHandleSelect() {
+    if (!settings.General) settings.General = {};
+    const enabled = !!settings.General.CrashAutoHandleEnabled;
+    const sel = document.getElementById("sel-General-CrashAutoHandleMode");
+    if (!sel) return;
+
+    const autoOptions = [
+      { value: "Exit", key: "general.crashAutoHandle.exit", fallback: "Exit app" },
+      { value: "RestartSilent", key: "general.crashAutoHandle.restartSilent", fallback: "Restart in background" },
+      { value: "Toast", key: "general.crashAutoHandle.toast", fallback: "Show Windows notification" }
+    ];
+    const analyzerOption = { value: "ShowAnalyzer", key: "general.crashAutoHandle.analyzer", fallback: "Open crash details" };
+    const options = enabled ? autoOptions : [analyzerOption];
+
+    const current = settings.General.CrashAutoHandleMode || "ShowAnalyzer";
+    let selected = analyzerOption.value;
+    if (enabled) {
+      const valid = autoOptions.map(opt => opt.value);
+      selected = valid.includes(current) ? current : "RestartSilent";
+      if (settings.General.CrashAutoHandleMode !== selected) {
+        settings.General.CrashAutoHandleMode = selected;
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+          window.pywebview.api.save_setting("General", "CrashAutoHandleMode", selected);
+        }
+      }
+    }
+
+    sel.innerHTML = "";
+    options.forEach(opt => {
+      const option = document.createElement("option");
+      option.value = opt.value;
+      option.setAttribute("data-i18n", opt.key);
+      option.textContent = getText(opt.key) || opt.fallback;
+      sel.appendChild(option);
+    });
+    sel.value = selected;
+    refreshCustomSelect(sel);
+  }
+
+  function toggleCrashAutoHandleEnabled() {
+    if (!settings.General) settings.General = {};
+    const next = !settings.General.CrashAutoHandleEnabled;
+    settings.General.CrashAutoHandleEnabled = next;
+    setSwitch("General", "CrashAutoHandleEnabled");
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+      window.pywebview.api.save_setting("General", "CrashAutoHandleEnabled", next);
+    }
+    renderCrashAutoHandleSelect();
+  }
+
+  function setCrashAutoHandleMode(value) {
+    if (!settings.General) settings.General = {};
+    if (!getCrashAutoHandleEnabled()) {
+      renderCrashAutoHandleSelect();
+      return;
+    }
+    const valid = ["Exit", "RestartSilent", "Toast"];
+    if (!valid.includes(value)) value = "RestartSilent";
+    if (settings.General.CrashAutoHandleMode !== value) {
+      settings.General.CrashAutoHandleMode = value;
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+        window.pywebview.api.save_setting("General", "CrashAutoHandleMode", value);
+      }
+    }
+    renderCrashAutoHandleSelect();
+  }
+
+  function getSystemBackdropEnabled() {
+    return !!settings.General?.SystemBackdropEnabled;
+  }
+
+  function renderSystemBackdropSelect() {
+    if (!settings.General) settings.General = {};
+    const enabled = !!settings.General.SystemBackdropEnabled;
+    const sel = document.getElementById("sel-General-SystemBackdropType");
+    if (!sel) return;
+
+    const enabledOptions = [
+      { value: "Mica", key: "general.systemBackdrop.type.mica", fallback: "Mica" },
+      { value: "Acrylic", key: "general.systemBackdrop.type.acrylic", fallback: "Acrylic" },
+      { value: "MicaAlt", key: "general.systemBackdrop.type.micaAlt", fallback: "Mica Alt" }
+    ];
+    const disabledOptions = [
+      { value: "Opaque", key: "general.systemBackdrop.type.opaque", fallback: "Opaque" }
+    ];
+    const options = enabled ? enabledOptions : disabledOptions;
+
+    const current = settings.General.SystemBackdropType || (enabled ? "Mica" : "Opaque");
+    let selected = current;
+    if (enabled) {
+      const valid = enabledOptions.map(opt => opt.value);
+      if (!valid.includes(selected)) selected = "Mica";
+    } else {
+      selected = "Opaque";
+    }
+
+    if (settings.General.SystemBackdropType !== selected) {
+      settings.General.SystemBackdropType = selected;
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+        window.pywebview.api.save_setting("General", "SystemBackdropType", selected);
+      }
+    }
+
+    sel.innerHTML = "";
+    options.forEach(opt => {
+      const option = document.createElement("option");
+      option.value = opt.value;
+      option.setAttribute("data-i18n", opt.key);
+      option.textContent = getText(opt.key) || opt.fallback;
+      sel.appendChild(option);
+    });
+    sel.value = selected;
+    sel.disabled = !enabled;
+
+    if (sel.nextSibling && sel.nextSibling.classList.contains("custom-select-container")) {
+      sel.nextSibling.remove();
+    }
+    sel.removeAttribute("data-converted");
+    sel.style.display = "";
+    convertNativeSelectsToCustom();
+
+    const container = sel.nextSibling;
+    if (container && container.classList.contains("custom-select-container")) {
+      container.classList.toggle("disabled", sel.disabled);
+    }
+  }
+
+  function toggleSystemBackdropEnabled() {
+    if (!settings.General) settings.General = {};
+    const next = !settings.General.SystemBackdropEnabled;
+    settings.General.SystemBackdropEnabled = next;
+    if (!next) {
+      settings.General.SystemBackdropType = "Opaque";
+    } else if (!["Mica", "Acrylic", "MicaAlt"].includes(settings.General.SystemBackdropType)) {
+      settings.General.SystemBackdropType = "Mica";
+    }
+    setSwitch("General", "SystemBackdropEnabled");
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+      window.pywebview.api.save_setting("General", "SystemBackdropEnabled", next);
+      window.pywebview.api.save_setting("General", "SystemBackdropType", settings.General.SystemBackdropType);
+    }
+    applySystemBackdropDocument();
+    renderSystemBackdropSelect();
+  }
+
+  function setSystemBackdropType(value) {
+    if (!settings.General) settings.General = {};
+    if (!getSystemBackdropEnabled()) {
+      renderSystemBackdropSelect();
+      return;
+    }
+    const valid = ["Mica", "Acrylic", "MicaAlt"];
+    if (!valid.includes(value)) value = "Mica";
+    if (settings.General.SystemBackdropType !== value) {
+      settings.General.SystemBackdropType = value;
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+        window.pywebview.api.save_setting("General", "SystemBackdropType", value);
+      }
+    }
+    renderSystemBackdropSelect();
   }
 
   function toggleSecurityPassword() {
@@ -11641,11 +12006,10 @@
   // Hide update (back to 2-island)
   function hideUpdate() {
     const layout = document.getElementById('layout');
-    const sections = document.querySelectorAll(".section");
     // backBtn and divider visibility is now handled by CSS via .three-island class
     const title = document.getElementById("section-title");
 
-    layout.classList.remove('three-island');
+    if (layout) layout.classList.remove('three-island');
     
     // Restore About text
     const aboutItem = document.querySelector('.sidebar-item[data-section="about"]');
@@ -11657,29 +12021,29 @@
         }
     }
 
-    // Always return to 'main' (General) as requested
-    const targetSection = 'main';
+    // Always return to 'main' (General) as requested.
+    // Use the existing nav click logic first, then force a fallback if needed.
+    const mainItem = document.querySelector('.sidebar-item[data-section="main"]');
+    if (mainItem) {
+      mainItem.click();
+    }
 
-    sections.forEach(sec => {
-      if (sec.id === `section-${targetSection}`) {
-        sec.classList.add('active');
-      } else {
-        sec.classList.remove('active');
-      }
-    });
+    const activeSection = document.querySelector('.section.active');
+    if (!activeSection || activeSection.id !== 'section-main') {
+      const sections = document.querySelectorAll(".section");
+      sections.forEach(sec => {
+        sec.classList.toggle('active', sec.id === 'section-main');
+      });
 
-    const navItems = document.querySelectorAll(".sidebar-item");
-    navItems.forEach(item => {
-      if (item.getAttribute('data-section') === targetSection) {
-        item.classList.add('active');
-      } else {
-        item.classList.remove('active');
-      }
-    });
+      const navItems = document.querySelectorAll(".sidebar-item");
+      navItems.forEach(item => {
+        item.classList.toggle('active', item.getAttribute('data-section') === 'main');
+      });
 
-    if (title) {
+      if (title) {
         title.style.display = 'block';
         title.textContent = getText("section.main") || "主程序";
+      }
     }
   }
   // --- Restart Notification & Generic Modal ---

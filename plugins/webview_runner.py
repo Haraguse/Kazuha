@@ -25,6 +25,31 @@ DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19
 DWMWA_BORDER_COLOR = 34
 DWMWA_CAPTION_COLOR = 35
 DWMWA_TEXT_COLOR = 36
+DWMWA_SYSTEMBACKDROP_TYPE = 38
+_DWM_COLOR_NONE = 0xFFFFFFFE
+_DWM_COLOR_DEFAULT = 0xFFFFFFFF
+
+DWMSBT_AUTO = 0
+DWMSBT_NONE = 1
+DWMSBT_MAINWINDOW = 2
+DWMSBT_TRANSIENTWINDOW = 3
+DWMSBT_TABBEDWINDOW = 4
+
+def _supports_system_backdrop():
+    if sys.platform != "win32":
+        return False
+    try:
+        return sys.getwindowsversion().build >= 22000
+    except Exception:
+        return False
+
+def _safe_set_widget_attr(widget, attr, enabled):
+    if attr is None:
+        return
+    try:
+        widget.setAttribute(attr, enabled)
+    except Exception:
+        pass
 
 
 def _resolve_logo_ico_path() -> str | None:
@@ -124,9 +149,9 @@ def _apply_window_theme(hwnd, is_dark):
             caption = ctypes.c_int(0x00202020)
             text = ctypes.c_int(0x00FFFFFF)
         else:
-            border = ctypes.c_int(-1)
-            caption = ctypes.c_int(-1)
-            text = ctypes.c_int(-1)
+            border = ctypes.c_int(_DWM_COLOR_DEFAULT)
+            caption = ctypes.c_int(_DWM_COLOR_DEFAULT)
+            text = ctypes.c_int(_DWM_COLOR_DEFAULT)
         dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ctypes.byref(border), ctypes.sizeof(border))
         dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, ctypes.byref(caption), ctypes.sizeof(caption))
         dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_TEXT_COLOR, ctypes.byref(text), ctypes.sizeof(text))
@@ -134,6 +159,75 @@ def _apply_window_theme(hwnd, is_dark):
         uxtheme.SetWindowTheme(hwnd, ctypes.c_wchar_p(theme), None)
         flags = 0x0001 | 0x0002 | 0x0004 | 0x0020
         user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, flags)
+    except Exception:
+        pass
+
+def _resolve_system_backdrop_type(settings, window_tag):
+    if sys.platform != "win32":
+        return None
+    if window_tag not in ("settings", "timer"):
+        return None
+    if not _supports_system_backdrop():
+        return DWMSBT_NONE
+    if not isinstance(settings, dict):
+        return DWMSBT_NONE
+    general = settings.get("General") if isinstance(settings.get("General"), dict) else {}
+    enabled = bool(general.get("SystemBackdropEnabled"))
+    if not enabled:
+        return DWMSBT_NONE
+    type_value = str(general.get("SystemBackdropType", "Mica"))
+    mapping = {
+        "Mica": DWMSBT_MAINWINDOW,
+        "Acrylic": DWMSBT_TRANSIENTWINDOW,
+        "MicaAlt": DWMSBT_TABBEDWINDOW,
+        "Opaque": DWMSBT_NONE,
+    }
+    return mapping.get(type_value, DWMSBT_MAINWINDOW)
+
+def _apply_system_backdrop(hwnd, backdrop_type):
+    if sys.platform != "win32" or not hwnd or backdrop_type is None:
+        return
+    try:
+        dwmapi = ctypes.windll.dwmapi
+        val = ctypes.c_int(int(backdrop_type))
+        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ctypes.byref(val), ctypes.sizeof(val))
+    except Exception:
+        pass
+
+def _force_dwm_redraw(hwnd):
+    if sys.platform != "win32" or not hwnd:
+        return
+    try:
+        user32 = ctypes.windll.user32
+        SWP_NOMOVE = 0x0002
+        SWP_NOSIZE = 0x0001
+        SWP_NOZORDER = 0x0004
+        SWP_NOACTIVATE = 0x0010
+        SWP_FRAMECHANGED = 0x0020
+        user32.SetWindowPos(
+            hwnd,
+            0,
+            0,
+            0,
+            0,
+            0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
+        )
+        try:
+            ctypes.windll.dwmapi.DwmFlush()
+        except Exception:
+            pass
+        RDW_INVALIDATE = 0x0001
+        RDW_ERASE = 0x0004
+        RDW_UPDATENOW = 0x0100
+        RDW_FRAME = 0x0400
+        RDW_ALLCHILDREN = 0x0080
+        user32.RedrawWindow(
+            hwnd,
+            None,
+            None,
+            RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW | RDW_FRAME | RDW_ALLCHILDREN,
+        )
     except Exception:
         pass
 
@@ -434,6 +528,8 @@ class Api(QObject):
                 _apply_window_theme(int(self._window.winId()), _resolve_theme_dark(theme_mode))
             except Exception:
                 pass
+            if hasattr(self._window, "apply_backdrop_settings"):
+                self._window.apply_backdrop_settings()
 
     @Slot(int)
     def update_timer(self, total_seconds):
@@ -822,6 +918,9 @@ class Api(QObject):
 
             if category == "Appearance" and key in ("ThemeMode", "ThemeId"):
                 self.update_settings(data)
+            if category == "General" and key in ("SystemBackdropEnabled", "SystemBackdropType"):
+                if self._window and hasattr(self._window, "apply_backdrop_settings"):
+                    self._window.apply_backdrop_settings()
         except Exception as e:
             print(f"Error saving settings: {e}", file=sys.stderr)
 
@@ -1185,6 +1284,8 @@ class MainWindow(QWebEngineView):
         self._defer_load = defer_load
         self._mini_mode = False
         self._pending_url = None
+        self._did_hard_refresh = False
+        self._window_tag = self._detect_window_tag(url, title)
         self._apply_page_background()
         settings = self.page().settings()
         allow_gpu = not _is_windows7()
@@ -1205,6 +1306,7 @@ class MainWindow(QWebEngineView):
         profile.setHttpCacheMaximumSize(50 * 1024 * 1024)  # 50 MB
         self.api = api
         self.api.set_window(self)
+        self._apply_page_background()
         self.channel = QWebChannel()
         self.channel.registerObject("api", api)
         self.page().setWebChannel(self.channel)
@@ -1220,6 +1322,30 @@ class MainWindow(QWebEngineView):
         settings_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
         settings_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         self.page().scripts().insert(settings_script)
+        supports_backdrop = _supports_system_backdrop()
+        support_script = QWebEngineScript()
+        support_script.setSourceCode(f"window.__SYSTEM_BACKDROP_SUPPORTED = {json.dumps(supports_backdrop)};")
+        support_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
+        support_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
+        self.page().scripts().insert(support_script)
+        try:
+            general = api.settings.get("General", {}) if isinstance(api.settings, dict) else {}
+        except Exception:
+            general = {}
+        enabled = bool(general.get("SystemBackdropEnabled")) and self._window_tag in ("settings", "timer")
+        mode = "off"
+        if enabled:
+            mode = "system" if supports_backdrop else "fallback"
+        backdrop_attr_script = QWebEngineScript()
+        backdrop_attr_script.setSourceCode(
+            "try {"
+            f"document.documentElement.setAttribute('data-system-backdrop', '{'true' if enabled else 'false'}');"
+            f"document.documentElement.setAttribute('data-system-backdrop-mode', '{mode}');"
+            "} catch (e) {}"
+        )
+        backdrop_attr_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
+        backdrop_attr_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
+        self.page().scripts().insert(backdrop_attr_script)
         preview_flag = os.environ.get("ONBOARDING_PREVIEW", "").lower() == "true"
         preview_script = QWebEngineScript()
         preview_script.setSourceCode(f"window.__ONBOARDING_PREVIEW = {json.dumps(preview_flag)};")
@@ -1233,7 +1359,7 @@ class MainWindow(QWebEngineView):
             self._pending_url = target_url
         else:
             self.load(target_url)
-        self.loadFinished.connect(lambda *_: self._schedule_backdrop_apply())
+        self.loadFinished.connect(lambda *_: (self._apply_page_background(), self._schedule_backdrop_apply()))
         self._schedule_backdrop_apply()
         
         self.renderProcessTerminated.connect(self._on_render_process_terminated)
@@ -1248,11 +1374,69 @@ class MainWindow(QWebEngineView):
             self.page().setBackgroundColor(Qt.transparent)
             return
 
+        settings = {}
+        api = getattr(self, "api", None)
+        if api is not None:
+            settings = getattr(api, "settings", {}) or {}
+        backdrop_type = _resolve_system_backdrop_type(settings, getattr(self, "_window_tag", ""))
+        if backdrop_type is not None and backdrop_type != DWMSBT_NONE:
+            try:
+                self.setAutoFillBackground(False)
+            except Exception:
+                pass
+            _safe_set_widget_attr(self, getattr(Qt, "WA_OpaquePaintEvent", None), False)
+            _safe_set_widget_attr(self, Qt.WA_TranslucentBackground, True)
+            _safe_set_widget_attr(self, getattr(Qt, "WA_NoSystemBackground", None), True)
+            self.page().setBackgroundColor(Qt.transparent)
+            return
+
+        try:
+            self.setAutoFillBackground(True)
+        except Exception:
+            pass
+        _safe_set_widget_attr(self, getattr(Qt, "WA_OpaquePaintEvent", None), True)
+        _safe_set_widget_attr(self, Qt.WA_TranslucentBackground, False)
+        _safe_set_widget_attr(self, getattr(Qt, "WA_NoSystemBackground", None), False)
         is_dark = _resolve_theme_dark(self._theme_mode)
         if is_dark:
             self.page().setBackgroundColor(QColor(24, 24, 24))
         else:
             self.page().setBackgroundColor(QColor(255, 255, 255))
+
+    def _is_system_backdrop_enabled(self):
+        settings = {}
+        api = getattr(self, "api", None)
+        if api is not None:
+            settings = getattr(api, "settings", {}) or {}
+        backdrop_type = _resolve_system_backdrop_type(settings, getattr(self, "_window_tag", ""))
+        return backdrop_type is not None and backdrop_type != DWMSBT_NONE
+
+    def _force_webview_transparent(self):
+        try:
+            self.setStyleSheet("background: transparent;")
+        except Exception:
+            pass
+        try:
+            self.page().setBackgroundColor(Qt.transparent)
+        except Exception:
+            pass
+        try:
+            self.page().runJavaScript(
+                "try{"
+                "if(document.documentElement){document.documentElement.style.background='transparent';}"
+                "if(document.body){document.body.style.background='transparent';}"
+                "}catch(e){}"
+            )
+        except Exception:
+            pass
+
+    def _force_webview_repaint(self):
+        try:
+            z = self.page().zoomFactor()
+            self.page().setZoomFactor(z + 0.001)
+            QTimer.singleShot(0, lambda: self.page().setZoomFactor(z))
+        except Exception:
+            pass
 
     def _inject_custom_border(self):
         css = """
@@ -1264,6 +1448,10 @@ body {
     border: 1px solid var(--divider, rgba(0, 0, 0, 0.12));
     border-radius: 12px;
     overflow: hidden;
+}
+:root[data-system-backdrop="true"] body {
+    border: none;
+    border-radius: 0;
 }
 """
         js = f"""
@@ -1280,6 +1468,18 @@ body {
         script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
         script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         self.page().scripts().insert(script)
+
+    def _detect_window_tag(self, url, title):
+        try:
+            url_text = str(url).lower()
+        except Exception:
+            url_text = ""
+        title_text = str(title).lower() if title is not None else ""
+        if "settings.html" in url_text or title_text == "settings":
+            return "settings"
+        if "timer.html" in url_text or "timer plugin" in title_text:
+            return "timer"
+        return ""
 
     def set_mini_mode(self, enabled):
         if self._mini_mode == enabled:
@@ -1316,8 +1516,58 @@ body {
         self.move(x, y)
 
     def _apply_backdrop(self):
-        apply_win11_aesthetics(self, self._theme_mode)
+        self._apply_page_background()
+        apply_win11_aesthetics(self, self._theme_mode, getattr(self.api, "settings", {}), getattr(self, "_window_tag", ""))
+        try:
+            _force_dwm_redraw(int(self.winId()))
+        except Exception:
+            pass
+        if self._is_system_backdrop_enabled():
+            self._force_webview_transparent()
+            self._force_webview_repaint()
         self.update()
+
+    def _force_refresh(self):
+        if self._mini_mode:
+            return
+        if self.isMaximized() or self.isFullScreen():
+            return
+        w = self.width()
+        h = self.height()
+        if w <= 2 or h <= 2:
+            return
+        self.resize(w - 1, h - 1)
+        QTimer.singleShot(0, lambda: self.resize(w, h))
+        QTimer.singleShot(0, lambda: _force_dwm_redraw(int(self.winId())))
+
+    def _hard_resize_nudge(self):
+        if self._mini_mode or self.isMaximized() or self.isFullScreen():
+            return
+        if self._did_hard_refresh:
+            return
+        w = self.width()
+        h = self.height()
+        if w <= 1 or h <= 1:
+            return
+        try:
+            self.setUpdatesEnabled(False)
+        except Exception:
+            pass
+        target_w = 1
+        target_h = 1
+        self.resize(target_w, target_h)
+        def _restore():
+            self.resize(w, h)
+            try:
+                self.setUpdatesEnabled(True)
+            except Exception:
+                pass
+            try:
+                _force_dwm_redraw(int(self.winId()))
+            except Exception:
+                pass
+        QTimer.singleShot(0, _restore)
+        self._did_hard_refresh = True
 
     def _schedule_backdrop_apply(self):
         if sys.platform != "win32":
@@ -1330,14 +1580,25 @@ body {
         self._apply_page_background()
         self._schedule_backdrop_apply()
 
+    def apply_backdrop_settings(self):
+        self._apply_page_background()
+        self._schedule_backdrop_apply()
+
     def showEvent(self, event):
         super().showEvent(event)
         if self._pending_url is not None:
             self.load(self._pending_url)
             self._pending_url = None
+        self._apply_page_background()
         self._schedule_backdrop_apply()
+        QTimer.singleShot(50, self._force_refresh)
+        QTimer.singleShot(120, lambda: _force_dwm_redraw(int(self.winId())))
+        if self._is_system_backdrop_enabled():
+            QTimer.singleShot(180, self._force_webview_transparent)
+            QTimer.singleShot(220, self._force_webview_repaint)
+            QTimer.singleShot(260, self._hard_resize_nudge)
 
-def apply_win11_aesthetics(window, theme_mode=None):
+def apply_win11_aesthetics(window, theme_mode=None, settings=None, window_tag=""):
     if sys.platform == "win32":
         try:
             hwnd = int(window.winId())
@@ -1350,6 +1611,11 @@ def apply_win11_aesthetics(window, theme_mode=None):
                 ctypes.sizeof(corner_preference)
             )
             _apply_window_theme(hwnd, _resolve_theme_dark(theme_mode))
+            backdrop_type = _resolve_system_backdrop_type(settings, window_tag)
+            _apply_system_backdrop(hwnd, backdrop_type)
+            if backdrop_type is not None and backdrop_type != DWMSBT_NONE:
+                border = ctypes.c_int(_DWM_COLOR_NONE)
+                dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ctypes.byref(border), ctypes.sizeof(border))
             icon_path = _resolve_logo_ico_path()
             if icon_path and os.path.exists(icon_path):
                 user32 = ctypes.windll.user32

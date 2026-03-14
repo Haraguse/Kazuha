@@ -18,6 +18,8 @@ _TRANSLATIONS = {
         "timer.notify.body": "倒计时已结束",
         "timer.background.title": "计时器",
         "timer.background.body": "计时器正在后台运行",
+        "crash.toast.title": "检测到异常退出",
+        "crash.toast.body": "已发送提醒，可稍后重新打开应用",
         "overlay.compatibility": "兼容模式",
     },
     "zh-TW": {
@@ -33,6 +35,8 @@ _TRANSLATIONS = {
         "timer.notify.body": "倒數計時已結束",
         "timer.background.title": "計時器",
         "timer.background.body": "計時器正在背景執行",
+        "crash.toast.title": "偵測到異常結束",
+        "crash.toast.body": "已送出提醒，可稍後重新開啟",
         "overlay.compatibility": "相容模式",
     },
     "yue-HK": {
@@ -48,6 +52,8 @@ _TRANSLATIONS = {
         "timer.notify.body": "倒數完咗，收工啦",
         "timer.background.title": "計時器",
         "timer.background.body": "計時器喺後台行緊",
+        "crash.toast.title": "檢測到異常退出",
+        "crash.toast.body": "已發通知，之後可以再開返",
         "overlay.compatibility": "兼容模式",
     },
     "ja-JP": {
@@ -61,6 +67,8 @@ _TRANSLATIONS = {
         "tray.toggle": "ツールバーの表示/非表示",
         "timer.notify.title": "時間になりました",
         "timer.notify.body": "タイマーが終了しました",
+        "crash.toast.title": "異常終了を検知しました",
+        "crash.toast.body": "通知を送信しました。必要なら再起動してください",
         "overlay.compatibility": "互換モード",
     },
     "en-US": {
@@ -74,6 +82,8 @@ _TRANSLATIONS = {
         "tray.toggle": "Show/Hide Toolbar",
         "timer.notify.title": "Time's up",
         "timer.notify.body": "Countdown finished",
+        "crash.toast.title": "Unexpected exit detected",
+        "crash.toast.body": "A notification was sent. You can reopen the app later.",
         "overlay.compatibility": "Compat Mode",
     },
     "ug-CN": {
@@ -87,6 +97,8 @@ _TRANSLATIONS = {
         "timer.notify.body": "قايتۇرما ۋاقىت تاماملاندى",
         "timer.background.title": "ۋاقىت بەلگىلەش",
         "timer.background.body": "ۋاقىت بەلگىلەش ئارقا سۇپىدا ئىشلەۋاتىدۇ",
+        "crash.toast.title": "Unexpected exit detected",
+        "crash.toast.body": "A notification was sent.",
     },
 }
 

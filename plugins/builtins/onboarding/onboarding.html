@@ -1236,6 +1236,10 @@
       font-weight: 400;
     }
 
+    .crash-auto-handle-state {
+      gap: 10px;
+    }
+
     .slider-container {
       display: flex;
       align-items: center;
@@ -4259,7 +4263,7 @@ html, body {
     // Resources
     const langResources = {
       "zh-CN": {
-        steps: ["外观风格", "启动设置", "界面调整", "准备就绪"],
+        steps: ["外观风格", "默认行为", "放映界面", "准备就绪"],
         gpl: "查看 GPL 证书",
         import: "从外部导入配置",
         pivotTip: "请完成初始化设置以获得最佳体验。",
@@ -4272,10 +4276,24 @@ html, body {
           "mung-bean": "绿色",
           "orange-wish": "橙色"
         },
-        startup: { title: "启动设置", desc: "配置应用的启动行为", label: "开机自启", sub: "登录 Windows 后自动启动应用", taskbar: "将 Kazuha 注册到 Windows 任务栏", start: "将 Kazuha 注册到 Windows 开始屏幕" },
-        uiScaling: {
-          title: "界面调整",
-          desc: "调整界面缩放和边距以适应您的屏幕",
+        defaultBehavior: {
+          title: "默认行为",
+          desc: "决定启动与异常时的处理方式",
+          runAtStartup: { label: "开机自动启动", desc: "登录后自动运行" },
+          crash: {
+            label: "异常退出处理",
+            desc: "选择应用异常时的处理方式",
+            analyzer: "查看崩溃分析器",
+            exit: "退出并关闭应用",
+            restartSilent: "静默重启（无启动画面）",
+            toast: "仅通知系统提醒"
+          }
+        },
+        overlay: {
+          title: "放映界面",
+          desc: "调整放映时的工具栏与状态显示",
+          autoShowOverlay: { label: "自动显示工具栏", desc: "检测到放映时自动出现" },
+          showStatusBar: { label: "顶部状态栏", desc: "在悬浮窗顶部显示时间" },
           scale: "整体缩放",
           popWindowScale: "弹窗缩放",
           safeArea: "屏幕边距"
@@ -4291,6 +4309,7 @@ html, body {
         }
       },
       "zh-TW": {
+        steps: ["外觀風格", "預設行為", "放映介面", "準備就緒"],
         gpl: "檢視 GPL 授權條款",
         import: "從外部匯入設定",
         pivotTip: "請完成初始化設定以獲得最佳體驗。",
@@ -4303,7 +4322,28 @@ html, body {
           "mung-bean": "綠色",
           "orange-wish": "橙色"
         },
-        startup: { title: "啟動設定", desc: "設定應用程式的啟動行為", label: "開機自動啟動", sub: "登入 Windows 後自動啟動應用程式", taskbar: "將 Kazuha 釘選到 Windows 工作列", start: "將 Kazuha 釘選到 Windows 開始畫面" },
+        defaultBehavior: {
+          title: "預設行為",
+          desc: "決定啟動與異常時的處理方式",
+          runAtStartup: { label: "開機自動啟動", desc: "登入後自動啟動" },
+          crash: {
+            label: "異常結束處理",
+            desc: "選擇程式異常時的處理方式",
+            analyzer: "檢視當機分析器",
+            exit: "直接結束應用程式",
+            restartSilent: "背景重啟（無啟動畫面）",
+            toast: "僅發送 Windows 通知"
+          }
+        },
+        overlay: {
+          title: "放映介面",
+          desc: "調整放映時工具列與狀態顯示",
+          autoShowOverlay: { label: "自動顯示工具列", desc: "偵測放映時自動出現" },
+          showStatusBar: { label: "頂部狀態列", desc: "在懸浮視窗頂部顯示時間" },
+          scale: "整體縮放",
+          popWindowScale: "彈窗縮放",
+          safeArea: "螢幕邊距"
+        },
         finish: { title: "恭喜！", desc: "您已完成了全部的基本設定", sub: "如需後續更改設定，請點擊工作列系統匣圖示並選擇「設定」。若要立即開始，請關閉此視窗並在 PowerPoint 中開啟任意簡報。", hint: "關閉視窗即可完成設定精靈。", hintExpanded: "上一步   •   完成   •   重來" },
         btn: { next: "下一步", prev: "返回", finish: "完成" },
         watermark: {
@@ -4315,7 +4355,7 @@ html, body {
         }
       },
       "yue-HK": {
-        steps: ["外觀風格", "啟動設定", "界面調整", "準備就緒"],
+        steps: ["外觀風格", "預設行為", "放映介面", "準備就緒"],
         gpl: "睇 GPL 授權條款",
         import: "由外面匯入設定",
         pivotTip: "完成初始化設定先最好用。",
@@ -4328,10 +4368,24 @@ html, body {
           "mung-bean": "綠色",
           "orange-wish": "橙色"
         },
-        startup: { title: "啟動設定", desc: "設定開機啟動行為", label: "開機自啟", sub: "登入 Windows 後自動啟動", taskbar: "釘選 Kazuha 去工作列", start: "釘選 Kazuha 去開始畫面" },
-        uiScaling: {
-          title: "界面調整",
-          desc: "調整縮放同邊距配合你個屏幕",
+        defaultBehavior: {
+          title: "預設行為",
+          desc: "決定啟動同異常時點處理",
+          runAtStartup: { label: "開機自啟", desc: "登入後自動啟動" },
+          crash: {
+            label: "異常退出處理",
+            desc: "揀程式異常時嘅處理方式",
+            analyzer: "查看當機分析器",
+            exit: "即刻退出程式",
+            restartSilent: "背景重啟（唔顯示啟動畫面）",
+            toast: "淨係發系統通知"
+          }
+        },
+        overlay: {
+          title: "放映介面",
+          desc: "調整放映時工具列同狀態顯示",
+          autoShowOverlay: { label: "自動顯示工具列", desc: "檢測到放映就自動出現" },
+          showStatusBar: { label: "頂部狀態列", desc: "喺頂部顯示時間" },
           scale: "整體縮放",
           popWindowScale: "彈窗縮放",
           safeArea: "屏幕邊距"
@@ -4347,6 +4401,7 @@ html, body {
         }
       },
       "en-US": {
+        steps: ["Appearance", "Default Behavior", "Presentation UI", "Ready"],
         gpl: "View GPL License",
         import: "Import Config",
         pivotTip: "Complete setup for the best experience.",
@@ -4359,7 +4414,28 @@ html, body {
           "mung-bean": "Green",
           "orange-wish": "Orange"
         },
-        startup: { title: "Startup", desc: "Configure startup behavior", label: "Run at Startup", sub: "Automatically start when you log in", taskbar: "Pin Kazuha to Windows Taskbar", start: "Pin Kazuha to Windows Start" },
+        defaultBehavior: {
+          title: "Default Behavior",
+          desc: "Choose how the app starts and reacts to crashes",
+          runAtStartup: { label: "Run at startup", desc: "Start automatically after sign-in" },
+          crash: {
+            label: "Crash response",
+            desc: "Select what happens after an unexpected exit",
+            analyzer: "Open crash analyzer",
+            exit: "Exit immediately",
+            restartSilent: "Restart silently (no splash)",
+            toast: "Only show a Windows notification"
+          }
+        },
+        overlay: {
+          title: "Presentation UI",
+          desc: "Control toolbar and status display during slides",
+          autoShowOverlay: { label: "Auto-show toolbar", desc: "Appear when slideshow starts" },
+          showStatusBar: { label: "Top status bar", desc: "Show time on the overlay" },
+          scale: "Overall scale",
+          popWindowScale: "Popup scale",
+          safeArea: "Screen padding"
+        },
         finish: { title: "Congratulations!", desc: "You have completed all basic settings.", sub: "To change settings later, click the tray icon and select 'Settings'. To start, close this window and open any presentation in PowerPoint.", hint: "Close the window to complete the setup wizard.", hintExpanded: "Back   •   Finish   •   Restart" },
         btn: { next: "Next", prev: "Back", finish: "Finish" },
         watermark: {
@@ -4371,7 +4447,7 @@ html, body {
         }
       },
       "ja-JP": {
-        steps: ["外観", "起動設定", "UI調整", "完了"],
+        steps: ["外観", "既定の動作", "プレゼン表示", "完了"],
         gpl: "GPLライセンスを表示",
         import: "設定をインポート",
         pivotTip: "最適な体験のために初期設定を完了してください。",
@@ -4384,10 +4460,24 @@ html, body {
           "mung-bean": "緑",
           "orange-wish": "オレンジ"
         },
-        startup: { title: "起動設定", desc: "起動時の動作を設定します", label: "スタートアップに登録", sub: "Windowsログイン時に自動的に起動します", taskbar: "Kazuhaをタスクバーにピン留め", start: "Kazuhaをスタートにピン留め" },
-        uiScaling: {
-          title: "UI調整",
-          desc: "画面に合わせてUIのサイズと余白を調整します",
+        defaultBehavior: {
+          title: "既定の動作",
+          desc: "起動と異常終了時の動作を設定します",
+          runAtStartup: { label: "自動起動", desc: "サインイン後に自動で起動します" },
+          crash: {
+            label: "クラッシュ時の動作",
+            desc: "異常終了後の処理を選択します",
+            analyzer: "クラッシュ解析を開く",
+            exit: "直ちに終了",
+            restartSilent: "バックグラウンド再起動（スプラッシュなし）",
+            toast: "Windows 通知のみ"
+          }
+        },
+        overlay: {
+          title: "プレゼン表示",
+          desc: "ツールバーと状態表示を調整します",
+          autoShowOverlay: { label: "ツールバーを自動表示", desc: "スライド開始時に表示します" },
+          showStatusBar: { label: "上部ステータスバー", desc: "オーバーレイ上部に時刻を表示" },
           scale: "全体スケール",
           popWindowScale: "ポップアップスケール",
           safeArea: "セーフエリア"
@@ -4406,12 +4496,16 @@ html, body {
 
     // State
     const state = {
-      step: 0, // 0=Hero, 1=Theme, 2=Startup, 3=Finish
+      step: 0, // 0=Hero, 1=Theme, 2=DefaultBehavior, 3=Overlay, 4=Finish
       config: {
         language: "zh-CN",
         theme: "Light",
         themeId: "default",
         runAtStartup: false,
+        crashAutoHandleEnabled: false,
+        crashAutoHandleMode: "ShowAnalyzer",
+        autoShowOverlay: true,
+        showStatusBar: false,
         scale: 1.0,
         popWindowScale: 1.0,
         safeArea: 0
@@ -4487,28 +4581,85 @@ html, body {
         `
       },
       { // 2
-        id: "startup",
-        render: (t) => `
+        id: "defaultBehavior",
+        render: (t) => {
+          const crashEnabled = !!state.config.crashAutoHandleEnabled;
+          const validModes = ["Exit", "RestartSilent", "Toast"];
+          if (!crashEnabled) {
+            state.config.crashAutoHandleMode = "ShowAnalyzer";
+          } else if (!validModes.includes(state.config.crashAutoHandleMode)) {
+            state.config.crashAutoHandleMode = "RestartSilent";
+          }
+          const selected = crashEnabled ? state.config.crashAutoHandleMode : "ShowAnalyzer";
+          const options = crashEnabled
+            ? [
+                { value: "Exit", label: t.defaultBehavior.crash.exit },
+                { value: "RestartSilent", label: t.defaultBehavior.crash.restartSilent },
+                { value: "Toast", label: t.defaultBehavior.crash.toast }
+              ]
+            : [{ value: "ShowAnalyzer", label: t.defaultBehavior.crash.analyzer }];
+          const optionsHtml = options.map(opt => {
+            const selectedAttr = opt.value === selected ? " selected" : "";
+            return `<option value="${opt.value}"${selectedAttr}>${opt.label}</option>`;
+          }).join("");
+
+          return `
           <div class="settings-group">
             <div class="settings-item" onclick="toggleStartup()" style="cursor: pointer;">
               <div class="item-info">
-                <div class="item-label">${t.startup.label}</div>
-                <div class="item-desc">${t.startup.sub}</div>
+                <div class="item-label">${t.defaultBehavior.runAtStartup.label}</div>
+                <div class="item-desc">${t.defaultBehavior.runAtStartup.desc}</div>
               </div>
               <div class="switch ${state.config.runAtStartup ? 'active' : ''}" style="pointer-events:none;">
                  <div class="switch-handle"></div>
               </div>
             </div>
+
+            <div class="settings-item" onclick="toggleCrashAutoHandleEnabled()" style="cursor: pointer;">
+              <div class="item-info">
+                <div class="item-label">${t.defaultBehavior.crash.label}</div>
+                <div class="item-desc">${t.defaultBehavior.crash.desc}</div>
+              </div>
+              <div class="item-state crash-auto-handle-state">
+                <select class="styled-select" onclick="event.stopPropagation();" onchange="setCrashAutoHandleMode(this.value)">
+                  ${optionsHtml}
+                </select>
+                <div class="switch ${state.config.crashAutoHandleEnabled ? 'active' : ''}" onclick="event.stopPropagation(); toggleCrashAutoHandleEnabled();">
+                   <div class="switch-handle"></div>
+                </div>
+              </div>
+            </div>
           </div>
-        `
+        `;
+        }
       },
       { // 3
-        id: "uiScaling",
+        id: "overlay",
         render: (t) => `
           <div class="settings-group">
+            <div class="settings-item" onclick="toggleAutoShowOverlay()" style="cursor: pointer;">
+              <div class="item-info">
+                <div class="item-label">${t.overlay.autoShowOverlay.label}</div>
+                <div class="item-desc">${t.overlay.autoShowOverlay.desc}</div>
+              </div>
+              <div class="switch ${state.config.autoShowOverlay ? 'active' : ''}" style="pointer-events:none;">
+                 <div class="switch-handle"></div>
+              </div>
+            </div>
+
+            <div class="settings-item" onclick="toggleShowStatusBar()" style="cursor: pointer;">
+              <div class="item-info">
+                <div class="item-label">${t.overlay.showStatusBar.label}</div>
+                <div class="item-desc">${t.overlay.showStatusBar.desc}</div>
+              </div>
+              <div class="switch ${state.config.showStatusBar ? 'active' : ''}" style="pointer-events:none;">
+                 <div class="switch-handle"></div>
+              </div>
+            </div>
+
             <div class="settings-item">
               <div class="item-info">
-                <div class="item-label">${t.uiScaling.scale}</div>
+                <div class="item-label">${t.overlay.scale}</div>
               </div>
               <div class="slider-container">
                 <input type="range" min="0.5" max="2.0" step="0.05" value="${state.config.scale}" oninput="updateRangeValue('scale', this.value)">
@@ -4518,7 +4669,7 @@ html, body {
             
             <div class="settings-item">
               <div class="item-info">
-                <div class="item-label">${t.uiScaling.popWindowScale}</div>
+                <div class="item-label">${t.overlay.popWindowScale}</div>
               </div>
               <div class="slider-container">
                 <input type="range" min="0.5" max="2.0" step="0.05" value="${state.config.popWindowScale}" oninput="updateRangeValue('popWindowScale', this.value)">
@@ -4528,7 +4679,7 @@ html, body {
             
             <div class="settings-item">
               <div class="item-info">
-                <div class="item-label">${t.uiScaling.safeArea}</div>
+                <div class="item-label">${t.overlay.safeArea}</div>
               </div>
               <div class="slider-container">
                 <input type="range" min="0" max="100" step="1" value="${state.config.safeArea}" oninput="updateRangeValue('safeArea', this.value)">
@@ -4639,6 +4790,34 @@ html, body {
 
     window.toggleStartup = () => {
       state.config.runAtStartup = !state.config.runAtStartup;
+      renderStep();
+    };
+
+    window.toggleCrashAutoHandleEnabled = () => {
+      state.config.crashAutoHandleEnabled = !state.config.crashAutoHandleEnabled;
+      if (!state.config.crashAutoHandleEnabled) {
+        state.config.crashAutoHandleMode = "ShowAnalyzer";
+      } else if (!["Exit", "RestartSilent", "Toast"].includes(state.config.crashAutoHandleMode)) {
+        state.config.crashAutoHandleMode = "RestartSilent";
+      }
+      renderStep();
+    };
+
+    window.setCrashAutoHandleMode = (val) => {
+      if (!state.config.crashAutoHandleEnabled) return;
+      if (!["Exit", "RestartSilent", "Toast"].includes(val)) {
+        val = "RestartSilent";
+      }
+      state.config.crashAutoHandleMode = val;
+    };
+
+    window.toggleAutoShowOverlay = () => {
+      state.config.autoShowOverlay = !state.config.autoShowOverlay;
+      renderStep();
+    };
+
+    window.toggleShowStatusBar = () => {
+      state.config.showStatusBar = !state.config.showStatusBar;
       renderStep();
     };
 
@@ -4797,13 +4976,18 @@ html, body {
       if (state.previewMode) return;
       try {
         if (window.pywebview?.api?.save_setting) {
+          const crashMode = state.config.crashAutoHandleEnabled ? state.config.crashAutoHandleMode : "ShowAnalyzer";
           await window.pywebview.api.save_setting("General", "Language", state.config.language);
           await window.pywebview.api.save_setting("Appearance", "ThemeMode", state.config.theme);
           await window.pywebview.api.save_setting("Appearance", "ThemeId", state.config.themeId);
           await window.pywebview.api.save_setting("General", "RunAtStartup", state.config.runAtStartup);
+          await window.pywebview.api.save_setting("General", "CrashAutoHandleEnabled", state.config.crashAutoHandleEnabled);
+          await window.pywebview.api.save_setting("General", "CrashAutoHandleMode", crashMode);
+          await window.pywebview.api.save_setting("General", "AutoShowOverlay", state.config.autoShowOverlay);
           await window.pywebview.api.save_setting("Overlay", "Scale", state.config.scale);
           await window.pywebview.api.save_setting("Overlay", "PopWindowScale", state.config.popWindowScale);
           await window.pywebview.api.save_setting("Overlay", "SafeArea", state.config.safeArea);
+          await window.pywebview.api.save_setting("Overlay", "ShowStatusBar", state.config.showStatusBar);
         }
         if (window.pywebview?.api?.on_confirm) {
           await window.pywebview.api.on_confirm();
@@ -4888,9 +5072,19 @@ html, body {
         if (settings.Appearance?.ThemeMode) state.config.theme = settings.Appearance.ThemeMode;
         if (settings.Appearance?.ThemeId) state.config.themeId = settings.Appearance.ThemeId;
         if (typeof settings.General?.RunAtStartup === "boolean") state.config.runAtStartup = settings.General.RunAtStartup;
+        if (typeof settings.General?.CrashAutoHandleEnabled === "boolean") state.config.crashAutoHandleEnabled = settings.General.CrashAutoHandleEnabled;
+        if (settings.General?.CrashAutoHandleMode) state.config.crashAutoHandleMode = settings.General.CrashAutoHandleMode;
+        if (typeof settings.General?.AutoShowOverlay === "boolean") state.config.autoShowOverlay = settings.General.AutoShowOverlay;
+        if (typeof settings.Overlay?.ShowStatusBar === "boolean") state.config.showStatusBar = settings.Overlay.ShowStatusBar;
         if (settings.Overlay?.Scale) state.config.scale = settings.Overlay.Scale;
         if (settings.Overlay?.PopWindowScale) state.config.popWindowScale = settings.Overlay.PopWindowScale;
         if (settings.Overlay?.SafeArea) state.config.safeArea = settings.Overlay.SafeArea;
+      }
+
+      if (!state.config.crashAutoHandleEnabled) {
+        state.config.crashAutoHandleMode = "ShowAnalyzer";
+      } else if (!["Exit", "RestartSilent", "Toast"].includes(state.config.crashAutoHandleMode)) {
+        state.config.crashAutoHandleMode = "RestartSilent";
       }
       
       renderLangMenu(); // Render menu first
