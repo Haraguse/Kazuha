@@ -21,57 +21,41 @@
 > 
 > 如果您对此类项目有固有的排斥感，请无视此项目，谢谢。
 ---
+## 项目简介
+Kazuha 是一款专为触摸屏设计的 PowerPoint 演示辅助工具，旨在优化 Windows 大屏设备上的交互与操作体验。
+项目深受希沃课堂助手与鸿合演示助手的启发。
 
-## 核心功能
+## 项目功能与特性
+### 功能
+* 支持对正在放映的演示文稿进行翻页、实时批注等深度交互操作。
+* 支持将目标区域进行框选放大，并集成背景压暗（开关灯）与快捷截图功能。
+* 可随时启动内置计时器，用于管理临时起草的限时计划或教学任务。
+* 通过便捷的导航工具快速预览并定位页面，实现演示文稿的精准跳转。
+* 支持随时开启独立画板，用于演示过程中的临时起草与即时发挥。
+* 可将常用程序或多媒体文件固定在工具栏上，以便在放映过程中随时调用。
+* 支持对软件各场景下的字体、视觉主题及启动画面进行自定义配置。
+* 提供灵活的自定义选项，以构建高度贴合个人操作习惯的使用体验。
+### 特性
+* 支持通过自定义设置密码，防止配置项被他人随意修改。
+* 提供高度易用且直观的用户界面。
+* 支持获取与操作系统契合的配色方案。
 
-Kazuha 致力于提供简洁、高效的演示体验，特别针对课堂教学和远程会议场景。
+## 兼容性
 
-### 屏幕批注
+请确保您所使用的操作系统和演示工具符合本工具的最低要求。
 
-具备所有演示助手工具的核心能力，允许您在演示软件上实时进行标记、绘画和书写。
-
-* **自由绘制：** 通过 COM 接口调用 PowerPoint 的批注功能，以支持自由地进行批注。
-* **颜色选择：** 拥有便捷的颜色选择工具。
-
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/65562ae8-a616-44f7-914e-86ee16b646f6" />
-
-
-
-### 重点框选
-
-聚焦模式，帮助观众或学生将注意力集中在关键信息上。
-
-* **聚焦：** 框选屏幕区域后，重点区域以外的内容将自动被**压暗**。
-* **教学辅助：** 极其适用于课堂中要求学生记录知识点时，便于学生方便地找出何处应该记录。
-
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/3923f9c1-2275-41e0-b1a4-4e94498cc302" />
-
-
-
-### 3. 高度自定义
-
-Kazuha 提供了灵活的自定义义项，您可以根据个人习惯和演示需求调整。
-<img width="580" height="477" alt="image" src="https://github.com/user-attachments/assets/1a9711d9-ef4b-431c-b9b1-edbd52a59bdf" />
-<img width="580" height="477" alt="image" src="https://github.com/user-attachments/assets/27916137-1183-4fe0-aaff-c67aa04df291" />
-
-
-
+|操作系统|演示软件|
+|-|-|
+|Windows 10 Version 1809 及更高版本|Microsoft Office 2010 及更高版本|
 
 ---
 
-## 项目概况
+## 贡献与反馈
+如您有意愿对 Kazuha 做出一些贡献，欢迎提交 [**拉取请求**](https://github.com/SECTL/Kazuha/pulls) 帮助改进代码，
 
-<div align="center">
-    <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=TCYKyousen&repo=Kazuha&layout=compact&theme=vision-friendly-light&hide_border=true" alt="Top Languages Chart" />
-</div>
+或者是提出 [**议题**](https://github.com/SECTL/Kazuha/issues) 来提交 Bug 报告或功能请求，
 
----
-
-## 下载
-
-Kazuha 处于长期 **不稳定阶段**，请访问我们的 [Release 页面](https://github.com/SECTL/Kazuha/releases) 获取最新版本。
-
----
+不胜感激。
 
 ## 贡献者
 感谢所有为 Kazuha 项目做出贡献的人！
@@ -82,11 +66,4 @@ Kazuha 处于长期 **不稳定阶段**，请访问我们的 [Release 页面](ht
     </a>
 </div>
 
----
-
-## 贡献与反馈
-
-我们欢迎所有形式的贡献和反馈！
-
-* 这是我的新人作品，欢迎向我提出 [**议题**](https://github.com/SECTL/Kazuha/issues)（提交 Bug 报告或功能请求）。
-* 同时，也欢迎提交 [**拉取请求（Pull Requests）**](https://github.com/SECTL/Kazuha/pulls) 帮助改进代码。 
+⭐ 如您认可此项目，请点亮 Star ⭐
