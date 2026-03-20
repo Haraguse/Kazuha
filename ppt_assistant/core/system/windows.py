@@ -11,14 +11,31 @@ try:
     import win32gui
     import win32api
     import win32con
+    import win32process
     import win32com.client
     from ctypes import wintypes
 except ImportError:
     win32gui = None
     win32api = None
     win32con = None
+    win32process = None
     win32com = None
     wintypes = None
+
+PRESENTATION_SLIDESHOW_CLASSES = {
+    "screenClass",
+    "wppSlideShowWindowClass",
+    "WPP SlideShow Window",
+    "WPP SlideShow Window 8.0",
+}
+PRESENTATION_PROCESS_NAMES = {"powerpnt.exe", "wpp.exe", "kwpp.exe"}
+PRESENTATION_SLIDESHOW_TITLE_HINTS = (
+    "powerpoint",
+    "slide show",
+    "slideshow",
+    "wps presentation",
+    "wps persentation",
+)
 
 class WindowsSystemAPI(SystemAPI):
     def __init__(self):
@@ -97,10 +114,27 @@ if ($statusValue -eq 4) { $state="Playing" } elseif ($statusValue -eq 5) { $stat
                 if not hwnd: return False
                 if not win32gui.IsWindowVisible(int(hwnd)): return False
                 cls_name = win32gui.GetClassName(int(hwnd))
-                # PowerPoint slideshow window classes
-                if cls_name == "screenClass": return True
-                if cls_name == "WPP SlideShow Window 8.0": return True # WPS
-                if cls_name == "WPP SlideShow Window": return True # WPS
+                if cls_name in PRESENTATION_SLIDESHOW_CLASSES:
+                    return True
+                title = (win32gui.GetWindowText(int(hwnd)) or "").strip().lower()
+                if title and any(hint in title for hint in PRESENTATION_SLIDESHOW_TITLE_HINTS):
+                    return True
+                if win32api and win32process:
+                    try:
+                        _, pid = win32process.GetWindowThreadProcessId(int(hwnd))
+                        if pid:
+                            handle = win32api.OpenProcess(0x1000, False, pid)
+                            try:
+                                exe = win32process.GetModuleFileNameEx(handle, 0) or ""
+                            finally:
+                                try:
+                                    win32api.CloseHandle(handle)
+                                except Exception:
+                                    pass
+                            if os.path.basename(exe).strip().lower() in PRESENTATION_PROCESS_NAMES and title and any(hint in title for hint in PRESENTATION_SLIDESHOW_TITLE_HINTS):
+                                return True
+                    except Exception:
+                        pass
                 return False
             except Exception:
                 return False

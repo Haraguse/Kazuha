@@ -8,6 +8,21 @@ from typing import Optional
 
 from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 
+PRESENTATION_SLIDESHOW_CLASSES = {
+    "screenClass",
+    "PPTFrameClass",
+    "wppSlideShowWindowClass",
+    "WPP SlideShow Window",
+    "WPP SlideShow Window 8.0",
+}
+PRESENTATION_SLIDESHOW_TITLE_HINTS = (
+    "powerpoint",
+    "slide show",
+    "slideshow",
+    "wps presentation",
+    "wps persentation",
+)
+
 
 class _WinEventHookThread(QThread):
     foreground_changed = Signal(int)
@@ -229,6 +244,12 @@ class WindowsFocusWatcher(QObject):
             pass
         return ""
 
+    def _title_looks_like_slideshow(self, title: str) -> bool:
+        text = str(title or "").strip().lower()
+        if not text:
+            return False
+        return any(hint in text for hint in PRESENTATION_SLIDESHOW_TITLE_HINTS)
+
     def _is_window_visible(self, hwnd: int) -> bool:
         if not hwnd:
             return False
@@ -289,9 +310,9 @@ class WindowsFocusWatcher(QObject):
                 else:
                     root = self._get_root_owner(int(foreground_hwnd or 0))
                     focus_on_slideshow = bool(root and root == hwnd)
-                    if not focus_on_slideshow and cls in {"screenClass", "PPTFrameClass", "wppSlideShowWindowClass"}:
+                    if not focus_on_slideshow and cls in PRESENTATION_SLIDESHOW_CLASSES:
                         focus_on_slideshow = True
-                    if not focus_on_slideshow and title in {"PowerPoint幻灯片放映", "WPS Persentation Slide Show"}:
+                    if not focus_on_slideshow and self._title_looks_like_slideshow(title):
                         focus_on_slideshow = True
                     if not focus_on_slideshow:
                         fg_pid = self._get_pid(int(foreground_hwnd or 0))
@@ -299,7 +320,7 @@ class WindowsFocusWatcher(QObject):
                         if fg_pid and ss_pid and fg_pid == ss_pid:
                             focus_on_slideshow = True
             else:
-                focus_on_slideshow = cls in {"screenClass", "PPTFrameClass", "wppSlideShowWindowClass"} or title in {"PowerPoint幻灯片放映", "WPS Persentation Slide Show"}
+                focus_on_slideshow = cls in PRESENTATION_SLIDESHOW_CLASSES or self._title_looks_like_slideshow(title)
 
         if focus_on_slideshow != self._last_focus_on_slideshow:
             self._last_focus_on_slideshow = focus_on_slideshow
