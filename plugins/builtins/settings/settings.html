@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Settings</title>
+  <link rel="stylesheet" href="settings_primitives.css">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
   // --- Search Functionality ---
@@ -276,6 +277,7 @@
       --hyperos-g4: #d1fae5;
       --hyperos-g5: #ffffff;
       --font-stack: "MiSans Latin", "HarmonyOS Sans SC", "SF Pro", "苹方-简", "PingFang SC", "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+      --font-weight-override: 400;
       --overlay-toolbar-bg: #FFFFFF;
       --overlay-toolbar-border: rgba(0, 0, 0, 0.08);
       --overlay-toolbar-line: rgba(0, 0, 0, 0.08);
@@ -1045,6 +1047,65 @@
       transform: scale(1);
     }
 
+    .performance-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.82);
+      z-index: 9000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .performance-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .performance-overlay-card {
+      min-width: 184px;
+      padding: 26px 28px 22px;
+      border-radius: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: rgba(15, 15, 15, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 24px 72px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .performance-overlay .loading-spinner {
+      width: 28px;
+      height: 28px;
+    }
+
+    .performance-overlay .loading-spinner svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    .performance-overlay .spinner-ring {
+      stroke: rgba(255, 255, 255, 0.24);
+    }
+
+    .performance-overlay .spinner-dot {
+      fill: rgba(255, 255, 255, 0.92);
+    }
+
+    .performance-overlay-text {
+      font-size: 14px;
+      line-height: 1.4;
+      color: rgba(255, 255, 255, 0.94);
+      letter-spacing: 0.08em;
+    }
+
     .lock-container {
       flex: 1;
       display: flex;
@@ -1232,6 +1293,11 @@
       font-family: var(--font-stack);
       display: flex;
       flex-direction: column;
+    }
+
+    html[data-font-weight-mode="override"] body,
+    html[data-font-weight-mode="override"] body * {
+      font-weight: var(--font-weight-override) !important;
     }
 
     .rtl {
@@ -3690,6 +3756,25 @@
       min-width: 220px;
     }
 
+    .font-setting-controls {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      flex-wrap: wrap;
+      min-width: min(100%, 432px);
+    }
+
+    .font-setting-controls .font-dropdown {
+      flex: 1 1 220px;
+      min-width: 0;
+    }
+
+    .font-setting-controls .font-weight-dropdown {
+      flex: 0 0 180px;
+      min-width: 180px;
+    }
+
     .font-dropdown-toggle {
       display: flex;
       align-items: center;
@@ -5261,6 +5346,19 @@
     <div class="toast-icon"></div>
     <div id="toast-text">已经存在打开的窗口！</div>
   </div>
+  <div id="performance-overlay" class="performance-overlay" aria-hidden="true">
+    <div class="performance-overlay-card">
+      <div class="loading-spinner" aria-hidden="true">
+        <svg viewBox="0 0 27 27">
+          <circle class="spinner-ring" cx="13.5" cy="13.5" r="10"></circle>
+          <g class="spinner-orbit">
+            <circle class="spinner-dot" cx="13.5" cy="8.0" r="2.5"></circle>
+          </g>
+        </svg>
+      </div>
+      <div class="performance-overlay-text">请稍候</div>
+    </div>
+  </div>
   <div class="layout" id="layout">
     <!-- Sidebar Mini removed -->
     <div class="sidebar">
@@ -6635,6 +6733,7 @@
       "fonts.custom.confirm.title": "确认更换字体",
       "fonts.custom.confirm.text": "您当前选择的字体是：{font}\n\n请务必确认该字体不会对软件布局造成破坏性更改。开发者将不会受理并处理因自定义字体导致的任何界面显示或稳定性问题。",
       "fonts.option.default": "默认",
+      "fonts.weight.option.default": "默认字重",
       "fonts.option.search": "搜索字体",
       "appearance.mode.label": "外观模式",
       "appearance.mode.desc": "调整应用程序的显示主题",
@@ -6923,6 +7022,7 @@
       "fonts.custom.confirm.title": "確認更換字型",
       "fonts.custom.confirm.text": "您目前選擇的字型是：{font}\n\n請務必確認該字型不會對軟體佈局造成破壞性更改。開發者將不會受理並處理因自定義字型導致的任何介面顯示或穩定性問題。",
       "fonts.option.default": "預設",
+      "fonts.weight.option.default": "預設字重",
       "fonts.option.search": "搜尋字型",
       "appearance.mode.label": "外觀模式",
       "appearance.mode.desc": "調整應用程式的顯示主題",
@@ -7203,6 +7303,7 @@
       "fonts.custom.confirm.title": "確認換字型",
       "fonts.custom.confirm.text": "你而家揀嘅字型係：{font}\n\n請確認唔會搞到版面崩壞。因自訂字型導致嘅顯示或穩定性問題，開發者一概唔理。",
       "fonts.option.default": "預設",
+      "fonts.weight.option.default": "預設字重",
       "fonts.option.search": "搵字型",
       "appearance.mode.label": "外觀模式",
       "appearance.mode.desc": "調整應用程式主題",
@@ -7486,6 +7587,7 @@
       "fonts.custom.confirm.title": "フォント変更の確認",
       "fonts.custom.confirm.text": "現在選択されているフォントは：{font}\n\nこのフォントがアプリのレイアウトに破壊的な変更を与えないことを確認してください。開発者は、カスタムフォントによる表示や安定性の問題については対応いたしかねます。",
       "fonts.option.default": "デフォルト",
+      "fonts.weight.option.default": "デフォルトウェイト",
       "fonts.option.search": "フォントを検索",
       "appearance.mode.label": "テーマモード",
       "appearance.mode.desc": "アプリの表示テーマを切り替えます",
@@ -7761,6 +7863,7 @@
       "fonts.custom.confirm.title": "Confirm Font Change",
       "fonts.custom.confirm.text": "The font you currently selected is: {font}\n\nPlease ensure that this font does not cause destructive changes to the software layout. The developer will not accept or handle any interface display or stability issues caused by custom fonts.",
       "fonts.option.default": "Default",
+      "fonts.weight.option.default": "Default Weight",
       "fonts.option.search": "Search fonts",
       "appearance.mode.label": "Theme mode",
       "appearance.mode.desc": "Adjust the display theme of the application",
@@ -8113,8 +8216,39 @@
 
   const FONT_LANGS = ["zh-CN", "zh-TW", "yue-HK", "ja-JP", "en-US", "ug-CN"];
   const FONT_SCENES = ["web", "qt", "overlay"];
+  const FONT_WEIGHT_OPTIONS = [
+    { value: "", label: "" },
+    { value: "100", label: "100 Thin / 极细" },
+    { value: "200", label: "200 Extra Light / 特细" },
+    { value: "300", label: "300 Light / 细体" },
+    { value: "400", label: "400 Regular / 常规" },
+    { value: "500", label: "500 Medium / 中等" },
+    { value: "600", label: "600 Semi Bold / 半粗" },
+    { value: "700", label: "700 Bold / 粗体" },
+    { value: "800", label: "800 Extra Bold / 特粗" },
+    { value: "900", label: "900 Black / 黑体" },
+    { value: "1000", label: "1000 Extra Black / 极黑" }
+  ];
   let systemFonts = [];
   let systemFontsLoaded = false;
+
+  function normalizeFontWeightValue(value) {
+    let normalized = value;
+    if (typeof normalized === "number" && Number.isFinite(normalized)) {
+      normalized = String(Math.round(normalized));
+    }
+    if (typeof normalized !== "string") return "";
+    normalized = normalized.trim();
+    if (!normalized) return "";
+    if (!/^\d{3,4}$/.test(normalized)) return "";
+    const num = Number(normalized);
+    if (!Number.isInteger(num) || num < 100 || num > 1000 || num % 100 !== 0) return "";
+    return String(num);
+  }
+
+  function getDefaultWeightLabel() {
+    return getText("fonts.weight.option.default") || "默认字重";
+  }
 
   function getDefaultFontStack(lang) {
     const isSpecial = lang === "zh-TW" || lang === "ja-JP";
@@ -8147,6 +8281,19 @@
     });
   }
 
+  function ensureFontWeightProfiles() {
+    if (!settings.Fonts) settings.Fonts = {};
+    if (!settings.Fonts.Weights || typeof settings.Fonts.Weights !== "object") settings.Fonts.Weights = {};
+    FONT_LANGS.forEach(lang => {
+      if (!settings.Fonts.Weights[lang] || typeof settings.Fonts.Weights[lang] !== "object") {
+        settings.Fonts.Weights[lang] = {};
+      }
+      FONT_SCENES.forEach(scene => {
+        settings.Fonts.Weights[lang][scene] = normalizeFontWeightValue(settings.Fonts.Weights[lang][scene]);
+      });
+    });
+  }
+
   function getFontSelection(lang, scene) {
     if (settings.Fonts && !settings.Fonts.CustomFont) return "";
     ensureFontProfiles();
@@ -8158,6 +8305,33 @@
       if (typeof qt === "string" && qt.trim()) return qt.trim();
     }
     return "";
+  }
+
+  function getFontWeightSelection(lang, scene) {
+    if (settings.Fonts && !settings.Fonts.CustomFont) return "";
+    ensureFontWeightProfiles();
+    const byLang = settings.Fonts.Weights[lang] || {};
+    const value = normalizeFontWeightValue(byLang[scene]);
+    if (value) return value;
+    if (scene === "overlay") {
+      return normalizeFontWeightValue(byLang.qt);
+    }
+    return "";
+  }
+
+  function setFontWeightProfileReal(lang, scene, value) {
+    ensureFontWeightProfiles();
+    const normalized = normalizeFontWeightValue(value);
+    if (!settings.Fonts.Weights[lang]) settings.Fonts.Weights[lang] = {};
+    settings.Fonts.Weights[lang][scene] = normalized;
+
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+      window.pywebview.api.save_setting("Fonts", "Weights", settings.Fonts.Weights);
+    }
+    if (lang === currentLanguage && scene === "web") {
+      applyLanguageFont();
+    }
+    renderFontSelects();
   }
 
   function buildFontStack(lang, scene) {
@@ -8226,9 +8400,122 @@
     }
   }
 
+  function ensureFontSettingControls() {
+    const selectors = document.querySelectorAll('.font-dropdown[data-font-lang][data-font-scene]');
+    selectors.forEach(el => {
+      if (el.dataset.fontControl === "weight") return;
+
+      if (!el.dataset.fontControl) {
+        el.dataset.fontControl = "family";
+      }
+
+      let wrapper = el.parentElement;
+      if (!wrapper || !wrapper.classList.contains("font-setting-controls")) {
+        wrapper = document.createElement("div");
+        wrapper.className = "font-setting-controls";
+        el.parentNode.insertBefore(wrapper, el);
+        wrapper.appendChild(el);
+      }
+
+      const lang = el.dataset.fontLang || "";
+      const scene = el.dataset.fontScene || "";
+      let weightEl = wrapper.querySelector(`.font-dropdown[data-font-control="weight"][data-font-lang="${lang}"][data-font-scene="${scene}"]`);
+      if (!weightEl) {
+        weightEl = document.createElement("div");
+        weightEl.className = "font-dropdown font-weight-dropdown";
+        weightEl.dataset.fontControl = "weight";
+        weightEl.dataset.fontLang = lang;
+        weightEl.dataset.fontScene = scene;
+        wrapper.appendChild(weightEl);
+      }
+    });
+  }
+
+  function renderFontWeightDropdown(el, lang, scene, isCustomEnabled) {
+    if (!el) return;
+
+    if (!isCustomEnabled) {
+      el.classList.add("disabled");
+    } else {
+      el.classList.remove("disabled");
+    }
+
+    const selected = getFontWeightSelection(lang, scene);
+    const options = FONT_WEIGHT_OPTIONS.map(opt => ({
+      value: opt.value,
+      label: opt.value ? opt.label : getDefaultWeightLabel()
+    }));
+
+    el.innerHTML = "";
+    el.classList.remove("open");
+    const toggle = document.createElement("div");
+    toggle.className = "font-dropdown-toggle";
+    const labelSpan = document.createElement("div");
+    labelSpan.className = "font-dropdown-label";
+    const labelInner = document.createElement("div");
+    labelInner.className = "font-dropdown-label-inner";
+    labelSpan.appendChild(labelInner);
+    toggle.appendChild(labelSpan);
+    const icon = document.createElement("span");
+    icon.className = "font-dropdown-icon";
+    toggle.appendChild(icon);
+    const menu = document.createElement("div");
+    menu.className = "font-dropdown-menu";
+
+    options.forEach(opt => {
+      const item = document.createElement("div");
+      item.className = "font-dropdown-option";
+      item.textContent = opt.label;
+      item.dataset.value = opt.value;
+      if (opt.value) {
+        item.style.fontWeight = opt.value;
+      }
+
+      if (opt.value === selected || (!opt.value && !selected)) {
+        item.classList.add("active");
+        setFontDropdownLabel(labelSpan, opt.label);
+      }
+
+      item.addEventListener("click", () => {
+        if (!isCustomEnabled) return;
+
+        const all = menu.querySelectorAll(".font-dropdown-option");
+        all.forEach(x => x.classList.remove("active"));
+        item.classList.add("active");
+        setFontDropdownLabel(labelSpan, opt.label);
+        el.dataset.value = opt.value;
+        setFontWeightProfileReal(lang, scene, opt.value);
+        el.classList.remove("open");
+      });
+      menu.appendChild(item);
+    });
+
+    if (!labelInner.textContent) {
+      setFontDropdownLabel(labelSpan, getDefaultWeightLabel());
+    }
+
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = el.classList.contains("open");
+      document.querySelectorAll(".font-dropdown.open").forEach(dd => {
+        if (dd !== el) dd.classList.remove("open");
+      });
+      if (!isOpen) {
+        el.classList.add("open");
+      } else {
+        el.classList.remove("open");
+      }
+    });
+
+    el.appendChild(toggle);
+    el.appendChild(menu);
+  }
+
   function renderFontSelects() {
     if (!settings) return;
     ensureFontProfiles();
+    ensureFontWeightProfiles();
+    ensureFontSettingControls();
     const isCustomEnabled = !!(settings.Fonts && settings.Fonts.CustomFont);
 
     const selectionArea = document.getElementById("font-selection-area");
@@ -8239,7 +8526,8 @@
 
     FONT_LANGS.forEach(lang => {
       FONT_SCENES.forEach(scene => {
-        const el = document.querySelector(`.font-dropdown[data-font-lang="${lang}"][data-font-scene="${scene}"]`);
+        const el = document.querySelector(`.font-dropdown[data-font-control="family"][data-font-lang="${lang}"][data-font-scene="${scene}"]`);
+        const weightEl = document.querySelector(`.font-dropdown[data-font-control="weight"][data-font-lang="${lang}"][data-font-scene="${scene}"]`);
         if (!el) return;
 
         if (!isCustomEnabled) {
@@ -8357,6 +8645,8 @@
           el.appendChild(toggle);
           el.appendChild(menu);
         }
+
+        renderFontWeightDropdown(weightEl, lang, scene, isCustomEnabled);
       });
     });
   }
@@ -9495,9 +9785,21 @@
     }
   }
 
+  function applyWebFontWeight(weightValue) {
+    const normalized = normalizeFontWeightValue(weightValue);
+    if (normalized) {
+      document.documentElement.dataset.fontWeightMode = "override";
+      document.documentElement.style.setProperty("--font-weight-override", normalized);
+    } else {
+      document.documentElement.removeAttribute("data-font-weight-mode");
+      document.documentElement.style.removeProperty("--font-weight-override");
+    }
+  }
+
   function applyLanguageFont() {
     const fontStack = buildFontStack(currentLanguage, "web");
     document.documentElement.style.setProperty("--font-stack", fontStack);
+    applyWebFontWeight(getFontWeightSelection(currentLanguage, "web"));
   }
 
   document.addEventListener("pointerdown", (e) => {
@@ -12115,6 +12417,107 @@
         ]
       );
   }
+
+  const PERFORMANCE_OVERLAY_FRAME_THRESHOLD = 430;
+  const PERFORMANCE_OVERLAY_MIN_VISIBLE = 800;
+  const PERFORMANCE_OVERLAY_STABLE_HIDE = 360;
+  let performanceOverlayVisible = false;
+  let performanceOverlayShownAt = 0;
+  let performanceOverlayStableSince = 0;
+  let performanceOverlayLastFrame = 0;
+
+  function getPerformanceOverlay() {
+    return document.getElementById("performance-overlay");
+  }
+
+  function setPerformanceOverlayVisible(visible, now = performance.now()) {
+    const overlay = getPerformanceOverlay();
+    if (!overlay) return;
+    performanceOverlayVisible = visible;
+    overlay.classList.toggle("visible", visible);
+    overlay.setAttribute("aria-hidden", visible ? "false" : "true");
+    if (visible) {
+      performanceOverlayShownAt = now;
+      performanceOverlayStableSince = 0;
+    } else {
+      performanceOverlayStableSince = 0;
+    }
+  }
+
+  function showPerformanceOverlay(now = performance.now()) {
+    if (document.hidden) return;
+    if (!performanceOverlayVisible) {
+      setPerformanceOverlayVisible(true, now);
+      return;
+    }
+    performanceOverlayStableSince = 0;
+  }
+
+  function tryHidePerformanceOverlay(now = performance.now(), force = false) {
+    if (!performanceOverlayVisible) return;
+    if (force) {
+      setPerformanceOverlayVisible(false, now);
+      return;
+    }
+    if (!performanceOverlayStableSince) {
+      performanceOverlayStableSince = now;
+      return;
+    }
+    if (
+      now - performanceOverlayShownAt >= PERFORMANCE_OVERLAY_MIN_VISIBLE &&
+      now - performanceOverlayStableSince >= PERFORMANCE_OVERLAY_STABLE_HIDE
+    ) {
+      setPerformanceOverlayVisible(false, now);
+    }
+  }
+
+  function monitorPerformanceLag(timestamp) {
+    if (!performanceOverlayLastFrame) {
+      performanceOverlayLastFrame = timestamp;
+      window.requestAnimationFrame(monitorPerformanceLag);
+      return;
+    }
+
+    const delta = timestamp - performanceOverlayLastFrame;
+    performanceOverlayLastFrame = timestamp;
+
+    if (delta >= PERFORMANCE_OVERLAY_FRAME_THRESHOLD) {
+      showPerformanceOverlay(timestamp);
+    } else {
+      tryHidePerformanceOverlay(timestamp);
+    }
+
+    window.requestAnimationFrame(monitorPerformanceLag);
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    const now = performance.now();
+    performanceOverlayLastFrame = now;
+    if (document.hidden) {
+      tryHidePerformanceOverlay(now, true);
+    }
+  });
+
+  if ("PerformanceObserver" in window) {
+    try {
+      const observer = new PerformanceObserver((list) => {
+        const entries = list.getEntries ? list.getEntries() : [];
+        entries.forEach((entry) => {
+          if ((entry.duration || 0) >= PERFORMANCE_OVERLAY_FRAME_THRESHOLD) {
+            showPerformanceOverlay(performance.now());
+          }
+        });
+      });
+      observer.observe({ entryTypes: ["longtask"] });
+    } catch (error) {
+      // Long Task API is optional; frame-gap detection remains active.
+    }
+  }
+
+  window.requestAnimationFrame((timestamp) => {
+    performanceOverlayLastFrame = timestamp;
+    window.requestAnimationFrame(monitorPerformanceLag);
+  });
 
   // Scroll blur effect
   const content = document.getElementById('content');

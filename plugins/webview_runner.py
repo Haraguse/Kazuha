@@ -1381,17 +1381,25 @@ class MainWindow(QWebEngineView):
         backdrop_type = _resolve_system_backdrop_type(settings, getattr(self, "_window_tag", ""))
         if backdrop_type is not None and backdrop_type != DWMSBT_NONE:
             try:
-                self.setAutoFillBackground(False)
+                self.setAutoFillBackground(True)
+                palette = self.palette()
+                palette.setColor(self.backgroundRole(), Qt.transparent)
+                self.setPalette(palette)
             except Exception:
                 pass
             _safe_set_widget_attr(self, getattr(Qt, "WA_OpaquePaintEvent", None), False)
             _safe_set_widget_attr(self, Qt.WA_TranslucentBackground, True)
-            _safe_set_widget_attr(self, getattr(Qt, "WA_NoSystemBackground", None), True)
+            _safe_set_widget_attr(self, getattr(Qt, "WA_NoSystemBackground", None), False)
             self.page().setBackgroundColor(Qt.transparent)
             return
 
         try:
             self.setAutoFillBackground(True)
+            palette = self.palette()
+            is_dark = _resolve_theme_dark(self._theme_mode)
+            bg_color = QColor(24, 24, 24) if is_dark else QColor(255, 255, 255)
+            palette.setColor(self.backgroundRole(), bg_color)
+            self.setPalette(palette)
         except Exception:
             pass
         _safe_set_widget_attr(self, getattr(Qt, "WA_OpaquePaintEvent", None), True)

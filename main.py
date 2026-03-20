@@ -267,6 +267,39 @@ def _get_current_language():
     return data.get("General", {}).get("Language", "zh-CN")
 
 
+def _normalize_font_weight_value(value):
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, float):
+        if not value.is_integer():
+            return None
+        value = int(value)
+    if isinstance(value, int):
+        num = value
+    elif isinstance(value, str):
+        text = value.strip()
+        if not text.isdigit():
+            return None
+        num = int(text)
+    else:
+        return None
+    if num < 100 or num > 1000 or num % 100 != 0:
+        return None
+    return num
+
+
+def _get_font_weight_from_settings(data, lang: str, scene: str, fallback_scene: str = ""):
+    fonts = (data.get("Fonts", {}) or {})
+    weights = (fonts.get("Weights", {}) or {})
+    lang_weights = (weights.get(lang, {}) or {})
+    value = _normalize_font_weight_value(lang_weights.get(scene))
+    if value is not None:
+        return value
+    if fallback_scene:
+        return _normalize_font_weight_value(lang_weights.get(fallback_scene))
+    return None
+
+
 def _apply_global_font(app: QApplication):
     root_dir = os.path.dirname(os.path.abspath(__file__))
     font_path = os.path.join(root_dir, "fonts", "MiSansVF.ttf")
@@ -293,7 +326,11 @@ def _apply_global_font(app: QApplication):
     family = selected_family or preferred_family or base_family
     if not family:
         return
-    app.setFont(QFont(family))
+    font = QFont(family)
+    weight = _get_font_weight_from_settings(data, lang, "qt")
+    if weight is not None:
+        font.setWeight(weight)
+    app.setFont(font)
 
 
 def _load_version_info():
@@ -1176,8 +1213,10 @@ class PPTAssistantApp:
         lang_profile = profiles.get(self._current_language, {}) or {}
         qt_font = lang_profile.get("qt", "")
         overlay_font = lang_profile.get("overlay", "") or qt_font
+        qt_weight = _get_font_weight_from_settings(data, self._current_language, "qt")
         self._current_qt_font = qt_font.strip() if isinstance(qt_font, str) else ""
         self._current_overlay_font = overlay_font.strip() if isinstance(overlay_font, str) else ""
+        self._current_qt_font_weight = qt_weight
         self._overlay_rebuild_at = (data.get("Overlay", {}) or {}).get("RecreateOverlayAt")
 
         self._settings_mtime = os.path.getmtime(SETTINGS_PATH) if os.path.exists(SETTINGS_PATH) else 0
@@ -1490,6 +1529,7 @@ class PPTAssistantApp:
             old_lang = getattr(self, "_current_language", "zh-CN")
             old_qt_font = getattr(self, "_current_qt_font", "")
             old_overlay_font = getattr(self, "_current_overlay_font", "")
+            old_qt_weight = getattr(self, "_current_qt_font_weight", None)
             old_toolbar_text = cfg.showToolbarText.value
             old_status_bar = cfg.showStatusBar.value
             old_clear = cfg.showClear.value
@@ -1517,6 +1557,7 @@ class PPTAssistantApp:
             lang_profile = profiles.get(new_lang, {}) or {}
             qt_font = lang_profile.get("qt", "")
             overlay_font = lang_profile.get("overlay", "") or qt_font
+            new_qt_weight = _get_font_weight_from_settings(data, new_lang, "qt")
             new_qt_font = qt_font.strip() if isinstance(qt_font, str) else ""
             new_overlay_font = overlay_font.strip() if isinstance(overlay_font, str) else ""
             new_rebuild_at = (data.get("Overlay", {}) or {}).get("RecreateOverlayAt")
@@ -1524,8 +1565,9 @@ class PPTAssistantApp:
             self._current_language = new_lang
             self._current_qt_font = new_qt_font
             self._current_overlay_font = new_overlay_font
+            self._current_qt_font_weight = new_qt_weight
 
-            if new_qt_font != old_qt_font:
+            if new_qt_font != old_qt_font or new_qt_weight != old_qt_weight:
                 _apply_global_font(self.app)
             
             should_reload = (

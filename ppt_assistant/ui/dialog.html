@@ -17,6 +17,7 @@
       --item-hover: rgba(0, 0, 0, 0.05);
       --btn-cancel-bg: rgba(245, 245, 245, 0.5);
       --font-stack: "MiSans Latin", "HarmonyOS Sans SC", "SF Pro", "苹方-简", "PingFang SC", "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+      --font-weight-override: 400;
     }
 
     [data-theme="dark"] {
@@ -94,6 +95,11 @@
       align-items: center;
       justify-content: center;
       background: var(--bg-body) !important;
+    }
+
+    html[data-font-weight-mode="override"] body,
+    html[data-font-weight-mode="override"] body * {
+      font-weight: var(--font-weight-override) !important;
     }
 
     .rtl {
@@ -702,10 +708,42 @@
     }
 
     function getSelectedWebFont(lang) {
+      if (settings && settings.Fonts && !settings.Fonts.CustomFont) return "";
       const profiles = settings && settings.Fonts && settings.Fonts.Profiles;
       const langProfile = profiles && profiles[lang];
       const v = langProfile && langProfile.web;
       return (typeof v === "string" && v.trim()) ? v.trim() : "";
+    }
+
+    function normalizeFontWeightValue(value) {
+      let normalized = value;
+      if (typeof normalized === "number" && Number.isFinite(normalized)) {
+        normalized = String(Math.round(normalized));
+      }
+      if (typeof normalized !== "string") return "";
+      normalized = normalized.trim();
+      if (!normalized || !/^\d{3,4}$/.test(normalized)) return "";
+      const num = Number(normalized);
+      if (!Number.isInteger(num) || num < 100 || num > 1000 || num % 100 !== 0) return "";
+      return String(num);
+    }
+
+    function getSelectedWebFontWeight(lang) {
+      if (settings && settings.Fonts && !settings.Fonts.CustomFont) return "";
+      const weights = settings && settings.Fonts && settings.Fonts.Weights;
+      const langProfile = weights && weights[lang];
+      return normalizeFontWeightValue(langProfile && langProfile.web);
+    }
+
+    function applyWebFontWeight(weightValue) {
+      const normalized = normalizeFontWeightValue(weightValue);
+      if (normalized) {
+        document.documentElement.dataset.fontWeightMode = "override";
+        document.documentElement.style.setProperty("--font-weight-override", normalized);
+      } else {
+        document.documentElement.removeAttribute("data-font-weight-mode");
+        document.documentElement.style.removeProperty("--font-weight-override");
+      }
     }
 
     function applyLanguageFont(lang) {
@@ -714,6 +752,7 @@
       const selected = getSelectedWebFont(targetLang);
       const stack = selected ? `"${selected.replace(/"/g, '\\"')}", ${base}` : base;
       document.documentElement.style.setProperty("--font-stack", stack);
+      applyWebFontWeight(getSelectedWebFontWeight(targetLang));
       document.documentElement.lang = targetLang;
     }
 

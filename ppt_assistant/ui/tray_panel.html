@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tray Panel</title>
+  <link rel="stylesheet" href="../../plugins/builtins/settings/settings_primitives.css">
+  <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-app, #f2f3f5);
+      user-select: none;
+      color: var(--text-primary, #1a1c1e);
+      font-family: var(--font-stack, "Segoe UI", system-ui, sans-serif);
+    }
+
+    .shell {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Titlebar ───────────────────────────────────────────── */
+    .titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px 10px 16px;
+      flex-shrink: 0;
+    }
+
+    .titlebar-version {
+      font-size: 12.5px;
+      color: var(--text-secondary, #5e6368);
+      font-weight: 400;
+      line-height: 1;
+    }
+
+    .close-btn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: transparent;
+      color: var(--text-secondary, #5e6368);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, transform 0.12s;
+      flex-shrink: 0;
+    }
+
+    .close-btn:hover {
+      background: var(--item-hover, rgba(0,0,0,0.06));
+      color: var(--text-primary, #1a1c1e);
+    }
+
+    .close-btn:active {
+      transform: scale(0.92);
+    }
+
+    .close-btn svg {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+    }
+
+    /* ── Scrollable body ─────────────────────────────────────── */
+    .body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 0 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* ── Brand / Hero block ──────────────────────────────────── */
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--bg-surface, #fff);
+      border-radius: 14px;
+      border: 1px solid var(--card-border, rgba(0,0,0,0.06));
+      box-shadow: var(--shadow-main, 0 2px 8px rgba(0,0,0,0.05));
+    }
+
+    .brand-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: var(--card-bg, rgba(0,0,0,0.04));
+      border: 1px solid var(--card-border, rgba(0,0,0,0.06));
+      display: grid;
+      place-items: center;
+    }
+
+    .brand-logo img {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+    }
+
+    .brand-logo svg {
+      width: 28px;
+      height: 28px;
+      stroke: var(--accent-blue, #3275f5);
+      fill: none;
+      stroke-width: 1.6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .brand-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .brand-name {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-primary, #1a1c1e);
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .brand-sub {
+      font-size: 12px;
+      color: var(--text-secondary, #5e6368);
+      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Primary item cards — each is its own isolated card ──── */
+    .primary-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .primary-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      background: var(--bg-surface, #fff);
+      border-radius: 14px;
+      border: 1px solid var(--card-border, rgba(0,0,0,0.06));
+      box-shadow: var(--shadow-main, 0 2px 8px rgba(0,0,0,0.05));
+      cursor: pointer;
+      outline: none;
+      transition: background 0.15s, box-shadow 0.15s, transform 0.12s;
+    }
+
+    .primary-card:hover {
+      background: var(--item-hover, rgba(0,0,0,0.04));
+      box-shadow: 0 4px 16px var(--shadow-color, rgba(0,0,0,0.08));
+    }
+
+    .primary-card:active {
+      transform: scale(0.992);
+      box-shadow: var(--shadow-main, 0 2px 8px rgba(0,0,0,0.05));
+    }
+
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      color: var(--text-primary, #1a1c1e);
+    }
+
+    .card-icon img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+    }
+
+    .card-icon svg {
+      width: 26px;
+      height: 26px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .card-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .card-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary, #1a1c1e);
+      line-height: 1.2;
+    }
+
+    .card-desc {
+      font-size: 12.5px;
+      color: var(--text-secondary, #5e6368);
+      line-height: 1.4;
+    }
+
+    .card-action {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--accent-blue, #3275f5);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────── */
+    .footer {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 6px 16px;
+      background: var(--bg-surface, #fff);
+      border-top: 1px solid var(--divider, rgba(0,0,0,0.07));
+      min-height: 58px;
+    }
+
+    .footer-btn {
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: transparent;
+      color: var(--text-secondary, #5e6368);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, transform 0.12s;
+      outline: none;
+      position: relative;
+    }
+
+    .footer-btn:hover {
+      background: var(--item-hover, rgba(0,0,0,0.06));
+      color: var(--text-primary, #1a1c1e);
+    }
+
+    .footer-btn:active {
+      transform: scale(0.91);
+    }
+
+    .footer-btn.is-danger {
+      color: var(--tray-danger, #d14343);
+    }
+
+    .footer-btn.is-danger:hover {
+      background: rgba(209, 67, 67, 0.09);
+      color: var(--tray-danger, #d14343);
+    }
+
+    .footer-btn svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Tooltip on footer icons */
+    .footer-btn[aria-label]::after {
+      content: attr(aria-label);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--text-primary, #1a1c1e);
+      color: var(--bg-surface, #fff);
+      font-size: 11px;
+      padding: 3px 7px;
+      border-radius: 6px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .footer-btn[aria-label]:hover::after {
+      opacity: 1;
+    }
+
+    /* Dark mode tooltip inversion */
+    [data-theme="dark"] .footer-btn[aria-label]::after {
+      background: var(--bg-surface, #2a2a2a);
+      color: var(--text-primary, #e5e5e5);
+      border: 1px solid var(--divider, rgba(255,255,255,0.12));
+    }
+
+    /* Scrollbar */
+    .body::-webkit-scrollbar {
+      width: 4px;
+    }
+    .body::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .body::-webkit-scrollbar-thumb {
+      background: var(--divider, rgba(0,0,0,0.12));
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="titlebar">
+      <span class="titlebar-version" id="versionText"></span>
+      <button class="close-btn" id="closeButton" type="button" aria-label="关闭">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="body">
+      <!-- Brand hero -->
+      <div class="brand-block" id="brandBlock">
+        <div class="brand-logo" id="brandLogo">
+          <!-- filled by JS -->
+        </div>
+        <div class="brand-info">
+          <div class="brand-name" id="brandName">Kazuha</div>
+          <div class="brand-sub" id="brandSub"></div>
+        </div>
+      </div>
+
+      <!-- Primary item cards -->
+      <div class="primary-list" id="primaryList"></div>
+    </div>
+
+    <div class="footer" id="footer"></div>
+  </div>
+
+  <script>
+    let bridge = null;
+
+    const refs = {
+      versionText: document.getElementById("versionText"),
+      closeButton: document.getElementById("closeButton"),
+      brandLogo: document.getElementById("brandLogo"),
+      brandName: document.getElementById("brandName"),
+      brandSub: document.getElementById("brandSub"),
+      primaryList: document.getElementById("primaryList"),
+      footer: document.getElementById("footer"),
+    };
+
+    /* Built-in SVG icons (Lucide-style stroked) */
+    const ICONS = {
+      settings: `<svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`,
+      board: `<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
+      timer: `<svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9.5 2h5"/><path d="M12 2v3"/></svg>`,
+      toggle: `<svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="5"/><circle cx="7" cy="12" r="3" fill="currentColor" stroke="none"/></svg>`,
+      restart: `<svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0 2 5.5"/><path d="M20 4v7h-7"/></svg>`,
+      exit: `<svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M13 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg>`,
+      logo: `<svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>`,
+    };
+
+    function trigger(id) {
+      if (bridge && typeof bridge.trigger === "function") {
+        bridge.trigger(id);
+      }
+    }
+
+    function closeMenu() {
+      if (bridge && typeof bridge.closeMenu === "function") {
+        bridge.closeMenu();
+      }
+    }
+
+    function setTheme(themeData) {
+      const data = themeData || {};
+      const root = document.documentElement;
+      const tokens = data.tokens || {};
+
+      if (data.themeId) root.setAttribute("data-theme-id", data.themeId);
+      else root.removeAttribute("data-theme-id");
+
+      if (data.themeVariant) {
+        root.setAttribute("data-theme-variant", data.themeVariant);
+        root.setAttribute("data-theme", data.themeVariant);
+      } else {
+        root.removeAttribute("data-theme-variant");
+        root.removeAttribute("data-theme");
+      }
+
+      Object.entries(tokens).forEach(([key, value]) => {
+        root.style.setProperty("--" + key, value);
+      });
+
+      // Propagate tray-danger from Python token if present
+      const danger = tokens["tray-danger"];
+      if (danger) root.style.setProperty("--tray-danger", danger);
+    }
+
+    function bindClick(node, id) {
+      const activate = () => trigger(id);
+      node.addEventListener("click", activate);
+      node.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); activate(); }
+      });
+    }
+
+    /* Resolve icon SVG string for a built-in iconKind */
+    function iconSvgForKind(kind) {
+      return ICONS[kind] || "";
+    }
+
+    /* Build a primary item card */
+    function buildPrimaryCard(item) {
+      const card = document.createElement("div");
+      card.className = "primary-card";
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-label", item.label || item.id || "");
+
+      // Icon
+      const iconWrap = document.createElement("div");
+      iconWrap.className = "card-icon";
+
+      if (item.icon) {
+        const img = document.createElement("img");
+        img.src = item.icon;
+        img.alt = "";
+        iconWrap.appendChild(img);
+      } else {
+        const svgSrc = iconSvgForKind(item.iconKind || item.id);
+        iconWrap.innerHTML = svgSrc || iconSvgForKind("logo");
+      }
+
+      // Info
+      const info = document.createElement("div");
+      info.className = "card-info";
+
+      const label = document.createElement("div");
+      label.className = "card-label";
+      label.textContent = item.label || "";
+
+      info.appendChild(label);
+
+      if (item.description) {
+        const desc = document.createElement("div");
+        desc.className = "card-desc";
+        desc.textContent = item.description;
+        info.appendChild(desc);
+      }
+
+      // Action label
+      const action = document.createElement("div");
+      action.className = "card-action";
+      action.textContent = item.actionLabel || "";
+
+      card.appendChild(iconWrap);
+      card.appendChild(info);
+      card.appendChild(action);
+
+      bindClick(card, item.id || "");
+      return card;
+    }
+
+    /* Build a footer icon button */
+    function buildFooterBtn(item) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "footer-btn" + (item.danger ? " is-danger" : "");
+      btn.setAttribute("aria-label", item.label || item.id || "");
+
+      const svgSrc = iconSvgForKind(item.iconKind || item.id);
+      btn.innerHTML = svgSrc || "";
+
+      bindClick(btn, item.id || "");
+      return btn;
+    }
+
+    function setState(menuData, themeData) {
+      const data = menuData || {};
+      setTheme(themeData || {});
+
+      // Titlebar version
+      refs.versionText.textContent = data.versionText || "";
+
+      // Brand block — app name + version as subtitle
+      refs.brandName.textContent = "Kazuha";
+      refs.brandSub.textContent = data.versionText || "";
+      refs.brandLogo.innerHTML = ICONS.logo;
+
+      // Primary cards
+      const primaryItems = data.primaryItems || [];
+      refs.primaryList.replaceChildren(...primaryItems.map(buildPrimaryCard));
+
+      // Footer icon buttons
+      const footerActions = data.footerActions || [];
+      refs.footer.replaceChildren(...footerActions.map(buildFooterBtn));
+    }
+
+    refs.closeButton.addEventListener("click", closeMenu);
+    window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
+
+    window.TrayPanel = { setState };
+
+    new QWebChannel(qt.webChannelTransport, (channel) => {
+      bridge = channel.objects.trayBridge;
+      if (bridge && typeof bridge.requestInitState === "function") {
+        bridge.requestInitState();
+      }
+    });
+  </script>
+</body>
+</html>
