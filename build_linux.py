@@ -71,6 +71,8 @@ def run():
         ("icons", "icons"),
         ("ppt_assistant", "ppt_assistant"),
         ("fonts", "fonts"),
+        ("user", "user"),
+        ("scripts", "scripts"),
     ]
     add_data = []
     for src, dst in data_entries:

@@ -27,7 +27,13 @@ class OnboardingPlugin(AssistantPlugin):
                         notify_existing_window(hwnd)
                 except Exception:
                     pass
-            return
+                return
+            try:
+                self.process.terminate()
+                self.process.wait(timeout=1)
+            except Exception:
+                pass
+            self.process = None
         base_dir = os.path.dirname(os.path.abspath(__file__))
         html_path = os.path.join(base_dir, "onboarding.html")
         root_dir = os.path.dirname(os.path.dirname(os.path.dirname(base_dir)))

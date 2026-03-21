@@ -17,6 +17,10 @@ from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QObject, Slot, QUrl, QFile, QIODevice, Qt, QTimer, QBuffer, QByteArray, QJsonValue, QCoreApplication
 from PySide6.QtGui import QColor, QImage, QGuiApplication, QIcon
 from ppt_assistant.core.icon_helper import get_file_icon_base64
+from ppt_assistant.core.platform_integration import (
+    get_quick_launch_dialog_filter,
+    set_run_at_startup as platform_set_run_at_startup,
+)
 
 DWMWA_WINDOW_CORNER_PREFERENCE = 33
 DWMWCP_ROUND = 2
@@ -864,7 +868,7 @@ class Api(QObject):
                 self._window,
                 "Select Application",
                 "",
-                "Applications (*.exe *.lnk);;Media (*.mp3 *.wav *.mp4 *.mkv *.png *.jpg *.jpeg *.gif);;All Files (*.*)"
+                get_quick_launch_dialog_filter()
             )
         if not file_path:
             return self.get_quick_launch_apps()
@@ -1067,7 +1071,7 @@ class Api(QObject):
             # Hook for system integration settings
             if category == "General":
                 if key == "RunAtStartup":
-                    _set_run_at_startup(bool(value))
+                    platform_set_run_at_startup(bool(value))
                 elif key == "PinToTaskbar":
                     _pin_to_taskbar(bool(value))
                 elif key == "PinToStart":

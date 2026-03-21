@@ -15,6 +15,7 @@ from qfluentwidgets.common.config import EnumSerializer
 import os
 import json
 import sys
+from ppt_assistant.core.platform_integration import set_run_at_startup as platform_set_run_at_startup
 try:
     import winreg
 except ImportError:
@@ -173,8 +174,12 @@ def _set_run_at_startup(enabled: bool):
         print(f"Error setting startup: {e}")
 
 
+def _set_run_at_startup(enabled: bool):
+    platform_set_run_at_startup(bool(enabled))
+
+
 def _on_run_at_startup_changed(enabled):
-    _set_run_at_startup(enabled)
+    platform_set_run_at_startup(bool(enabled))
     _save_cfg()
 
 
@@ -258,7 +263,7 @@ def _bind_auto_save():
 _bind_auto_save()
 try:
     if cfg.runAtStartup.value:
-        _set_run_at_startup(True)
+        platform_set_run_at_startup(True)
 except Exception:
     pass
 _save_cfg()

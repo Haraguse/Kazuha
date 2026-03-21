@@ -1125,7 +1125,7 @@ def _handle_multi_instance(app: QApplication):
         return
 
     current_pid = os.getpid()
-    main_path = os.path.abspath(__file__)
+    current_entry = os.path.abspath(sys.executable if getattr(sys, "frozen", False) else __file__)
     pids = []
     for p in psutil.process_iter(["pid", "cmdline"]):
         if p.info.get("pid") == current_pid: continue
@@ -1136,7 +1136,11 @@ def _handle_multi_instance(app: QApplication):
 
         for part in cmd:
             try:
-                if os.path.abspath(part) == main_path or os.path.basename(part).lower() == "main.py":
+                normalized = os.path.abspath(part)
+                if normalized == current_entry:
+                    pids.append(p.info.get("pid"))
+                    break
+                if not getattr(sys, "frozen", False) and os.path.basename(part).lower() == "main.py":
                     pids.append(p.info.get("pid"))
                     break
             except: continue

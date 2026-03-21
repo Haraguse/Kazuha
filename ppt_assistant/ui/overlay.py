@@ -15,6 +15,7 @@ from ppt_assistant.core.config import cfg
 from ppt_assistant.core.i18n import t
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.icon_helper import get_file_icon_base64
+from ppt_assistant.core.platform_integration import open_path
 from ppt_assistant.core.system import get_system_api
 import psutil
 import asyncio
@@ -90,7 +91,7 @@ class OverlayBridge(QObject):
         if not path:
             return
         try:
-            os.startfile(path)
+            open_path(path)
         except Exception as e:
             print(f"Failed to launch app {path}: {e}")
 
