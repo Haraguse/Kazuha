@@ -10,13 +10,11 @@ from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 
 PRESENTATION_SLIDESHOW_CLASSES = {
     "screenClass",
-    "PPTFrameClass",
     "wppSlideShowWindowClass",
     "WPP SlideShow Window",
     "WPP SlideShow Window 8.0",
 }
 PRESENTATION_SLIDESHOW_TITLE_HINTS = (
-    "powerpoint",
     "slide show",
     "slideshow",
     "wps presentation",
@@ -37,6 +35,26 @@ PRESENTATION_PROCESS_NAMES = {
     "yozopg.exe",
     "yozo_office.exe",
 }
+STRICT_PRESENTATION_SLIDESHOW_TITLE_HINTS = (
+    "slide show",
+    "slideshow",
+    "slide-show",
+    "幻灯片放映",
+    "幻燈片放映",
+    "投影片放映",
+    "スライド ショー",
+    "スライドショー",
+    "슬라이드 쇼",
+    "슬라이드쇼",
+    "diaporama",
+    "mode diaporama",
+    "bildschirmprasentation",
+    "bildschirmpräsentation",
+    "presentacion con diapositivas",
+    "presentación con diapositivas",
+    "apresentacao de slides",
+    "apresentação de slides",
+)
 
 
 class _WinEventHookThread(QThread):
@@ -263,7 +281,7 @@ class WindowsFocusWatcher(QObject):
         text = str(title or "").strip().lower()
         if not text:
             return False
-        return any(hint in text for hint in PRESENTATION_SLIDESHOW_TITLE_HINTS)
+        return any(hint in text for hint in STRICT_PRESENTATION_SLIDESHOW_TITLE_HINTS)
 
     def _is_window_visible(self, hwnd: int) -> bool:
         if not hwnd:
@@ -352,17 +370,8 @@ class WindowsFocusWatcher(QObject):
                         focus_on_slideshow = True
                     if not focus_on_slideshow and self._title_looks_like_slideshow(title):
                         focus_on_slideshow = True
-                    if not focus_on_slideshow:
-                        fg_pid = self._get_pid(int(foreground_hwnd or 0))
-                        ss_pid = self._get_pid(int(hwnd))
-                        if fg_pid and ss_pid and fg_pid == ss_pid:
-                            focus_on_slideshow = True
             else:
                 focus_on_slideshow = cls in PRESENTATION_SLIDESHOW_CLASSES or self._title_looks_like_slideshow(title)
-                if not focus_on_slideshow:
-                    process_name = self._get_process_name(int(foreground_hwnd or 0))
-                    if process_name in PRESENTATION_PROCESS_NAMES:
-                        focus_on_slideshow = True
 
         if focus_on_slideshow != self._last_focus_on_slideshow:
             self._last_focus_on_slideshow = focus_on_slideshow

@@ -1446,7 +1446,7 @@ class PPTAssistantApp:
     def _on_timer_background_mode(self):
         if hasattr(self, "tray") and self.tray:
             self.tray.show_message(t("timer.background.title"), t("timer.background.body"))
-    
+
     @Slot()
     def on_slideshow_start(self):
         self._slideshow_running = True
@@ -1494,6 +1494,26 @@ class PPTAssistantApp:
             self._focus_watcher.set_slideshow_running(False)
         except Exception:
             pass
+
+    def _should_keep_overlay_visible(self) -> bool:
+        if cfg.compatibilityMode.value:
+            return True
+        if not self._slideshow_running or not cfg.autoShowOverlay.value:
+            return False
+        try:
+            hwnd = int(getattr(self.monitor, "_slideshow_hwnd", 0) or 0)
+        except Exception:
+            hwnd = 0
+        if hwnd:
+            return True
+        rect = self._last_slideshow_rect
+        if rect is not None:
+            try:
+                if not rect.isEmpty():
+                    return True
+            except Exception:
+                return True
+        return getattr(self.monitor, "_active_kind", None) == "yozo"
 
     @Slot(object, object)
     def _cache_slideshow_geometry(self, rect, screen):
@@ -1713,9 +1733,11 @@ class PPTAssistantApp:
             old_overlay.hide()
             old_overlay.deleteLater()
             
-            if was_visible:
+            if was_visible and self._should_keep_overlay_visible():
                 self.overlay.show()
                 self.overlay.raise_()
+            else:
+                self.overlay.hide()
             
             # Update current page info immediately
             if self.monitor:

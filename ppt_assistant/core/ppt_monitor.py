@@ -38,7 +38,6 @@ ALL_SLIDESHOW_WINDOW_CLASSES = (
     | YOZO_SLIDESHOW_WINDOW_CLASSES
 )
 SLIDESHOW_WINDOW_TITLE_HINTS = {
-    "powerpoint",
     "slide show",
     "slideshow",
     "wps presentation",
@@ -56,6 +55,26 @@ WPS_PROCESS_NAMES = {"wpp.exe", "kwpp.exe"}
 YOZO_PROCESS_NAMES = {"yozo_impress.exe", "yozopg.exe", "yozo_office.exe"}
 ALL_PRESENTATION_PROCESS_NAMES = PPT_PROCESS_NAMES | WPS_PROCESS_NAMES | YOZO_PROCESS_NAMES
 YOZO_COM_PROG_IDS = ("YozoPG.Application", "YozoPG.Application.1")
+STRICT_SLIDESHOW_WINDOW_TITLE_HINTS = {
+    "slide show",
+    "slideshow",
+    "slide-show",
+    "幻灯片放映",
+    "幻燈片放映",
+    "投影片放映",
+    "スライド ショー",
+    "スライドショー",
+    "슬라이드 쇼",
+    "슬라이드쇼",
+    "diaporama",
+    "mode diaporama",
+    "bildschirmprasentation",
+    "bildschirmpräsentation",
+    "presentacion con diapositivas",
+    "presentación con diapositivas",
+    "apresentacao de slides",
+    "apresentação de slides",
+}
 
 class PPTWorker(QObject):
     """
@@ -149,7 +168,7 @@ class PPTWorker(QObject):
         title_lower = str(title or "").strip().lower()
         if not title_lower:
             return False
-        return any(hint in title_lower for hint in SLIDESHOW_WINDOW_TITLE_HINTS)
+        return any(hint in title_lower for hint in STRICT_SLIDESHOW_WINDOW_TITLE_HINTS)
 
     def _class_matches_kind(self, cls_name: str, kind: str | None) -> bool:
         cls = str(cls_name or "")
@@ -901,8 +920,6 @@ class PPTWorker(QObject):
                 return False
             if self._is_slideshow_hwnd(int(fg), None):
                 return True
-            if self._get_window_process_name(int(fg)) in ALL_PRESENTATION_PROCESS_NAMES:
-                return True
             title = win32gui.GetWindowText(fg) or ""
             if self._title_looks_like_slideshow(title):
                 return True
@@ -916,14 +933,12 @@ class PPTWorker(QObject):
                         if any(
                             exe_lower.endswith(name)
                             for name in ("powerpnt.exe", "wpp.exe", "kwpp.exe", "yozo_impress.exe", "yozopg.exe", "yozo_office.exe")
-                        ):
+                        ) and self._title_looks_like_slideshow(title):
                             return True
                 except Exception:
                     pass
+            return False
             title = win32gui.GetWindowText(fg) or ""
-            title_lower = title.lower()
-            if "powerpoint" in title_lower:
-                return True
             if any(t in title for t in ["幻灯片放映", "演示文稿"]):
                 return True
             return False

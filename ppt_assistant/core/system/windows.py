@@ -41,7 +41,6 @@ PRESENTATION_PROCESS_NAMES = {
     "yozo_office.exe",
 }
 PRESENTATION_SLIDESHOW_TITLE_HINTS = (
-    "powerpoint",
     "slide show",
     "slideshow",
     "wps presentation",
@@ -53,6 +52,27 @@ PRESENTATION_SLIDESHOW_TITLE_HINTS = (
     "幻燈片放映",
     "投影片放映",
     "放映",
+)
+
+STRICT_PRESENTATION_SLIDESHOW_TITLE_HINTS = (
+    "slide show",
+    "slideshow",
+    "slide-show",
+    "幻灯片放映",
+    "幻燈片放映",
+    "投影片放映",
+    "スライド ショー",
+    "スライドショー",
+    "슬라이드 쇼",
+    "슬라이드쇼",
+    "diaporama",
+    "mode diaporama",
+    "bildschirmprasentation",
+    "bildschirmpräsentation",
+    "presentacion con diapositivas",
+    "presentación con diapositivas",
+    "apresentacao de slides",
+    "apresentação de slides",
 )
 
 class WindowsSystemAPI(SystemAPI):
@@ -382,7 +402,7 @@ while (($requestId = [Console]::In.ReadLine()) -ne $null) {
                 if cls_name in PRESENTATION_SLIDESHOW_CLASSES:
                     return True
                 title = (win32gui.GetWindowText(int(hwnd)) or "").strip().lower()
-                if title and any(hint in title for hint in PRESENTATION_SLIDESHOW_TITLE_HINTS):
+                if title and any(hint in title for hint in STRICT_PRESENTATION_SLIDESHOW_TITLE_HINTS):
                     return True
                 if win32api and win32process:
                     try:
@@ -396,7 +416,7 @@ while (($requestId = [Console]::In.ReadLine()) -ne $null) {
                                     win32api.CloseHandle(handle)
                                 except Exception:
                                     pass
-                            if os.path.basename(exe).strip().lower() in PRESENTATION_PROCESS_NAMES and title and any(hint in title for hint in PRESENTATION_SLIDESHOW_TITLE_HINTS):
+                            if os.path.basename(exe).strip().lower() in PRESENTATION_PROCESS_NAMES and title and any(hint in title for hint in STRICT_PRESENTATION_SLIDESHOW_TITLE_HINTS):
                                 return True
                     except Exception:
                         pass
