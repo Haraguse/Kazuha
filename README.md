@@ -66,4 +66,14 @@ Kazuha 是一款专为触摸屏设计的 PowerPoint 演示辅助工具，旨在�
     </a>
 </div>
 
+## Stars 曲线
+## Star History
+
+<a href="https://www.star-history.com/?repos=SECTL%2FKazuha&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=SECTL/Kazuha&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=SECTL/Kazuha&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=SECTL/Kazuha&type=date&legend=top-left" />
+ </picture>
+</a>
 ⭐ 如您认可此项目，请点亮 Star ⭐
