@@ -12,3 +12,10 @@ build_linux.py
 desktop.ini
 user/
 Kazuha.spec
+.codex_tmp/
+.dotnet_appdata/
+.dotnet_home/
+.dotnet_localappdata/
+.nuget/
+scripts/smtc_helper/bin/
+scripts/smtc_helper/obj/

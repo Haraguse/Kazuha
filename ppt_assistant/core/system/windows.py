@@ -5,6 +5,10 @@ import json
 import base64
 import subprocess
 import time
+import atexit
+import queue
+import shutil
+import threading
 from .base import SystemAPI
 
 try:
@@ -55,58 +59,279 @@ class WindowsSystemAPI(SystemAPI):
     def __init__(self):
         self._focus_thread = None
         self._smtc_next_allowed = 0.0
+        self._smtc_lock = threading.Lock()
+        self._smtc_worker = None
+        self._smtc_reader_thread = None
+        self._smtc_output_queue = None
+        self._smtc_request_id = 0
+        atexit.register(self.close)
 
     def get_media_info(self):
         now = time.monotonic()
         if now < self._smtc_next_allowed:
             return {"title": "", "artist": "", "status": "Stopped"}
         try:
-            return self._get_media_info_from_powershell()
+            return self._get_media_info_from_worker()
         except Exception:
+            self._restart_smtc_worker()
             self._smtc_next_allowed = now + 5.0
             return {"title": "", "artist": "", "status": "Stopped"}
 
-    def _get_media_info_from_powershell(self):
-        script = r'''
-$ErrorActionPreference="SilentlyContinue"
-Add-Type -AssemblyName System.Runtime.WindowsRuntime
-$manager=[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync().GetAwaiter().GetResult()
-$session=$manager.GetCurrentSession()
-if ($session -eq $null) { @{status=""; title=""} | ConvertTo-Json -Compress; exit }
-$props=$session.TryGetMediaPropertiesAsync().GetAwaiter().GetResult()
-$statusValue=[int]$session.GetPlaybackInfo().PlaybackStatus
-$title=$props.Title
-$artist=$props.Artist
-$display=$title
-if ($artist) { $display="$title - $artist" }
-$state="Stopped"
-if ($statusValue -eq 4) { $state="Playing" } elseif ($statusValue -eq 5) { $state="Paused" }
-@{status=$state; title=$display} | ConvertTo-Json -Compress
-'''
+    def _get_media_info_from_worker(self):
+        process, output_queue = self._ensure_smtc_worker()
+        request_id = self._next_smtc_request_id()
+        with self._smtc_lock:
+            if not process or process.poll() is not None or not process.stdin:
+                raise RuntimeError("SMTC worker is not available")
+            process.stdin.write(f"{request_id}\n")
+            process.stdin.flush()
+        data = self._wait_for_smtc_response(request_id, output_queue, timeout=1.2)
+        title = (data.get("title") or "").strip()
+        artist = (data.get("artist") or "").strip()
+        display_title = title
+        if title and artist:
+            display_title = f"{title} - {artist}"
+        return {
+            "title": display_title,
+            "artist": artist,
+            "status": data.get("status", "Stopped") or "Stopped"
+        }
+
+    def _ensure_smtc_worker(self):
+        with self._smtc_lock:
+            if self._smtc_worker and self._smtc_worker.poll() is None and self._smtc_output_queue is not None:
+                return self._smtc_worker, self._smtc_output_queue
+            self._stop_smtc_worker_locked()
+            if not self._start_smtc_dotnet_worker_locked():
+                self._start_smtc_powershell_worker_locked()
+            if not self._smtc_worker or not self._smtc_output_queue:
+                raise RuntimeError("Failed to start SMTC worker")
+            return self._smtc_worker, self._smtc_output_queue
+
+    def _get_app_root_dir(self):
+        if getattr(sys, "frozen", False):
+            return os.path.dirname(sys.executable)
+        return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+    def _get_smtc_helper_project_path(self):
+        return os.path.join(self._get_app_root_dir(), "scripts", "smtc_helper", "SmtcHelper.csproj")
+
+    def _get_smtc_helper_executable_candidates(self):
+        root_dir = self._get_app_root_dir()
+        return [
+            os.path.join(root_dir, "scripts", "smtc_helper", "bin", "Release", "net8.0-windows10.0.19041.0", "SmtcHelper.exe"),
+            os.path.join(root_dir, "scripts", "smtc_helper", "SmtcHelper.exe"),
+            os.path.join(root_dir, "smtc_helper", "SmtcHelper.exe"),
+        ]
+
+    def _resolve_smtc_helper_executable(self):
+        for candidate in self._get_smtc_helper_executable_candidates():
+            if os.path.exists(candidate):
+                return candidate
+        return ""
+
+    def _create_dotnet_build_env(self):
+        root_dir = self._get_app_root_dir()
+        env = os.environ.copy()
+        env["DOTNET_CLI_HOME"] = os.path.join(root_dir, ".dotnet_home")
+        env["APPDATA"] = os.path.join(root_dir, ".dotnet_appdata")
+        env["LOCALAPPDATA"] = os.path.join(root_dir, ".dotnet_localappdata")
+        env["NUGET_PACKAGES"] = os.path.join(root_dir, ".nuget", "packages")
+        for key in ("DOTNET_CLI_HOME", "APPDATA", "LOCALAPPDATA", "NUGET_PACKAGES"):
+            try:
+                os.makedirs(env[key], exist_ok=True)
+            except Exception:
+                pass
+        return env
+
+    def _build_smtc_helper_locked(self):
+        project_path = self._get_smtc_helper_project_path()
+        if not os.path.exists(project_path):
+            return ""
+        if not shutil.which("dotnet"):
+            return ""
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = 0
+        creationflags = subprocess.CREATE_NO_WINDOW
         try:
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            startupinfo.wShowWindow = 0
-            creationflags = subprocess.CREATE_NO_WINDOW
-            
             result = subprocess.run(
-                ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+                ["dotnet", "build", project_path, "-c", "Release", "-nologo"],
                 capture_output=True,
                 text=True,
                 creationflags=creationflags,
                 startupinfo=startupinfo,
-                timeout=1.5
+                timeout=90,
+                env=self._create_dotnet_build_env()
             )
-            if result.returncode == 0 and result.stdout.strip():
-                data = json.loads(result.stdout)
-                return {
-                    "title": data.get("title", ""),
-                    "artist": "",
-                    "status": data.get("status", "Stopped")
-                }
+        except Exception:
+            return ""
+        if result.returncode != 0:
+            return ""
+        return self._resolve_smtc_helper_executable()
+
+    def _start_smtc_dotnet_worker_locked(self):
+        helper_exe = self._resolve_smtc_helper_executable()
+        if not helper_exe:
+            helper_exe = self._build_smtc_helper_locked()
+        if not helper_exe:
+            return False
+        try:
+            return self._launch_smtc_worker_locked([helper_exe])
+        except Exception:
+            return False
+
+    def _launch_smtc_worker_locked(self, command):
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = 0
+        creationflags = subprocess.CREATE_NO_WINDOW
+        process = subprocess.Popen(
+            command,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
+            creationflags=creationflags,
+            startupinfo=startupinfo
+        )
+        output_queue = queue.Queue()
+        self._smtc_worker = process
+        self._smtc_output_queue = output_queue
+        self._smtc_reader_thread = threading.Thread(
+            target=self._read_smtc_worker_output,
+            args=(process, output_queue),
+            daemon=True
+        )
+        self._smtc_reader_thread.start()
+        return True
+
+    def _start_smtc_powershell_worker_locked(self):
+        script = r'''
+$ErrorActionPreference="SilentlyContinue"
+[Console]::InputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Add-Type -AssemblyName System.Runtime.WindowsRuntime
+
+function Write-JsonResponse($payload) {
+    [Console]::Out.WriteLine(($payload | ConvertTo-Json -Compress))
+    [Console]::Out.Flush()
+}
+
+$manager = $null
+while (($requestId = [Console]::In.ReadLine()) -ne $null) {
+    if ($requestId -eq "__EXIT__") { break }
+    try {
+        if ($manager -eq $null) {
+            $manager = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync().GetAwaiter().GetResult()
+        }
+        $session = $manager.GetCurrentSession()
+        if ($session -eq $null) {
+            Write-JsonResponse @{request_id=$requestId; status=""; title=""; artist=""}
+            continue
+        }
+        $props = $session.TryGetMediaPropertiesAsync().GetAwaiter().GetResult()
+        $statusValue = [int]$session.GetPlaybackInfo().PlaybackStatus
+        $state = "Stopped"
+        if ($statusValue -eq 4) {
+            $state = "Playing"
+        } elseif ($statusValue -eq 5) {
+            $state = "Paused"
+        }
+        $title = ""
+        $artist = ""
+        if ($props -ne $null) {
+            $title = $props.Title
+            $artist = $props.Artist
+        }
+        Write-JsonResponse @{request_id=$requestId; status=$state; title=$title; artist=$artist}
+    } catch {
+        $manager = $null
+        Write-JsonResponse @{request_id=$requestId; status="Stopped"; title=""; artist=""}
+    }
+}
+'''
+        self._launch_smtc_worker_locked(["powershell", "-NoProfile", "-NonInteractive", "-Command", script])
+
+    def _read_smtc_worker_output(self, process, output_queue):
+        try:
+            while process.stdout:
+                line = process.stdout.readline()
+                if not line:
+                    break
+                output_queue.put(line.strip())
         except Exception:
             pass
-        return {"title": "", "artist": "", "status": "Stopped"}
+        finally:
+            output_queue.put(None)
+
+    def _wait_for_smtc_response(self, request_id, output_queue, timeout):
+        deadline = time.monotonic() + timeout
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError("Timed out waiting for SMTC worker response")
+            item = output_queue.get(timeout=remaining)
+            if item is None:
+                raise RuntimeError("SMTC worker exited unexpectedly")
+            try:
+                data = json.loads(item)
+            except Exception:
+                continue
+            if str(data.get("request_id", "")) != str(request_id):
+                continue
+            return data
+
+    def _next_smtc_request_id(self):
+        with self._smtc_lock:
+            self._smtc_request_id += 1
+            return self._smtc_request_id
+
+    def _restart_smtc_worker(self):
+        with self._smtc_lock:
+            self._stop_smtc_worker_locked()
+
+    def _stop_smtc_worker_locked(self):
+        process = self._smtc_worker
+        self._smtc_worker = None
+        self._smtc_output_queue = None
+        self._smtc_reader_thread = None
+        if not process:
+            return
+        try:
+            if process.poll() is None and process.stdin:
+                process.stdin.write("__EXIT__\n")
+                process.stdin.flush()
+        except Exception:
+            pass
+        try:
+            if process.stdin:
+                process.stdin.close()
+        except Exception:
+            pass
+        try:
+            process.wait(timeout=0.5)
+        except Exception:
+            try:
+                process.kill()
+            except Exception:
+                pass
+            try:
+                process.wait(timeout=0.5)
+            except Exception:
+                pass
+        try:
+            if process.stdout:
+                process.stdout.close()
+        except Exception:
+            pass
+
+    def close(self):
+        with self._smtc_lock:
+            self._stop_smtc_worker_locked()
 
     def get_file_icon(self, path):
         # We can implement the full win32 icon extraction logic here
