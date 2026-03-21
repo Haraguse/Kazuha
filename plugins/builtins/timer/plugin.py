@@ -2,11 +2,10 @@ import os
 import sys
 import subprocess
 import threading
-import ctypes
-from ctypes import wintypes
 from PySide6.QtWidgets import QWidget, QApplication
 from PySide6.QtCore import Signal
 from plugins.interface import AssistantPlugin
+from plugins.webview_window_utils import bring_window_to_front, find_window, notify_existing_window
 from ppt_assistant.core.config import SETTINGS_PATH
 from ppt_assistant.core.timer_manager import TimerManager
 
@@ -42,10 +41,11 @@ class TimerPlugin(AssistantPlugin):
         if self.process and self.process.poll() is None:
             if sys.platform == "win32":
                 try:
-                    hwnd = self._find_timer_window()
+                    hwnd = find_window("Kazuha Timer Plugin", self.process.pid if self.process else None)
                     if hwnd:
-                        self._bring_window_to_front(hwnd)
-                except:
+                        bring_window_to_front(hwnd)
+                        notify_existing_window(hwnd)
+                except Exception:
                     pass
             return
 
@@ -144,52 +144,6 @@ class TimerPlugin(AssistantPlugin):
         if self._timer_manager.is_running:
             self.background_mode_entered.emit()
         pass
-
-    def _find_timer_window(self):
-        if sys.platform != "win32":
-            return None
-        user32 = ctypes.windll.user32
-        hwnd = user32.FindWindowW(None, "Kazuha Timer Plugin")
-        if hwnd:
-            return hwnd
-        pid = self.process.pid if self.process else None
-        if not pid:
-            return None
-        return self._find_window_by_pid(pid)
-
-    def _find_window_by_pid(self, pid):
-        user32 = ctypes.windll.user32
-        result = {"hwnd": None}
-
-        @ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
-        def enum_proc(hwnd, lparam):
-            if not user32.IsWindowVisible(hwnd):
-                return True
-            proc_id = wintypes.DWORD()
-            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(proc_id))
-            if proc_id.value == pid:
-                result["hwnd"] = hwnd
-                return False
-            return True
-
-        user32.EnumWindows(enum_proc, 0)
-        return result["hwnd"]
-
-    def _bring_window_to_front(self, hwnd):
-        user32 = ctypes.windll.user32
-        kernel32 = ctypes.windll.kernel32
-        fg_hwnd = user32.GetForegroundWindow()
-        fg_thread = user32.GetWindowThreadProcessId(fg_hwnd, None)
-        cur_thread = kernel32.GetCurrentThreadId()
-        attached = False
-        if fg_thread != cur_thread:
-            attached = user32.AttachThreadInput(cur_thread, fg_thread, True)
-        # SW_RESTORE = 9
-        user32.ShowWindow(hwnd, 9)
-        user32.BringWindowToTop(hwnd)
-        user32.SetForegroundWindow(hwnd)
-        if attached:
-            user32.AttachThreadInput(cur_thread, fg_thread, False)
 
     def terminate(self):
         if self.process and self.process.poll() is None:

@@ -28,6 +28,15 @@ DWMWA_TEXT_COLOR = 36
 DWMWA_SYSTEMBACKDROP_TYPE = 38
 _DWM_COLOR_NONE = 0xFFFFFFFE
 _DWM_COLOR_DEFAULT = 0xFFFFFFFF
+_EXISTING_WINDOW_NOTIFY_MESSAGE = 0
+
+if sys.platform == "win32":
+    try:
+        _EXISTING_WINDOW_NOTIFY_MESSAGE = ctypes.windll.user32.RegisterWindowMessageW(
+            "Kazuha.WebView.NotifyExistingWindow"
+        )
+    except Exception:
+        _EXISTING_WINDOW_NOTIFY_MESSAGE = 0
 
 DWMSBT_AUTO = 0
 DWMSBT_NONE = 1
@@ -496,6 +505,150 @@ class Api(QObject):
     def set_window(self, window):
         self._window = window
 
+    def _get_window_hwnd(self):
+        if not self._window:
+            return 0
+        try:
+            return int(self._window.winId())
+        except Exception:
+            return 0
+
+    def _flash_window(self):
+        hwnd = self._get_window_hwnd()
+        if sys.platform != "win32" or not hwnd:
+            return
+        try:
+            from ctypes import wintypes
+
+            class FLASHWINFO(ctypes.Structure):
+                _fields_ = [
+                    ("cbSize", wintypes.UINT),
+                    ("hwnd", wintypes.HWND),
+                    ("dwFlags", wintypes.DWORD),
+                    ("uCount", wintypes.UINT),
+                    ("dwTimeout", wintypes.DWORD),
+                ]
+
+            info = FLASHWINFO(
+                ctypes.sizeof(FLASHWINFO),
+                wintypes.HWND(hwnd),
+                3,
+                3,
+                0,
+            )
+            ctypes.windll.user32.FlashWindowEx(ctypes.byref(info))
+        except Exception:
+            pass
+
+    def _show_existing_window_toast(self, message):
+        if not self._window:
+            return
+        toast_text = str(message or "已经存在打开的窗口！")
+        js = f"""
+(function() {{
+    try {{
+        const message = {json.dumps(toast_text, ensure_ascii=False)};
+        const showExistingToast = () => {{
+            const toast = document.getElementById("toast-message");
+            const text = document.getElementById("toast-text");
+            if (!toast || !text) {{
+                return false;
+            }}
+            text.textContent = message;
+            if (window.__kazuhaExistingWindowToastTimer) {{
+                clearTimeout(window.__kazuhaExistingWindowToastTimer);
+            }}
+            toast.classList.add("show");
+            window.__kazuhaExistingWindowToastTimer = window.setTimeout(() => {{
+                toast.classList.remove("show");
+            }}, 2200);
+            return true;
+        }};
+        if (typeof window.showExistingWindowToast === "function") {{
+            window.showExistingWindowToast(message);
+        }} else if (!showExistingToast()) {{
+            let style = document.getElementById("kazuha-existing-window-toast-style");
+            if (!style) {{
+                style = document.createElement("style");
+                style.id = "kazuha-existing-window-toast-style";
+                style.textContent = `
+                    .kazuha-existing-window-toast {{
+                        position: fixed;
+                        left: 50%;
+                        bottom: 60px;
+                        transform: translateX(-50%) translateY(20px);
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        min-width: 220px;
+                        max-width: min(calc(100vw - 32px), 420px);
+                        padding: 10px 18px;
+                        border-radius: 999px;
+                        background: rgba(30, 30, 30, 0.88);
+                        color: #FFFFFF;
+                        font-size: 13px;
+                        line-height: 1.4;
+                        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+                        opacity: 0;
+                        pointer-events: none;
+                        transition: opacity 0.2s ease, transform 0.2s ease;
+                        z-index: 2147483647;
+                    }}
+                    .kazuha-existing-window-toast.show {{
+                        opacity: 1;
+                        transform: translateX(-50%) translateY(0);
+                    }}
+                    .kazuha-existing-window-toast__icon {{
+                        width: 10px;
+                        height: 10px;
+                        flex: 0 0 auto;
+                        border-radius: 50%;
+                        background: #3275F5;
+                        box-shadow: 0 0 0 4px rgba(50, 117, 245, 0.18);
+                    }}
+                    .kazuha-existing-window-toast__text {{
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }}
+                    [data-theme="dark"] .kazuha-existing-window-toast {{
+                        background: rgba(45, 45, 45, 0.92);
+                        border: 0.5px solid rgba(255, 255, 255, 0.14);
+                    }}
+                `;
+                (document.head || document.documentElement).appendChild(style);
+            }}
+            let toast = document.getElementById("kazuha-existing-window-toast");
+            if (!toast) {{
+                toast = document.createElement("div");
+                toast.id = "kazuha-existing-window-toast";
+                toast.className = "kazuha-existing-window-toast";
+                toast.innerHTML = '<div class="kazuha-existing-window-toast__icon"></div><div class="kazuha-existing-window-toast__text"></div>';
+                (document.body || document.documentElement).appendChild(toast);
+            }}
+            const text = toast.querySelector(".kazuha-existing-window-toast__text");
+            if (text) {{
+                text.textContent = message;
+            }}
+            if (window.__kazuhaExistingWindowToastTimer) {{
+                clearTimeout(window.__kazuhaExistingWindowToastTimer);
+            }}
+            toast.classList.add("show");
+            window.__kazuhaExistingWindowToastTimer = window.setTimeout(() => {{
+                toast.classList.remove("show");
+            }}, 2200);
+        }}
+        try {{
+            window.dispatchEvent(new CustomEvent("kazuha:existing-window-toast", {{ detail: {{ message }} }}));
+        }} catch (eventError) {{}}
+    }} catch (e) {{}}
+}})();
+"""
+        try:
+            self._window.page().runJavaScript(js)
+        except Exception:
+            pass
+
     @Slot(QJsonValue)
     def update_settings(self, settings):
         if hasattr(settings, "toVariant"):
@@ -653,6 +806,10 @@ class Api(QObject):
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             settings_path = os.path.join(base_dir, "settings.json")
         return settings_path
+
+    def _get_settings_reset_marker_path(self):
+        settings_path = self._get_settings_path()
+        return os.path.join(os.path.dirname(settings_path), "settings.reset")
 
     def _attach_quick_launch_icons(self, apps):
         if not isinstance(apps, list):
@@ -942,35 +1099,34 @@ class Api(QObject):
             print(f"Error triggering restart: {e}", file=sys.stderr)
 
     @Slot()
+    def reset_to_pre_onboarding_state(self):
+        settings_path = self._get_settings_path()
+        reset_marker = self._get_settings_reset_marker_path()
+        try:
+            if os.path.exists(settings_path):
+                os.remove(settings_path)
+        except Exception as e:
+            print(f"Error deleting settings: {e}", file=sys.stderr)
+        try:
+            with open(reset_marker, "w", encoding="utf-8") as f:
+                f.write("reset")
+        except Exception as e:
+            print(f"Error writing reset marker: {e}", file=sys.stderr)
+
+    @Slot()
     def show_window(self):
         if self._window:
+            if self._window.isMinimized():
+                self._window.showNormal()
             self._window.show()
             self._window.raise_()
             self._window.activateWindow()
-            if sys.platform == "win32":
-                try:
-                    import ctypes
-                    from ctypes import wintypes
-                    hwnd = self._window.native
-                    if hwnd:
-                        class FLASHWINFO(ctypes.Structure):
-                            _fields_ = [
-                                ("cbSize", wintypes.UINT),
-                                ("hwnd", wintypes.HWND),
-                                ("dwFlags", wintypes.DWORD),
-                                ("uCount", wintypes.UINT),
-                                ("dwTimeout", wintypes.DWORD),
-                            ]
-                        info = FLASHWINFO(
-                            ctypes.sizeof(FLASHWINFO),
-                            wintypes.HWND(hwnd),
-                            3,
-                            3,
-                            0,
-                        )
-                        ctypes.windll.user32.FlashWindowEx(ctypes.byref(info))
-                except Exception:
-                    pass
+            self._flash_window()
+
+    @Slot(str)
+    def notify_existing_window(self, message):
+        self.show_window()
+        self._show_existing_window_toast(message)
 
     @Slot(str)
     def open_browser(self, url):
@@ -1522,6 +1678,30 @@ body {
         x = geo.x() + (geo.width() - self.width()) // 2
         y = geo.y() + (geo.height() - self.height()) // 2
         self.move(x, y)
+
+    def _handle_existing_window_notification(self):
+        api = getattr(self, "api", None)
+        if api is not None and hasattr(api, "notify_existing_window"):
+            api.notify_existing_window("已经存在打开的窗口！")
+            return
+        if self.isMinimized():
+            self.showNormal()
+        self.show()
+        self.raise_()
+        self.activateWindow()
+
+    def nativeEvent(self, eventType, message):
+        if sys.platform == "win32" and _EXISTING_WINDOW_NOTIFY_MESSAGE:
+            try:
+                msg_ptr = int(message)
+                if msg_ptr:
+                    msg = ctypes.wintypes.MSG.from_address(msg_ptr)
+                    if msg.message == _EXISTING_WINDOW_NOTIFY_MESSAGE:
+                        QTimer.singleShot(0, self._handle_existing_window_notification)
+                        return True, 0
+            except Exception:
+                pass
+        return super().nativeEvent(eventType, message)
 
     def _apply_backdrop(self):
         self._apply_page_background()

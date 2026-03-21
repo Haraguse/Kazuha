@@ -232,6 +232,23 @@ class OverlayWindow(QWebEngineView):
             
         self.renderProcessTerminated.connect(self._on_render_process_terminated)
 
+    def _ensure_topmost(self):
+        if sys.platform != "win32":
+            return
+        try:
+            user32 = ctypes.windll.user32
+            hwnd = int(self.winId())
+            if not hwnd:
+                return
+            HWND_TOPMOST = -1
+            SWP_NOMOVE = 0x0002
+            SWP_NOSIZE = 0x0001
+            SWP_NOACTIVATE = 0x0010
+            SWP_SHOWWINDOW = 0x0040
+            user32.SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW)
+        except Exception:
+            pass
+
     def _on_render_process_terminated(self, status, exit_code):
         print(f"[Overlay] Render process terminated: status={status}, exit_code={exit_code}")
         # Try to reload the page to recover from crash (grey screen)
@@ -808,6 +825,7 @@ Item {
             try:
                 self.show()
                 self.raise_()
+                self._ensure_topmost()
             except Exception:
                 pass
         else:

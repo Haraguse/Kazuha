@@ -28,13 +28,27 @@ PRESENTATION_SLIDESHOW_CLASSES = {
     "WPP SlideShow Window",
     "WPP SlideShow Window 8.0",
 }
-PRESENTATION_PROCESS_NAMES = {"powerpnt.exe", "wpp.exe", "kwpp.exe"}
+PRESENTATION_PROCESS_NAMES = {
+    "powerpnt.exe",
+    "wpp.exe",
+    "kwpp.exe",
+    "yozo_impress.exe",
+    "yozopg.exe",
+    "yozo_office.exe",
+}
 PRESENTATION_SLIDESHOW_TITLE_HINTS = (
     "powerpoint",
     "slide show",
     "slideshow",
     "wps presentation",
     "wps persentation",
+    "yozo slide show",
+    "yozo slideshow",
+    "yozo presentation",
+    "幻灯片放映",
+    "幻燈片放映",
+    "投影片放映",
+    "放映",
 )
 
 class WindowsSystemAPI(SystemAPI):
@@ -109,6 +123,32 @@ if ($statusValue -eq 4) { $state="Playing" } elseif ($statusValue -eq 5) { $stat
         except Exception:
             fg = 0
 
+        def _get_com_slideshow_hwnd() -> int:
+            if not win32com:
+                return 0
+            for prog_id in ("PowerPoint.Application", "KWPP.Application", "YozoPG.Application", "YozoPG.Application.1"):
+                try:
+                    app = win32com.client.GetActiveObject(prog_id)
+                except Exception:
+                    continue
+                try:
+                    windows = getattr(app, "SlideShowWindows", None)
+                    count = int(getattr(windows, "Count", 0) or 0)
+                except Exception:
+                    count = 0
+                for i in range(1, count + 1):
+                    try:
+                        ss_win = windows(i)
+                        hwnd = getattr(ss_win, "HWND", 0)
+                        if callable(hwnd):
+                            hwnd = hwnd()
+                        hwnd = int(hwnd or 0)
+                        if hwnd:
+                            return hwnd
+                    except Exception:
+                        continue
+            return 0
+
         def _is_ppt_slideshow(hwnd: int) -> bool:
             try:
                 if not hwnd: return False
@@ -141,6 +181,10 @@ if ($statusValue -eq 4) { $state="Playing" } elseif ($statusValue -eq 5) { $stat
 
         if _is_ppt_slideshow(fg):
             return fg
+
+        com_hwnd = _get_com_slideshow_hwnd()
+        if com_hwnd:
+            return int(com_hwnd)
         
         # Search all windows
         found_hwnd = 0

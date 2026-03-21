@@ -262,6 +262,10 @@ def _load_settings_json():
     return {}
 
 
+def _get_settings_reset_marker_path():
+    return os.path.join(os.path.dirname(SETTINGS_PATH), "settings.reset")
+
+
 def _get_current_language():
     data = _load_settings_json()
     return data.get("General", {}).get("Language", "zh-CN")
@@ -1461,6 +1465,19 @@ class PPTAssistantApp:
             self._focus_watcher.set_slideshow_running(True)
         except Exception:
             pass
+        try:
+            active_kind = getattr(self.monitor, "_active_kind", None)
+            if cfg.autoShowOverlay.value and not cfg.compatibilityMode.value:
+                if self._last_slideshow_rect is not None:
+                    try:
+                        self.overlay.update_geometry(self._last_slideshow_rect, self._last_slideshow_screen)
+                    except Exception:
+                        pass
+                self.overlay.set_active_on_slideshow(True, animate=False)
+            elif active_kind == "yozo" and not cfg.compatibilityMode.value:
+                self.overlay.set_active_on_slideshow(True, animate=False)
+        except Exception:
+            pass
     
     @Slot()
     def on_slideshow_end(self):
@@ -1495,6 +1512,15 @@ class PPTAssistantApp:
             if not self._slideshow_running or not cfg.autoShowOverlay.value:
                 self.overlay.set_active_on_slideshow(False, animate=True)
                 return
+            active_kind = getattr(self.monitor, "_active_kind", None)
+            if active_kind == "yozo":
+                if self._last_slideshow_rect is not None:
+                    try:
+                        self.overlay.update_geometry(self._last_slideshow_rect, self._last_slideshow_screen)
+                    except Exception:
+                        pass
+                self.overlay.set_active_on_slideshow(True, animate=False)
+                return
             if focused and self._last_slideshow_rect is not None:
                 try:
                     self.overlay.update_geometry(self._last_slideshow_rect, self._last_slideshow_screen)
@@ -1505,6 +1531,15 @@ class PPTAssistantApp:
             pass
 
     def _check_settings_changed(self):
+        reset_marker = _get_settings_reset_marker_path()
+        if os.path.exists(reset_marker):
+            try:
+                os.remove(reset_marker)
+            except Exception:
+                pass
+            self._settings_mtime = 0
+            self.restart()
+            return
         if not os.path.exists(SETTINGS_PATH):
             return
         mtime = os.path.getmtime(SETTINGS_PATH)

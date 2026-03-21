@@ -3,6 +3,7 @@ import sys
 import subprocess
 from PySide6.QtWidgets import QWidget, QApplication
 from plugins.interface import AssistantPlugin
+from plugins.webview_window_utils import bring_window_to_front, find_window, notify_existing_window
 from ppt_assistant.core.config import SETTINGS_PATH
 
 class OnboardingPlugin(AssistantPlugin):
@@ -18,6 +19,14 @@ class OnboardingPlugin(AssistantPlugin):
 
     def execute(self, preview=False):
         if self.process and self.process.poll() is None:
+            if sys.platform == "win32":
+                try:
+                    hwnd = find_window("Onboarding", self.process.pid if self.process else None)
+                    if hwnd:
+                        bring_window_to_front(hwnd)
+                        notify_existing_window(hwnd)
+                except Exception:
+                    pass
             return
         base_dir = os.path.dirname(os.path.abspath(__file__))
         html_path = os.path.join(base_dir, "onboarding.html")

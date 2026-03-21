@@ -4,6 +4,7 @@ import subprocess
 import json
 from PySide6.QtWidgets import QWidget, QApplication
 from plugins.interface import AssistantPlugin
+from plugins.webview_window_utils import bring_window_to_front, find_window, notify_existing_window
 from ppt_assistant.core.config import SETTINGS_PATH
 from ppt_assistant.ui.dialog import show_webview_input_dialog, show_webview_dialog
 
@@ -22,29 +23,11 @@ class SettingsPlugin(AssistantPlugin):
         if self.process and self.process.poll() is None:
             if sys.platform == "win32":
                 try:
-                    import ctypes
-                    from ctypes import wintypes
-                    hwnd = ctypes.windll.user32.FindWindowW(None, "Settings")
+                    hwnd = find_window("Settings", self.process.pid if self.process else None)
                     if hwnd:
-                        ctypes.windll.user32.ShowWindow(hwnd, 9)
-                        ctypes.windll.user32.SetForegroundWindow(hwnd)
-                        class FLASHWINFO(ctypes.Structure):
-                            _fields_ = [
-                                ("cbSize", wintypes.UINT),
-                                ("hwnd", wintypes.HWND),
-                                ("dwFlags", wintypes.DWORD),
-                                ("uCount", wintypes.UINT),
-                                ("dwTimeout", wintypes.DWORD),
-                            ]
-                        info = FLASHWINFO(
-                            ctypes.sizeof(FLASHWINFO),
-                            wintypes.HWND(hwnd),
-                            3,
-                            3,
-                            0,
-                        )
-                        ctypes.windll.user32.FlashWindowEx(ctypes.byref(info))
-                except:
+                        bring_window_to_front(hwnd)
+                        notify_existing_window(hwnd)
+                except Exception:
                     pass
             return
 

@@ -31,17 +31,31 @@ WPS_SLIDESHOW_WINDOW_CLASSES = {
     "WPP SlideShow Window",
     "WPP SlideShow Window 8.0",
 }
-ALL_SLIDESHOW_WINDOW_CLASSES = PPT_SLIDESHOW_WINDOW_CLASSES | WPS_SLIDESHOW_WINDOW_CLASSES
+YOZO_SLIDESHOW_WINDOW_CLASSES = set()
+ALL_SLIDESHOW_WINDOW_CLASSES = (
+    PPT_SLIDESHOW_WINDOW_CLASSES
+    | WPS_SLIDESHOW_WINDOW_CLASSES
+    | YOZO_SLIDESHOW_WINDOW_CLASSES
+)
 SLIDESHOW_WINDOW_TITLE_HINTS = {
     "powerpoint",
     "slide show",
     "slideshow",
     "wps presentation",
     "wps persentation",
+    "yozo slide show",
+    "yozo slideshow",
+    "yozo presentation",
+    "幻灯片放映",
+    "幻燈片放映",
+    "投影片放映",
+    "放映",
 }
 PPT_PROCESS_NAMES = {"powerpnt.exe"}
 WPS_PROCESS_NAMES = {"wpp.exe", "kwpp.exe"}
-ALL_PRESENTATION_PROCESS_NAMES = PPT_PROCESS_NAMES | WPS_PROCESS_NAMES
+YOZO_PROCESS_NAMES = {"yozo_impress.exe", "yozopg.exe", "yozo_office.exe"}
+ALL_PRESENTATION_PROCESS_NAMES = PPT_PROCESS_NAMES | WPS_PROCESS_NAMES | YOZO_PROCESS_NAMES
+YOZO_COM_PROG_IDS = ("YozoPG.Application", "YozoPG.Application.1")
 
 class PPTWorker(QObject):
     """
@@ -65,6 +79,7 @@ class PPTWorker(QObject):
         super().__init__()
         self.ppt_app = None
         self.wps_app = None
+        self.yozo_app = None
         self._running = False
         self._current_slide = 0
         self._total_slides = 0
@@ -142,6 +157,8 @@ class PPTWorker(QObject):
             return cls in PPT_SLIDESHOW_WINDOW_CLASSES
         if kind == "wps":
             return cls in WPS_SLIDESHOW_WINDOW_CLASSES
+        if kind == "yozo":
+            return cls in YOZO_SLIDESHOW_WINDOW_CLASSES
         return cls in ALL_SLIDESHOW_WINDOW_CLASSES
 
     def _process_matches_kind(self, process_name: str, kind: str | None) -> bool:
@@ -152,6 +169,8 @@ class PPTWorker(QObject):
             return name in PPT_PROCESS_NAMES
         if kind == "wps":
             return name in WPS_PROCESS_NAMES
+        if kind == "yozo":
+            return name in YOZO_PROCESS_NAMES
         return name in ALL_PRESENTATION_PROCESS_NAMES
 
     def _kind_from_window(self, hwnd: int) -> str | None:
@@ -165,11 +184,15 @@ class PPTWorker(QObject):
             return "ppt"
         if cls_name in WPS_SLIDESHOW_WINDOW_CLASSES:
             return "wps"
+        if cls_name in YOZO_SLIDESHOW_WINDOW_CLASSES:
+            return "yozo"
         process_name = self._get_window_process_name(hwnd)
         if process_name in PPT_PROCESS_NAMES:
             return "ppt"
         if process_name in WPS_PROCESS_NAMES:
             return "wps"
+        if process_name in YOZO_PROCESS_NAMES:
+            return "yozo"
         return None
 
     def _is_slideshow_hwnd(self, hwnd: int, preferred_kind: str | None = None) -> bool:
@@ -512,9 +535,11 @@ class PPTWorker(QObject):
         # Helper to get the currently tracked app
         if self._active_kind == "ppt" and self.ppt_app: return self.ppt_app
         if self._active_kind == "wps" and self.wps_app: return self.wps_app
+        if self._active_kind == "yozo" and self.yozo_app: return self.yozo_app
         # Fallback
         if self.ppt_app: return self.ppt_app
         if self.wps_app: return self.wps_app
+        if self.yozo_app: return self.yozo_app
         return None
 
     def _safe_get_active_object(self, prog_id: str):
@@ -524,6 +549,13 @@ class PPTWorker(QObject):
             return win32com.client.GetActiveObject(prog_id)
         except Exception:
             return None
+
+    def _safe_get_active_object_any(self, prog_ids):
+        for prog_id in prog_ids:
+            app = self._safe_get_active_object(prog_id)
+            if app is not None:
+                return app
+        return None
 
     def _update_slide_info_from_ss_win(self, ss_win, app=None, kind: str | None = None):
         current = 0
@@ -546,7 +578,7 @@ class PPTWorker(QObject):
             except Exception:
                 pres_readonly = False
 
-        self._update_restrictions(False if kind == "wps" else self._protected_view, pres_readonly)
+        self._update_restrictions(False if kind in {"wps", "yozo"} else self._protected_view, pres_readonly)
 
         if not total:
             total = int(self._total_slides or 0)
@@ -588,6 +620,11 @@ class PPTWorker(QObject):
                 return
             if self._active_kind == "wps":
                 self._check_wps_state()
+                if not self._running:
+                    self._check_yozo_state()
+                return
+            if self._active_kind == "yozo":
+                self._check_yozo_state()
                 return
 
             # 1. Try PowerPoint
@@ -661,6 +698,8 @@ class PPTWorker(QObject):
         # If not running PPT, check WPS
         if not self._running:
             self._check_wps_state()
+            if not self._running:
+                self._check_yozo_state()
             return
 
     def _check_wps_state(self):
@@ -705,6 +744,49 @@ class PPTWorker(QObject):
                 self._handle_stop("wps")
         except BaseException:
             self._handle_stop("wps")
+
+    def _check_yozo_state(self):
+        if not win32com:
+            return
+        try:
+            self.yozo_app = self._safe_get_active_object_any(YOZO_COM_PROG_IDS)
+        except BaseException:
+            self.yozo_app = None
+            self._handle_stop("yozo")
+            return
+
+        try:
+            if self._safe_count(getattr(self.yozo_app, "SlideShowWindows", None)) > 0:
+                ss_win = self._pick_best_slideshow_window(self.yozo_app, "yozo")
+                if ss_win is None:
+                    self._handle_stop("yozo")
+                    return
+                if ss_win is not None and not self._running:
+                    self._running = True
+                    self._set_active_kind("yozo")
+                    self._control_mode = "com"
+                    try:
+                        hwnd = self._safe_hwnd_from_ss_win(ss_win)
+                        if hwnd and hwnd != self._slideshow_hwnd:
+                            self._slideshow_hwnd = hwnd
+                            self.slideshow_hwnd_changed.emit(hwnd)
+                    except Exception:
+                        pass
+                    self._slideshow_started_at = time.monotonic()
+                    self.slideshow_started.emit()
+
+                if ss_win is not None:
+                    self._update_slide_info_from_ss_win(ss_win, self.yozo_app, "yozo")
+
+                try:
+                    self._update_window_rect(ss_win)
+                    self._update_video_state(ss_win)
+                except Exception:
+                    pass
+            else:
+                self._handle_stop("yozo")
+        except BaseException:
+            self._handle_stop("yozo")
 
     def _handle_stop(self, kind):
         if self._running and (self._active_kind == kind or self._active_kind is None):
@@ -831,7 +913,10 @@ class PPTWorker(QObject):
                         handle = win32api.OpenProcess(0x1000, False, pid)
                         exe = win32process.GetModuleFileNameEx(handle, 0) or ""
                         exe_lower = exe.lower()
-                        if exe_lower.endswith("powerpnt.exe") or exe_lower.endswith("wpp.exe") or exe_lower.endswith("kwpp.exe"):
+                        if any(
+                            exe_lower.endswith(name)
+                            for name in ("powerpnt.exe", "wpp.exe", "kwpp.exe", "yozo_impress.exe", "yozopg.exe", "yozo_office.exe")
+                        ):
                             return True
                 except Exception:
                     pass
@@ -1069,7 +1154,7 @@ class PPTWorker(QObject):
             ss_win = self._get_active_slideshow_window()
             view = getattr(ss_win, "View", None) if ss_win is not None else None
             if view is not None:
-                if cfg.autoHandleInk.value and self._active_kind in {"ppt", "wps"}:
+                if cfg.autoHandleInk.value and self._active_kind in {"ppt", "wps", "yozo"}:
                     if not self._pending_ink_prompt:
                         self._pending_ink_prompt = True
                         self.ink_prompt_requested.emit()

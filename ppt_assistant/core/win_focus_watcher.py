@@ -21,7 +21,22 @@ PRESENTATION_SLIDESHOW_TITLE_HINTS = (
     "slideshow",
     "wps presentation",
     "wps persentation",
+    "yozo slide show",
+    "yozo slideshow",
+    "yozo presentation",
+    "幻灯片放映",
+    "幻燈片放映",
+    "投影片放映",
+    "放映",
 )
+PRESENTATION_PROCESS_NAMES = {
+    "powerpnt.exe",
+    "wpp.exe",
+    "kwpp.exe",
+    "yozo_impress.exe",
+    "yozopg.exe",
+    "yozo_office.exe",
+}
 
 
 class _WinEventHookThread(QThread):
@@ -290,6 +305,29 @@ class WindowsFocusWatcher(QObject):
         except Exception:
             return 0
 
+    def _get_process_name(self, hwnd: int) -> str:
+        pid = self._get_pid(hwnd)
+        if not pid:
+            return ""
+        try:
+            kernel32 = ctypes.windll.kernel32
+            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+            handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
+            if not handle:
+                return ""
+            try:
+                size = wintypes.DWORD(512)
+                buf = ctypes.create_unicode_buffer(512)
+                if ctypes.windll.kernel32.QueryFullProcessImageNameW(handle, 0, buf, ctypes.byref(size)):
+                    path = (buf.value or "").strip().lower()
+                    if path:
+                        return path.rsplit("\\", 1)[-1]
+            finally:
+                kernel32.CloseHandle(handle)
+        except Exception:
+            pass
+        return ""
+
     def _recompute(self, foreground_hwnd: Optional[int] = None):
         if sys.platform != "win32":
             return
@@ -321,6 +359,10 @@ class WindowsFocusWatcher(QObject):
                             focus_on_slideshow = True
             else:
                 focus_on_slideshow = cls in PRESENTATION_SLIDESHOW_CLASSES or self._title_looks_like_slideshow(title)
+                if not focus_on_slideshow:
+                    process_name = self._get_process_name(int(foreground_hwnd or 0))
+                    if process_name in PRESENTATION_PROCESS_NAMES:
+                        focus_on_slideshow = True
 
         if focus_on_slideshow != self._last_focus_on_slideshow:
             self._last_focus_on_slideshow = focus_on_slideshow
