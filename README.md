@@ -46,7 +46,7 @@ Kazuha 是一款专为触摸屏设计的 PowerPoint 演示辅助工具，旨在�
 
 |操作系统|演示软件|
 |-|-|
-|Windows 10 Version 1809 及更高版本|Microsoft Office 2010 及更高版本|
+|Windows 10 Version 1809 及更高版本|Microsoft Office 2010 及更高版本或 WPS 2019 及更高版本|
 
 ---
 
