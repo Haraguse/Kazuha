@@ -2624,6 +2624,9 @@
             }
         }
 
+        // Tracks which thumbnails have been requested or are cached
+        const thumbnailCache = new Set();
+        
         function renderPageSelector() {
             const grid = document.getElementById('page-grid-content');
             grid.innerHTML = '';
@@ -2659,11 +2662,63 @@
                 item.appendChild(num);
                 item.onclick = () => selectPage(i);
                 grid.appendChild(item);
-                
-                // Request thumbnail
-                if (bridge && typeof bridge.requestThumbnail === 'function') {
-                    bridge.requestThumbnail(i);
+            }
+            
+            // Request thumbnails for current page ±5 pages first
+            requestThumbnailsForRange(
+                Math.max(1, currentPage - 5),
+                Math.min(totalPage, currentPage + 5)
+            );
+            
+            // Setup scroll listener for dynamic loading
+            const selector = document.getElementById('page-selector');
+            const grid_el = document.getElementById('page-grid-content');
+            if (selector && !selector._scrollListenerAttached) {
+                selector.addEventListener('scroll', onPageGridScroll);
+                selector._scrollListenerAttached = true;
+            }
+            
+            // Start background caching
+            startBackgroundThumbnailCaching();
+        }
+        
+        function requestThumbnailsForRange(start, end) {
+            for (let i = start; i <= end; i++) {
+                if (!thumbnailCache.has(i)) {
+                    thumbnailCache.add(i);
+                    if (bridge && typeof bridge.requestThumbnail === 'function') {
+                        bridge.requestThumbnail(i);
+                    }
                 }
+            }
+        }
+        
+        function onPageGridScroll() {
+            const selector = document.getElementById('page-selector');
+            if (!selector) return;
+            
+            const rect = selector.getBoundingClientRect();
+            const scrollTop = selector.scrollTop;
+            const itemHeight = 160; // Approximate height of page-item
+            
+            // Calculate visible range
+            const visibleStart = Math.max(1, Math.floor(scrollTop / itemHeight));
+            const visibleEnd = Math.min(totalPage, Math.ceil((scrollTop + selector.clientHeight) / itemHeight) + 2);
+            
+            // Request thumbnails for visible range ±3 pages
+            const rangeStart = Math.max(1, visibleStart - 3);
+            const rangeEnd = Math.min(totalPage, visibleEnd + 3);
+            
+            requestThumbnailsForRange(rangeStart, rangeEnd);
+        }
+        
+        function startBackgroundThumbnailCaching() {
+            // Start background caching if not already running
+            if (window._thumbnailCachingRunning) return;
+            window._thumbnailCachingRunning = true;
+            
+            if (bridge && typeof bridge.startBackgroundThumbnailCaching === 'function') {
+                bridge.startBackgroundThumbnailCaching(totalPage);
             }
         }
 

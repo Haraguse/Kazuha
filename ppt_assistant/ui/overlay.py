@@ -118,6 +118,10 @@ class OverlayBridge(QObject):
     @Slot(int)
     def requestThumbnail(self, index):
         self._overlay.request_thumbnail.emit(index)
+    
+    @Slot(int)
+    def startBackgroundThumbnailCaching(self, total_pages):
+        self._overlay.start_background_caching.emit(total_pages)
 
 class InkPromptBridge(QObject):
     result = Signal(bool)
@@ -141,11 +145,17 @@ class OverlayWindow(QWebEngineView):
     request_ptr_eraser = Signal()
     request_pen_color = Signal(int, int, int)
     request_thumbnail = Signal(int)
+    start_background_caching = Signal(int)  # total_pages
     ink_prompt_result = Signal(bool)
     thumbnail_ready = Signal(int, str)
     
     def __init__(self):
         super().__init__()
+        
+        # Background thumbnail caching
+        self._background_thumbnail_timer = None
+        self._pending_thumbnails = []
+        self._cached_thumbnails = set()
         
         # Configure WebEngine profile before any page operations
         try:
@@ -345,12 +355,55 @@ class OverlayWindow(QWebEngineView):
             monitor.set_overlay(self)
         self.monitor.slide_changed.connect(self.on_slide_changed)
         self.thumbnail_ready.connect(self.on_thumbnail_ready)
+        self.start_background_caching.connect(self.on_start_background_caching)
 
     def on_thumbnail_ready(self, index, path):
+        # Mark as cached
+        self._cached_thumbnails.add(index)
+        
         # Path needs to be converted to file URL
         url = QUrl.fromLocalFile(path).toString()
         script = f"if (typeof updatePageThumbnail === 'function') updatePageThumbnail({index}, '{url}');"
         self.page().runJavaScript(script)
+        
+        # Start next background caching task if available
+        self._process_next_background_thumbnail()
+    
+    def on_start_background_caching(self, total_pages):
+        """Start background caching of thumbnails"""
+        if self._background_thumbnail_timer is not None:
+            return  # Already running
+        
+        # Build list of pages to cache (excluding already cached ones)
+        self._pending_thumbnails = [
+            i for i in range(1, total_pages + 1) 
+            if i not in self._cached_thumbnails
+        ]
+        
+        # Start timer for background caching
+        self._background_thumbnail_timer = QTimer(self)
+        self._background_thumbnail_timer.setSingleShot(False)
+        self._background_thumbnail_timer.timeout.connect(self._process_next_background_thumbnail)
+        self._background_thumbnail_timer.start(500)  # 500ms interval between generations
+    
+    def _process_next_background_thumbnail(self):
+        """Process the next thumbnail in the background queue"""
+        # Stop if queue is empty
+        if not self._pending_thumbnails:
+            if self._background_thumbnail_timer:
+                self._background_thumbnail_timer.stop()
+                self._background_thumbnail_timer = None
+            return
+        
+        # Get next page to process
+        next_page = self._pending_thumbnails.pop(0)
+        
+        # Skip if already cached (might have been requested by user)
+        if next_page in self._cached_thumbnails:
+            return
+        
+        # Request this thumbnail
+        self.request_thumbnail.emit(next_page)
         
     def on_slide_changed(self, current, total):
         script = f"if (typeof updatePageInfo === 'function') updatePageInfo({current}, {total});"
