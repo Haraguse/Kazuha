@@ -848,6 +848,95 @@
         #time-display {
             font-weight: 900;
             font-size: 14px;
+            letter-spacing: 0.02em;
+        }
+
+        /* Digit animation for status bar */
+        .status-digit-wrapper {
+            display: inline-grid;
+            place-items: center;
+            position: relative;
+            overflow: visible;
+            vertical-align: bottom;
+        }
+
+        .status-digit-wrapper > span {
+            grid-area: 1 / 1;
+            backface-visibility: hidden;
+            will-change: transform, opacity, filter;
+        }
+
+        .status-separator {
+            display: inline-block;
+            width: 0.6em;
+        }
+
+        .status-digit-old {
+            animation: statusDigitExit 0.03s ease-in forwards;
+        }
+
+        .status-digit-new {
+            animation: statusDigitEnter 0.3s cubic-bezier(0.2, 1.25, 0.4, 1) forwards;
+        }
+
+        @keyframes statusDigitExit {
+            0% {
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100%) scale(0.7);
+                filter: blur(10px);
+                opacity: 0;
+            }
+        }
+
+        @keyframes statusDigitEnter {
+            0% {
+                transform: translateY(100%) scale(0.7);
+                filter: blur(10px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes musicFlipOut {
+            0% {
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100%) scale(0.7);
+                filter: blur(10px);
+                opacity: 0;
+            }
+        }
+
+        @keyframes musicFlipIn {
+            0% {
+                transform: translateY(100%) scale(0.7);
+                filter: blur(10px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+                opacity: 1;
+            }
+        }
+
+        .status-music-flip {
+            animation: musicFlipOut 0.03s ease-in forwards;
+        }
+
+        .status-music-flip-in {
+            animation: musicFlipIn 0.3s cubic-bezier(0.2, 1.25, 0.4, 1) forwards;
         }
 
         #status-bar.visible {
@@ -925,6 +1014,19 @@
 
         #right-flipper.flipper-bottom {
             right: 20px;
+        }
+
+        /* Strict edge alignment for flipper bottom layout */
+        #left-flipper.flipper-bottom.strict-edge-alignment {
+            left: 0px;
+        }
+
+        #right-flipper.flipper-bottom.strict-edge-alignment {
+            right: 0px;
+        }
+
+        .flipper.flipper-bottom.strict-edge-alignment {
+            bottom: 0px;
         }
         
         .flipper.flipper-bottom .flipper-btn {
@@ -1096,6 +1198,10 @@
             display: flex;
             padding: 20px;
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        #toolbar-container.strict-edge-alignment {
+            padding: 0px;
         }
 
         /* Bottom Position (Default) */
@@ -2099,6 +2205,20 @@
             const leftFlipper = document.getElementById('left-flipper');
             const rightFlipper = document.getElementById('right-flipper');
             
+            // Handle strict edge alignment
+            const strictEdgeAlignment = config.strictEdgeAlignment || false;
+            if (strictEdgeAlignment) {
+                toolbarContainer.classList.add('strict-edge-alignment');
+                [leftFlipper, rightFlipper].forEach(el => {
+                    if (el) el.classList.add('strict-edge-alignment');
+                });
+            } else {
+                toolbarContainer.classList.remove('strict-edge-alignment');
+                [leftFlipper, rightFlipper].forEach(el => {
+                    if (el) el.classList.remove('strict-edge-alignment');
+                });
+            }
+            
             // Reset Flipper styles
             [leftFlipper, rightFlipper].forEach(el => {
                 if (!el) return;
@@ -2117,18 +2237,18 @@
 
             // Apply Scale and SafeArea
             const scale = config.scale || 1.0;
-            const safeArea = config.safeArea || 0;
+            const safeArea = strictEdgeAlignment ? 0 : (config.safeArea || 0);
             
             // Apply safe area to bottom flippers
             if (flipperPos === 'bottom') {
                  [leftFlipper, rightFlipper].forEach(el => {
                     if (!el) return;
                     el.classList.add('flipper-bottom');
-                    el.style.bottom = (20 + safeArea) + 'px';
+                    el.style.bottom = (strictEdgeAlignment ? 0 : 20 + safeArea) + 'px';
                 });
                 
-                if (leftFlipper) leftFlipper.style.left = (20 + safeArea) + 'px';
-                if (rightFlipper) rightFlipper.style.right = (20 + safeArea) + 'px';
+                if (leftFlipper) leftFlipper.style.left = (strictEdgeAlignment ? 0 : 20 + safeArea) + 'px';
+                if (rightFlipper) rightFlipper.style.right = (strictEdgeAlignment ? 0 : 20 + safeArea) + 'px';
             }
             
             toolbar.style.transform = `scale(${scale})`;
@@ -2146,13 +2266,13 @@
             toolbarContainer.style.paddingRight = '';
 
             if (pos === 'bottom') {
-                toolbarContainer.style.paddingBottom = (20 + safeArea) + 'px';
+                toolbarContainer.style.paddingBottom = (strictEdgeAlignment ? 0 : 20 + safeArea) + 'px';
             } else if (pos === 'top') {
-                toolbarContainer.style.paddingTop = (20 + safeArea) + 'px';
+                toolbarContainer.style.paddingTop = (strictEdgeAlignment ? 0 : 20 + safeArea) + 'px';
             } else if (pos === 'left') {
-                toolbarContainer.style.paddingLeft = (20 + safeArea) + 'px';
+                toolbarContainer.style.paddingLeft = (strictEdgeAlignment ? 0 : 20 + safeArea) + 'px';
             } else if (pos === 'right') {
-                toolbarContainer.style.paddingRight = (20 + safeArea) + 'px';
+                toolbarContainer.style.paddingRight = (strictEdgeAlignment ? 0 : 20 + safeArea) + 'px';
             }
 
             // Adjust center-area padding to avoid overlap with side toolbar
@@ -2181,7 +2301,7 @@
                 if (pos === 'left') {
                     // Toolbar to Bottom-ish
                     toolbarContainer.style.justifyContent = 'flex-end';
-                    toolbarContainer.style.paddingBottom = `calc(20px + ${safeArea}px)`;
+                    toolbarContainer.style.paddingBottom = `calc(${strictEdgeAlignment ? 0 : 20}px + ${strictEdgeAlignment ? 0 : safeArea}px)`;
                     
                     // Flipper to Top-ish (via transform)
                     // Only apply if NOT in bottom mode
@@ -2193,7 +2313,7 @@
                 } else if (pos === 'right') {
                     // Toolbar to Bottom-ish
                     toolbarContainer.style.justifyContent = 'flex-end';
-                    toolbarContainer.style.paddingBottom = `calc(20px + ${safeArea}px)`;
+                    toolbarContainer.style.paddingBottom = `calc(${strictEdgeAlignment ? 0 : 20}px + ${strictEdgeAlignment ? 0 : safeArea}px)`;
                     
                     // Flipper to Top-ish
                     // Only apply if NOT in bottom mode
@@ -2730,51 +2850,177 @@
 
 
 
+        let lastTimeString = '';
+        let lastStatusValues = {
+            battery: '',
+            volume: '',
+            music: ''
+        };
+
+        function updateStatusDisplay(element, newText, animateAll = false) {
+            if (!element) return;
+            const chars = newText.split('');
+            const wrappers = element.querySelectorAll('.status-digit-wrapper');
+            const charCount = chars.filter(c => c !== '|').length;
+
+            // If length mismatch, rebuild
+            if (wrappers.length !== charCount) {
+                element.innerHTML = '';
+                chars.forEach(char => {
+                    if (char === '|') {
+                        const sep = document.createElement('span');
+                        sep.className = 'status-separator';
+                        element.appendChild(sep);
+                    } else {
+                        const wrap = document.createElement('span');
+                        wrap.className = 'status-digit-wrapper';
+                        const span = document.createElement('span');
+                        span.textContent = char;
+                        wrap.appendChild(span);
+                        element.appendChild(wrap);
+                    }
+                });
+                return;
+            }
+
+            // Update existing - map chars to wrappers, skipping '|'
+            let wrapperIndex = 0;
+            chars.forEach(char => {
+                if (char === '|') return;
+                
+                const wrap = wrappers[wrapperIndex++];
+                if (!wrap) return;
+                
+                const currentSpan = wrap.firstElementChild;
+                if (!currentSpan) return;
+                
+                // Check if value changed
+                if (currentSpan.textContent !== char) {
+                    // Only animate digits (0-9), not letters or symbols when animateAll is false
+                    const isDigit = /\d/.test(char);
+                    const shouldAnimate = animateAll || isDigit;
+                    
+                    if (shouldAnimate && !currentSpan.classList.contains('status-digit-old')) {
+                        const newSpan = document.createElement('span');
+                        newSpan.textContent = char;
+                        newSpan.className = 'status-digit-new';
+
+                        currentSpan.className = 'status-digit-old';
+                        wrap.appendChild(newSpan);
+
+                        setTimeout(() => {
+                            if (currentSpan.parentNode === wrap) {
+                                wrap.removeChild(currentSpan);
+                            }
+                            newSpan.className = '';
+                        }, 350);
+                    } else {
+                        currentSpan.textContent = char;
+                    }
+                }
+            });
+        }
+
         function updateTime() {
             const now = new Date();
             const hours = now.getHours().toString().padStart(2, '0');
             const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
             const month = now.getMonth() + 1;
             const date = now.getDate();
             const dayMap = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
             const day = dayMap[now.getDay()];
             
-            const timeString = `${hours}:${minutes} ${month}月${date}日${day}`;
-            document.getElementById('time-display').innerText = timeString;
-        }
-        setInterval(updateTime, 1000);
-        updateTime();
-
-        function updateSystemStatus(data) {
-            // Battery
-            const batteryText = document.getElementById('battery-text');
-            const batteryIcon = document.querySelector('#status-battery .icon-mask');
-            if (data.is_desktop) {
-                batteryText.innerText = "台式机";
-                batteryIcon.className = 'icon-mask icon-desktop';
-            } else {
-                batteryText.innerText = data.battery_percent + '%';
-                if (data.battery_charging) {
-                    batteryIcon.className = 'icon-mask icon-battery-charging';
+            let timeString = '';
+            
+            // Check if showTime config exists, default to true if not set
+            const showTime = currentConfig ? (currentConfig.statusBarShowTime !== false) : true;
+            const showSeconds = currentConfig ? currentConfig.statusBarShowSeconds : false;
+            
+            if (showTime) {
+                if (showSeconds) {
+                    timeString = `${hours}:${minutes}:${seconds}|${month}月${date}日${day}`;
                 } else {
-                    batteryIcon.className = 'icon-mask icon-battery';
+                    timeString = `${hours}:${minutes}|${month}月${date}日${day}`;
                 }
             }
             
-            // Network
-            const netIcon = document.querySelector('#status-network .icon-mask');
-            if (data.network_online) {
-                netIcon.className = 'icon-mask icon-wifi';
+            const timeDisplay = document.getElementById('time-display');
+            if (timeDisplay) {
+                // Only update if text actually changes
+                if (timeString !== lastTimeString) {
+                    updateStatusDisplay(timeDisplay, timeString);
+                    lastTimeString = timeString;
+                }
+                timeDisplay.style.display = showTime ? 'inline' : 'none';
+            }
+        }
+        
+        // Update every 500ms to catch second changes faster
+        setInterval(updateTime, 500);
+        updateTime();
+
+        function updateSystemStatus(data) {
+            // Get display settings from config
+            const showBattery = currentConfig ? (currentConfig.statusBarShowBattery !== false) : true;
+            const showVolume = currentConfig ? (currentConfig.statusBarShowVolume !== false) : true;
+            const showNetwork = currentConfig ? (currentConfig.statusBarShowNetwork !== false) : true;
+            const showMusic = currentConfig ? (currentConfig.statusBarShowMusic !== false) : true;
+            
+            // Battery
+            const batteryItem = document.getElementById('status-battery');
+            const batteryText = document.getElementById('battery-text');
+            const batteryIcon = document.querySelector('#status-battery .icon-mask');
+            
+            if (showBattery) {
+                batteryItem.style.display = 'flex';
+                if (data.is_desktop) {
+                    const newBatteryText = "台式机";
+                    if (batteryText.innerText !== newBatteryText) {
+                        updateStatusDisplay(batteryText, newBatteryText);
+                        lastStatusValues.battery = newBatteryText;
+                    }
+                    batteryIcon.className = 'icon-mask icon-desktop';
+                } else {
+                    const newBatteryText = data.battery_percent + '%';
+                    if (batteryText.innerText !== newBatteryText) {
+                        updateStatusDisplay(batteryText, newBatteryText);
+                        lastStatusValues.battery = newBatteryText;
+                    }
+                    if (data.battery_charging) {
+                        batteryIcon.className = 'icon-mask icon-battery-charging';
+                    } else {
+                        batteryIcon.className = 'icon-mask icon-battery';
+                    }
+                }
             } else {
-                netIcon.className = 'icon-mask icon-wifi-off';
+                batteryItem.style.display = 'none';
+            }
+            
+            // Network
+            const netItem = document.getElementById('status-network');
+            const netIcon = document.querySelector('#status-network .icon-mask');
+            if (showNetwork) {
+                netItem.style.display = 'flex';
+                if (data.network_online) {
+                    netIcon.className = 'icon-mask icon-wifi';
+                } else {
+                    netIcon.className = 'icon-mask icon-wifi-off';
+                }
+            } else {
+                netItem.style.display = 'none';
             }
             
             // Volume
             const volItem = document.getElementById('status-volume');
             const volText = volItem.querySelector('.status-text');
-            if (data.volume >= 0) {
+            if (showVolume && data.volume >= 0) {
                  volItem.style.display = 'flex';
-                 volText.innerText = data.volume + '%';
+                 const newVolText = data.volume + '%';
+                 if (volText.innerText !== newVolText) {
+                     updateStatusDisplay(volText, newVolText);
+                     lastStatusValues.volume = newVolText;
+                 }
             } else {
                  volItem.style.display = 'none';
             }
@@ -2782,9 +3028,27 @@
             // SMTC
             const smtcItem = document.getElementById('status-smtc');
             const smtcText = smtcItem.querySelector('.status-text');
-            if (data.smtc_status && data.smtc_status !== 'Closed' && data.smtc_status !== 'Stopped') {
+            if (showMusic && data.smtc_status && data.smtc_status !== 'Closed' && data.smtc_status !== 'Stopped') {
                 smtcItem.style.display = 'flex';
-                smtcText.innerText = data.smtc_title || data.smtc_status;
+                const newMusicText = (data.smtc_title || data.smtc_status).trim();
+                if (smtcText.innerText !== newMusicText) {
+                    // Trigger flip out animation
+                    smtcText.classList.remove('status-music-flip-in');
+                    smtcText.classList.add('status-music-flip');
+                    
+                    // Update text mid-animation (at 30ms mark)
+                    setTimeout(() => {
+                        smtcText.innerHTML = newMusicText;
+                        smtcText.classList.remove('status-music-flip');
+                        smtcText.classList.add('status-music-flip-in');
+                        
+                        setTimeout(() => {
+                            smtcText.classList.remove('status-music-flip-in');
+                        }, 300);
+                    }, 30);
+                    
+                    lastStatusValues.music = newMusicText;
+                }
             } else {
                 smtcItem.style.display = 'none';
             }

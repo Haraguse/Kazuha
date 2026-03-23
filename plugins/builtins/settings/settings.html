@@ -6184,6 +6184,55 @@
             </div>
             <div class="switch" id="sw-Overlay-ShowStatusBar"></div>
           </div>
+          <div class="settings-item" onclick="toggleSwitch('Overlay', 'StatusBarShowTime')">
+            <div class="item-info">
+              <span class="item-label" data-i18n="interaction.statusBarShowTime.label">显示时间</span>
+              <span class="item-desc" data-i18n="interaction.statusBarShowTime.desc">在状态栏中显示时间和日期</span>
+            </div>
+            <div class="switch" id="sw-Overlay-StatusBarShowTime"></div>
+          </div>
+          <div class="settings-item" onclick="toggleSwitch('Overlay', 'StatusBarShowSeconds')">
+            <div class="item-info">
+              <span class="item-label" data-i18n="interaction.statusBarShowSeconds.label">显示秒</span>
+              <span class="item-desc" data-i18n="interaction.statusBarShowSeconds.desc">在时间中显示秒数</span>
+            </div>
+            <div class="switch" id="sw-Overlay-StatusBarShowSeconds"></div>
+          </div>
+          <div class="settings-item" onclick="toggleSwitch('Overlay', 'StatusBarShowBattery')">
+            <div class="item-info">
+              <span class="item-label" data-i18n="interaction.statusBarShowBattery.label">显示电池</span>
+              <span class="item-desc" data-i18n="interaction.statusBarShowBattery.desc">在状态栏中显示电池百分比</span>
+            </div>
+            <div class="switch" id="sw-Overlay-StatusBarShowBattery"></div>
+          </div>
+          <div class="settings-item" onclick="toggleSwitch('Overlay', 'StatusBarShowVolume')">
+            <div class="item-info">
+              <span class="item-label" data-i18n="interaction.statusBarShowVolume.label">显示音量</span>
+              <span class="item-desc" data-i18n="interaction.statusBarShowVolume.desc">在状态栏中显示音量</span>
+            </div>
+            <div class="switch" id="sw-Overlay-StatusBarShowVolume"></div>
+          </div>
+          <div class="settings-item" onclick="toggleSwitch('Overlay', 'StatusBarShowNetwork')">
+            <div class="item-info">
+              <span class="item-label" data-i18n="interaction.statusBarShowNetwork.label">显示网络</span>
+              <span class="item-desc" data-i18n="interaction.statusBarShowNetwork.desc">在状态栏中显示网络状态</span>
+            </div>
+            <div class="switch" id="sw-Overlay-StatusBarShowNetwork"></div>
+          </div>
+          <div class="settings-item" onclick="toggleSwitch('Overlay', 'StatusBarShowMusic')">
+            <div class="item-info">
+              <span class="item-label" data-i18n="interaction.statusBarShowMusic.label">显示音乐</span>
+              <span class="item-desc" data-i18n="interaction.statusBarShowMusic.desc">在状态栏中显示正在播放的音乐</span>
+            </div>
+            <div class="switch" id="sw-Overlay-StatusBarShowMusic"></div>
+          </div>
+          <div class="settings-item" onclick="toggleSwitch('Overlay', 'StrictEdgeAlignment')">
+            <div class="item-info">
+              <span class="item-label" data-i18n="overlay.strictEdgeAlignment.label">严格贴边对齐</span>
+              <span class="item-desc" data-i18n="overlay.strictEdgeAlignment.desc">启用后工具栏和翻页栏将严格贴近屏幕边缘</span>
+            </div>
+            <div class="switch" id="sw-Overlay-StrictEdgeAlignment"></div>
+          </div>
 
         </div>
         <div class="group-title" data-i18n="group.timer">计时器</div>
@@ -6856,6 +6905,18 @@
 
       "interaction.showStatusBar.label": "顶部状态栏",
       "interaction.showStatusBar.desc": "在悬浮窗顶部显示时间与状态",
+      "interaction.statusBarShowTime.label": "显示时间",
+      "interaction.statusBarShowTime.desc": "在状态栏中显示时间和日期",
+      "interaction.statusBarShowSeconds.label": "显示秒",
+      "interaction.statusBarShowSeconds.desc": "在时间中显示秒数",
+      "interaction.statusBarShowBattery.label": "显示电池",
+      "interaction.statusBarShowBattery.desc": "在状态栏中显示电池百分比",
+      "interaction.statusBarShowVolume.label": "显示音量",
+      "interaction.statusBarShowVolume.desc": "在状态栏中显示音量",
+      "interaction.statusBarShowNetwork.label": "显示网络",
+      "interaction.statusBarShowNetwork.desc": "在状态栏中显示网络状态",
+      "interaction.statusBarShowMusic.label": "显示音乐",
+      "interaction.statusBarShowMusic.desc": "在状态栏中显示正在播放的音乐",
       "overlay.safeArea.label": "屏幕内安全区",
       "overlay.safeArea.desc": "调整组件与屏幕边缘的距离",
       "overlay.scale.label": "组件缩放倍率",
@@ -6868,6 +6929,8 @@
       "overlay.syncOpacity.desc": "勾选后将同步调节两侧翻页栏的透明度",
       "overlay.sidePageOpacity.label": "两侧翻页栏透明度",
       "overlay.sidePageOpacity.desc": "调整两侧翻页栏背景的不透明度",
+      "overlay.strictEdgeAlignment.label": "严格贴边对齐",
+      "overlay.strictEdgeAlignment.desc": "启用后工具栏和翻页栏将严格贴近屏幕边缘",
       "overlay.rebuild.label": "重建顶层窗口",
       "overlay.rebuild.desc": "重新创建顶层效果窗口以应用所有变更",
       "overlay.rebuild.action": "立即重建",
@@ -7141,6 +7204,18 @@
       "interaction.autoHandleInk.desc": "結束播放時自動處理「是否保留墨跡」",
       "interaction.showStatusBar.label": "頂部狀態列",
       "interaction.showStatusBar.desc": "在懸浮窗頂部顯示時間與狀態",
+      "interaction.statusBarShowTime.label": "顯示時間",
+      "interaction.statusBarShowTime.desc": "在狀態列中顯示時間和日期",
+      "interaction.statusBarShowSeconds.label": "顯示秒",
+      "interaction.statusBarShowSeconds.desc": "在時間中顯示秒數",
+      "interaction.statusBarShowBattery.label": "顯示電池",
+      "interaction.statusBarShowBattery.desc": "在狀態列中顯示電池百分比",
+      "interaction.statusBarShowVolume.label": "顯示音量",
+      "interaction.statusBarShowVolume.desc": "在狀態列中顯示音量",
+      "interaction.statusBarShowNetwork.label": "顯示網路",
+      "interaction.statusBarShowNetwork.desc": "在狀態列中顯示網路狀態",
+      "interaction.statusBarShowMusic.label": "顯示音樂",
+      "interaction.statusBarShowMusic.desc": "在狀態列中顯示正在播放的音樂",
       "overlay.safeArea.label": "螢幕內安全區",
       "overlay.safeArea.desc": "調整組件與螢幕邊緣的距離",
       "overlay.scale.label": "組件縮放倍率",
@@ -7153,6 +7228,8 @@
       "overlay.syncOpacity.desc": "勾選後將同步調節兩側翻頁欄的透明度",
       "overlay.sidePageOpacity.label": "兩側翻頁欄透明度",
       "overlay.sidePageOpacity.desc": "調整兩側翻頁欄背景的不透明度",
+      "overlay.strictEdgeAlignment.label": "嚴格貼邊對齐",
+      "overlay.strictEdgeAlignment.desc": "啟用後工具列和翻頁欄將嚴格貼近螢幕邊緣",
       "overlay.rebuild.label": "重建頂層視窗",
       "overlay.rebuild.desc": "重新建立頂層效果視窗以套用所有變更",
       "overlay.rebuild.action": "立即重建",
@@ -7423,6 +7500,18 @@
 
       "interaction.showStatusBar.label": "頂部狀態列",
       "interaction.showStatusBar.desc": "頂部顯示時間同狀態",
+      "interaction.statusBarShowTime.label": "顯示時間",
+      "interaction.statusBarShowTime.desc": "喺狀態列中顯示時間同日期",
+      "interaction.statusBarShowSeconds.label": "顯示秒",
+      "interaction.statusBarShowSeconds.desc": "喺時間中顯示秒數",
+      "interaction.statusBarShowBattery.label": "顯示電池",
+      "interaction.statusBarShowBattery.desc": "喺狀態列中顯示電池百分比",
+      "interaction.statusBarShowVolume.label": "顯示音量",
+      "interaction.statusBarShowVolume.desc": "喺狀態列中顯示音量",
+      "interaction.statusBarShowNetwork.label": "顯示網路",
+      "interaction.statusBarShowNetwork.desc": "喺狀態列中顯示網路狀態",
+      "interaction.statusBarShowMusic.label": "顯示音樂",
+      "interaction.statusBarShowMusic.desc": "喺狀態列中顯示正在播放嘅音樂",
       "overlay.safeArea.label": "螢幕安全區",
       "overlay.safeArea.desc": "調整元件離邊距",
       "overlay.scale.label": "元件縮放",
@@ -7707,6 +7796,18 @@
 
       "interaction.showStatusBar.label": "上部ステータスバー",
       "interaction.showStatusBar.desc": "オーバーレイの上部に時間とステータスを表示します",
+      "interaction.statusBarShowTime.label": "時間を表示",
+      "interaction.statusBarShowTime.desc": "ステータスバーに時間と日付を表示します",
+      "interaction.statusBarShowSeconds.label": "秒を表示",
+      "interaction.statusBarShowSeconds.desc": "時間に秒を表示します",
+      "interaction.statusBarShowBattery.label": "バッテリーを表示",
+      "interaction.statusBarShowBattery.desc": "ステータスバーにバッテリー％を表示します",
+      "interaction.statusBarShowVolume.label": "音量を表示",
+      "interaction.statusBarShowVolume.desc": "ステータスバーに音量を表示します",
+      "interaction.statusBarShowNetwork.label": "ネットワークを表示",
+      "interaction.statusBarShowNetwork.desc": "ステータスバーにネットワーク状態を表示します",
+      "interaction.statusBarShowMusic.label": "音楽を表示",
+      "interaction.statusBarShowMusic.desc": "ステータスバーに再生中の音楽を表示します",
       "overlay.safeArea.label": "画面内の安全領域",
       "overlay.safeArea.desc": "コンポーネントと画面端の距離を調整します",
       "overlay.scale.label": "コンポーネント倍率",
@@ -7719,6 +7820,8 @@
       "overlay.syncOpacity.desc": "チェックすると、両側のページめくりバーの透明度も同期して調整されます",
       "overlay.sidePageOpacity.label": "ページめくりバーの不透明度",
       "overlay.sidePageOpacity.desc": "両側のページめくりバー背景の不透明度を調整します",
+      "overlay.strictEdgeAlignment.label": "厳密な端の配置",
+      "overlay.strictEdgeAlignment.desc": "有効にすると、ツールバーとページめくりバーが画面の端に厳密に配置されます",
       "overlay.rebuild.label": "オーバーレイを再作成",
       "overlay.rebuild.desc": "すべての変更を反映するために再作成します",
       "overlay.rebuild.action": "今すぐ再作成",
@@ -7991,6 +8094,18 @@
 
       "interaction.showStatusBar.label": "Top status bar",
       "interaction.showStatusBar.desc": "Show time and status at top of overlay",
+      "interaction.statusBarShowTime.label": "Show time",
+      "interaction.statusBarShowTime.desc": "Display time and date in status bar",
+      "interaction.statusBarShowSeconds.label": "Show seconds",
+      "interaction.statusBarShowSeconds.desc": "Display seconds in time",
+      "interaction.statusBarShowBattery.label": "Show battery",
+      "interaction.statusBarShowBattery.desc": "Display battery percentage in status bar",
+      "interaction.statusBarShowVolume.label": "Show volume",
+      "interaction.statusBarShowVolume.desc": "Display volume in status bar",
+      "interaction.statusBarShowNetwork.label": "Show network",
+      "interaction.statusBarShowNetwork.desc": "Display network status in status bar",
+      "interaction.statusBarShowMusic.label": "Show music",
+      "interaction.statusBarShowMusic.desc": "Display currently playing music in status bar",
       "overlay.safeArea.label": "Safe Area",
       "overlay.safeArea.desc": "Adjust distance between components and screen edge",
       "overlay.scale.label": "Component Scaling",
@@ -8003,6 +8118,8 @@
       "overlay.syncOpacity.desc": "Sync opacity adjustment for side page flippers",
       "overlay.sidePageOpacity.label": "Side Flippers Opacity",
       "overlay.sidePageOpacity.desc": "Adjust the opacity of side page flippers background",
+      "overlay.strictEdgeAlignment.label": "Strict Edge Alignment",
+      "overlay.strictEdgeAlignment.desc": "When enabled, toolbar and page flippers will align strictly with screen edges",
       "overlay.rebuild.label": "Rebuild Overlay",
       "overlay.rebuild.desc": "Recreate the overlay to apply all changes",
       "overlay.rebuild.action": "Rebuild Now",
@@ -10537,6 +10654,12 @@
     setSwitch("General", "AutoShowOverlay");
     setSwitch("PPT", "AutoHandleInk");
     setSwitch("Overlay", "ShowStatusBar");
+    setSwitch("Overlay", "StatusBarShowTime");
+    setSwitch("Overlay", "StatusBarShowSeconds");
+    setSwitch("Overlay", "StatusBarShowBattery");
+    setSwitch("Overlay", "StatusBarShowVolume");
+    setSwitch("Overlay", "StatusBarShowNetwork");
+    setSwitch("Overlay", "StatusBarShowMusic");
     setSwitch("Toolbar", "ShowSpotlight");
     setSwitch("Toolbar", "ShowBoardInBoard");
     setSwitch("Toolbar", "ShowTimer");

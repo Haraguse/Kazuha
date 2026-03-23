@@ -1446,6 +1446,9 @@ class MainWindow(QWebEngineView):
         self._pending_url = None
         self._did_hard_refresh = False
         self._window_tag = self._detect_window_tag(url, title)
+        self._render_crash_count = 0
+        self._max_reload_attempts = 3
+        self._crash_recovery_timer = None
         self._apply_page_background()
         settings = self.page().settings()
         allow_gpu = not _is_windows7()
@@ -1525,9 +1528,42 @@ class MainWindow(QWebEngineView):
         self.renderProcessTerminated.connect(self._on_render_process_terminated)
 
     def _on_render_process_terminated(self, status, exit_code):
-        print(f"[WebView] Render process terminated: status={status}, exit_code={exit_code}")
-        # Try to reload to recover from grey screen
-        QTimer.singleShot(100, self.reload)
+        self._render_crash_count += 1
+        print(f"[WebView] Render process terminated: status={status}, exit_code={exit_code}", file=sys.stderr)
+        print(f"[WebView] Crash #{self._render_crash_count}/{self._max_reload_attempts}", file=sys.stderr)
+        
+        # If too many crashes, disable GPU and retry once, then give up
+        if self._render_crash_count > self._max_reload_attempts:
+            print(f"[WebView] Too many crashes ({self._render_crash_count}). Giving up on recovery.", file=sys.stderr)
+            return
+        
+        # Use exponential backoff: 100ms, 500ms, 1500ms
+        delay = min(100 * (2 ** (self._render_crash_count - 1)), 2000)
+        print(f"[WebView] Scheduling reload in {delay}ms", file=sys.stderr)
+        
+        # If this is the second crash, try disabling GPU acceleration
+        if self._render_crash_count == 2:
+            try:
+                print(f"[WebView] Disabling GPU acceleration due to repeated crashes", file=sys.stderr)
+                settings = self.page().settings()
+                settings.setAttribute(QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, False)
+                settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, False)
+            except Exception as e:
+                print(f"[WebView] Error disabling GPU: {e}", file=sys.stderr)
+        
+        # Cancel any pending reload timer
+        if self._crash_recovery_timer is not None:
+            try:
+                self._crash_recovery_timer.stop()
+            except Exception:
+                pass
+            self._crash_recovery_timer = None
+        
+        # Schedule reload with delay
+        self._crash_recovery_timer = QTimer(self)
+        self._crash_recovery_timer.setSingleShot(True)
+        self._crash_recovery_timer.timeout.connect(self.reload)
+        self._crash_recovery_timer.start(delay)
 
     def _apply_page_background(self):
         if self._mini_mode:
@@ -1789,6 +1825,16 @@ body {
             QTimer.singleShot(180, self._force_webview_transparent)
             QTimer.singleShot(220, self._force_webview_repaint)
             QTimer.singleShot(260, self._hard_resize_nudge)
+    
+    def closeEvent(self, event):
+        """Clean up timers and resources when window closes"""
+        if self._crash_recovery_timer is not None:
+            try:
+                self._crash_recovery_timer.stop()
+            except Exception:
+                pass
+            self._crash_recovery_timer = None
+        super().closeEvent(event)
 
 def apply_win11_aesthetics(window, theme_mode=None, settings=None, window_tag=""):
     if sys.platform == "win32":

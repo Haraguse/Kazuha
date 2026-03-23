@@ -1591,6 +1591,12 @@ class PPTAssistantApp:
             old_qt_weight = getattr(self, "_current_qt_font_weight", None)
             old_toolbar_text = cfg.showToolbarText.value
             old_status_bar = cfg.showStatusBar.value
+            old_status_bar_show_time = cfg.statusBarShowTime.value
+            old_status_bar_show_seconds = cfg.statusBarShowSeconds.value
+            old_status_bar_show_battery = cfg.statusBarShowBattery.value
+            old_status_bar_show_volume = cfg.statusBarShowVolume.value
+            old_status_bar_show_network = cfg.statusBarShowNetwork.value
+            old_status_bar_show_music = cfg.statusBarShowMusic.value
             old_clear = cfg.showClear.value
             old_spotlight = cfg.showSpotlight.value
             old_timer = cfg.showTimer.value
@@ -1652,8 +1658,20 @@ class PPTAssistantApp:
                     if new_rebuild_at and new_rebuild_at != old_rebuild_at:
                         if not self._reloading_overlay:
                             self._reload_timer.start()
-                    if cfg.showStatusBar.value != old_status_bar:
-                        self.overlay._on_status_bar_visibility_changed(cfg.showStatusBar.value)
+                    
+                    # Check for any status bar config changes
+                    status_bar_changed = (
+                        cfg.showStatusBar.value != old_status_bar or
+                        cfg.statusBarShowTime.value != old_status_bar_show_time or
+                        cfg.statusBarShowSeconds.value != old_status_bar_show_seconds or
+                        cfg.statusBarShowBattery.value != old_status_bar_show_battery or
+                        cfg.statusBarShowVolume.value != old_status_bar_show_volume or
+                        cfg.statusBarShowNetwork.value != old_status_bar_show_network or
+                        cfg.statusBarShowMusic.value != old_status_bar_show_music
+                    )
+                    
+                    if status_bar_changed:
+                        self.overlay.update_config()
 
                     if cfg.compatibilityMode.value != old_compat:
                         self.overlay.update_config()

@@ -3,6 +3,8 @@ import os
 import sys
 import math
 import json
+import ctypes
+import tempfile
 import importlib.util
 from typing import Optional
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -145,6 +147,40 @@ class OverlayWindow(QWebEngineView):
     def __init__(self):
         super().__init__()
         
+        # Configure WebEngine profile before any page operations
+        try:
+            profile = self.page().profile()
+            cache_path = os.path.join(tempfile.gettempdir(), "kazuha_overlay_cache")
+            
+            # Clear old cache directory if it exists and is too large (corrupted)
+            if os.path.exists(cache_path):
+                try:
+                    import shutil
+                    cache_size = sum(os.path.getsize(os.path.join(dirpath, filename))
+                                   for dirpath, dirnames, filenames in os.walk(cache_path)
+                                   for filename in filenames)
+                    # If cache is over 500MB, it's likely corrupted - clear it
+                    if cache_size > 500 * 1024 * 1024:
+                        print(f"[Overlay] Clearing corrupted cache ({cache_size / 1024 / 1024:.1f}MB)", file=sys.stderr)
+                        shutil.rmtree(cache_path, ignore_errors=True)
+                except Exception as e:
+                    print(f"[Overlay] Error checking cache: {e}", file=sys.stderr)
+            
+            profile.setCachePath(cache_path)
+            profile.setPersistentStoragePath(cache_path)
+            profile.setHttpCacheType(profile.HttpCacheType.DiskHttpCache)
+            profile.setHttpCacheMaximumSize(50 * 1024 * 1024)  # 50 MB limit
+            
+            # Disable problematic features that cause heap corruption
+            settings = self.page().settings()
+            from PySide6.QtWebEngineCore import QWebEngineSettings
+            settings.setAttribute(QWebEngineSettings.WebAttribute.LocalStorageEnabled, False)
+            settings.setAttribute(QWebEngineSettings.WebAttribute.SessionStorageEnabled, False)
+            settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, False)
+            settings.setAttribute(QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, False)
+        except Exception as e:
+            print(f"[Overlay] Error configuring profile: {e}", file=sys.stderr)
+        
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus | Qt.Tool | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_NoSystemBackground)
@@ -230,6 +266,11 @@ class OverlayWindow(QWebEngineView):
         icon = load_app_icon()
         if not icon.isNull():
             self.setWindowIcon(icon)
+        
+        # Crash recovery tracking
+        self._render_crash_count = 0
+        self._max_reload_attempts = 3
+        self._crash_recovery_timer = None
             
         self.renderProcessTerminated.connect(self._on_render_process_terminated)
 
@@ -251,9 +292,43 @@ class OverlayWindow(QWebEngineView):
             pass
 
     def _on_render_process_terminated(self, status, exit_code):
+        self._render_crash_count += 1
         print(f"[Overlay] Render process terminated: status={status}, exit_code={exit_code}")
-        # Try to reload the page to recover from crash (grey screen)
-        QTimer.singleShot(100, self.reload)
+        print(f"[Overlay] Crash #{self._render_crash_count}/{self._max_reload_attempts}")
+        
+        # If too many crashes, disable GPU and retry once, then give up
+        if self._render_crash_count > self._max_reload_attempts:
+            print(f"[Overlay] Too many crashes ({self._render_crash_count}). Giving up on recovery.")
+            return
+        
+        # Use exponential backoff: 100ms, 500ms, 1500ms
+        delay = min(100 * (2 ** (self._render_crash_count - 1)), 2000)
+        print(f"[Overlay] Scheduling reload in {delay}ms")
+        
+        # If this is the second crash, try disabling GPU acceleration
+        if self._render_crash_count == 2:
+            try:
+                print(f"[Overlay] Disabling GPU acceleration due to repeated crashes")
+                settings = self.page().settings()
+                from PySide6.QtWebEngineCore import QWebEngineSettings
+                settings.setAttribute(QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, False)
+                settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, False)
+            except Exception as e:
+                print(f"[Overlay] Error disabling GPU: {e}")
+        
+        # Cancel any pending reload timer
+        if self._crash_recovery_timer is not None:
+            try:
+                self._crash_recovery_timer.stop()
+            except Exception:
+                pass
+            self._crash_recovery_timer = None
+        
+        # Schedule reload with delay
+        self._crash_recovery_timer = QTimer(self)
+        self._crash_recovery_timer.setSingleShot(True)
+        self._crash_recovery_timer.timeout.connect(self.reload)
+        self._crash_recovery_timer.start(delay)
     
     def nudge_size(self):
         try:
@@ -503,6 +578,12 @@ class OverlayWindow(QWebEngineView):
 
         config_data = {
             "showStatusBar": cfg.showStatusBar.value,
+            "statusBarShowTime": cfg.statusBarShowTime.value,
+            "statusBarShowSeconds": cfg.statusBarShowSeconds.value,
+            "statusBarShowBattery": cfg.statusBarShowBattery.value,
+            "statusBarShowVolume": cfg.statusBarShowVolume.value,
+            "statusBarShowNetwork": cfg.statusBarShowNetwork.value,
+            "statusBarShowMusic": cfg.statusBarShowMusic.value,
             "showToolbarText": cfg.showToolbarText.value,
             "toolbarOrder": toolbar_order,
             "toolbarPosition": cfg.toolbarPosition.value,
@@ -518,6 +599,7 @@ class OverlayWindow(QWebEngineView):
             "popWindowScale": cfg.popWindowScale.value,
             "toolbarOpacity": cfg.toolbarOpacity.value,
             "sidePageOpacity": cfg.sidePageOpacity.value,
+            "strictEdgeAlignment": cfg.strictEdgeAlignment.value,
             "texts": trans_map,
             "apps": apps_list,
             "disabledTools": cfg.disabledTools.value
@@ -813,12 +895,29 @@ Item {
         cfg.popWindowScale.valueChanged.connect(lambda *_: self.update_config())
         cfg.toolbarOpacity.valueChanged.connect(lambda *_: self.update_config())
         cfg.sidePageOpacity.valueChanged.connect(lambda *_: self.update_config())
+        cfg.strictEdgeAlignment.valueChanged.connect(lambda *_: self.update_config())
         cfg.disabledTools.valueChanged.connect(lambda *_: self.update_config())
 
     def showEvent(self, event):
         super().showEvent(event)
         self.page().setBackgroundColor(Qt.transparent)
         self.update_theme()
+    
+    def closeEvent(self, event):
+        """Clean up resources when overlay window closes"""
+        self._stop_smtc = True
+        if self._crash_recovery_timer is not None:
+            try:
+                self._crash_recovery_timer.stop()
+            except Exception:
+                pass
+            self._crash_recovery_timer = None
+        if self.status_timer is not None:
+            try:
+                self.status_timer.stop()
+            except Exception:
+                pass
+        super().closeEvent(event)
 
     def set_active_on_slideshow(self, active: bool, animate: bool = True):
         self._active_on_slideshow = bool(active)
