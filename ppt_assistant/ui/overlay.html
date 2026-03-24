@@ -1345,6 +1345,15 @@
         .tool-btn.active {
             background: var(--overlay-button-active);
         }
+
+        .tool-btn-danger:hover {
+            background: rgba(224, 62, 62, 0.14);
+        }
+
+        .tool-btn-danger.active,
+        .tool-btn-danger:active {
+            background: rgba(224, 62, 62, 0.22);
+        }
         
         .tool-btn img {
             width: 20px;
@@ -1384,6 +1393,16 @@
             -webkit-mask-image: url('../../icons/Minimize.svg'); 
             mask-image: url('../../icons/Minimize.svg');
             background-color: var(--overlay-toolbar-fg);
+        }
+
+        .tool-btn-danger .icon-mask {
+            background-color: #D9485A;
+        }
+
+        .tool-btn-danger:hover .icon-mask,
+        .tool-btn-danger.active .icon-mask,
+        .tool-btn-danger:active .icon-mask {
+            background-color: #C53244;
         }
         
         /* Status Bar Icons */
@@ -2601,7 +2620,7 @@
             toolbar.appendChild(separator);
             
             let endBtn = document.createElement('div');
-            endBtn.className = 'tool-btn';
+            endBtn.className = 'tool-btn tool-btn-danger';
             endBtn.id = 'btn-end';
             
             if (config.disabledTools && (config.disabledTools.includes('endShow') || config.disabledTools.includes('minimize'))) {

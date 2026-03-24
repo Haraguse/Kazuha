@@ -804,6 +804,31 @@ class Api(QObject):
         except Exception:
             return []
 
+    @Slot(str, result=str)
+    def get_font_preview_sample(self, lang):
+        language = str(lang or "").strip()
+        if language in ("zh-CN", "zh-TW", "yue-HK"):
+            file_name = "sample.txt"
+        elif language == "ja-JP":
+            file_name = "sample_jp.txt"
+        else:
+            file_name = "sample_en.txt"
+
+        settings_dir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "builtins",
+            "settings",
+        )
+        sample_path = os.path.join(settings_dir, file_name)
+
+        for encoding in ("utf-8-sig", "utf-8"):
+            try:
+                with open(sample_path, "r", encoding=encoding) as f:
+                    return f.read()
+            except Exception:
+                continue
+        return ""
+
     def _get_settings_path(self):
         settings_path = os.environ.get("SETTINGS_PATH")
         if not settings_path:

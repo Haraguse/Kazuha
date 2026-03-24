@@ -4687,6 +4687,117 @@
       filter: grayscale(0.8);
     }
 
+    .font-panel-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
+      align-items: stretch;
+      gap: 16px;
+    }
+
+    .font-preview-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px;
+      min-width: 0;
+    }
+
+    .font-preview-header {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .font-preview-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .font-preview-desc {
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    .font-preview-textbox {
+      width: 100%;
+      min-height: 320px;
+      flex: 1 1 auto;
+      padding: 16px 18px;
+      border: 1px solid var(--divider);
+      border-radius: 12px;
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      resize: none;
+      outline: none;
+      font-family: inherit;
+      font-size: 15px;
+      line-height: 1.85;
+      white-space: pre-wrap;
+    }
+
+    .font-preview-textbox:focus {
+      border-color: var(--divider);
+    }
+
+    .font-settings-column {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 12px 20px 12px 0;
+    }
+
+    .font-settings-column .settings-item {
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .font-settings-column .item-info {
+      width: 100%;
+    }
+
+    .font-settings-column .font-setting-controls {
+      width: 100%;
+      min-width: 0;
+      justify-content: flex-start;
+    }
+
+    .font-settings-column .settings-item:first-child {
+      border-top-left-radius: 0;
+      border-top-right-radius: 12px;
+    }
+
+    .font-settings-column .settings-item:last-child {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 12px;
+    }
+
+    @media (max-width: 1080px) {
+      .font-panel-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .font-preview-panel {
+        border-bottom: 1px solid var(--divider);
+      }
+
+      .font-settings-column {
+        padding: 0 20px 12px;
+      }
+
+      .font-settings-column .settings-item:first-child {
+        border-top-right-radius: 0;
+      }
+
+      .font-settings-column .settings-item:last-child {
+        border-bottom-left-radius: 12px;
+      }
+    }
+
     /* Modal for confirmation - Brand new Island design */
     .modal-overlay {
       position: fixed;
@@ -8271,6 +8382,7 @@
   let selectedToolbarAppPaths = [];
 
   let currentLanguage = "zh-CN";
+  let activeFontTabLanguage = currentLanguage;
 
   let pendingFontChange = null;
   let rtlTestEnabled = false;
@@ -8380,6 +8492,8 @@
   ];
   let systemFonts = [];
   let systemFontsLoaded = false;
+  const fontPreviewSampleCache = {};
+  const fontPreviewPendingLoads = {};
 
   function normalizeFontWeightValue(value) {
     let normalized = value;
@@ -8440,6 +8554,171 @@
       FONT_SCENES.forEach(scene => {
         settings.Fonts.Weights[lang][scene] = normalizeFontWeightValue(settings.Fonts.Weights[lang][scene]);
       });
+    });
+  }
+
+  function getFontPreviewLocalePack() {
+    if (currentLanguage === "ja-JP") {
+      return {
+        title: "フォント効果プレビュー",
+        desc: "このプレビューはウェブインターフェース用のフォント設定を表示します。読み取り専用です。",
+        loading: "プレビュー本文を読み込み中...",
+        empty: "プレビュー本文を読み込めませんでした"
+      };
+    }
+    if (currentLanguage === "zh-TW" || currentLanguage === "yue-HK") {
+      return {
+        title: "字型效果預覽",
+        desc: "此區域預覽目前語言下的網頁介面字型方案，僅供檢視，無法編輯。",
+        loading: "正在載入預覽文本...",
+        empty: "無法載入預覽文本"
+      };
+    }
+    if (currentLanguage === "en-US" || currentLanguage === "ug-CN") {
+      return {
+        title: "Font Preview",
+        desc: "This preview reflects the web interface font profile for the selected language and is read-only.",
+        loading: "Loading preview text...",
+        empty: "Preview text could not be loaded"
+      };
+    }
+    return {
+      title: "字体效果预览",
+      desc: "这里预览当前语言下的网页界面字体方案，仅供查看，不可编辑。",
+      loading: "正在加载预览文本...",
+      empty: "未能加载预览文本"
+    };
+  }
+
+  function getFontPreviewTextarea(lang) {
+    return document.querySelector(`.font-preview-textbox[data-font-preview-lang="${lang}"]`);
+  }
+
+  function ensureFontPreviewLayout() {
+    document.querySelectorAll('.pivot-content[data-pivot-group="fonts"]').forEach(panel => {
+      const alreadyDecorated = Array.from(panel.children).some(child => child.classList && child.classList.contains("font-panel-grid"));
+      if (alreadyDecorated) return;
+
+      const lang = panel.getAttribute("data-pivot-content") || "";
+      const settingsItems = Array.from(panel.children).filter(child => child.classList && child.classList.contains("settings-item"));
+      if (!settingsItems.length) return;
+
+      const grid = document.createElement("div");
+      grid.className = "font-panel-grid";
+
+      const previewPanel = document.createElement("div");
+      previewPanel.className = "font-preview-panel";
+
+      const previewHeader = document.createElement("div");
+      previewHeader.className = "font-preview-header";
+
+      const previewTitle = document.createElement("div");
+      previewTitle.className = "font-preview-title";
+
+      const previewDesc = document.createElement("div");
+      previewDesc.className = "font-preview-desc";
+
+      previewHeader.appendChild(previewTitle);
+      previewHeader.appendChild(previewDesc);
+
+      const previewBox = document.createElement("textarea");
+      previewBox.className = "font-preview-textbox";
+      previewBox.dataset.fontPreviewLang = lang;
+      previewBox.readOnly = true;
+      previewBox.spellcheck = false;
+      previewBox.tabIndex = -1;
+
+      previewPanel.appendChild(previewHeader);
+      previewPanel.appendChild(previewBox);
+
+      const settingsColumn = document.createElement("div");
+      settingsColumn.className = "font-settings-column";
+      settingsItems.forEach(item => settingsColumn.appendChild(item));
+
+      grid.appendChild(previewPanel);
+      grid.appendChild(settingsColumn);
+      panel.appendChild(grid);
+    });
+
+    refreshFontPreviewLabels();
+  }
+
+  function refreshFontPreviewLabels() {
+    const localePack = getFontPreviewLocalePack();
+    document.querySelectorAll(".font-preview-title").forEach(el => {
+      el.textContent = localePack.title;
+    });
+    document.querySelectorAll(".font-preview-desc").forEach(el => {
+      el.textContent = localePack.desc;
+    });
+    document.querySelectorAll(".font-preview-textbox").forEach(el => {
+      el.setAttribute("aria-label", localePack.title);
+      if (!el.value || el.dataset.previewState === "loading" || el.dataset.previewState === "empty") {
+        el.value = localePack.loading;
+        el.dataset.previewState = "loading";
+      }
+    });
+  }
+
+  function applyFontPreviewStyle(lang) {
+    const previewBox = getFontPreviewTextarea(lang);
+    if (!previewBox) return;
+
+    previewBox.style.fontFamily = buildFontStack(lang, "web");
+    const weight = getFontWeightSelection(lang, "web");
+    if (weight) {
+      previewBox.style.fontWeight = weight;
+    } else {
+      previewBox.style.removeProperty("font-weight");
+    }
+  }
+
+  function loadFontPreviewSample(lang) {
+    if (Object.prototype.hasOwnProperty.call(fontPreviewSampleCache, lang)) {
+      return Promise.resolve(fontPreviewSampleCache[lang]);
+    }
+    if (fontPreviewPendingLoads[lang]) {
+      return fontPreviewPendingLoads[lang];
+    }
+    if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.get_font_preview_sample) {
+      fontPreviewSampleCache[lang] = "";
+      return Promise.resolve("");
+    }
+
+    fontPreviewPendingLoads[lang] = window.pywebview.api.get_font_preview_sample(lang).then(res => {
+      const text = typeof res === "string" ? res.replace(/\r\n/g, "\n").trim() : "";
+      fontPreviewSampleCache[lang] = text;
+      delete fontPreviewPendingLoads[lang];
+      return text;
+    }).catch(() => {
+      delete fontPreviewPendingLoads[lang];
+      fontPreviewSampleCache[lang] = "";
+      return "";
+    });
+
+    return fontPreviewPendingLoads[lang];
+  }
+
+  function updateFontPreview(lang) {
+    const previewLang = FONT_LANGS.includes(lang) ? lang : (FONT_LANGS.includes(activeFontTabLanguage) ? activeFontTabLanguage : currentLanguage);
+    const previewBox = getFontPreviewTextarea(previewLang);
+    if (!previewBox) return;
+
+    applyFontPreviewStyle(previewLang);
+    const localePack = getFontPreviewLocalePack();
+    if (!Object.prototype.hasOwnProperty.call(fontPreviewSampleCache, previewLang)) {
+      previewBox.value = localePack.loading;
+      previewBox.dataset.previewState = "loading";
+    }
+
+    loadFontPreviewSample(previewLang).then(text => {
+      const latestBox = getFontPreviewTextarea(previewLang);
+      if (!latestBox) return;
+      const latestLocalePack = getFontPreviewLocalePack();
+      latestBox.value = text || latestLocalePack.empty;
+      latestBox.dataset.previewState = text ? "ready" : "empty";
+      latestBox.scrollTop = 0;
+      applyFontPreviewStyle(previewLang);
     });
   }
 
@@ -8664,6 +8943,7 @@
     if (!settings) return;
     ensureFontProfiles();
     ensureFontWeightProfiles();
+    ensureFontPreviewLayout();
     ensureFontSettingControls();
     const isCustomEnabled = !!(settings.Fonts && settings.Fonts.CustomFont);
 
@@ -8798,6 +9078,9 @@
         renderFontWeightDropdown(weightEl, lang, scene, isCustomEnabled);
       });
     });
+
+    refreshFontPreviewLabels();
+    updateFontPreview(activeFontTabLanguage || currentLanguage);
   }
 
   function setFontProfile(lang, scene, value, label) {
@@ -8820,10 +9103,13 @@
 
   const FontManager = {
     switchTab(lang) {
+      activeFontTabLanguage = lang;
       const items = document.querySelectorAll('.pivot-item[data-pivot-group="fonts"]');
       const contents = document.querySelectorAll('.pivot-content[data-pivot-group="fonts"]');
       items.forEach(item => item.classList.toggle('active', item.getAttribute('data-pivot') === lang));
       contents.forEach(content => content.classList.toggle('active', content.getAttribute('data-pivot-content') === lang));
+      refreshFontPreviewLabels();
+      updateFontPreview(lang);
     }
   };
 
