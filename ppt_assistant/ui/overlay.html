@@ -959,6 +959,7 @@
             font-size: 14px;
             font-weight: 900;
             color: var(--overlay-status-fg);
+            white-space: pre;
         }
         
         .status-item .icon-mask {
@@ -2082,6 +2083,29 @@
         let currentConfig = null;
         let currentPage = 1;
         let totalPage = 1;
+        const DEFAULT_PEN_COLOR = Object.freeze({ tab: 'highlight', name: '红色', rgb: '255 0 0', hex: '#FF0000' });
+        const PEN_COLOR_PRESETS = Object.freeze({
+            '#FFFFFF': { tab: 'pen', name: '白色', rgb: '255 255 255', hex: '#FFFFFF' },
+            '#000000': { tab: 'pen', name: '黑色', rgb: '0 0 0', hex: '#000000' },
+            '#E7E6E6': { tab: 'pen', name: '浅灰色', rgb: '231 230 230', hex: '#E7E6E6' },
+            '#44546A': { tab: 'pen', name: '蓝灰色', rgb: '68 84 106', hex: '#44546A' },
+            '#4472C4': { tab: 'pen', name: '蓝色', rgb: '68 114 196', hex: '#4472C4' },
+            '#ED7D31': { tab: 'pen', name: '橙色', rgb: '237 125 49', hex: '#ED7D31' },
+            '#A5A5A5': { tab: 'pen', name: '灰色', rgb: '165 165 165', hex: '#A5A5A5' },
+            '#FFC000': { tab: 'highlight', name: '金色', rgb: '255 192 0', hex: '#FFC000' },
+            '#5B9BD5': { tab: 'pen', name: '浅蓝色', rgb: '91 155 213', hex: '#5B9BD5' },
+            '#70AD47': { tab: 'pen', name: '绿色', rgb: '112 173 71', hex: '#70AD47' },
+            '#C00000': { tab: 'highlight', name: '深红色', rgb: '192 0 0', hex: '#C00000' },
+            '#FF0000': { tab: 'highlight', name: '红色', rgb: '255 0 0', hex: '#FF0000' },
+            '#FFFF00': { tab: 'highlight', name: '黄色', rgb: '255 255 0', hex: '#FFFF00' },
+            '#92D050': { tab: 'highlight', name: '浅绿色', rgb: '146 208 80', hex: '#92D050' },
+            '#00B050': { tab: 'highlight', name: '绿色', rgb: '0 176 80', hex: '#00B050' },
+            '#00B0F0': { tab: 'highlight', name: '浅蓝色', rgb: '0 176 240', hex: '#00B0F0' },
+            '#0070C0': { tab: 'highlight', name: '蓝色', rgb: '0 112 192', hex: '#0070C0' },
+            '#002060': { tab: 'highlight', name: '深蓝色', rgb: '0 32 96', hex: '#002060' },
+            '#7030A0': { tab: 'highlight', name: '紫色', rgb: '112 48 160', hex: '#7030A0' }
+        });
+        let currentPenColor = { ...DEFAULT_PEN_COLOR };
 
         new QWebChannel(qt.webChannelTransport, function(channel) {
             bridge = channel.objects.bridge;
@@ -2100,6 +2124,80 @@
                 closePopup();
             }
         });
+
+        function rgbToHex(r, g, b) {
+            const toHex = value => Number(value).toString(16).padStart(2, '0').toUpperCase();
+            return '#' + toHex(r) + toHex(g) + toHex(b);
+        }
+
+        function normalizeHexColor(color) {
+            if (!color) return '';
+            const raw = String(color).trim();
+            if (raw.startsWith('#')) {
+                if (raw.length === 4) {
+                    return ('#' + raw[1] + raw[1] + raw[2] + raw[2] + raw[3] + raw[3]).toUpperCase();
+                }
+                return raw.toUpperCase();
+            }
+            const match = raw.match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/i);
+            if (!match) return raw.toUpperCase();
+            return rgbToHex(match[1], match[2], match[3]);
+        }
+
+        function activateColorTab(tab) {
+            const items = Array.from(document.querySelectorAll('.pivot-item'));
+            const activeIndex = tab === 'highlight' ? 1 : 0;
+            items.forEach((item, index) => item.classList.toggle('active', index === activeIndex));
+            document.querySelectorAll('.pivot-content').forEach(content => {
+                content.classList.toggle('active', content.id === 'tab-' + tab);
+            });
+        }
+
+        function findColorOption(hex, preferredTab) {
+            const normalized = normalizeHexColor(hex);
+            if (preferredTab) {
+                const tabContent = document.getElementById('tab-' + preferredTab);
+                if (tabContent) {
+                    const preferredMatch = Array.from(tabContent.querySelectorAll('.color-option')).find(opt =>
+                        normalizeHexColor(window.getComputedStyle(opt).backgroundColor) === normalized
+                    );
+                    if (preferredMatch) return preferredMatch;
+                }
+            }
+            return Array.from(document.querySelectorAll('.color-option')).find(opt =>
+                normalizeHexColor(window.getComputedStyle(opt).backgroundColor) === normalized
+            ) || null;
+        }
+
+        function syncColorPickerState() {
+            const preset = PEN_COLOR_PRESETS[normalizeHexColor(currentPenColor && currentPenColor.hex)] || null;
+            const displayColor = {
+                ...(preset || {}),
+                ...(currentPenColor || DEFAULT_PEN_COLOR)
+            };
+
+            if (!displayColor.tab) {
+                displayColor.tab = (preset && preset.tab) || DEFAULT_PEN_COLOR.tab;
+            }
+
+            const matchedOption = findColorOption(displayColor.hex, displayColor.tab);
+
+            activateColorTab(displayColor.tab);
+            document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
+            if (matchedOption) matchedOption.classList.add('active');
+
+            updateColorInfo(
+                displayColor.name || DEFAULT_PEN_COLOR.name,
+                displayColor.rgb || DEFAULT_PEN_COLOR.rgb,
+                normalizeHexColor(displayColor.hex || DEFAULT_PEN_COLOR.hex)
+            );
+            currentPenColor = displayColor;
+        }
+
+        function resetPenColorState() {
+            currentPenColor = { ...DEFAULT_PEN_COLOR };
+            syncColorPickerState();
+        }
 
         function toggleStatusBar(visible) {
             const sb = document.getElementById('status-bar');
@@ -2762,6 +2860,7 @@
                     closePopup();
                 } else {
                     closePopup();
+                    syncColorPickerState();
                     picker.classList.add('visible');
                     document.body.classList.add('popup-active');
                     if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
@@ -2799,6 +2898,14 @@
         function selectColor(r, g, b, el) {
             document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
             if(el) el.classList.add('active');
+            const hex = rgbToHex(r, g, b);
+            const selectedTab = el && el.closest('.pivot-content')
+                ? el.closest('.pivot-content').id.replace('tab-', '')
+                : DEFAULT_PEN_COLOR.tab;
+            currentPenColor = PEN_COLOR_PRESETS[hex]
+                ? { ...PEN_COLOR_PRESETS[hex], tab: selectedTab }
+                : { tab: selectedTab, name: '当前颜色', rgb: `${r} ${g} ${b}`, hex };
+            syncColorPickerState();
             
             if (bridge) {
                 bridge.setPenColor(r, g, b);
@@ -2808,11 +2915,7 @@
 
 
         function switchColorTab(tab, el) {
-            document.querySelectorAll('.pivot-item').forEach(item => item.classList.remove('active'));
-            el.classList.add('active');
-            
-            document.querySelectorAll('.pivot-content').forEach(content => content.classList.remove('active'));
-            document.getElementById('tab-' + tab).classList.add('active');
+            activateColorTab(tab);
         }
 
         function updateColorInfo(name, rgb, hex) {
@@ -2909,8 +3012,25 @@
         let lastStatusValues = {
             battery: '',
             volume: '',
-            music: ''
+            music: '',
+            musicBase: ''
         };
+        let currentMusicState = {
+            visible: false,
+            status: '',
+            baseText: '',
+            positionMs: 0,
+            durationMs: 0,
+            syncedAtMs: 0
+        };
+
+        function getStatusDisplayChar(char) {
+            return char === ' ' ? '\u00A0' : char;
+        }
+
+        function getStatusLogicalChar(text) {
+            return String(text || '').replace(/\u00A0/g, ' ');
+        }
 
         function updateStatusDisplay(element, newText, animateAll = false) {
             if (!element) return;
@@ -2930,7 +3050,7 @@
                         const wrap = document.createElement('span');
                         wrap.className = 'status-digit-wrapper';
                         const span = document.createElement('span');
-                        span.textContent = char;
+                        span.textContent = getStatusDisplayChar(char);
                         wrap.appendChild(span);
                         element.appendChild(wrap);
                     }
@@ -2950,14 +3070,14 @@
                 if (!currentSpan) return;
                 
                 // Check if value changed
-                if (currentSpan.textContent !== char) {
+                if (getStatusLogicalChar(currentSpan.textContent) !== char) {
                     // Only animate digits (0-9), not letters or symbols when animateAll is false
                     const isDigit = /\d/.test(char);
                     const shouldAnimate = animateAll || isDigit;
                     
                     if (shouldAnimate && !currentSpan.classList.contains('status-digit-old')) {
                         const newSpan = document.createElement('span');
-                        newSpan.textContent = char;
+                        newSpan.textContent = getStatusDisplayChar(char);
                         newSpan.className = 'status-digit-new';
 
                         currentSpan.className = 'status-digit-old';
@@ -2970,7 +3090,7 @@
                             newSpan.className = '';
                         }, 350);
                     } else {
-                        currentSpan.textContent = char;
+                        currentSpan.textContent = getStatusDisplayChar(char);
                     }
                 }
             });
@@ -3014,6 +3134,111 @@
         // Update every 500ms to catch second changes faster
         setInterval(updateTime, 500);
         updateTime();
+
+        function formatMusicTime(totalSeconds) {
+            const wholeSeconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+            const minutes = Math.floor(wholeSeconds / 60);
+            const seconds = wholeSeconds % 60;
+            return `${minutes}分${String(seconds).padStart(2, '0')}秒`;
+        }
+
+        function buildMusicStatusText(data) {
+            const baseText = String(data.smtc_title || data.smtc_status || '').trim();
+            if (!baseText) return '';
+            const showMusicProgress = currentConfig ? (currentConfig.statusBarShowMusicProgress !== false) : true;
+            if (!showMusicProgress) {
+                return baseText;
+            }
+
+            const positionMs = Math.max(0, Number(data.smtc_position_ms) || 0);
+            const durationMs = Math.max(0, Number(data.smtc_duration_ms) || 0);
+            if (durationMs <= 0) {
+                return baseText;
+            }
+
+            const clampedPositionMs = Math.min(positionMs, durationMs);
+            const remainingMs = Math.max(durationMs - clampedPositionMs, 0);
+            return `${baseText} ${formatMusicTime(clampedPositionMs / 1000)}/-${formatMusicTime(remainingMs / 1000)}`;
+        }
+
+        function getCurrentMusicPositionMs() {
+            const durationMs = Math.max(0, Number(currentMusicState.durationMs) || 0);
+            const basePositionMs = Math.max(0, Number(currentMusicState.positionMs) || 0);
+            if (durationMs <= 0) {
+                return basePositionMs;
+            }
+            if (currentMusicState.status !== 'Playing' || !currentMusicState.syncedAtMs) {
+                return Math.min(basePositionMs, durationMs);
+            }
+
+            const elapsedMs = Math.max(0, Date.now() - currentMusicState.syncedAtMs);
+            return Math.min(durationMs, basePositionMs + elapsedMs);
+        }
+
+        function hideMusicStatus() {
+            const smtcItem = document.getElementById('status-smtc');
+            const smtcText = smtcItem ? smtcItem.querySelector('.status-text') : null;
+            if (smtcItem) smtcItem.style.display = 'none';
+            if (smtcText) smtcText.textContent = '';
+            lastStatusValues.music = '';
+            lastStatusValues.musicBase = '';
+        }
+
+        function renderMusicStatus(flipTitle = false) {
+            const showMusic = currentConfig ? (currentConfig.statusBarShowMusic !== false) : true;
+            const smtcItem = document.getElementById('status-smtc');
+            const smtcText = smtcItem ? smtcItem.querySelector('.status-text') : null;
+            if (!smtcItem || !smtcText) return;
+
+            if (!showMusic || !currentMusicState.visible) {
+                hideMusicStatus();
+                return;
+            }
+
+            smtcItem.style.display = 'flex';
+            const newMusicText = buildMusicStatusText({
+                smtc_title: currentMusicState.baseText,
+                smtc_status: currentMusicState.status,
+                smtc_position_ms: getCurrentMusicPositionMs(),
+                smtc_duration_ms: currentMusicState.durationMs
+            });
+            if (!newMusicText) {
+                hideMusicStatus();
+                return;
+            }
+            if (smtcText.textContent === newMusicText) {
+                return;
+            }
+
+            const updateMusicDigits = () => {
+                updateStatusDisplay(smtcText, newMusicText);
+                lastStatusValues.music = newMusicText;
+                lastStatusValues.musicBase = currentMusicState.baseText;
+            };
+
+            if (flipTitle && lastStatusValues.musicBase !== currentMusicState.baseText) {
+                smtcText.classList.remove('status-music-flip-in');
+                smtcText.classList.add('status-music-flip');
+
+                setTimeout(() => {
+                    smtcText.textContent = '';
+                    updateMusicDigits();
+                    smtcText.classList.remove('status-music-flip');
+                    smtcText.classList.add('status-music-flip-in');
+
+                    setTimeout(() => {
+                        smtcText.classList.remove('status-music-flip-in');
+                    }, 300);
+                }, 30);
+                return;
+            }
+
+            updateMusicDigits();
+        }
+
+        setInterval(() => {
+            renderMusicStatus(false);
+        }, 1000);
 
         function updateSystemStatus(data) {
             // Get display settings from config
@@ -3081,32 +3306,15 @@
             }
             
             // SMTC
-            const smtcItem = document.getElementById('status-smtc');
-            const smtcText = smtcItem.querySelector('.status-text');
-            if (showMusic && data.smtc_status && data.smtc_status !== 'Closed' && data.smtc_status !== 'Stopped') {
-                smtcItem.style.display = 'flex';
-                const newMusicText = (data.smtc_title || data.smtc_status).trim();
-                if (smtcText.innerText !== newMusicText) {
-                    // Trigger flip out animation
-                    smtcText.classList.remove('status-music-flip-in');
-                    smtcText.classList.add('status-music-flip');
-                    
-                    // Update text mid-animation (at 30ms mark)
-                    setTimeout(() => {
-                        smtcText.innerHTML = newMusicText;
-                        smtcText.classList.remove('status-music-flip');
-                        smtcText.classList.add('status-music-flip-in');
-                        
-                        setTimeout(() => {
-                            smtcText.classList.remove('status-music-flip-in');
-                        }, 300);
-                    }, 30);
-                    
-                    lastStatusValues.music = newMusicText;
-                }
-            } else {
-                smtcItem.style.display = 'none';
-            }
+            currentMusicState = {
+                visible: !!(showMusic && data.smtc_status && data.smtc_status !== 'Closed' && data.smtc_status !== 'Stopped'),
+                status: String(data.smtc_status || ''),
+                baseText: String(data.smtc_title || data.smtc_status || '').trim(),
+                positionMs: Math.max(0, Number(data.smtc_position_ms) || 0),
+                durationMs: Math.max(0, Number(data.smtc_duration_ms) || 0),
+                syncedAtMs: Date.now()
+            };
+            renderMusicStatus(true);
         }
 
         function initSlider() {

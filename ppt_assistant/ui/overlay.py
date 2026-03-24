@@ -35,6 +35,7 @@ class OverlayBridge(QObject):
     def requestInitState(self):
         if self._overlay.monitor:
             pass
+        self._overlay.reset_pen_color_ui()
         self._overlay.reset_tool_state_ui()
         self._overlay.update_theme()
         self._overlay.update_config()
@@ -257,7 +258,7 @@ class OverlayWindow(QWebEngineView):
         self._ink_prompt_view = None
         self._ink_prompt_bridge = None
         
-        self._smtc_info = {"status": "", "title": ""}
+        self._smtc_info = {"status": "", "title": "", "position_ms": 0, "duration_ms": 0}
         self._smtc_thread = None
         self._stop_smtc = False
         self._start_smtc_thread()
@@ -539,6 +540,8 @@ class OverlayWindow(QWebEngineView):
             # SMTC
             smtc_status = self._smtc_info.get("status", "")
             smtc_title = self._smtc_info.get("title", "")
+            smtc_position_ms = int(self._smtc_info.get("position_ms", 0) or 0)
+            smtc_duration_ms = int(self._smtc_info.get("duration_ms", 0) or 0)
             
             data = {
                 "is_desktop": is_desktop,
@@ -547,7 +550,9 @@ class OverlayWindow(QWebEngineView):
                 "network_online": network_online,
                 "volume": volume,
                 "smtc_status": smtc_status,
-                "smtc_title": smtc_title
+                "smtc_title": smtc_title,
+                "smtc_position_ms": max(0, smtc_position_ms),
+                "smtc_duration_ms": max(0, smtc_duration_ms),
             }
             
             js = f"if(window.updateSystemStatus) window.updateSystemStatus({json.dumps(data)});"
@@ -637,6 +642,7 @@ class OverlayWindow(QWebEngineView):
             "statusBarShowVolume": cfg.statusBarShowVolume.value,
             "statusBarShowNetwork": cfg.statusBarShowNetwork.value,
             "statusBarShowMusic": cfg.statusBarShowMusic.value,
+            "statusBarShowMusicProgress": cfg.statusBarShowMusicProgress.value,
             "showToolbarText": cfg.showToolbarText.value,
             "toolbarOrder": toolbar_order,
             "toolbarPosition": cfg.toolbarPosition.value,
@@ -669,6 +675,12 @@ class OverlayWindow(QWebEngineView):
             tool = (tool or "select").replace("'", "")
             js = f"if (window.resetToolState) resetToolState('{tool}');"
             self.page().runJavaScript(js)
+        except RuntimeError:
+            pass
+
+    def reset_pen_color_ui(self):
+        try:
+            self.page().runJavaScript("if (window.resetPenColorState) resetPenColorState();")
         except RuntimeError:
             pass
 
@@ -988,6 +1000,7 @@ Item {
                 pass
 
     def on_slideshow_start_cleanup(self):
+        self.reset_pen_color_ui()
         self.reset_tool_state_ui("select")
 
     def on_slideshow_end_cleanup(self):

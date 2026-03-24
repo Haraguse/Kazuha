@@ -6,10 +6,16 @@ class SystemAPI:
     """
     def get_media_info(self):
         """
-        Get current media playing info (title, artist, status).
-        Returns: dict with keys 'title', 'artist', 'status', 'thumbnail' (optional)
+        Get current media playing info (title, artist, status, timeline).
+        Returns: dict with keys 'title', 'artist', 'status', 'position_ms', 'duration_ms'
         """
-        return {"title": "", "artist": "", "status": "Stopped"}
+        return {
+            "title": "",
+            "artist": "",
+            "status": "Stopped",
+            "position_ms": 0,
+            "duration_ms": 0,
+        }
 
     def get_file_icon(self, path):
         """

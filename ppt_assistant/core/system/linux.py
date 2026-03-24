@@ -14,11 +14,19 @@ class LinuxSystemAPI(SystemAPI):
                 return {
                     "title": title,
                     "artist": artist,
-                    "status": status
+                    "status": status,
+                    "position_ms": 0,
+                    "duration_ms": 0,
                 }
             except Exception:
                 pass
-        return {"title": "", "artist": "", "status": "Stopped"}
+        return {
+            "title": "",
+            "artist": "",
+            "status": "Stopped",
+            "position_ms": 0,
+            "duration_ms": 0,
+        }
 
     def get_file_icon(self, path):
         # On Linux, rely on Qt's icon provider

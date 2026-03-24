@@ -6226,6 +6226,13 @@
             </div>
             <div class="switch" id="sw-Overlay-StatusBarShowMusic"></div>
           </div>
+          <div class="settings-item" onclick="toggleSwitch('Overlay', 'StatusBarShowMusicProgress')">
+            <div class="item-info">
+              <span class="item-label" data-i18n="interaction.statusBarShowMusicProgress.label">显示进度</span>
+              <span class="item-desc" data-i18n="interaction.statusBarShowMusicProgress.desc">在状态栏音乐后显示播放进度</span>
+            </div>
+            <div class="switch" id="sw-Overlay-StatusBarShowMusicProgress"></div>
+          </div>
           <div class="settings-item" onclick="toggleSwitch('Overlay', 'StrictEdgeAlignment')">
             <div class="item-info">
               <span class="item-label" data-i18n="overlay.strictEdgeAlignment.label">严格贴边对齐</span>
@@ -8106,6 +8113,8 @@
       "interaction.statusBarShowNetwork.desc": "Display network status in status bar",
       "interaction.statusBarShowMusic.label": "Show music",
       "interaction.statusBarShowMusic.desc": "Display currently playing music in status bar",
+      "interaction.statusBarShowMusicProgress.label": "Show progress",
+      "interaction.statusBarShowMusicProgress.desc": "Display playback progress after music title in status bar",
       "overlay.safeArea.label": "Safe Area",
       "overlay.safeArea.desc": "Adjust distance between components and screen edge",
       "overlay.scale.label": "Component Scaling",
@@ -10660,6 +10669,7 @@
     setSwitch("Overlay", "StatusBarShowVolume");
     setSwitch("Overlay", "StatusBarShowNetwork");
     setSwitch("Overlay", "StatusBarShowMusic");
+    setSwitch("Overlay", "StatusBarShowMusicProgress");
     setSwitch("Toolbar", "ShowSpotlight");
     setSwitch("Toolbar", "ShowBoardInBoard");
     setSwitch("Toolbar", "ShowTimer");
@@ -10867,7 +10877,10 @@
   }
 
   function setSwitch(cat, key) {
-    const val = settings[cat]?.[key] ?? false;
+    const defaultVal = (cat === "Overlay" && key === "StatusBarShowMusicProgress") ? true : false;
+    const val = settings[cat]?.[key] ?? defaultVal;
+    if (!settings[cat]) settings[cat] = {};
+    if (!(key in settings[cat])) settings[cat][key] = val;
     const el = document.getElementById(`sw-${cat}-${key}`);
     if (el) {
       if (val) el.classList.add('active');

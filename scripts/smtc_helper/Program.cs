@@ -25,7 +25,9 @@ while (true)
             status = snapshot?.Status ?? "",
             title = snapshot?.Title ?? "",
             artist = snapshot?.Artist ?? "",
-            source = snapshot?.Source ?? ""
+            source = snapshot?.Source ?? "",
+            position_ms = snapshot?.PositionMs ?? 0,
+            duration_ms = snapshot?.DurationMs ?? 0
         });
     }
     catch
@@ -37,7 +39,9 @@ while (true)
             status = "Stopped",
             title = "",
             artist = "",
-            source = ""
+            source = "",
+            position_ms = 0,
+            duration_ms = 0
         });
     }
 }
@@ -54,11 +58,29 @@ static async Task<SessionSnapshot?> ReadBestSessionAsync(GlobalSystemMediaTransp
         {
             var props = await session.TryGetMediaPropertiesAsync();
             var playback = session.GetPlaybackInfo();
+            var timeline = session.GetTimelineProperties();
+            var start = timeline.StartTime;
+            var duration = timeline.EndTime - start;
+            var position = timeline.Position - start;
+            if (duration < TimeSpan.Zero)
+            {
+                duration = TimeSpan.Zero;
+            }
+            if (position < TimeSpan.Zero)
+            {
+                position = TimeSpan.Zero;
+            }
+            if (duration > TimeSpan.Zero && position > duration)
+            {
+                position = duration;
+            }
             snapshots.Add(new SessionSnapshot(
                 session.SourceAppUserModelId ?? "",
                 playback?.PlaybackStatus.ToString() ?? "",
                 props?.Title ?? "",
                 props?.Artist ?? "",
+                (long)position.TotalMilliseconds,
+                (long)duration.TotalMilliseconds,
                 session.SourceAppUserModelId == currentSource
             ));
         }
@@ -96,5 +118,7 @@ internal sealed record SessionSnapshot(
     string Status,
     string Title,
     string Artist,
+    long PositionMs,
+    long DurationMs,
     bool IsCurrent
 );

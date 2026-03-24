@@ -89,13 +89,25 @@ class WindowsSystemAPI(SystemAPI):
     def get_media_info(self):
         now = time.monotonic()
         if now < self._smtc_next_allowed:
-            return {"title": "", "artist": "", "status": "Stopped"}
+            return {
+                "title": "",
+                "artist": "",
+                "status": "Stopped",
+                "position_ms": 0,
+                "duration_ms": 0,
+            }
         try:
             return self._get_media_info_from_worker()
         except Exception:
             self._restart_smtc_worker()
             self._smtc_next_allowed = now + 5.0
-            return {"title": "", "artist": "", "status": "Stopped"}
+            return {
+                "title": "",
+                "artist": "",
+                "status": "Stopped",
+                "position_ms": 0,
+                "duration_ms": 0,
+            }
 
     def _get_media_info_from_worker(self):
         process, output_queue = self._ensure_smtc_worker()
@@ -111,10 +123,16 @@ class WindowsSystemAPI(SystemAPI):
         display_title = title
         if title and artist:
             display_title = f"{title} - {artist}"
+        position_ms = max(0, int(data.get("position_ms") or 0))
+        duration_ms = max(0, int(data.get("duration_ms") or 0))
+        if duration_ms and position_ms > duration_ms:
+            position_ms = duration_ms
         return {
             "title": display_title,
             "artist": artist,
-            "status": data.get("status", "Stopped") or "Stopped"
+            "status": data.get("status", "Stopped") or "Stopped",
+            "position_ms": position_ms,
+            "duration_ms": duration_ms,
         }
 
     def _ensure_smtc_worker(self):
@@ -136,6 +154,13 @@ class WindowsSystemAPI(SystemAPI):
     def _get_smtc_helper_project_path(self):
         return os.path.join(self._get_app_root_dir(), "scripts", "smtc_helper", "SmtcHelper.csproj")
 
+    def _get_smtc_helper_source_paths(self):
+        project_dir = os.path.dirname(self._get_smtc_helper_project_path())
+        return [
+            os.path.join(project_dir, "Program.cs"),
+            os.path.join(project_dir, "SmtcHelper.csproj"),
+        ]
+
     def _get_smtc_helper_executable_candidates(self):
         root_dir = self._get_app_root_dir()
         return [
@@ -149,6 +174,21 @@ class WindowsSystemAPI(SystemAPI):
             if os.path.exists(candidate):
                 return candidate
         return ""
+
+    def _smtc_helper_needs_rebuild(self, helper_exe):
+        if not helper_exe or not os.path.exists(helper_exe):
+            return True
+        try:
+            helper_mtime = os.path.getmtime(helper_exe)
+        except Exception:
+            return True
+        for source_path in self._get_smtc_helper_source_paths():
+            try:
+                if os.path.getmtime(source_path) > helper_mtime:
+                    return True
+            except Exception:
+                continue
+        return False
 
     def _create_dotnet_build_env(self):
         root_dir = self._get_app_root_dir()
@@ -192,8 +232,10 @@ class WindowsSystemAPI(SystemAPI):
 
     def _start_smtc_dotnet_worker_locked(self):
         helper_exe = self._resolve_smtc_helper_executable()
-        if not helper_exe:
-            helper_exe = self._build_smtc_helper_locked()
+        if self._smtc_helper_needs_rebuild(helper_exe):
+            built_helper_exe = self._build_smtc_helper_locked()
+            if built_helper_exe:
+                helper_exe = built_helper_exe
         if not helper_exe:
             return False
         try:
@@ -254,6 +296,7 @@ while (($requestId = [Console]::In.ReadLine()) -ne $null) {
             continue
         }
         $props = $session.TryGetMediaPropertiesAsync().GetAwaiter().GetResult()
+        $timeline = $session.GetTimelineProperties()
         $statusValue = [int]$session.GetPlaybackInfo().PlaybackStatus
         $state = "Stopped"
         if ($statusValue -eq 4) {
@@ -267,10 +310,21 @@ while (($requestId = [Console]::In.ReadLine()) -ne $null) {
             $title = $props.Title
             $artist = $props.Artist
         }
-        Write-JsonResponse @{request_id=$requestId; status=$state; title=$title; artist=$artist}
+        $startMs = 0
+        $positionMs = 0
+        $durationMs = 0
+        if ($timeline -ne $null) {
+            $startMs = [int64][Math]::Max(0, $timeline.StartTime.TotalMilliseconds)
+            $positionMs = [int64][Math]::Max(0, $timeline.Position.TotalMilliseconds - $startMs)
+            $durationMs = [int64][Math]::Max(0, $timeline.EndTime.TotalMilliseconds - $startMs)
+            if ($durationMs -gt 0 -and $positionMs -gt $durationMs) {
+                $positionMs = $durationMs
+            }
+        }
+        Write-JsonResponse @{request_id=$requestId; status=$state; title=$title; artist=$artist; position_ms=$positionMs; duration_ms=$durationMs}
     } catch {
         $manager = $null
-        Write-JsonResponse @{request_id=$requestId; status="Stopped"; title=""; artist=""}
+        Write-JsonResponse @{request_id=$requestId; status="Stopped"; title=""; artist=""; position_ms=0; duration_ms=0}
     }
 }
 '''

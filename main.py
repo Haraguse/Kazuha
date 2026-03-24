@@ -1597,6 +1597,7 @@ class PPTAssistantApp:
             old_status_bar_show_volume = cfg.statusBarShowVolume.value
             old_status_bar_show_network = cfg.statusBarShowNetwork.value
             old_status_bar_show_music = cfg.statusBarShowMusic.value
+            old_status_bar_show_music_progress = cfg.statusBarShowMusicProgress.value
             old_clear = cfg.showClear.value
             old_spotlight = cfg.showSpotlight.value
             old_timer = cfg.showTimer.value
@@ -1667,7 +1668,8 @@ class PPTAssistantApp:
                         cfg.statusBarShowBattery.value != old_status_bar_show_battery or
                         cfg.statusBarShowVolume.value != old_status_bar_show_volume or
                         cfg.statusBarShowNetwork.value != old_status_bar_show_network or
-                        cfg.statusBarShowMusic.value != old_status_bar_show_music
+                        cfg.statusBarShowMusic.value != old_status_bar_show_music or
+                        cfg.statusBarShowMusicProgress.value != old_status_bar_show_music_progress
                     )
                     
                     if status_bar_changed:
