@@ -6,8 +6,8 @@ from ppt_assistant.core.config import SETTINGS_PATH
 
 _TRANSLATIONS = {
     "zh-CN": {
-        "tray.tooltip": "Kazuha 助手",
-        "tray.title": "Kazuha",
+        "tray.tooltip": "Luminalium 助手",
+        "tray.title": "Luminalium",
         "tray.settings": "设置",
         "tray.board": "小黑板",
         "tray.timer": "计时工具",
@@ -23,8 +23,8 @@ _TRANSLATIONS = {
         "overlay.compatibility": "兼容模式",
     },
     "zh-TW": {
-        "tray.tooltip": "Kazuha 助手",
-        "tray.title": "Kazuha",
+        "tray.tooltip": "Luminalium 助手",
+        "tray.title": "Luminalium",
         "tray.settings": "設定",
         "tray.board": "小黑板",
         "tray.timer": "Timer",
@@ -40,8 +40,8 @@ _TRANSLATIONS = {
         "overlay.compatibility": "相容模式",
     },
     "yue-HK": {
-        "tray.tooltip": "Kazuha 幫手",
-        "tray.title": "Kazuha",
+        "tray.tooltip": "Luminalium 幫手",
+        "tray.title": "Luminalium",
         "tray.settings": "設定",
         "tray.board": "黑板仔",
         "tray.timer": "計時器",
@@ -57,8 +57,8 @@ _TRANSLATIONS = {
         "overlay.compatibility": "兼容模式",
     },
     "ja-JP": {
-        "tray.tooltip": "Kazuha アシスタント",
-        "tray.title": "Kazuha",
+        "tray.tooltip": "Luminalium アシスタント",
+        "tray.title": "Luminalium",
         "tray.settings": "設定",
         "tray.board": "黒板",
         "tray.timer": "Timer",
@@ -72,8 +72,8 @@ _TRANSLATIONS = {
         "overlay.compatibility": "互換モード",
     },
     "en-US": {
-        "tray.tooltip": "Kazuha Assistant",
-        "tray.title": "Kazuha",
+        "tray.tooltip": "Luminalium Assistant",
+        "tray.title": "Luminalium",
         "tray.settings": "Settings",
         "tray.board": "Board",
         "tray.timer": "Timer",
@@ -87,8 +87,8 @@ _TRANSLATIONS = {
         "overlay.compatibility": "Compat Mode",
     },
     "ug-CN": {
-        "tray.tooltip": "Kazuha ياردەمچىسى",
-        "tray.title": "Kazuha",
+        "tray.tooltip": "Luminalium ياردەمچىسى",
+        "tray.title": "Luminalium",
         "tray.settings": "تەڭشەكلەر",
         "tray.timer": "ۋاقىت بەلگىلەش قىستۇرمىسى",
         "tray.restart": "قايتا قوزغىتىش",

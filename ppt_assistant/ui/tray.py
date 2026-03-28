@@ -28,12 +28,12 @@ TRAY_COPY = {
         "featured_title": "\u5207\u6362\u5de5\u5177\u680f",
         "open": "\u6253\u5f00",
         "run": "\u6267\u884c",
-        "settings_desc": "\u8c03\u6574 Kazuha \u8bbe\u7f6e",
+        "settings_desc": "\u8c03\u6574 Luminalium \u8bbe\u7f6e",
         "board_desc": "\u6253\u5f00\u5c0f\u9ed1\u677f\u5de5\u5177",
         "timer_desc": "\u6253\u5f00\u8ba1\u65f6\u5de5\u5177",
         "toggle_desc": "\u663e\u793a\u6216\u9690\u85cf\u6f14\u793a\u5de5\u5177\u680f",
-        "restart_desc": "\u91cd\u65b0\u542f\u52a8 Kazuha",
-        "exit_desc": "\u9000\u51fa Kazuha",
+        "restart_desc": "\u91cd\u65b0\u542f\u52a8 Luminalium",
+        "exit_desc": "\u9000\u51fa Luminalium",
     },
     "zh-TW": {
         "subtitle": "\u7cfb\u7d71\u5323\u5feb\u6377\u5165\u53e3",
@@ -41,12 +41,12 @@ TRAY_COPY = {
         "featured_title": "\u5207\u63db\u5de5\u5177\u5217",
         "open": "\u958b\u555f",
         "run": "\u57f7\u884c",
-        "settings_desc": "\u8abf\u6574 Kazuha \u8a2d\u5b9a",
+        "settings_desc": "\u8abf\u6574 Luminalium \u8a2d\u5b9a",
         "board_desc": "\u6253\u958b\u5c0f\u9ed1\u677f\u5de5\u5177",
         "timer_desc": "\u6253\u958b\u8a08\u6642\u5de5\u5177",
         "toggle_desc": "\u986f\u793a\u6216\u96b1\u85cf\u6f14\u793a\u5de5\u5177\u5217",
-        "restart_desc": "\u91cd\u65b0\u555f\u52d5 Kazuha",
-        "exit_desc": "\u7d50\u675f Kazuha",
+        "restart_desc": "\u91cd\u65b0\u555f\u52d5 Luminalium",
+        "exit_desc": "\u7d50\u675f Luminalium",
     },
     "yue-HK": {
         "subtitle": "\u6258\u76e4\u5feb\u6377\u5165\u53e3",
@@ -54,12 +54,12 @@ TRAY_COPY = {
         "featured_title": "\u5207\u63db\u5de5\u5177\u5217",
         "open": "\u6253\u958b",
         "run": "\u57f7\u884c",
-        "settings_desc": "\u8abf\u6574 Kazuha \u8a2d\u5b9a",
+        "settings_desc": "\u8abf\u6574 Luminalium \u8a2d\u5b9a",
         "board_desc": "\u6253\u958b\u9ed1\u677f\u5de5\u5177",
         "timer_desc": "\u6253\u958b\u8a08\u6642\u5de5\u5177",
         "toggle_desc": "\u986f\u793a\u6216\u96b1\u85cf\u6f14\u793a\u5de5\u5177\u5217",
-        "restart_desc": "\u91cd\u65b0\u555f\u52d5 Kazuha",
-        "exit_desc": "\u7d50\u675f Kazuha",
+        "restart_desc": "\u91cd\u65b0\u555f\u52d5 Luminalium",
+        "exit_desc": "\u7d50\u675f Luminalium",
     },
     "en-US": {
         "subtitle": "Tray quick access",
@@ -67,12 +67,12 @@ TRAY_COPY = {
         "featured_title": "Toolbar Visibility",
         "open": "Open",
         "run": "Run",
-        "settings_desc": "Adjust Kazuha settings",
+        "settings_desc": "Adjust Luminalium settings",
         "board_desc": "Open the board tool",
         "timer_desc": "Open the timer tool",
         "toggle_desc": "Show or hide the toolbar",
-        "restart_desc": "Restart Kazuha",
-        "exit_desc": "Exit Kazuha",
+        "restart_desc": "Restart Luminalium",
+        "exit_desc": "Exit Luminalium",
     },
 }
 
@@ -595,10 +595,26 @@ class SystemTray(QObject):
         painter.end()
         return QIcon(pixmap)
 
+    def _update_timer_text(self):
+        if not hasattr(self, '_act_timer') or not self._act_timer: return
+        timer_text = t("tray.timer")
+        try:
+            from ppt_assistant.core.timer_manager import TimerManager
+            tm = TimerManager()
+            if tm.remaining_seconds > 0:
+                mins, secs = divmod(int(tm.remaining_seconds), 60)
+                hrs, mins = divmod(mins, 60)
+                time_str = f"{hrs:02d}:{mins:02d}:{secs:02d}" if hrs > 0 else f"{mins:02d}:{secs:02d}"
+                timer_text += f" ({time_str})"
+        except Exception:
+            pass
+        self._act_timer.setText(timer_text)
+
     def _init_fallback_menu(self):
         # Always create a fresh RoundMenu to avoid stale height from clear().
         old = self._fallback_menu
         self._fallback_menu = RoundMenu(parent=self._parent)
+        self._fallback_menu.aboutToShow.connect(self._update_timer_text)
 
         self.tray_icon.setToolTip(t("tray.tooltip"))
 
@@ -616,9 +632,9 @@ class SystemTray(QObject):
         self._fallback_menu.addAction(act_board)
 
         timer_icon = self._render_menu_icon(os.path.join(ICON_DIR, "timer.svg"))
-        act_timer = Action(timer_icon, t("tray.timer"), self._fallback_menu)
-        act_timer.triggered.connect(self.show_timer.emit)
-        self._fallback_menu.addAction(act_timer)
+        self._act_timer = Action(timer_icon, t("tray.timer"), self._fallback_menu)
+        self._act_timer.triggered.connect(self.show_timer.emit)
+        self._fallback_menu.addAction(self._act_timer)
 
         if cfg.compatibilityMode.value:
             act_toggle = Action(FIF.APPLICATION, t("tray.toggle"), self._fallback_menu)
@@ -649,6 +665,18 @@ class SystemTray(QObject):
 
     def _build_menu_data(self):
         copy = _localized_copy()
+        timer_label = t("tray.timer")
+        try:
+            from ppt_assistant.core.timer_manager import TimerManager
+            tm = TimerManager()
+            if tm.remaining_seconds > 0:
+                mins, secs = divmod(int(tm.remaining_seconds), 60)
+                hrs, mins = divmod(mins, 60)
+                time_str = f"{hrs:02d}:{mins:02d}:{secs:02d}" if hrs > 0 else f"{mins:02d}:{secs:02d}"
+                timer_label += f" ({time_str})"
+        except Exception:
+            pass
+
         primary_items = [
             {
                 "id": "settings",
@@ -666,7 +694,7 @@ class SystemTray(QObject):
             },
             {
                 "id": "timer",
-                "label": t("tray.timer"),
+                "label": timer_label,
                 "description": copy["timer_desc"],
                 "icon": _icon_url("timer.svg"),
                 "actionLabel": copy["open"],

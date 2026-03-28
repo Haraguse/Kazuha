@@ -353,7 +353,7 @@ class SpotlightWindow(QWidget):
         base_dir = QStandardPaths.writableLocation(QStandardPaths.PicturesLocation)
         if not base_dir:
             base_dir = os.getcwd()
-        filename = f"Kazuha_Spotlight_{time.strftime('%Y%m%d_%H%M%S')}.png"
+        filename = f"Luminalium_Spotlight_{time.strftime('%Y%m%d_%H%M%S')}.png"
         return os.path.join(base_dir, filename)
 
     def save_selection(self):

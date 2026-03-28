@@ -4,11 +4,11 @@
 
 
     
-[![Latest Release](https://img.shields.io/github/v/release/SECTL/Kazuha?style=for-the-badge)](https://github.com/SECTL/Kazuha/releases)
-[![License](https://img.shields.io/github/license/SECTL/Kazuha?style=for-the-badge)](https://github.com/SECTL/Kazuha/blob/main/LICENSE) 
-[![GitHub Stars](https://img.shields.io/github/stars/SECTL/Kazuha?style=for-the-badge&color=yellow)](https://github.com/SECTL/Kazuha/stargazers)
-[![Total Downloads](https://img.shields.io/github/downloads/SECTL/Kazuha/total?style=for-the-badge)](https://github.com/SECTL/Kazuha/releases) 
-[![Open Issues](https://img.shields.io/github/issues-raw/SECTL/Kazuha?style=for-the-badge&color=red)](https://github.com/SECTL/Kazuha/issues)
+[![Latest Release](https://img.shields.io/github/v/release/SECTL/Luminalium?style=for-the-badge)](https://github.com/SECTL/Luminalium/releases)
+[![License](https://img.shields.io/github/license/SECTL/Luminalium?style=for-the-badge)](https://github.com/SECTL/Luminalium/blob/main/LICENSE) 
+[![GitHub Stars](https://img.shields.io/github/stars/SECTL/Luminalium?style=for-the-badge&color=yellow)](https://github.com/SECTL/Luminalium/stargazers)
+[![Total Downloads](https://img.shields.io/github/downloads/SECTL/Luminalium/total?style=for-the-badge)](https://github.com/SECTL/Luminalium/releases) 
+[![Open Issues](https://img.shields.io/github/issues-raw/SECTL/Luminalium?style=for-the-badge&color=red)](https://github.com/SECTL/Luminalium/issues)
 [![QQ Group](https://img.shields.io/badge/-QQ%E7%BE%A4%EF%BD%9C833875216-blue?style=for-the-badge&logo=QQ)](https://qm.qq.com/q/iWcfaPHn7W)
 
 [简体中文](README.md) | [English](README.en.md) | [日本語](README.ja.md)
@@ -22,7 +22,7 @@
 > 如果您对此类项目有固有的排斥感，请无视此项目，谢谢。
 ---
 ## 项目简介
-Kazuha 是一款专为触摸屏设计的 PowerPoint 演示辅助工具，旨在优化 Windows 大屏设备上的交互与操作体验。
+Luminalium 是一款专为触摸屏设计的 PowerPoint 演示辅助工具，旨在优化 Windows 大屏设备上的交互与操作体验。
 项目深受希沃课堂助手与鸿合演示助手的启发。
 
 ## 项目功能与特性
@@ -51,23 +51,23 @@ Kazuha 是一款专为触摸屏设计的 PowerPoint 演示辅助工具，旨在�
 ---
 
 ## 贡献与反馈
-如您有意愿对 Kazuha 做出一些贡献，欢迎提交 [**拉取请求**](https://github.com/SECTL/Kazuha/pulls) 帮助改进代码，
+如您有意愿对 Luminalium 做出一些贡献，欢迎提交 [**拉取请求**](https://github.com/SECTL/Luminalium/pulls) 帮助改进代码，
 
-或者是提出 [**议题**](https://github.com/SECTL/Kazuha/issues) 来提交 Bug 报告或功能请求，
+或者是提出 [**议题**](https://github.com/SECTL/Luminalium/issues) 来提交 Bug 报告或功能请求，
 
 不胜感激。
 
 ## 贡献者
-感谢所有为 Kazuha 项目做出贡献的人！
+感谢所有为 Luminalium 项目做出贡献的人！
 
-<a href="https://www.star-history.com/?repos=SECTL%2FKazuha&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=SECTL%2FLuminalium&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=SECTL/Kazuha&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=SECTL/Kazuha&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=SECTL/Kazuha&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=SECTL/Luminalium&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=SECTL/Luminalium&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=SECTL/Luminalium&type=date&legend=top-left" />
  </picture>
 </a>
 
 ## Stars 曲线
 
-[![Star History Chart](https://api.star-history.com/image?repos=SECTL/Kazuha&type=date&legend=top-left)](https://www.star-history.com/?repos=SECTL%2FKazuha&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/image?repos=SECTL/Luminalium&type=date&legend=top-left)](https://www.star-history.com/?repos=SECTL%2FLuminalium&type=date&legend=top-left)

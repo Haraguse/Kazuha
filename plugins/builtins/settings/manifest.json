@@ -2,7 +2,7 @@
   "id": "settings",
   "name": "",
   "version": "1.0.0",
-  "description": "Kazuha 的核心设置插件。",
+  "description": "Luminalium 的核心设置插件。",
   "author": "User",
   "main": "plugin.py",
   "icon": "settings.svg"

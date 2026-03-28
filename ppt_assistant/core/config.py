@@ -161,7 +161,7 @@ def _set_run_at_startup(enabled: bool):
     if sys.platform != "win32":
         return
         
-    app_name = "Kazuha"
+    app_name = "Luminalium"
     try:
         with winreg.OpenKey(
             winreg.HKEY_CURRENT_USER,

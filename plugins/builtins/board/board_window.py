@@ -2,10 +2,9 @@
 import os
 import json
 from PySide6.QtQuick import QQuickView
-from PySide6.QtCore import QUrl, Qt, Slot, QObject, QPoint, QTimer, Signal, Property
+from PySide6.QtCore import QUrl, Qt, Slot, QObject, QPoint, QTimer, Signal, Property, QEventLoop, QSize
 from PySide6.QtGui import QColor, QIcon, QAction
-from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QApplication, QDialog, QMessageBox
-from ppt_assistant.core.config import cfg, SETTINGS_PATH
+from ppt_assistant.core.config import cfg, SETTINGS_PATH, qconfig
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.theme_data import THEMES
 from qfluentwidgets import Theme
@@ -54,6 +53,16 @@ def _load_language():
         return "zh-CN"
     return "zh-CN"
 
+def _load_settings_data():
+    try:
+        if os.path.exists(SETTINGS_PATH):
+            with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data if isinstance(data, dict) else {}
+    except Exception:
+        pass
+    return {}
+
 def _read_board_settings():
     position = "bottom"
     background_color = "#202020"
@@ -63,13 +72,7 @@ def _read_board_settings():
     pen_stroke_enabled = False
     
     # Read settings file once
-    settings_data = {}
-    try:
-        if os.path.exists(SETTINGS_PATH):
-            with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
-                settings_data = json.load(f)
-    except Exception:
-        pass
+    settings_data = _load_settings_data()
         
     # Get ThemeId from settings or fallback to cfg
     theme_id = settings_data.get("Appearance", {}).get("ThemeId", cfg.themeId.value)
@@ -114,6 +117,108 @@ def _read_board_settings():
             background_color = "#202020"
     return position, background_color, popup_bg, popup_border, eraser_mode, pen_stroke_enabled
 
+def _normalize_theme_mode(raw_theme) -> str:
+    if isinstance(raw_theme, Theme):
+        if raw_theme == Theme.DARK:
+            return "dark"
+        if raw_theme == Theme.LIGHT:
+            return "light"
+        raw_theme = "auto"
+    text = str(raw_theme or "auto").lower()
+    if text in ("light", "dark"):
+        return text
+    try:
+        if qconfig.theme == Theme.DARK:
+            return "dark"
+    except Exception:
+        pass
+    return "light"
+
+def _resolve_save_dialog_palette():
+    settings_data = _load_settings_data()
+    appearance = settings_data.get("Appearance", {}) or {}
+    theme_id = appearance.get("ThemeId", cfg.themeId.value)
+    theme_mode = _normalize_theme_mode(appearance.get("ThemeMode", cfg.themeMode.value))
+    theme_palette = THEMES.get(theme_id, THEMES["default"]).get(theme_mode, THEMES["default"][theme_mode])
+    is_dark = theme_mode == "dark"
+
+    palette = {
+        "darkMode": is_dark,
+        "windowBg": "#181818" if is_dark else "#FFFFFF",
+        "dialogBg": "#991E1E1E" if is_dark else "#99FFFFFF",  # 0.6 opacity -> 0.6 * 255 = 153 ≈ 0x99
+        "dialogBorder": "#0AFFFFFF" if is_dark else "#0A000000", # 0.04 opacity -> 10 ≈ 0x0A (视觉减弱描边粗度)
+        "dialogTitle": "#E5E5E5" if is_dark else "#191919",
+        "dialogText": "#E5E5E5" if is_dark else "#191919",
+        "textSecondary": "#909090" if is_dark else "#666666",
+        "accent": theme_palette.get("accent", "#4A85F6" if is_dark else "#3275F5"),
+        "buttonHover": theme_palette.get("item_hover", "#0FFFFFFF" if is_dark else "#0A000000"), # 0.06 -> 0x0F, 0.04 -> 0x0A
+        "buttonActive": theme_palette.get("btn_active_bg", "#1EFFFFFF" if is_dark else "#1E000000"), # 0.12 -> 0x1E
+        "cardShadow": "#26000000" if is_dark else "#08000000", # 0.15 -> 0x26, 0.03 -> 0x08
+    }
+
+    if theme_id == "year-of-horse":
+        palette.update({
+            "windowBg": "#3A0E0E" if is_dark else "#FFF0F0",
+            "dialogBg": "rgba(255, 69, 0, 0.10)" if is_dark else "rgba(255, 235, 238, 0.95)",
+            "dialogBorder": "rgba(255, 69, 0, 0.30)" if is_dark else "rgba(211, 47, 47, 0.25)",
+            "dialogTitle": "#FFD700" if is_dark else "#B71C1C",
+            "dialogText": "#FFB347" if is_dark else "#B71C1C",
+            "accent": "#FF4500" if is_dark else "#D32F2F",
+            "buttonHover": "rgba(255, 69, 0, 0.22)" if is_dark else "rgba(255, 0, 0, 0.12)",
+            "buttonActive": "rgba(255, 69, 0, 0.30)" if is_dark else "rgba(211, 47, 47, 0.25)",
+            "cardShadow": "rgba(0, 0, 0, 0.40)" if is_dark else "rgba(180, 0, 0, 0.08)",
+        })
+    elif theme_id != "default":
+        popup_bg = theme_palette.get("popup_bg", "")
+        palette.update({
+            "windowBg": popup_bg if popup_bg else palette["windowBg"],
+            "dialogBg": theme_palette.get("popup_border", palette["dialogBg"]),  # use a subtle tint
+            "dialogBorder": theme_palette.get("popup_border", palette["dialogBorder"]),
+            "dialogTitle": theme_palette.get("popup_fg", palette["dialogTitle"]),
+            "dialogText": theme_palette.get("popup_fg", palette["dialogText"]),
+            "cardShadow": theme_palette.get("toolbar_shadow", palette["cardShadow"]),
+        })
+
+    return palette
+
+
+def _apply_dialog_window_theme(hwnd, is_dark):
+    """Apply DWM dark/light mode to give the dialog window the correct title bar colour."""
+    import sys
+    if sys.platform != "win32" or not hwnd:
+        return
+    try:
+        import ctypes
+        dwmapi = ctypes.windll.dwmapi
+        uxtheme = ctypes.windll.uxtheme
+        user32 = ctypes.windll.user32
+        DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+        DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19
+        DWMWA_CAPTION_COLOR = 35
+        DWMWA_TEXT_COLOR = 36
+        DWMWA_BORDER_COLOR = 34
+        _DWM_COLOR_DEFAULT = 0xFFFFFFFF
+        val = ctypes.c_int(1 if is_dark else 0)
+        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ctypes.byref(val), ctypes.sizeof(val))
+        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, ctypes.byref(val), ctypes.sizeof(val))
+        if is_dark:
+            caption = ctypes.c_int(0x00181818)
+            text_col = ctypes.c_int(0x00FFFFFF)
+            border = ctypes.c_int(0x00181818)
+        else:
+            caption = ctypes.c_int(_DWM_COLOR_DEFAULT)
+            text_col = ctypes.c_int(_DWM_COLOR_DEFAULT)
+            border = ctypes.c_int(_DWM_COLOR_DEFAULT)
+        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, ctypes.byref(caption), ctypes.sizeof(caption))
+        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_TEXT_COLOR, ctypes.byref(text_col), ctypes.sizeof(text_col))
+        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ctypes.byref(border), ctypes.sizeof(border))
+        theme = "DarkMode_Explorer" if is_dark else "Explorer"
+        uxtheme.SetWindowTheme(hwnd, ctypes.c_wchar_p(theme), None)
+        flags = 0x0001 | 0x0002 | 0x0004 | 0x0020
+        user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, flags)
+    except Exception:
+        pass
+
 def _load_board_toolbar_position():
     position, _, _, _, _, _ = _read_board_settings()
     return position
@@ -135,6 +240,7 @@ _TRANSLATIONS = {
         "dialog.save_strokes_text": "是否保留本次笔迹？",
         "dialog.save_strokes_yes": "保留",
         "dialog.save_strokes_no": "不保留",
+        "dialog.cancel": "取消",
     },
     "zh-TW": {
         "watermark.1": "開發中版本",
@@ -152,6 +258,7 @@ _TRANSLATIONS = {
         "dialog.save_strokes_text": "是否保留本次筆跡？",
         "dialog.save_strokes_yes": "保留",
         "dialog.save_strokes_no": "不保留",
+        "dialog.cancel": "取消",
     },
     "yue-HK": {
         "watermark.1": "開發中版本",
@@ -169,6 +276,7 @@ _TRANSLATIONS = {
         "dialog.save_strokes_text": "要唔要留低呢堆筆跡？",
         "dialog.save_strokes_yes": "留低",
         "dialog.save_strokes_no": "唔留",
+        "dialog.cancel": "取消",
     },
     "en-US": {
         "watermark.1": "Dev Build",
@@ -186,6 +294,7 @@ _TRANSLATIONS = {
         "dialog.save_strokes_text": "Keep current strokes?",
         "dialog.save_strokes_yes": "Keep",
         "dialog.save_strokes_no": "Don't Keep",
+        "dialog.cancel": "Cancel",
     },
     "ja-JP": {
         "watermark.1": "開発中のバージョン",
@@ -203,6 +312,7 @@ _TRANSLATIONS = {
         "dialog.save_strokes_text": "今回の筆跡を保存しますか？",
         "dialog.save_strokes_yes": "保存する",
         "dialog.save_strokes_no": "保存しない",
+        "dialog.cancel": "キャンセル",
     }
 }
 
@@ -263,10 +373,144 @@ class BoardBackend(QObject):
     def isMaximized(self):
         return self._window.windowState() == Qt.WindowMaximized
 
+class SaveStrokesDialogBridge(QObject):
+    saveRequested = Signal()
+    discardRequested = Signal()
+    cancelRequested = Signal()
+
+    @Slot()
+    def chooseSave(self):
+        self.saveRequested.emit()
+
+    @Slot()
+    def chooseDiscard(self):
+        self.discardRequested.emit()
+
+    @Slot()
+    def chooseCancel(self):
+        self.cancelRequested.emit()
+
+class SaveStrokesDialog(QQuickView):
+    ResultCancel = 0
+    ResultSave = 1
+    ResultDiscard = 2
+
+    def __init__(self, owner_window, title, text, save_text, discard_text, cancel_text):
+        super().__init__()
+        self._owner_window = owner_window
+        self._result = self.ResultCancel
+        self._loop = None
+        self._closing = False
+
+        self.setResizeMode(QQuickView.SizeRootObjectToView)
+        self.setTitle(title)
+        self.setFlags(
+            Qt.Dialog
+            | Qt.WindowTitleHint
+            | Qt.WindowSystemMenuHint
+            | Qt.WindowCloseButtonHint
+            | Qt.MSWindowsFixedSizeDialogHint
+        )
+        self.setModality(Qt.ApplicationModal)
+        if self._owner_window is not None:
+            try:
+                self.setTransientParent(self._owner_window)
+            except Exception:
+                pass
+        icon = load_app_icon()
+        if not icon.isNull():
+            self.setIcon(icon)
+
+        self._bridge = SaveStrokesDialogBridge(self)
+        self._bridge.saveRequested.connect(lambda: self._finish(self.ResultSave))
+        self._bridge.discardRequested.connect(lambda: self._finish(self.ResultDiscard))
+        self._bridge.cancelRequested.connect(lambda: self._finish(self.ResultCancel))
+
+        palette = _resolve_save_dialog_palette()
+        self._is_dark = palette["darkMode"]
+        context = self.rootContext()
+        context.setContextProperty("dialogBridge", self._bridge)
+        context.setContextProperty("dialogTitle", title)
+        context.setContextProperty("dialogMessage", text)
+        context.setContextProperty("dialogConfirmText", save_text)
+        context.setContextProperty("dialogDiscardText", discard_text)
+        context.setContextProperty("dialogCancelText", cancel_text)
+        context.setContextProperty("dialogWindowBg", palette["windowBg"])
+        context.setContextProperty("dialogBgApp", palette["dialogBg"])
+        context.setContextProperty("dialogTextPrimary", palette["dialogTitle"])
+        context.setContextProperty("dialogTextSecondary", palette.get("textSecondary", palette["dialogText"]))
+        context.setContextProperty("dialogAccent", palette["accent"])
+        context.setContextProperty("dialogDivider", palette["dialogBorder"])
+        context.setContextProperty("dialogItemHover", palette["buttonHover"])
+        context.setContextProperty("dialogButtonActive", palette["buttonActive"])
+        context.setContextProperty("dialogCardShadow", palette["cardShadow"])
+        context.setContextProperty("dialogDarkMode", palette["darkMode"])
+
+        qml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SaveStrokesDialog.qml")
+        self.setSource(QUrl.fromLocalFile(qml_path))
+        root = self.rootObject()
+        width = int(root.property("implicitWidth")) if root and root.property("implicitWidth") else 452
+        height = int(root.property("implicitHeight")) if root and root.property("implicitHeight") else 214
+        self.setColor(QColor(palette["windowBg"]))
+        self.resize(width, height)
+        self.setMinimumSize(QSize(width, height))
+        self.setMaximumSize(QSize(width, height))
+        self._center_to_owner()
+
+    def _center_to_owner(self):
+        if self._owner_window is None:
+            return
+        geometry = self._owner_window.geometry()
+        x = geometry.x() + max(0, (geometry.width() - self.width()) // 2)
+        y = geometry.y() + max(0, (geometry.height() - self.height()) // 2)
+        self.setPosition(x, y)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._center_to_owner()
+        try:
+            hwnd = int(self.winId())
+            _apply_dialog_window_theme(hwnd, self._is_dark)
+        except Exception:
+            pass
+        try:
+            self.raise_()
+            self.requestActivate()
+        except Exception:
+            pass
+
+    def _finish(self, result):
+        if self._closing:
+            return
+        self._closing = True
+        self._result = result
+        try:
+            self.hide()
+            self.close()
+        finally:
+            if self._loop is not None and self._loop.isRunning():
+                self._loop.quit()
+
+    def closeEvent(self, event):
+        if not self._closing:
+            self._result = self.ResultCancel
+            self._closing = True
+            if self._loop is not None and self._loop.isRunning():
+                self._loop.quit()
+        super().closeEvent(event)
+
+    @classmethod
+    def ask(cls, owner_window, title, text, save_text, discard_text, cancel_text):
+        dialog = cls(owner_window, title, text, save_text, discard_text, cancel_text)
+        dialog.show()
+        dialog._loop = QEventLoop()
+        dialog._loop.exec()
+        return dialog._result
+
 class BoardWindow(QQuickView):
     def __init__(self):
         super().__init__()
-        self.setTitle("板中板 - Kazuha")
+        self.setTitle("板中板 - Luminalium")
         self.setResizeMode(QQuickView.SizeRootObjectToView)
         
         # Native window with restricted flags
@@ -449,22 +693,20 @@ class BoardWindow(QQuickView):
                 print("Canvas object not found in closeEvent")
                 
             if strokes and len(strokes) > 0:
-                # Show native dialog
-                msg_box = QMessageBox()
-                msg_box.setWindowTitle(_t("dialog.save_strokes_title"))
-                msg_box.setText(_t("dialog.save_strokes_text"))
-                yes_btn = msg_box.addButton(_t("dialog.save_strokes_yes"), QMessageBox.YesRole)
-                no_btn = msg_box.addButton(_t("dialog.save_strokes_no"), QMessageBox.NoRole)
-                cancel_btn = msg_box.addButton(QMessageBox.Cancel)
-                
-                msg_box.exec()
-                
-                clicked = msg_box.clickedButton()
-                if clicked == yes_btn:
+                dialog_result = SaveStrokesDialog.ask(
+                    self,
+                    _t("dialog.save_strokes_title"),
+                    _t("dialog.save_strokes_text"),
+                    _t("dialog.save_strokes_yes"),
+                    _t("dialog.save_strokes_no"),
+                    _t("dialog.cancel"),
+                )
+
+                if dialog_result == SaveStrokesDialog.ResultSave:
                     # Save strokes
                     with open(self.strokes_path, "w", encoding="utf-8") as f:
                         json.dump(strokes, f, cls=ColorEncoder)
-                elif clicked == no_btn:
+                elif dialog_result == SaveStrokesDialog.ResultDiscard:
                     # Clear strokes
                     if os.path.exists(self.strokes_path):
                         os.remove(self.strokes_path)

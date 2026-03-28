@@ -161,7 +161,7 @@ class OverlayWindow(QWebEngineView):
         # Configure WebEngine profile before any page operations
         try:
             profile = self.page().profile()
-            cache_path = os.path.join(tempfile.gettempdir(), "kazuha_overlay_cache")
+            cache_path = os.path.join(tempfile.gettempdir(), "luminalium_overlay_cache")
             
             # Clear old cache directory if it exists and is too large (corrupted)
             if os.path.exists(cache_path):
@@ -185,10 +185,15 @@ class OverlayWindow(QWebEngineView):
             # Disable problematic features that cause heap corruption
             settings = self.page().settings()
             from PySide6.QtWebEngineCore import QWebEngineSettings
-            settings.setAttribute(QWebEngineSettings.WebAttribute.LocalStorageEnabled, False)
-            settings.setAttribute(QWebEngineSettings.WebAttribute.SessionStorageEnabled, False)
-            settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, False)
-            settings.setAttribute(QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, False)
+            for attr_name, enabled in [
+                ("LocalStorageEnabled", False),
+                ("SessionStorageEnabled", False),
+                ("WebGLEnabled", False),
+                ("Accelerated2dCanvasEnabled", False),
+            ]:
+                attr = getattr(QWebEngineSettings.WebAttribute, attr_name, None)
+                if attr is not None:
+                    settings.setAttribute(attr, enabled)
         except Exception as e:
             print(f"[Overlay] Error configuring profile: {e}", file=sys.stderr)
         

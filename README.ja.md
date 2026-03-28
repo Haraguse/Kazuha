@@ -3,11 +3,11 @@
 
 
     
-[![Latest Release](https://img.shields.io/github/v/release/SECTL/Kazuha?style=for-the-badge)](https://github.com/SECTL/Kazuha/releases)
-[![License](https://img.shields.io/github/license/SECTL/Kazuha?style=for-the-badge)](https://github.com/SECTL/Kazuha/blob/main/LICENSE) 
-[![GitHub Stars](https://img.shields.io/github/stars/SECTL/Kazuha?style=for-the-badge&color=yellow)](https://github.com/SECTL/Kazuha/stargazers)
-[![Total Downloads](https://img.shields.io/github/downloads/SECTL/Kazuha/total?style=for-the-badge)](https://github.com/SECTL/Kazuha/releases) 
-[![Open Issues](https://img.shields.io/github/issues-raw/SECTL/Kazuha?style=for-the-badge&color=red)](https://github.com/SECTL/Kazuha/issues)
+[![Latest Release](https://img.shields.io/github/v/release/SECTL/Luminalium?style=for-the-badge)](https://github.com/SECTL/Luminalium/releases)
+[![License](https://img.shields.io/github/license/SECTL/Luminalium?style=for-the-badge)](https://github.com/SECTL/Luminalium/blob/main/LICENSE) 
+[![GitHub Stars](https://img.shields.io/github/stars/SECTL/Luminalium?style=for-the-badge&color=yellow)](https://github.com/SECTL/Luminalium/stargazers)
+[![Total Downloads](https://img.shields.io/github/downloads/SECTL/Luminalium/total?style=for-the-badge)](https://github.com/SECTL/Luminalium/releases) 
+[![Open Issues](https://img.shields.io/github/issues-raw/SECTL/Luminalium?style=for-the-badge&color=red)](https://github.com/SECTL/Luminalium/issues)
 [![QQ Group](https://img.shields.io/badge/-QQ%E7%BE%A4%EF%BD%9C833875216-blue?style=for-the-badge&logo=QQ)](https://qm.qq.com/q/iWcfaPHn7W)
 
 [简体中文](README.md) | [English](README.en.md) | [日本語](README.ja.md)
@@ -23,7 +23,7 @@
 
 ## 主な機能
 
-Kazuha は、教室での授業やリモート会議向けに、シンプルで効率的なプレゼン体験を提供します。
+Luminalium は、教室での授業やリモート会議向けに、シンプルで効率的なプレゼン体験を提供します。
 
 ### 画面注釈
 
@@ -44,7 +44,7 @@ Kazuha は、教室での授業やリモート会議向けに、シンプルで�
 
 ### 3. 高度なカスタマイズ
 
-Kazuha は柔軟なカスタマイズ性を提供し、個人の習慣やプレゼン用途に合わせて調整できます。
+Luminalium は柔軟なカスタマイズ性を提供し、個人の習慣やプレゼン用途に合わせて調整できます。
 
 
 
@@ -53,23 +53,23 @@ Kazuha は柔軟なカスタマイズ性を提供し、個人の習慣やプレ�
 ## プロジェクト概要
 
 <div align="center">
-    <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=TCYKyousen&repo=Kazuha&layout=compact&theme=vision-friendly-light&hide_border=true" alt="Top Languages Chart" />
+    <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=TCYKyousen&repo=Luminalium&layout=compact&theme=vision-friendly-light&hide_border=true" alt="Top Languages Chart" />
 </div>
 
 ---
 
 ## ダウンロードとコミュニティ
 
-Kazuha は長期的に **不安定な段階** にあります。以下のリンクから **QQ グループ** に参加するか、[Release ページ](https://github.com/SECTL/Kazuha/releases) で最新バージョンを入手してください。
+Luminalium は長期的に **不安定な段階** にあります。以下のリンクから **QQ グループ** に参加するか、[Release ページ](https://github.com/SECTL/Luminalium/releases) で最新バージョンを入手してください。
 
 ---
 
 ## 貢献者
-Kazuha プロジェクトに貢献してくれた皆さんに感謝します！
+Luminalium プロジェクトに貢献してくれた皆さんに感謝します！
 
 <div align="center">
-    <a href="https://github.com/SECTL/Kazuha/graphs/contributors">
-        <img src="https://contrib.rocks/image?repo=SECTL/Kazuha" />
+    <a href="https://github.com/SECTL/Luminalium/graphs/contributors">
+        <img src="https://contrib.rocks/image?repo=SECTL/Luminalium" />
     </a>
 </div>
 
@@ -79,5 +79,5 @@ Kazuha プロジェクトに貢献してくれた皆さんに感謝します！
 
 あらゆる形の貢献とフィードバックを歓迎します！
 
-* 初めての作品です。[**Issue**](https://github.com/SECTL/Kazuha/issues) からバグ報告や機能要望をお寄せください。
-* [**拉取请求**](https://github.com/SECTL/Kazuha/pulls) も歓迎します。コード改善にご協力ください。
+* 初めての作品です。[**Issue**](https://github.com/SECTL/Luminalium/issues) からバグ報告や機能要望をお寄せください。
+* [**拉取请求**](https://github.com/SECTL/Luminalium/pulls) も歓迎します。コード改善にご協力ください。

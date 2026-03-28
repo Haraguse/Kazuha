@@ -7,11 +7,13 @@ class TimerWorker(QObject):
     def __init__(self):
         super().__init__()
         self.timer = None
+        self.total_seconds = 0.0
         self.remaining_seconds = 0.0
         self.is_running = False
 
     @Slot(int)
     def start(self, seconds):
+        self.total_seconds = float(seconds)
         self.remaining_seconds = float(seconds)
         self.is_running = True
         if not self.timer:
@@ -124,6 +126,10 @@ class TimerManager(QObject):
         # Accessing worker state from main thread is not strictly thread-safe without mutex
         # But for reading a float/bool it's usually fine in Python due to GIL
         return self._worker.remaining_seconds
+
+    @property
+    def total_seconds(self):
+        return self._worker.total_seconds
 
     @property
     def is_running(self):

@@ -7,14 +7,18 @@ import subprocess
 import base64
 from json import JSONDecodeError
 
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
 if sys.platform == "linux" and "QT_QPA_PLATFORM" not in os.environ:
     os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 from PySide6.QtWidgets import QApplication, QFileDialog
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineSettings, QWebEngineProfile
+from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineSettings, QWebEngineProfile, QWebEnginePage
 from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtCore import QObject, Slot, QUrl, QFile, QIODevice, Qt, QTimer, QBuffer, QByteArray, QJsonValue, QCoreApplication
+from PySide6.QtCore import QObject, Slot, QUrl, QFile, QIODevice, Qt, QTimer, QBuffer, QByteArray, QJsonValue, QCoreApplication, QStandardPaths
 from PySide6.QtGui import QColor, QImage, QGuiApplication, QIcon
 from ppt_assistant.core.icon_helper import get_file_icon_base64
 from ppt_assistant.core.platform_integration import (
@@ -33,11 +37,14 @@ DWMWA_SYSTEMBACKDROP_TYPE = 38
 _DWM_COLOR_NONE = 0xFFFFFFFE
 _DWM_COLOR_DEFAULT = 0xFFFFFFFF
 _EXISTING_WINDOW_NOTIFY_MESSAGE = 0
+_SHARED_PROFILE = None
+_WEBENGINE_WARMUP_PAGE = None
+_WEBENGINE_WARMUP_DONE = False
 
 if sys.platform == "win32":
     try:
         _EXISTING_WINDOW_NOTIFY_MESSAGE = ctypes.windll.user32.RegisterWindowMessageW(
-            "Kazuha.WebView.NotifyExistingWindow"
+            "Luminalium.WebView.NotifyExistingWindow"
         )
     except Exception:
         _EXISTING_WINDOW_NOTIFY_MESSAGE = 0
@@ -273,6 +280,129 @@ def _get_screen_refresh_rate():
     except:
         return 60
 
+
+def _configure_profile(profile):
+    if profile is None:
+        return None
+    if getattr(profile, "_luminalium_configured", False):
+        return profile
+
+    storage_root = None
+    cache_root = None
+    storage_candidates = []
+    cache_candidates = []
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if local_app_data:
+        storage_candidates.append(os.path.join(local_app_data, "Luminalium", "QtWebEngine", "storage"))
+        cache_candidates.append(os.path.join(local_app_data, "Luminalium", "QtWebEngine", "cache"))
+    try:
+        app_data_location = QStandardPaths.writableLocation(QStandardPaths.AppLocalDataLocation)
+        if app_data_location:
+            storage_candidates.append(os.path.join(app_data_location, "QtWebEngine", "storage"))
+        cache_location = QStandardPaths.writableLocation(QStandardPaths.CacheLocation)
+        if cache_location:
+            cache_candidates.append(os.path.join(cache_location, "QtWebEngine", "cache"))
+    except Exception:
+        pass
+    storage_candidates.append(os.path.join(tempfile.gettempdir(), "Luminalium", "QtWebEngine", "storage"))
+    cache_candidates.append(os.path.join(tempfile.gettempdir(), "Luminalium", "QtWebEngine", "cache"))
+
+    for candidate in storage_candidates:
+        try:
+            os.makedirs(candidate, exist_ok=True)
+            storage_root = candidate
+            break
+        except Exception:
+            continue
+    for candidate in cache_candidates:
+        try:
+            os.makedirs(candidate, exist_ok=True)
+            cache_root = candidate
+            break
+        except Exception:
+            continue
+
+    try:
+        if storage_root:
+            profile.setPersistentStoragePath(storage_root)
+        if cache_root:
+            # Keep cache process-local to avoid Chromium lock/contention issues.
+            cache_path = os.path.join(cache_root, f"pid-{os.getpid()}")
+            os.makedirs(cache_path, exist_ok=True)
+            profile.setCachePath(cache_path)
+            profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
+            profile.setHttpCacheMaximumSize(50 * 1024 * 1024)  # 50 MB
+        else:
+            profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.MemoryHttpCache)
+    except Exception:
+        pass
+    try:
+        profile._luminalium_configured = True
+    except Exception:
+        pass
+    return profile
+
+
+def _get_shared_profile():
+    global _SHARED_PROFILE
+    if _SHARED_PROFILE is None:
+        app = QCoreApplication.instance()
+        _SHARED_PROFILE = QWebEngineProfile("LuminaliumSharedProfile", app)
+    return _configure_profile(_SHARED_PROFILE)
+
+
+def _warmup_webengine():
+    global _WEBENGINE_WARMUP_PAGE, _WEBENGINE_WARMUP_DONE
+    if _WEBENGINE_WARMUP_DONE:
+        return
+    try:
+        profile = _get_shared_profile()
+        app = QCoreApplication.instance()
+        if profile is None or app is None:
+            return
+        page = QWebEnginePage(profile, app)
+        page.setBackgroundColor(Qt.transparent)
+
+        def _finish(*_args):
+            global _WEBENGINE_WARMUP_PAGE, _WEBENGINE_WARMUP_DONE
+            if _WEBENGINE_WARMUP_DONE:
+                return
+            _WEBENGINE_WARMUP_DONE = True
+            _WEBENGINE_WARMUP_PAGE = None
+            try:
+                page.deleteLater()
+            except Exception:
+                pass
+
+        page.loadFinished.connect(_finish)
+        QTimer.singleShot(1500, _finish)
+        page.setHtml("<!doctype html><html><head></head><body></body></html>", QUrl("about:blank"))
+        _WEBENGINE_WARMUP_PAGE = page
+    except Exception:
+        _WEBENGINE_WARMUP_DONE = True
+
+
+def _should_defer_initial_load(url, title, explicit_defer=False):
+    if explicit_defer:
+        return True
+    try:
+        qurl = QUrl.fromUserInput(str(url))
+    except Exception:
+        qurl = QUrl()
+    title_text = str(title or "").lower()
+    if title_text == "settings" or "onboarding" in title_text or "timer plugin" in title_text:
+        return True
+    if qurl.isLocalFile():
+        try:
+            local_path = qurl.toLocalFile()
+            if local_path and os.path.exists(local_path):
+                size = os.path.getsize(local_path)
+                if size >= 80 * 1024:
+                    return True
+        except Exception:
+            pass
+    return False
+
 def _apply_chromium_flags():
     _maybe_add_vxkex_path()
     flags = [
@@ -295,7 +425,7 @@ def _apply_chromium_flags():
     
     rate = _get_screen_refresh_rate()
     target_fps = rate * 3
-    os.environ["KAZUHA_TARGET_FPS"] = str(target_fps)
+    os.environ["LUMINALIUM_TARGET_FPS"] = str(target_fps)
 
 
     current = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
@@ -389,7 +519,7 @@ def _set_run_at_startup(enable):
     import winreg
     key = winreg.HKEY_CURRENT_USER
     sub_key = r"Software\Microsoft\Windows\CurrentVersion\Run"
-    app_name = "Kazuha"
+    app_name = "Luminalium"
     
     exe_path, work_dir, args, icon_path = _resolve_app_paths()
     cmd = f'"{exe_path}" {args}' if args else f'"{exe_path}"'
@@ -412,7 +542,7 @@ def _pin_to_start(enable):
         programs_path = os.path.join(os.environ["APPDATA"], r"Microsoft\Windows\Start Menu\Programs")
         if not os.path.exists(programs_path):
             return
-        shortcut_path = os.path.join(programs_path, "Kazuha.lnk")
+        shortcut_path = os.path.join(programs_path, "Luminalium.lnk")
         
         if enable:
             exe_path, work_dir, args, icon_path = _resolve_app_paths()
@@ -443,14 +573,14 @@ def _pin_to_taskbar(enable):
         # Since we might have args (dev mode), we need to pin the shortcut.
         
         # Let's create a temporary shortcut
-        temp_dir = os.path.join(os.environ["TEMP"], "Kazuha_Pin")
+        temp_dir = os.path.join(os.environ["TEMP"], "Luminalium_Pin")
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
-        shortcut_path = os.path.join(temp_dir, "Kazuha.lnk")
+        shortcut_path = os.path.join(temp_dir, "Luminalium.lnk")
         _create_shortcut(exe_path, shortcut_path, work_dir, icon_path, args)
         
         folder = shell.Namespace(temp_dir)
-        item = folder.ParseName("Kazuha.lnk")
+        item = folder.ParseName("Luminalium.lnk")
         
         # Verbs are localized. This is the problem.
         # English: "Pin to Taskbar"
@@ -483,9 +613,9 @@ def _pin_to_taskbar(enable):
              # Ensure start menu shortcut exists first
              _pin_to_start(True)
              programs_path = os.path.join(os.environ["APPDATA"], r"Microsoft\Windows\Start Menu\Programs")
-             shortcut_path = os.path.join(programs_path, "Kazuha.lnk")
+             shortcut_path = os.path.join(programs_path, "Luminalium.lnk")
              folder = shell.Namespace(programs_path)
-             item = folder.ParseName("Kazuha.lnk")
+             item = folder.ParseName("Luminalium.lnk")
              if item:
                  verbs = item.Verbs()
                  for v in verbs:
@@ -501,6 +631,7 @@ class Api(QObject):
     def __init__(self, window=None):
         super().__init__()
         self._window = window
+        self._in_process = False
         self.settings = {}
         self.version = {}
         self.dialog_data = {}
@@ -508,6 +639,16 @@ class Api(QObject):
 
     def set_window(self, window):
         self._window = window
+
+    def set_in_process(self, enabled=True):
+        self._in_process = bool(enabled)
+
+    def _close_current_window(self):
+        if self._window:
+            try:
+                self._window.close()
+            except Exception:
+                pass
 
     def _get_window_hwnd(self):
         if not self._window:
@@ -559,11 +700,11 @@ class Api(QObject):
                 return false;
             }}
             text.textContent = message;
-            if (window.__kazuhaExistingWindowToastTimer) {{
-                clearTimeout(window.__kazuhaExistingWindowToastTimer);
+            if (window.__luminaliumExistingWindowToastTimer) {{
+                clearTimeout(window.__luminaliumExistingWindowToastTimer);
             }}
             toast.classList.add("show");
-            window.__kazuhaExistingWindowToastTimer = window.setTimeout(() => {{
+            window.__luminaliumExistingWindowToastTimer = window.setTimeout(() => {{
                 toast.classList.remove("show");
             }}, 2200);
             return true;
@@ -571,12 +712,12 @@ class Api(QObject):
         if (typeof window.showExistingWindowToast === "function") {{
             window.showExistingWindowToast(message);
         }} else if (!showExistingToast()) {{
-            let style = document.getElementById("kazuha-existing-window-toast-style");
+            let style = document.getElementById("luminalium-existing-window-toast-style");
             if (!style) {{
                 style = document.createElement("style");
-                style.id = "kazuha-existing-window-toast-style";
+                style.id = "luminalium-existing-window-toast-style";
                 style.textContent = `
-                    .kazuha-existing-window-toast {{
+                    .luminalium-existing-window-toast {{
                         position: fixed;
                         left: 50%;
                         bottom: 60px;
@@ -598,11 +739,11 @@ class Api(QObject):
                         transition: opacity 0.2s ease, transform 0.2s ease;
                         z-index: 2147483647;
                     }}
-                    .kazuha-existing-window-toast.show {{
+                    .luminalium-existing-window-toast.show {{
                         opacity: 1;
                         transform: translateX(-50%) translateY(0);
                     }}
-                    .kazuha-existing-window-toast__icon {{
+                    .luminalium-existing-window-toast__icon {{
                         width: 10px;
                         height: 10px;
                         flex: 0 0 auto;
@@ -610,40 +751,40 @@ class Api(QObject):
                         background: #3275F5;
                         box-shadow: 0 0 0 4px rgba(50, 117, 245, 0.18);
                     }}
-                    .kazuha-existing-window-toast__text {{
+                    .luminalium-existing-window-toast__text {{
                         white-space: nowrap;
                         overflow: hidden;
                         text-overflow: ellipsis;
                     }}
-                    [data-theme="dark"] .kazuha-existing-window-toast {{
+                    [data-theme="dark"] .luminalium-existing-window-toast {{
                         background: rgba(45, 45, 45, 0.92);
                         border: 0.5px solid rgba(255, 255, 255, 0.14);
                     }}
                 `;
                 (document.head || document.documentElement).appendChild(style);
             }}
-            let toast = document.getElementById("kazuha-existing-window-toast");
+            let toast = document.getElementById("luminalium-existing-window-toast");
             if (!toast) {{
                 toast = document.createElement("div");
-                toast.id = "kazuha-existing-window-toast";
-                toast.className = "kazuha-existing-window-toast";
-                toast.innerHTML = '<div class="kazuha-existing-window-toast__icon"></div><div class="kazuha-existing-window-toast__text"></div>';
+                toast.id = "luminalium-existing-window-toast";
+                toast.className = "luminalium-existing-window-toast";
+                toast.innerHTML = '<div class="luminalium-existing-window-toast__icon"></div><div class="luminalium-existing-window-toast__text"></div>';
                 (document.body || document.documentElement).appendChild(toast);
             }}
-            const text = toast.querySelector(".kazuha-existing-window-toast__text");
+            const text = toast.querySelector(".luminalium-existing-window-toast__text");
             if (text) {{
                 text.textContent = message;
             }}
-            if (window.__kazuhaExistingWindowToastTimer) {{
-                clearTimeout(window.__kazuhaExistingWindowToastTimer);
+            if (window.__luminaliumExistingWindowToastTimer) {{
+                clearTimeout(window.__luminaliumExistingWindowToastTimer);
             }}
             toast.classList.add("show");
-            window.__kazuhaExistingWindowToastTimer = window.setTimeout(() => {{
+            window.__luminaliumExistingWindowToastTimer = window.setTimeout(() => {{
                 toast.classList.remove("show");
             }}, 2200);
         }}
         try {{
-            window.dispatchEvent(new CustomEvent("kazuha:existing-window-toast", {{ detail: {{ message }} }}));
+            window.dispatchEvent(new CustomEvent("luminalium:existing-window-toast", {{ detail: {{ message }} }}));
         }} catch (eventError) {{}}
     }} catch (e) {{}}
 }})();
@@ -1155,7 +1296,7 @@ class Api(QObject):
     @Slot(str)
     def notify_existing_window(self, message):
         self.show_window()
-        self._show_existing_window_toast(message)
+        self._show_existing_window_toast = lambda x: None
 
     @Slot(str)
     def open_browser(self, url):
@@ -1236,9 +1377,9 @@ class Api(QObject):
     def on_confirm(self):
         print("DIALOG_CONFIRMED")
         sys.stdout.flush()
-        if self._window:
-            self._window.close()
-        sys.exit(0)
+        self._close_current_window()
+        if not self._in_process:
+            sys.exit(0)
 
     @Slot(str)
     def on_confirm_with_value(self, value):
@@ -1249,17 +1390,17 @@ class Api(QObject):
         print(f"DIALOG_VALUE:{payload}")
         print("DIALOG_CONFIRMED")
         sys.stdout.flush()
-        if self._window:
-            self._window.close()
-        sys.exit(0)
+        self._close_current_window()
+        if not self._in_process:
+            sys.exit(0)
 
     @Slot()
     def on_cancel(self):
         print("DIALOG_CANCELLED")
         sys.stdout.flush()
-        if self._window:
-            self._window.close()
-        sys.exit(0)
+        self._close_current_window()
+        if not self._in_process:
+            sys.exit(0)
     @Slot()
     def open_onboarding_preview(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -1456,6 +1597,7 @@ def _get_qwebchannel_js():
 class MainWindow(QWebEngineView):
     def __init__(self, title, url, api, width, height, theme_mode="auto", custom_border=False, defer_load=False):
         super().__init__()
+        self.setPage(QWebEnginePage(_get_shared_profile(), self))
         self.setWindowTitle(title)
         self.resize(width, height)
         try:
@@ -1484,14 +1626,7 @@ class MainWindow(QWebEngineView):
         settings.setAttribute(QWebEngineSettings.WebAttribute.ScrollAnimatorEnabled, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.AutoLoadImages, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, False)
-
-        # Configure disk cache
-        profile = self.page().profile()
-        cache_path = os.path.join(tempfile.gettempdir(), "kazuha_webengine_cache")
-        profile.setCachePath(cache_path)
-        profile.setPersistentStoragePath(cache_path)
-        profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
-        profile.setHttpCacheMaximumSize(50 * 1024 * 1024)  # 50 MB
+        _configure_profile(self.page().profile())
         self.api = api
         self.api.set_window(self)
         self._apply_page_background()
@@ -1899,8 +2034,8 @@ def apply_win11_aesthetics(window, theme_mode=None, settings=None, window_tag=""
 
 def main():
     _apply_chromium_flags()
-    QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     app = QApplication(sys.argv)
+    _warmup_webengine()
     icon = _load_app_icon()
     if not icon.isNull():
         app.setWindowIcon(icon)
@@ -1972,6 +2107,7 @@ def main():
             win_width = 650
             win_height = 500
         defer_load = os.environ.get("DEFER_WEBENGINE_LOAD", "").strip().lower() in ["1", "true", "yes", "on"]
+        defer_load = _should_defer_initial_load(html_path, dialog_data.get("title", "Dialog"), defer_load)
         window = MainWindow(
             dialog_data.get("title", "Dialog"),
             html_path,
@@ -2016,6 +2152,7 @@ def main():
             api.version = {}
         theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
         defer_load = os.environ.get("DEFER_WEBENGINE_LOAD", "").strip().lower() in ["1", "true", "yes", "on"]
+        defer_load = _should_defer_initial_load(url, title, defer_load)
         window = MainWindow(title, url, api, width, height, theme_mode, custom_border, defer_load)
         if title == "Settings":
             window.setMinimumWidth(1099)

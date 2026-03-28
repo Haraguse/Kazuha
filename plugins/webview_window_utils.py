@@ -2,7 +2,7 @@ import ctypes
 import sys
 from ctypes import wintypes
 
-_EXISTING_WINDOW_NOTIFY_MESSAGE = "Kazuha.WebView.NotifyExistingWindow"
+_EXISTING_WINDOW_NOTIFY_MESSAGE = "Luminalium.WebView.NotifyExistingWindow"
 
 
 def find_window(title, pid=None):

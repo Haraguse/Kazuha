@@ -3,6 +3,6 @@
     "entry": "plugin.TimerPlugin",
     "icon": "timer.svg",
     "version": "1.0.0",
-    "description": "Kazuha 的定时器插件。",
+    "description": "Luminalium 的定时器插件。",
     "type": "toolbar"
 }

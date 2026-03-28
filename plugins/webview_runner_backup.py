@@ -816,7 +816,7 @@ def main():
             resizable=True
         )
         api.set_window(window)
-        storage_path = os.path.join(os.getenv('APPDATA', os.path.expanduser('~')), 'KazuhaRemake', 'WebView')
+        storage_path = os.path.join(os.getenv('APPDATA', os.path.expanduser('~')), 'LuminaliumRemake', 'WebView')
         if not os.path.exists(storage_path):
             try: os.makedirs(storage_path)
             except: pass
@@ -904,7 +904,7 @@ def main():
             except: pass
     
     # Optimization: Use edgechromium directly for faster startup on Windows
-    storage_path = os.path.join(os.getenv('APPDATA', os.path.expanduser('~')), 'KazuhaRemake', 'WebView')
+    storage_path = os.path.join(os.getenv('APPDATA', os.path.expanduser('~')), 'LuminaliumRemake', 'WebView')
     if not os.path.exists(storage_path):
         try: os.makedirs(storage_path)
         except: pass

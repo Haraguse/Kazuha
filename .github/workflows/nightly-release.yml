@@ -46,13 +46,13 @@ jobs:
         shell: pwsh
         run: |
           python build_pyinstaller.py
-          Compress-Archive -Path dist/Kazuha/* -DestinationPath Kazuha-Windows.zip
+          Compress-Archive -Path dist/Luminalium/* -DestinationPath Luminalium-Windows.zip
 
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Kazuha-Windows
-          path: Kazuha-Windows.zip
+          name: Luminalium-Windows
+          path: Luminalium-Windows.zip
 
   build-linux:
     name: Build Linux
@@ -83,14 +83,14 @@ jobs:
       - name: Build binary
         run: |
           python build_linux.py
-          cd dist/Kazuha
-          tar -czvf ../../Kazuha-Linux.tar.gz *
+          cd dist/Luminalium
+          tar -czvf ../../Luminalium-Linux.tar.gz *
 
       - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Kazuha-Linux
-          path: Kazuha-Linux.tar.gz
+          name: Luminalium-Linux
+          path: Luminalium-Linux.tar.gz
 
   release:
     name: Create Release
@@ -112,9 +112,9 @@ jobs:
           tag: nightly
           name: Nightly Build
           body: |
-            Kazuha Nightly Build
+            Luminalium Nightly Build
             这是自动构建的开发版本，不保证稳定性。
           prerelease: true
           makeLatest: true
-          artifacts: "Kazuha-Windows/Kazuha-Windows.zip,Kazuha-Linux/Kazuha-Linux.tar.gz"
+          artifacts: "Luminalium-Windows/Luminalium-Windows.zip,Luminalium-Linux/Luminalium-Linux.tar.gz"
           token: ${{ secrets.GITHUB_TOKEN }}

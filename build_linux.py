@@ -96,7 +96,7 @@ def run():
         "--onedir",
         "--windowed",
         "--name",
-        "Kazuha",
+        "Luminalium",
     ]
     if os.path.exists(logo_ico):
         cmd += ["--icon", logo_ico]
@@ -113,9 +113,9 @@ def run():
     for extra in [
         "main.build",
         "main.dist",
-        "Kazuha.build",
-        "Kazuha.dist",
-        "Kazuha.spec"
+        "Luminalium.build",
+        "Luminalium.dist",
+        "Luminalium.spec"
     ]:
         extra_path = os.path.join(root_dir, extra)
         if os.path.exists(extra_path):
@@ -127,7 +127,7 @@ def run():
     print(f"Running command: {' '.join(cmd)}")
     subprocess.check_call(cmd, cwd=root_dir)
 
-    output_dir = os.path.join(dist_dir, "Kazuha")
+    output_dir = os.path.join(dist_dir, "Luminalium")
     if os.path.isdir(output_dir):
         _remove_pdb_files(output_dir)
         _prune_qt_translations(output_dir)
@@ -155,7 +155,7 @@ def run():
         shutil.rmtree(build_dir, ignore_errors=True)
     
     # Clean up spec file
-    spec_path = os.path.join(root_dir, "Kazuha.spec")
+    spec_path = os.path.join(root_dir, "Luminalium.spec")
     if os.path.exists(spec_path):
         os.remove(spec_path)
 

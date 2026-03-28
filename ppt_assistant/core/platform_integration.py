@@ -160,7 +160,7 @@ def _desktop_escape_arg(value: str) -> str:
 
 def _linux_autostart_file_path() -> str:
     config_home = os.environ.get("XDG_CONFIG_HOME") or os.path.join(os.path.expanduser("~"), ".config")
-    return os.path.join(config_home, "autostart", "Kazuha.desktop")
+    return os.path.join(config_home, "autostart", "Luminalium.desktop")
 
 
 def _set_linux_run_at_startup(enabled: bool) -> None:
@@ -174,8 +174,8 @@ def _set_linux_run_at_startup(enabled: bool) -> None:
             "[Desktop Entry]",
             "Type=Application",
             "Version=1.0",
-            "Name=Kazuha",
-            "Comment=Kazuha presentation assistant",
+            "Name=Luminalium",
+            "Comment=Luminalium presentation assistant",
             f"Exec={exec_line}",
             f"Path={_desktop_escape_arg(get_launch_work_dir())}",
             "Terminal=false",
@@ -196,7 +196,7 @@ def _set_windows_run_at_startup(enabled: bool) -> None:
         import winreg
     except ImportError:
         return
-    app_name = "Kazuha"
+    app_name = "Luminalium"
     command = subprocess.list2cmdline(get_launch_command_args(autostart=True))
     try:
         with winreg.OpenKey(

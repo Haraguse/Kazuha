@@ -1,79 +1,120 @@
 import os
-import sys
-import subprocess
 import json
-from PySide6.QtWidgets import QWidget, QApplication
+
+from PySide6.QtCore import QTimer
+
 from plugins.interface import AssistantPlugin
-from plugins.webview_window_utils import bring_window_to_front, find_window, notify_existing_window
 from ppt_assistant.core.config import SETTINGS_PATH
-from ppt_assistant.ui.dialog import show_webview_input_dialog, show_webview_dialog
+
 
 class SettingsPlugin(AssistantPlugin):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.process = None
+        self._window = None
+        self._api = None
+        self._wv = None
+        QTimer.singleShot(1200, self._prewarm_webview)
 
     def get_name(self):
         return ""
 
     def get_icon(self):
-        return "settings.svg" 
+        return "settings.svg"
 
-    def execute(self):
-        if self.process and self.process.poll() is None:
-            if sys.platform == "win32":
-                try:
-                    hwnd = find_window("Settings", self.process.pid if self.process else None)
-                    if hwnd:
-                        bring_window_to_front(hwnd)
-                        notify_existing_window(hwnd)
-                except Exception:
-                    pass
-                return
-            try:
-                self.process.terminate()
-                self.process.wait(timeout=1)
-            except Exception:
-                pass
+    def _prewarm_webview(self):
+        try:
+            self._ensure_webview_module()
+            if self._wv is not None:
+                self._wv._warmup_webengine()
+        except Exception:
+            pass
+
+    def _ensure_webview_module(self):
+        if self._wv is None:
+            import plugins.webview_runner as webview_runner
+            self._wv = webview_runner
+        return self._wv
+
+    def _load_json_file(self, path):
+        if not path or not os.path.exists(path):
+            return {}
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data if isinstance(data, dict) else {}
+        except Exception:
+            return {}
+
+    def _focus_existing_window(self, show_toast=False):
+        if self._window is None:
+            return False
+        try:
+            if self._window.isMinimized():
+                self._window.showNormal()
+            self._window.show()
+            self._window.raise_()
+            self._window.activateWindow()
+            if show_toast and self._api is not None:
+                self._api.notify_existing_window("已经存在打开的窗口！")
+            return True
+        except RuntimeError:
+            self._window = None
+            self._api = None
             self.process = None
+            return False
+
+    def _on_window_destroyed(self, *_args):
+        self._window = None
+        self._api = None
+        self.process = None
+
+    def _ensure_window(self):
+        if self._window is not None:
+            return self._window
 
         base_dir = os.path.dirname(os.path.abspath(__file__))
         html_path = os.path.join(base_dir, "settings.html")
         root_dir = os.path.dirname(os.path.dirname(os.path.dirname(base_dir)))
-        main_path = os.path.join(root_dir, "main.py")
-        
-        # Sizing
-        width = str(1256)
-        height = str(734)
+        version_path = os.path.join(root_dir, "version.json")
 
-        env = os.environ.copy()
-        env["SETTINGS_PATH"] = SETTINGS_PATH
+        wv = self._ensure_webview_module()
+        wv._warmup_webengine()
 
-        if getattr(sys, "frozen", False):
-            cmd = [
-                sys.executable,
-                "--webview-runner",
-                html_path,
-                "Settings",
-                width,
-                height,
-                "true",
-            ]
-        else:
-            cmd = [
-                sys.executable,
-                main_path,
-                "--webview-runner",
-                html_path,
-                "Settings",
-                width,
-                height,
-                "true",
-            ]
+        api = wv.Api()
+        api.set_in_process(True)
+        api.settings = self._load_json_file(SETTINGS_PATH)
+        api.version = self._load_json_file(version_path)
 
-        self.process = subprocess.Popen(cmd, env=env)
+        theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
+        defer_load = wv._should_defer_initial_load(html_path, "Settings", True)
+        window = wv.MainWindow("Settings", html_path, api, 1256, 734, theme_mode, True, defer_load)
+        window.setMinimumWidth(1099)
+        window.destroyed.connect(self._on_window_destroyed)
+
+        self._api = api
+        self._window = window
+        self.process = None
+        return window
+
+    def execute(self):
+        if self._focus_existing_window(show_toast=True):
+            return
+
+        self._ensure_window()
+        self._window.show()
+        try:
+            self._window.raise_()
+            self._window.activateWindow()
+        except Exception:
+            pass
 
     def terminate(self):
-        if self.process and self.process.poll() is None:
-            self.process.terminate()
-            self.process = None
+        if self._window is not None:
+            try:
+                self._window.close()
+            except Exception:
+                pass
+        self._window = None
+        self._api = None
+        self.process = None

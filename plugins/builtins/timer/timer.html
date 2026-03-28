@@ -1638,7 +1638,7 @@
     const I18N = {
       "zh-CN": {
         "app.timer": "计时器",
-        "app.name": "Kazuha",
+        "app.name": "Luminalium",
         "nav.stopwatch": "秒表",
         "nav.timer": "计时",
         "nav.clock": "时钟",
@@ -1661,7 +1661,7 @@
       },
       "zh-TW": {
         "app.timer": "計時器",
-        "app.name": "Kazuha",
+        "app.name": "Luminalium",
         "nav.stopwatch": "秒錶",
         "nav.timer": "計時",
         "nav.clock": "時鐘",
@@ -1684,7 +1684,7 @@
       },
       "yue-HK": {
         "app.timer": "計時器",
-        "app.name": "Kazuha",
+        "app.name": "Luminalium",
         "nav.stopwatch": "秒錶",
         "nav.timer": "計時",
         "nav.clock": "時鐘",
@@ -1707,7 +1707,7 @@
       },
       "ja-JP": {
         "app.timer": "タイマー",
-        "app.name": "Kazuha",
+        "app.name": "Luminalium",
         "nav.stopwatch": "ストップウォッチ",
         "nav.timer": "タイマー",
         "nav.clock": "時計",
@@ -1730,7 +1730,7 @@
       },
       "en-US": {
         "app.timer": "Timer",
-        "app.name": "Kazuha",
+        "app.name": "Luminalium",
         "nav.stopwatch": "Stopwatch",
         "nav.timer": "Timer",
         "nav.clock": "Clock",
@@ -1753,7 +1753,7 @@
       },
       "ug-CN": {
         "app.timer": "ۋاقىت بەلگىلىگۈچ",
-        "app.name": "Kazuha",
+        "app.name": "Luminalium",
         "nav.stopwatch": "سۇۋقاچ",
         "nav.timer": "ۋاقىت بەلگىلەش",
         "nav.clock": "سائەت",
@@ -1847,7 +1847,7 @@
     function buildWindowTitle(titleKey) {
       const pageText = getText(titleKey) || "";
       const appText = getText("app.timer") || "计时器";
-      const appName = getText("app.name") || "Kazuha";
+      const appName = getText("app.name") || "Luminalium";
       const parts = [];
       if (pageText) parts.push(pageText);
       parts.push(appText);
@@ -2233,8 +2233,19 @@
           if (state && state.is_running) {
             setTimeUpMode(false);
             tmRemaining = state.remaining * 1000;
-            tmTotal = state.remaining * 1000; // Simplified, ideally we'd pass total too
+            tmTotal = (state.total || state.remaining) * 1000;
             tmState = 'running';
+
+            // Switch view to timer
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            const vw = document.getElementById('view-timer');
+            if(vw) { vw.classList.remove('exit-left'); vw.classList.add('active'); }
+            const nav = document.querySelector('[data-target="view-timer"]');
+            if(nav) nav.classList.add('active');
+            let pt = document.getElementById('pageTitle');
+            if(pt) pt.textContent = getText("title.timer") || "计时";
+            currentMode = 'timer';
 
             // UI setup for running state
             pickerUI.style.opacity = '0';
@@ -2259,8 +2270,19 @@
             // Paused state
             setTimeUpMode(false);
             tmRemaining = state.remaining * 1000;
-            tmTotal = state.remaining * 1000;
+            tmTotal = (state.total || state.remaining) * 1000;
             tmState = 'paused';
+
+            // Switch view to timer
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            const vw = document.getElementById('view-timer');
+            if(vw) { vw.classList.remove('exit-left'); vw.classList.add('active'); }
+            const nav = document.querySelector('[data-target="view-timer"]');
+            if(nav) nav.classList.add('active');
+            let pt = document.getElementById('pageTitle');
+            if(pt) pt.textContent = getText("title.timer") || "计时";
+            currentMode = 'timer';
 
             pickerUI.style.opacity = '0';
             pickerUI.style.pointerEvents = 'none';

@@ -212,7 +212,7 @@ def _apply_graphics_settings():
     # or just rely on disabling the limit.
     # We will just unlock it as that satisfies "solve 60fps cap".
     # And we can set an env var that we might use elsewhere or just for reference.
-    os.environ["KAZUHA_TARGET_FPS"] = str(target_fps)
+    os.environ["LUMINALIUM_TARGET_FPS"] = str(target_fps)
 
     # Windows 7 Fallback
     if _is_windows7():
@@ -594,7 +594,7 @@ class StartupSplash(QWidget):
             progress_h = 6
             progress_y = h - margin_bottom - progress_h
             
-            # Title "Kazuha"
+            # Title "Luminalium"
             painter.setPen(QColor("#000000"))
             painter.setFont(title_font)
             # Calculate exact height to position tighter
@@ -619,9 +619,9 @@ class StartupSplash(QWidget):
                 "zh-TW": "万演",
                 "yue-HK": "萬演",
                 "ja-JP": "カズハ",
-                "en-US": "Kazuha",
+                "en-US": "Luminalium",
             }
-            brand_name = brand_name_map.get(self._language, "Kazuha")
+            brand_name = brand_name_map.get(self._language, "Luminalium")
             
             painter.setFont(title_font)
             painter.setPen(QColor("#000000"))
@@ -700,9 +700,9 @@ class StartupSplash(QWidget):
             "zh-TW": "万演",
             "yue-HK": "萬演",
             "ja-JP": "カズハ",
-            "en-US": "Kazuha",
+            "en-US": "Luminalium",
         }
-        brand_name = brand_name_map.get(self._language, "Kazuha")
+        brand_name = brand_name_map.get(self._language, "Luminalium")
         self._brand_label = QLabel(brand_name, self._container)
         brand_font_family = "Meiryo UI" if self._language == "yue-HK" else "Yu Gothic UI"
         brand_font = QFont(brand_font_family)
@@ -939,58 +939,19 @@ class IndeterminateSpinner(QWidget):
         painter.restore()
         painter.end()
 
-def show_webview_dialog(title, text, confirm_text="确认", cancel_text="取消", is_error=False, hide_cancel=False, code=None):
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    theme = "auto"
-    accent = "#3275F5"
-    try:
-        from ppt_assistant.core.config import cfg, Theme, qconfig
-        raw_theme = cfg.themeMode.value if hasattr(cfg.themeMode, "value") else "auto"
-        if isinstance(raw_theme, Theme):
-            if raw_theme == Theme.DARK:
-                theme = "dark"
-            elif raw_theme == Theme.LIGHT:
-                theme = "light"
-            else:
-                theme = "auto"
-        else:
-            theme = str(raw_theme).lower()
-        resolved_theme = theme
-        if theme == "auto":
-            try:
-                if isinstance(qconfig.theme, Theme):
-                    resolved_theme = "dark" if qconfig.theme == Theme.DARK else "light"
-            except:
-                resolved_theme = "light"
-        accent = "#E1EBFF" if resolved_theme == "dark" else "#3275F5"
-    except:
-        pass
+def show_webview_dialog(title, text, confirm_text="纭", cancel_text="鍙栨秷", is_error=False, hide_cancel=False, code=None):
+    from ppt_assistant.ui.dialog_runtime import show_webview_dialog_in_process
 
-    dialog_data = {
-        "title": title,
-        "text": text,
-        "confirmText": confirm_text,
-        "cancelText": cancel_text,
-        "isError": is_error,
-        "hideCancel": hide_cancel,
-        "theme": theme,
-        "accentColor": accent
-    }
-    if code is not None:
-        dialog_data["code"] = code
-    
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8') as f:
-        json.dump(dialog_data, f)
-        temp_path = f.name
-        
-    root_dir = base_dir
-    main_path = os.path.join(root_dir, "main.py")
-    if getattr(sys, "frozen", False):
-        cmd = [sys.executable, "--webview-runner", "--dialog", temp_path]
-    else:
-        cmd = [sys.executable, main_path, "--webview-runner", "--dialog", temp_path]
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
-    return proc
+    return show_webview_dialog_in_process(
+        title=title,
+        text=text,
+        confirm_text=confirm_text,
+        cancel_text=cancel_text,
+        is_error=is_error,
+        hide_cancel=hide_cancel,
+        code=code,
+    )
+
 
 class CrashHandler:
     def __init__(self, app=None):
@@ -1407,7 +1368,7 @@ class PPTAssistantApp:
         self.overlay.request_ptr_pen.connect(lambda: self.monitor.set_pointer_type(2))
         self.overlay.request_ptr_eraser.connect(lambda: self.monitor.set_pointer_type(5))
         self.overlay.request_pen_color.connect(self.monitor.set_pen_color)
-        self.overlay.request_thumbnail.connect(lambda idx: self.monitor.export_slide_thumbnail(idx, os.path.join(tempfile.gettempdir(), "kazuha_ppt_thumbs", f"thumb_{idx}.png")))
+        self.overlay.request_thumbnail.connect(lambda idx: self.monitor.export_slide_thumbnail(idx, os.path.join(tempfile.gettempdir(), "luminalium_ppt_thumbs", f"thumb_{idx}.png")))
 
         self.tray.show_settings.connect(self.settings_plugin.execute)
         self.tray.show_board.connect(self.board_plugin.execute)
@@ -1459,7 +1420,7 @@ class PPTAssistantApp:
         except Exception:
             pass
         # Cleanup slide thumbnails from previous session
-        temp_dir = os.path.join(tempfile.gettempdir(), "kazuha_ppt_thumbs")
+        temp_dir = os.path.join(tempfile.gettempdir(), "luminalium_ppt_thumbs")
         if os.path.exists(temp_dir):
             try:
                 shutil.rmtree(temp_dir)
@@ -1722,7 +1683,7 @@ class PPTAssistantApp:
             new_overlay.request_ptr_pen.connect(lambda: self.monitor.set_pointer_type(2))
             new_overlay.request_ptr_eraser.connect(lambda: self.monitor.set_pointer_type(5))
             new_overlay.request_pen_color.connect(self.monitor.set_pen_color)
-            new_overlay.request_thumbnail.connect(lambda idx: self.monitor.export_slide_thumbnail(idx, os.path.join(tempfile.gettempdir(), "kazuha_ppt_thumbs", f"thumb_{idx}.png")))
+            new_overlay.request_thumbnail.connect(lambda idx: self.monitor.export_slide_thumbnail(idx, os.path.join(tempfile.gettempdir(), "luminalium_ppt_thumbs", f"thumb_{idx}.png")))
             
             # Disconnect old overlay slots before connecting new ones
             with warnings.catch_warnings():

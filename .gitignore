@@ -1,8 +1,8 @@
-Kazuha.Windows-x86-64-SingleFile.exe
+Luminalium.Windows-x86-64-SingleFile.exe
 settings.json
 settings.json
 settings.json
-KazuhaRemake.spec
+LuminaliumRemake.spec
 build_pyinstaller.py
 _pycache_/
 *.pyc
@@ -11,7 +11,7 @@ ppt_assistant/ui/__pycache__/overlay.cpython-313.pyc
 build_linux.py
 desktop.ini
 user/
-Kazuha.spec
+Luminalium.spec
 .codex_tmp/
 .dotnet_appdata/
 .dotnet_home/
