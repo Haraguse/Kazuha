@@ -49,14 +49,14 @@ Luminalium 是一款专为触摸屏设计的 PowerPoint 演示辅助工具，旨
 ---
 
 ## 贡献与反馈
-如您有意愿对 Kazuha 做出一些贡献，欢迎提交 [**拉取请求**](https://github.com/SECTL/Luminalium/pulls) 帮助改进代码，
+如您有意愿对 Luminalium 做出一些贡献，欢迎提交 [**拉取请求**](https://github.com/SECTL/Luminalium/pulls) 帮助改进代码，
 
 或者是提出 [**议题**](https://github.com/SECTL/Luminalium/issues) 来提交 Bug 报告或功能请求，
 
 不胜感激。
 
 ## 贡献者
-感谢所有为 Kazuha 项目做出贡献的人！
+感谢所有为 Luminalium 项目做出贡献的人！
 
 <a href="https://www.star-history.com/?repos=SECTL%2FLuminalium&type=date&legend=top-left">
  <picture>
