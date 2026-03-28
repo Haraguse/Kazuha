@@ -1,5 +1,4 @@
-
-<img width="1157" height="628" alt="banner" src="https://github.com/user-attachments/assets/dc507a97-b73c-446e-80d9-fc14da3792e7" />
+<img width="3471" height="1884" alt="Frame 2" src="https://github.com/user-attachments/assets/40225773-04d8-46d2-b2ed-3261f03ebed8" />
 
 
 
@@ -67,7 +66,3 @@ Luminalium 是一款专为触摸屏设计的 PowerPoint 演示辅助工具，旨
    <img alt="Star History Chart" src="https://api.star-history.com/image?repos=SECTL/Luminalium&type=date&legend=top-left" />
  </picture>
 </a>
-
-## Stars 曲线
-
-[![Star History Chart](https://api.star-history.com/image?repos=SECTL/Luminalium&type=date&legend=top-left)](https://www.star-history.com/?repos=SECTL%2FLuminalium&type=date&legend=top-left)
