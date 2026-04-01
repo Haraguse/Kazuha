@@ -5711,6 +5711,18 @@
               <div class="switch" id="sw-General-SystemBackdropEnabled" onclick="event.stopPropagation(); toggleSystemBackdropEnabled();"></div>
             </div>
           </div>
+          <div class="settings-item" id="item-PPT-PageTurnRateLimit">
+            <div class="item-info">
+              <span class="item-label" data-i18n="interaction.pageTurnRateLimit.label">翻页频率上限</span>
+              <span class="item-desc" data-i18n="interaction.pageTurnRateLimit.desc">限制每秒最多受理的翻页请求次数，超出的点击会被忽略</span>
+            </div>
+            <div class="item-state">
+              <div class="slider-container">
+                <input type="range" id="range-PPT-PageTurnRateLimit" min="1" max="6" step="1" oninput="updateRangeValue('PPT', 'PageTurnRateLimit', this.value)" onchange="saveRangeValue('PPT', 'PageTurnRateLimit', this.value)">
+                <span class="slider-value" id="val-PPT-PageTurnRateLimit">2</span>
+              </div>
+            </div>
+          </div>
         </div>
 
 
@@ -7097,6 +7109,8 @@
       "language.ug-CN": "ئۇيغۇرچە",
       "interaction.autoHandleInk.label": "自动处理墨迹",
       "interaction.autoHandleInk.desc": "结束放映时自动处理 PowerPoint 的“是否保留墨迹”提示，减少手动确认",
+      "interaction.pageTurnRateLimit.label": "翻页频率上限",
+      "interaction.pageTurnRateLimit.desc": "限制每秒最多受理的翻页请求次数，超出的点击会被忽略",
 
       "interaction.showStatusBar.label": "顶部状态栏",
       "interaction.showStatusBar.desc": "在悬浮窗顶部显示时间、媒体、音量、网络和电池等系统状态",
@@ -7407,6 +7421,8 @@
       "language.ug-CN": "ئۇيغۇرچە",
       "interaction.autoHandleInk.label": "自動處理墨跡",
       "interaction.autoHandleInk.desc": "結束播放時自動處理「是否保留墨跡」",
+      "interaction.pageTurnRateLimit.label": "翻頁頻率上限",
+      "interaction.pageTurnRateLimit.desc": "限制每秒最多受理的翻頁請求次數，超出的點擊會被忽略",
       "interaction.showStatusBar.label": "頂部狀態列",
       "interaction.showStatusBar.desc": "在懸浮窗頂部顯示時間與狀態",
       "interaction.statusBarShowTime.label": "顯示時間",
@@ -7702,6 +7718,8 @@
       "language.ug-CN": "ئۇيغۇرچە",
       "interaction.autoHandleInk.label": "自動處理墨跡",
       "interaction.autoHandleInk.desc": "放映完自動處理「保留墨跡」",
+      "interaction.pageTurnRateLimit.label": "翻頁頻率上限",
+      "interaction.pageTurnRateLimit.desc": "限制每秒最多受理嘅翻頁請求次數，超出點擊會被忽略",
 
       "interaction.showStatusBar.label": "頂部狀態列",
       "interaction.showStatusBar.desc": "頂部顯示時間同狀態",
@@ -7998,6 +8016,8 @@
       "language.ug-CN": "ئۇيغۇرچە",
       "interaction.autoHandleInk.label": "インクを自動処理",
       "interaction.autoHandleInk.desc": "スライドショー終了時に「インクを保持するか」を自動処理します",
+      "interaction.pageTurnRateLimit.label": "ページ送り頻度の上限",
+      "interaction.pageTurnRateLimit.desc": "1秒あたりに受け付けるページ送り回数を制限し、超過したクリックは無視します",
 
       "interaction.showStatusBar.label": "上部ステータスバー",
       "interaction.showStatusBar.desc": "オーバーレイの上部に時間とステータスを表示します",
@@ -8290,6 +8310,8 @@
       "language.ug-CN": "ئۇيغۇرچە",
       "interaction.autoHandleInk.label": "Auto handle ink",
       "interaction.autoHandleInk.desc": "Automatically handle \"keep ink\" prompt when slideshow ends",
+      "interaction.pageTurnRateLimit.label": "Page turn rate limit",
+      "interaction.pageTurnRateLimit.desc": "Limits accepted page-turn requests per second; extra clicks are ignored",
       "appearance.colorScheme.title": "Color Scheme",
       "appearance.overlayTheme.title": "Overlay Theme",
       "appearance.overlayTheme.label": "Select Theme",
@@ -8487,6 +8509,8 @@
       "language.ug-CN": "ئۇيغۇرچە",
       "interaction.autoHandleInk.label": "Auto handle ink",
       "interaction.autoHandleInk.desc": "Automatically handle \"keep ink\" prompt when slideshow ends",
+      "interaction.pageTurnRateLimit.label": "Page turn rate limit",
+      "interaction.pageTurnRateLimit.desc": "Limits accepted page-turn requests per second; extra clicks are ignored",
       "appearance.colorScheme.title": "Color Scheme",
       "appearance.overlayTheme.title": "Overlay Theme",
       "appearance.overlayTheme.label": "Select Theme",
@@ -11292,6 +11316,7 @@
     initRange("Overlay", "PopWindowScale", 1.0, "x", 2);
     initRange("Overlay", "ToolbarOpacity", 1.0, "", 2);
     initRange("Overlay", "SidePageOpacity", 1.0, "", 2);
+    initRange("PPT", "PageTurnRateLimit", 2, "", 0);
     setSwitch("Overlay", "SyncOpacity");
     handleSyncOpacityToggle();
 

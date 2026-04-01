@@ -8,6 +8,7 @@ from PySide6.QtCore import QObject, Signal, QThread, QTimer, QPoint, QRect, Slot
 from PySide6.QtGui import QGuiApplication
 import time
 import os
+from collections import deque
 from ppt_assistant.core.config import cfg
 
 try:
@@ -117,6 +118,25 @@ class PPTWorker(QObject):
         self._degraded_current = 0
         self._degraded_total = 0
         self._pending_ink_prompt = False
+        self._page_turn_times = deque()
+        self._page_turn_window_seconds = 1.0
+
+    def _consume_page_turn_token(self) -> bool:
+        now = time.monotonic()
+        window = float(self._page_turn_window_seconds)
+        max_per_window = 2
+        try:
+            max_per_window = int(cfg.pageTurnRateLimit.value)
+        except Exception:
+            max_per_window = 2
+        if max_per_window < 1:
+            max_per_window = 1
+        while self._page_turn_times and (now - self._page_turn_times[0]) > window:
+            self._page_turn_times.popleft()
+        if len(self._page_turn_times) >= max_per_window:
+            return False
+        self._page_turn_times.append(now)
+        return True
 
     def _set_active_kind(self, kind):
         if kind == self._active_kind:
@@ -1054,6 +1074,8 @@ class PPTWorker(QObject):
     # --- Control Slots ---
     @Slot()
     def go_next(self):
+        if not self._consume_page_turn_token():
+            return
         if cfg.compatibilityMode.value:
             try:
                 hwnd = int(self._slideshow_hwnd or 0) or self._find_ppt_slideshow_hwnd()
@@ -1095,6 +1117,8 @@ class PPTWorker(QObject):
 
     @Slot()
     def go_previous(self):
+        if not self._consume_page_turn_token():
+            return
         if cfg.compatibilityMode.value:
             try:
                 hwnd = int(self._slideshow_hwnd or 0) or self._find_ppt_slideshow_hwnd()

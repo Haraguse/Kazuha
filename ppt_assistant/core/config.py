@@ -80,6 +80,7 @@ class Config(QConfig):
     strictEdgeAlignment = ConfigItem("Overlay", "StrictEdgeAlignment", False, BoolValidator(), restart=False)
 
     autoHandleInk = ConfigItem("PPT", "AutoHandleInk", True, BoolValidator())
+    pageTurnRateLimit = RangeConfigItem("PPT", "PageTurnRateLimit", 2, RangeValidator(1, 6), restart=False)
     compatibilityMode = ConfigItem("General", "CompatibilityMode", True if sys.platform != "win32" else False, BoolValidator())
 
     overlayScreen = ConfigItem("Overlay", "OverlayScreen", "Auto", restart=False)
@@ -268,6 +269,7 @@ def _bind_auto_save():
     cfg.sidePageOpacity.valueChanged.connect(lambda *_: _save_cfg())
     cfg.syncOpacity.valueChanged.connect(lambda *_: _save_cfg())
     cfg.autoHandleInk.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.pageTurnRateLimit.valueChanged.connect(lambda *_: _save_cfg())
     cfg.overlayScreen.valueChanged.connect(lambda *_: _save_cfg())
     cfg.splashMode.valueChanged.connect(lambda *_: _save_cfg())
     cfg.splashStyle.valueChanged.connect(lambda *_: _save_cfg())
