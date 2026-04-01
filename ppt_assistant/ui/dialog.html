@@ -5,6 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Dialog</title>
   <style>
+    @font-face {
+      font-family: "Google Sans Flex";
+      src: url("../../fonts/Google Sans Flex.ttf") format("truetype");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "MiSans VF";
+      src: url("../../fonts/MiSansVF.ttf") format("truetype");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "MiSans Japanese VF";
+      src: url("../../fonts/MiSansJapaneseVF.ttf") format("truetype");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "MiSans TC VF";
+      src: url("../../fonts/MiSansTCVF.ttf") format("truetype");
+      font-display: swap;
+    }
+
     :root {
       --bg-body: transparent;
       --bg-app: rgba(255, 255, 255, 0.6);
@@ -16,8 +40,15 @@
       --card-border: rgba(0, 0, 0, 0.02);
       --item-hover: rgba(0, 0, 0, 0.05);
       --btn-cancel-bg: rgba(245, 245, 245, 0.5);
-      --font-stack: "MiSans Latin", "HarmonyOS Sans SC", "SF Pro", "苹方-简", "PingFang SC", "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+      --font-stack: "Google Sans Flex", "MiSans VF", "Segoe UI", system-ui, -apple-system, sans-serif;
       --font-weight-override: 400;
+    }
+
+    :root[data-disable-animations="true"] *,
+    :root[data-disable-animations="true"] *::before,
+    :root[data-disable-animations="true"] *::after {
+      transition: none !important;
+      scroll-behavior: auto !important;
     }
 
     [data-theme="dark"] {
@@ -665,10 +696,17 @@
       }
     };
 
-    let currentLanguage = "zh-CN";
-    let settings = {};
+    let settings = window.initialSettings || {};
+    let currentLanguage = (settings.General && settings.General.Language) || "zh-CN";
     let inputMode = false;
     let confirmPending = false;
+
+    function applyAnimationPreference() {
+      const disabled = !!settings?.General?.DisableAnimations;
+      document.documentElement.setAttribute("data-disable-animations", disabled ? "true" : "false");
+    }
+
+    applyAnimationPreference();
 
     function updateLanguageAndSettings(s) {
       if (s && typeof s === "object") {
@@ -678,6 +716,7 @@
           currentLanguage = s.General.Language;
         }
       }
+      applyAnimationPreference();
       applyDirection(currentLanguage);
     }
 
@@ -691,20 +730,19 @@
     }
 
     function getDefaultFontStack(lang) {
-      const isSpecial = lang === "zh-TW" || lang === "ja-JP";
       if (lang === "zh-TW") {
-        return "\"Microsoft JhengHei\", \"MiSans Latin\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
+        return "\"Google Sans Flex\", \"MiSans Japanese VF\", \"MiSans TC VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
       }
       if (lang === "yue-HK") {
-        return "\"Meiryo UI\", \"Meiryo\", \"Microsoft JhengHei\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
+        return "\"Google Sans Flex\", \"MiSans VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
       }
       if (lang === "ja-JP") {
-        return "\"MiSans Latin\", \"Hiragino Kaku Gothic Pro\", \"Yu Gothic UI\", \"Meiryo\", \"HarmonyOS Sans JP\", \"SF Pro\", system-ui, -apple-system, sans-serif";
+        return "\"Google Sans Flex\", \"MiSans Japanese VF\", \"MiSans TC VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
       }
       if (lang === "ug-CN") {
-        return "\"Microsoft Uighur\", \"ALKATIP Basma Tom\", \"MiSans Latin\", \"HarmonyOS Sans SC\", \"SF Pro\", system-ui, -apple-system, sans-serif";
+        return "\"Google Sans Flex\", \"Segoe UI\", \"MiSans VF\", system-ui, -apple-system, sans-serif";
       }
-      return "\"MiSans Latin\", \"HarmonyOS Sans SC\", \"SF Pro\", \"苹方-简\", \"PingFang SC\", \"Segoe UI\", \"Microsoft YaHei\", system-ui, -apple-system, sans-serif";
+      return "\"Google Sans Flex\", \"MiSans VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
     }
 
     function getSelectedWebFont(lang) {

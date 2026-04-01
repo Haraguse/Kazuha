@@ -190,6 +190,7 @@ class OverlayWindow(QWebEngineView):
                 ("SessionStorageEnabled", False),
                 ("WebGLEnabled", False),
                 ("Accelerated2dCanvasEnabled", False),
+                ("ScrollAnimatorEnabled", not cfg.disableAnimations.value),
             ]:
                 attr = getattr(QWebEngineSettings.WebAttribute, attr_name, None)
                 if attr is not None:
@@ -308,8 +309,16 @@ class OverlayWindow(QWebEngineView):
             pass
 
     def _on_render_process_terminated(self, status, exit_code):
-        self._render_crash_count += 1
+        status_name = ""
+        try:
+            status_name = str(getattr(status, "name", status))
+        except Exception:
+            status_name = str(status)
         print(f"[Overlay] Render process terminated: status={status}, exit_code={exit_code}")
+        if "NormalTerminationStatus" in status_name and int(exit_code or 0) == 0:
+            print("[Overlay] Renderer ended normally; skipping crash recovery.")
+            return
+        self._render_crash_count += 1
         print(f"[Overlay] Crash #{self._render_crash_count}/{self._max_reload_attempts}")
         
         # If too many crashes, disable GPU and retry once, then give up
@@ -576,6 +585,13 @@ class OverlayWindow(QWebEngineView):
                 return
         except RuntimeError:
             return
+        try:
+            from PySide6.QtWebEngineCore import QWebEngineSettings
+            attr = getattr(QWebEngineSettings.WebAttribute, "ScrollAnimatorEnabled", None)
+            if attr is not None:
+                self.page().settings().setAttribute(attr, not cfg.disableAnimations.value)
+        except Exception:
+            pass
 
         trans_map = {
             "select": "选择",
@@ -641,6 +657,7 @@ class OverlayWindow(QWebEngineView):
 
         config_data = {
             "showStatusBar": cfg.showStatusBar.value,
+            "disableAnimations": cfg.disableAnimations.value,
             "statusBarShowTime": cfg.statusBarShowTime.value,
             "statusBarShowSeconds": cfg.statusBarShowSeconds.value,
             "statusBarShowBattery": cfg.statusBarShowBattery.value,

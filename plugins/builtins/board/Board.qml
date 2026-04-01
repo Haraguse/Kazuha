@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import QtQml 2.15
 import QtQuick.Window 2.15
 
 Rectangle {
@@ -14,6 +15,8 @@ Rectangle {
     property int eraserMode: typeof boardEraserMode !== "undefined" ? boardEraserMode : 0
     property bool penStrokeEnabled: typeof boardPenStrokeEnabled !== "undefined" ? boardPenStrokeEnabled : false
     property bool darkBackground: isDarkColor(backgroundColor)
+    property var boardPages: []
+    property int currentBoardPage: 1
     Keys.onEscapePressed: backend.closeWindow()
 
     function isDarkColor(value) {
@@ -27,7 +30,78 @@ Rectangle {
         var luminance = 0.299 * r + 0.587 * g + 0.114 * b;
         return luminance < 128;
     }
-    
+
+    function isArrayLike(value) {
+        return value && typeof value !== "string" && typeof value.length === "number";
+    }
+
+    function createEmptyBoardPage() {
+        return { strokes: [], thumb: "" };
+    }
+
+    function cloneStrokeList(strokes) {
+        return canvas.cloneLines((strokes && isArrayLike(strokes)) ? strokes : []);
+    }
+
+    function normalizeBoardPage(pageData) {
+        var strokes = [];
+        if (pageData && isArrayLike(pageData.strokes)) {
+            strokes = cloneStrokeList(pageData.strokes);
+        }
+        return {
+            strokes: strokes,
+            thumb: ""
+        };
+    }
+
+    function ensureBoardPages() {
+        if (!isArrayLike(boardPages) || boardPages.length === 0) {
+            boardPages = [createEmptyBoardPage()];
+        } else if (boardPages.length > 1) {
+            boardPages = [normalizeBoardPage(boardPages[0])];
+        }
+        currentBoardPage = 1;
+    }
+
+    function persistCurrentPageToModel() {
+        ensureBoardPages();
+        var page = normalizeBoardPage(boardPages[0] || createEmptyBoardPage());
+        page.strokes = cloneStrokeList(canvas.getStrokes());
+        boardPages = [page];
+        return page;
+    }
+
+    function applyCurrentBoardPage() {
+        ensureBoardPages();
+        var page = normalizeBoardPage(boardPages[0] || createEmptyBoardPage());
+        canvas.setStrokes(page.strokes);
+    }
+
+    function getBoardDocument() {
+        var page = persistCurrentPageToModel();
+        return {
+            currentPage: 1,
+            pages: [{ strokes: cloneStrokeList(page.strokes), thumb: "" }]
+        };
+    }
+
+    function setBoardDocument(documentData) {
+        var strokes = [];
+        if (isArrayLike(documentData)) {
+            strokes = cloneStrokeList(documentData);
+        } else if (documentData && isArrayLike(documentData.pages)) {
+            strokes = cloneStrokeList((documentData.pages[0] || {}).strokes || []);
+        }
+        boardPages = [{ strokes: strokes, thumb: "" }];
+        currentBoardPage = 1;
+        applyCurrentBoardPage();
+    }
+
+    Component.onCompleted: {
+        ensureBoardPages();
+        applyCurrentBoardPage();
+    }
+
     // Main Content Area
     Rectangle {
         id: board
@@ -50,12 +124,20 @@ Rectangle {
             property int currentStrokeId: 0
             property bool penStrokeEnabled: root.penStrokeEnabled
             property real lastWidth: lineWidth
+            property real minSegmentPixels: 1.2
+            property var undoStack: []
+            property var redoStack: []
+            property var gestureAddedLines: []
+            property var gestureRemovedStrokes: []
+            property var gestureRemovedStrokeIds: ({})
             
             property var lastX
             property var lastY
             property var pendingLines: []
             property var allLines: [] // Store all strokes history
             property bool needsFullRepaint: false
+            readonly property bool canUndo: undoStack.length > 0
+            readonly property bool canRedo: redoStack.length > 0
 
             onWidthChanged: {
                 needsFullRepaint = true;
@@ -82,9 +164,12 @@ Rectangle {
                     needsFullRepaint = false;
                 }
 
-                while (pendingLines.length > 0) {
-                    var line = pendingLines.shift();
-                    drawLine(ctx, line, w, h);
+                if (pendingLines.length > 0) {
+                    var queue = pendingLines;
+                    pendingLines = [];
+                    for (var j = 0; j < queue.length; j++) {
+                        drawLine(ctx, queue[j], w, h);
+                    }
                 }
             }
 
@@ -107,6 +192,106 @@ Rectangle {
                 ctx.moveTo(x1, y1);
                 ctx.lineTo(x2, y2);
                 ctx.stroke();
+            }
+
+            function cloneLines(lines) {
+                var result = [];
+                for (var i = 0; i < lines.length; i++) {
+                    var line = lines[i];
+                    result.push({
+                        x1: line.x1,
+                        y1: line.y1,
+                        x2: line.x2,
+                        y2: line.y2,
+                        color: line.color,
+                        width: line.width,
+                        isEraser: line.isEraser,
+                        strokeId: line.strokeId
+                    });
+                }
+                return result;
+            }
+
+            function cloneRemovedStrokes(strokes) {
+                var result = [];
+                for (var i = 0; i < strokes.length; i++) {
+                    result.push({
+                        strokeId: strokes[i].strokeId,
+                        startIndex: strokes[i].startIndex,
+                        lines: cloneLines(strokes[i].lines)
+                    });
+                }
+                return result;
+            }
+
+            function applyLines(lines) {
+                allLines = cloneLines(lines);
+                pendingLines = [];
+                needsFullRepaint = true;
+                requestPaint();
+            }
+
+            function pushHistoryAction(action) {
+                undoStack = undoStack.concat([action]);
+                redoStack = [];
+            }
+
+            function beginGesture() {
+                gestureAddedLines = [];
+                gestureRemovedStrokes = [];
+                gestureRemovedStrokeIds = ({});
+            }
+
+            function commitGesture() {
+                if (gestureAddedLines.length > 0) {
+                    pushHistoryAction({
+                        type: "add",
+                        strokeId: currentStrokeId,
+                        lines: cloneLines(gestureAddedLines)
+                    });
+                } else if (gestureRemovedStrokes.length > 0) {
+                    pushHistoryAction({
+                        type: "remove",
+                        strokes: cloneRemovedStrokes(gestureRemovedStrokes)
+                    });
+                }
+                gestureAddedLines = [];
+                gestureRemovedStrokes = [];
+                gestureRemovedStrokeIds = ({});
+            }
+
+            function undo() {
+                if (!canUndo) return;
+                var action = undoStack[undoStack.length - 1];
+                var nextUndo = undoStack.slice(0, undoStack.length - 1);
+                undoStack = nextUndo;
+                if (action.type === "add") {
+                    removeStroke(action.strokeId);
+                } else if (action.type === "remove") {
+                    restoreRemovedStrokes(action.strokes);
+                } else if (action.type === "clear") {
+                    applyLines(action.lines);
+                }
+                redoStack = redoStack.concat([action]);
+            }
+
+            function redo() {
+                if (!canRedo) return;
+                var action = redoStack[redoStack.length - 1];
+                var nextRedo = redoStack.slice(0, redoStack.length - 1);
+                redoStack = nextRedo;
+                if (action.type === "add") {
+                    allLines = allLines.concat(cloneLines(action.lines));
+                    pendingLines = pendingLines.concat(cloneLines(action.lines));
+                    requestPaint();
+                } else if (action.type === "remove") {
+                    for (var i = 0; i < action.strokes.length; i++) {
+                        removeStroke(action.strokes[i].strokeId);
+                    }
+                } else if (action.type === "clear") {
+                    applyLines([]);
+                }
+                undoStack = undoStack.concat([action]);
             }
 
             function hitTest(x, y) {
@@ -176,11 +361,15 @@ Rectangle {
                 if (strokeId === undefined || strokeId === null || strokeId === -1) return;
                 
                 var newLines = [];
+                var removedLines = [];
                 var changed = false;
+                var startIndex = -1;
                 for (var i = 0; i < allLines.length; i++) {
                     if (allLines[i].strokeId !== strokeId) {
                         newLines.push(allLines[i]);
                     } else {
+                        if (startIndex === -1) startIndex = i;
+                        removedLines.push(allLines[i]);
                         changed = true;
                     }
                 }
@@ -189,30 +378,70 @@ Rectangle {
                     allLines = newLines;
                     needsFullRepaint = true;
                     requestPaint();
+                    return {
+                        strokeId: strokeId,
+                        startIndex: startIndex,
+                        lines: cloneLines(removedLines)
+                    };
                 }
+                return null;
+            }
+
+            function restoreRemovedStrokes(strokes) {
+                if (!strokes || strokes.length === 0) return;
+                var sorted = cloneRemovedStrokes(strokes);
+                sorted.sort(function(a, b) { return a.startIndex - b.startIndex; });
+                var lines = cloneLines(allLines);
+                var offset = 0;
+                for (var i = 0; i < sorted.length; i++) {
+                    var stroke = sorted[i];
+                    var insertAt = stroke.startIndex + offset;
+                    if (insertAt < 0) insertAt = 0;
+                    if (insertAt > lines.length) insertAt = lines.length;
+                    lines = lines.slice(0, insertAt).concat(cloneLines(stroke.lines), lines.slice(insertAt));
+                    offset += stroke.lines.length;
+                }
+                applyLines(lines);
             }
             
             MouseArea {
                 anchors.fill: parent
                 onPressed: (mouse) => {
+                    canvas.beginGesture()
                     canvas.lastX = mouse.x / canvas.width
                     canvas.lastY = mouse.y / canvas.height
                     canvas.currentStrokeId++;
                     canvas.lastWidth = canvas.lineWidth;
                 }
                 onReleased: (mouse) => {
-                    canvas.currentStrokeId++;
+                    canvas.commitGesture();
+                    canvas.lastWidth = canvas.lineWidth;
+                }
+                onCanceled: {
+                    canvas.commitGesture();
                     canvas.lastWidth = canvas.lineWidth;
                 }
                 onPositionChanged: (mouse) => {
                     var currentX = mouse.x / canvas.width;
                     var currentY = mouse.y / canvas.height;
+                    var dxPx = (currentX - canvas.lastX) * canvas.width;
+                    var dyPx = (currentY - canvas.lastY) * canvas.height;
+                    var movePx = Math.sqrt(dxPx * dxPx + dyPx * dyPx);
+                    if (movePx < canvas.minSegmentPixels) {
+                        return;
+                    }
                     
                     if (canvas.isEraser && canvas.eraserMode === 1) {
                         // Stroke Eraser
                         var hitId = canvas.hitTest(currentX, currentY);
                         if (hitId !== -1) {
-                            canvas.removeStroke(hitId);
+                            if (!canvas.gestureRemovedStrokeIds[hitId]) {
+                                var removedStroke = canvas.removeStroke(hitId);
+                                if (removedStroke) {
+                                    canvas.gestureRemovedStrokes = canvas.gestureRemovedStrokes.concat([removedStroke]);
+                                    canvas.gestureRemovedStrokeIds[hitId] = true;
+                                }
+                            }
                         }
                     } else {
                         // Point Eraser or Pen
@@ -241,6 +470,7 @@ Rectangle {
                         };
                         canvas.pendingLines.push(line);
                         canvas.allLines.push(line);
+                        canvas.gestureAddedLines = canvas.gestureAddedLines.concat([line]);
                         canvas.lastX = currentX;
                         canvas.lastY = currentY;
                         canvas.requestPaint();
@@ -249,11 +479,12 @@ Rectangle {
             }
             
             function clear() {
-                var ctx = getContext("2d");
-                ctx.clearRect(0, 0, width, height);
-                canvas.allLines = [];
-                canvas.pendingLines = [];
-                requestPaint();
+                if (canvas.allLines.length === 0) return;
+                pushHistoryAction({
+                    type: "clear",
+                    lines: cloneLines(canvas.allLines)
+                });
+                applyLines([]);
             }
 
             function getStrokes() {
@@ -284,7 +515,8 @@ Rectangle {
                         y2: s.y2,
                         color: s.color,
                         width: s.width,
-                        isEraser: s.isEraser
+                        isEraser: s.isEraser,
+                        strokeId: s.strokeId
                     };
 
                     // Heuristic: if values are > 1.1, assume absolute pixels
@@ -309,6 +541,18 @@ Rectangle {
                 }
                 
                 canvas.allLines = newStrokes;
+                canvas.undoStack = [];
+                canvas.redoStack = [];
+                canvas.gestureAddedLines = [];
+                canvas.gestureRemovedStrokes = [];
+                canvas.gestureRemovedStrokeIds = ({});
+                var maxStrokeId = 0;
+                for (var j = 0; j < newStrokes.length; j++) {
+                    if (newStrokes[j].strokeId > maxStrokeId) {
+                        maxStrokeId = newStrokes[j].strokeId;
+                    }
+                }
+                canvas.currentStrokeId = maxStrokeId;
                 canvas.needsFullRepaint = true;
                 canvas.requestPaint();
             }
@@ -805,7 +1049,7 @@ Rectangle {
             anchors.centerIn: parent
             spacing: 4
             columns: toolbar.isVertical ? 1 : 999
-            
+
             // Pen
             Item {
                 width: showToolText ? Math.max(36, textPen.contentWidth) : 36
@@ -959,7 +1203,133 @@ Rectangle {
                     enabled: true
                     onClicked: canvas.clear()
                 }
+            }
+
+            // Undo
+            Item {
+                width: showToolText ? Math.max(36, textUndo.contentWidth) : 36
+                height: showToolText ? 56 : 36
+                opacity: canvas.canUndo ? 1.0 : 0.38
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 4
+
+                    Item {
+                        width: 36
+                        height: 36
+                        anchors.horizontalCenter: parent.horizontalCenter
+
+                        Image {
+                            source: iconsDir + "undo.svg"
+                            width: 20
+                            height: 20
+                            anchors.centerIn: parent
+                            sourceSize: Qt.size(20, 20)
+                            opacity: 1.0
+                        }
+                    }
+
+                    Text {
+                        id: textUndo
+                        text: undoText
+                        color: "white"
+                        font.pixelSize: 11
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        visible: showToolText
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: canvas.canUndo ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    enabled: canvas.canUndo
+                    onClicked: {
+                        if (colorPopup.opened) colorPopup.close();
+                        if (eraserPopup.opened) eraserPopup.close();
+                        canvas.undo();
+                    }
+                }
+            }
+
+            // Redo
+            Item {
+                width: showToolText ? Math.max(36, textRedo.contentWidth) : 36
+                height: showToolText ? 56 : 36
+                opacity: canvas.canRedo ? 1.0 : 0.38
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 4
+
+                    Item {
+                        width: 36
+                        height: 36
+                        anchors.horizontalCenter: parent.horizontalCenter
+
+                        Image {
+                            source: iconsDir + "redo.svg"
+                            width: 20
+                            height: 20
+                            anchors.centerIn: parent
+                            sourceSize: Qt.size(20, 20)
+                            opacity: 1.0
+                        }
+                    }
+
+                    Text {
+                        id: textRedo
+                        text: redoText
+                        color: "white"
+                        font.pixelSize: 11
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        visible: showToolText
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: canvas.canRedo ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    enabled: canvas.canRedo
+                    onClicked: {
+                        if (colorPopup.opened) colorPopup.close();
+                        if (eraserPopup.opened) eraserPopup.close();
+                        canvas.redo();
+                    }
+                }
+            }
+        }
+
+        z: 90
+    }
+
+    Rectangle {
+        id: fullscreenToggle
+        width: toolbar.height
+        height: toolbar.height
+        radius: toolbar.radius
+        color: toolbar.color
+        border.color: toolbar.border.color
+        border.width: toolbar.border.width
+        anchors.left: parent.left
+        anchors.bottom: toolbar.bottom
+        anchors.leftMargin: 20
+        z: 91
+
+        Image {
+            source: iconsDir + (backend.isFullscreen ? "exitfullscr.svg" : "fullscr.svg")
+            width: 20
+            height: 20
+            anchors.centerIn: parent
+            sourceSize: Qt.size(20, 20)
+            opacity: 1.0
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: backend.toggleFullscreen()
         }
     }
-}
+
 }

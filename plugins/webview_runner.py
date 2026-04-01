@@ -15,10 +15,11 @@ if sys.platform == "linux" and "QT_QPA_PLATFORM" not in os.environ:
     os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 from PySide6.QtWidgets import QApplication, QFileDialog
+from PySide6.QtQuick import QQuickView
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineSettings, QWebEngineProfile, QWebEnginePage
 from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtCore import QObject, Slot, QUrl, QFile, QIODevice, Qt, QTimer, QBuffer, QByteArray, QJsonValue, QCoreApplication, QStandardPaths
+from PySide6.QtCore import QObject, Slot, QUrl, QFile, QIODevice, Qt, QTimer, QBuffer, QByteArray, QJsonValue, QCoreApplication, QStandardPaths, QPoint
 from PySide6.QtGui import QColor, QImage, QGuiApplication, QIcon
 from ppt_assistant.core.icon_helper import get_file_icon_base64
 from ppt_assistant.core.platform_integration import (
@@ -87,6 +88,79 @@ def _resolve_logo_ico_path() -> str | None:
         if path and os.path.exists(path):
             return path
     return None
+
+
+def _resolve_logo_svg_path() -> str | None:
+    root_dir = _get_user_root_dir()
+    candidates: list[str] = [
+        os.path.join(root_dir, "icons", "logo.svg"),
+        os.path.join(root_dir, "icons", "banner.png"),
+    ]
+    for path in candidates:
+        if path and os.path.exists(path):
+            return path
+    return None
+
+
+def _resolve_misans_font_path() -> str | None:
+    root_dir = _get_user_root_dir()
+    candidates: list[str] = [
+        os.path.join(root_dir, "fonts", "MiSansVF.ttf"),
+        os.path.join(root_dir, "fonts", "MiSansTCVF.ttf"),
+        os.path.join(root_dir, "fonts", "MiSansJapaneseVF.ttf"),
+    ]
+    for path in candidates:
+        if path and os.path.exists(path):
+            return path
+    return None
+
+
+def _resolve_window_loader_qml_path() -> str | None:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(base_dir, "WindowLoadingOverlay.qml")
+    return path if os.path.exists(path) else None
+
+
+def _resolve_window_loader_title(window_tag, title, settings=None):
+    language = "zh-cn"
+    if isinstance(settings, dict):
+        try:
+            language = str((settings.get("General", {}) or {}).get("Language", "zh-CN")).strip().lower()
+        except Exception:
+            language = "zh-cn"
+    title_maps = {
+        "zh-cn": {
+            "settings": "设置",
+            "timer": "计时器",
+            "onboarding": "欢迎使用",
+        },
+        "zh-tw": {
+            "settings": "設定",
+            "timer": "計時器",
+            "onboarding": "歡迎使用",
+        },
+        "yue-hk": {
+            "settings": "設定",
+            "timer": "計時器",
+            "onboarding": "歡迎使用",
+        },
+        "ja-jp": {
+            "settings": "設定",
+            "timer": "タイマー",
+            "onboarding": "ようこそ",
+        },
+        "en-us": {
+            "settings": "Settings",
+            "timer": "Timer",
+            "onboarding": "Welcome",
+        },
+    }
+    title_map = title_maps.get(language, title_maps["zh-cn"])
+    mapped = title_map.get(str(window_tag or "").strip().lower())
+    if mapped:
+        return mapped
+    fallback = str(title or "").strip()
+    return fallback or "Luminalium"
 
 
 def _get_user_root_dir() -> str:
@@ -203,6 +277,15 @@ def _resolve_system_backdrop_type(settings, window_tag):
         "Opaque": DWMSBT_NONE,
     }
     return mapping.get(type_value, DWMSBT_MAINWINDOW)
+
+
+def _animations_disabled(settings) -> bool:
+    if not isinstance(settings, dict):
+        return False
+    general = settings.get("General")
+    if not isinstance(general, dict):
+        return False
+    return bool(general.get("DisableAnimations"))
 
 def _apply_system_backdrop(hwnd, backdrop_type):
     if sys.platform != "win32" or not hwnd or backdrop_type is None:
@@ -828,7 +911,6 @@ class Api(QObject):
                 pass
             if hasattr(self._window, "apply_backdrop_settings"):
                 self._window.apply_backdrop_settings()
-
     @Slot(int)
     def update_timer(self, total_seconds):
         print(f"TIMER_UPDATE:{total_seconds}")
@@ -1233,7 +1315,6 @@ class Api(QObject):
             with open(settings_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
             self.settings = data
-            
             # Hook for system integration settings
             if category == "General":
                 if key == "RunAtStartup":
@@ -1613,9 +1694,13 @@ class MainWindow(QWebEngineView):
         self._pending_url = None
         self._did_hard_refresh = False
         self._window_tag = self._detect_window_tag(url, title)
+        self._loading_overlay = None
+        self._loading_overlay_hide_timer = None
+        self._loading_overlay_enabled = self._window_tag in ("settings", "timer", "onboarding")
         self._render_crash_count = 0
         self._max_reload_attempts = 3
         self._crash_recovery_timer = None
+        self._disable_animations = _animations_disabled(getattr(api, "settings", {}))
         self._apply_page_background()
         settings = self.page().settings()
         allow_gpu = not _is_windows7()
@@ -1623,7 +1708,7 @@ class MainWindow(QWebEngineView):
         settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, allow_gpu)
         settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True)
-        settings.setAttribute(QWebEngineSettings.WebAttribute.ScrollAnimatorEnabled, True)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.ScrollAnimatorEnabled, not self._disable_animations)
         settings.setAttribute(QWebEngineSettings.WebAttribute.AutoLoadImages, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, False)
         _configure_profile(self.page().profile())
@@ -1645,6 +1730,16 @@ class MainWindow(QWebEngineView):
         settings_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
         settings_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         self.page().scripts().insert(settings_script)
+        motion_script = QWebEngineScript()
+        motion_script.setSourceCode(
+            "try {"
+            f"window.__LUMINALIUM_DISABLE_ANIMATIONS = {json.dumps(self._disable_animations)};"
+            f"document.documentElement.setAttribute('data-disable-animations', '{'true' if self._disable_animations else 'false'}');"
+            "} catch (e) {}"
+        )
+        motion_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
+        motion_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
+        self.page().scripts().insert(motion_script)
         supports_backdrop = _supports_system_backdrop()
         support_script = QWebEngineScript()
         support_script.setSourceCode(f"window.__SYSTEM_BACKDROP_SUPPORTED = {json.dumps(supports_backdrop)};")
@@ -1677,6 +1772,10 @@ class MainWindow(QWebEngineView):
         self.page().scripts().insert(preview_script)
         if self._custom_border:
             self._inject_custom_border()
+        if self._loading_overlay_enabled:
+            self._setup_loading_overlay(title)
+        self.loadStarted.connect(self._on_load_started)
+        self.loadFinished.connect(self._on_load_finished)
         target_url = QUrl.fromUserInput(url)
         if self._defer_load:
             self._pending_url = target_url
@@ -1684,12 +1783,145 @@ class MainWindow(QWebEngineView):
             self.load(target_url)
         self.loadFinished.connect(lambda *_: (self._apply_page_background(), self._schedule_backdrop_apply()))
         self._schedule_backdrop_apply()
-        
+
         self.renderProcessTerminated.connect(self._on_render_process_terminated)
 
+    def _setup_loading_overlay(self, title):
+        qml_path = _resolve_window_loader_qml_path()
+        if not qml_path:
+            return
+        overlay = QQuickView()
+        overlay.setResizeMode(QQuickView.SizeRootObjectToView)
+        overlay.setColor(Qt.transparent)
+        overlay.setFlags(
+            Qt.FramelessWindowHint
+            | Qt.Tool
+            | Qt.WindowDoesNotAcceptFocus
+        )
+        try:
+            overlay.setSource(QUrl.fromLocalFile(qml_path))
+        except Exception as exc:
+            print(f"[WebView] Failed to create loading overlay: {exc}", file=sys.stderr)
+            try:
+                overlay.deleteLater()
+            except Exception:
+                pass
+            return
+        if overlay.status() == QQuickView.Error:
+            try:
+                errors = "; ".join(str(err) for err in overlay.errors())
+                print(f"[WebView] Loading overlay QML error: {errors}", file=sys.stderr)
+            except Exception:
+                pass
+        root = overlay.rootObject()
+        if root is None:
+            try:
+                overlay.deleteLater()
+            except Exception:
+                pass
+            return
+        logo_path = _resolve_logo_svg_path()
+        font_path = _resolve_misans_font_path()
+        root.setProperty("screenTitle", _resolve_window_loader_title(self._window_tag, title, getattr(self.api, "settings", {})))
+        root.setProperty("brandText", "Luminalium")
+        root.setProperty("logoSource", QUrl.fromLocalFile(logo_path).toString() if logo_path else "")
+        root.setProperty("fontSource", QUrl.fromLocalFile(font_path).toString() if font_path else "")
+        root.setProperty("darkMode", bool(_resolve_theme_dark(self._theme_mode)))
+        root.setProperty("animationsEnabled", not self._disable_animations)
+        root.setProperty("loading", True)
+        self._loading_overlay = overlay
+        self._loading_overlay_hide_timer = QTimer(self)
+        self._loading_overlay_hide_timer.setSingleShot(True)
+        self._loading_overlay_hide_timer.timeout.connect(self._hide_loading_overlay_window)
+        self._sync_loading_overlay_geometry()
+        overlay.show()
+        self._raise_loading_overlay()
+
+    def _sync_loading_overlay_geometry(self):
+        if self._loading_overlay is None:
+            return
+        try:
+            top_left = self.mapToGlobal(QPoint(0, 0))
+            overlay = self._loading_overlay
+            if self.windowHandle() is not None:
+                try:
+                    overlay.setTransientParent(self.windowHandle())
+                except Exception:
+                    pass
+                try:
+                    overlay.setScreen(self.windowHandle().screen())
+                except Exception:
+                    pass
+            overlay.setPosition(top_left)
+            overlay.resize(self.size())
+            self._raise_loading_overlay()
+        except Exception:
+            pass
+
+    def _raise_loading_overlay(self):
+        if self._loading_overlay is None:
+            return
+        try:
+            raise_method = getattr(self._loading_overlay, "raise_", None)
+            if callable(raise_method):
+                raise_method()
+                return
+        except Exception:
+            pass
+        try:
+            raise_method = getattr(self._loading_overlay, "raise", None)
+            if callable(raise_method):
+                raise_method()
+        except Exception:
+            pass
+
+    def _set_loading_overlay_visible(self, loading):
+        if self._loading_overlay is None:
+            return
+        if self._loading_overlay_hide_timer is not None:
+            self._loading_overlay_hide_timer.stop()
+        overlay = self._loading_overlay
+        root = overlay.rootObject()
+        if root is None:
+            return
+        if loading:
+            self._sync_loading_overlay_geometry()
+            overlay.show()
+            self._raise_loading_overlay()
+        root.setProperty("darkMode", bool(_resolve_theme_dark(self._theme_mode)))
+        root.setProperty("loading", bool(loading))
+        if not loading and self._loading_overlay_hide_timer is not None:
+            self._loading_overlay_hide_timer.start(620)
+
+    def _hide_loading_overlay_window(self):
+        if self._loading_overlay is None:
+            return
+        try:
+            self._loading_overlay.hide()
+        except Exception:
+            pass
+
+    def _on_load_started(self):
+        if self._loading_overlay_enabled:
+            self._set_loading_overlay_visible(True)
+
+    def _on_load_finished(self, _ok):
+        self._render_crash_count = 0
+        if not self._loading_overlay_enabled:
+            return
+        QTimer.singleShot(120, lambda: self._set_loading_overlay_visible(False))
+
     def _on_render_process_terminated(self, status, exit_code):
-        self._render_crash_count += 1
+        status_name = ""
+        try:
+            status_name = str(getattr(status, "name", status))
+        except Exception:
+            status_name = str(status)
         print(f"[WebView] Render process terminated: status={status}, exit_code={exit_code}", file=sys.stderr)
+        if "NormalTerminationStatus" in status_name and int(exit_code or 0) == 0:
+            print("[WebView] Renderer ended normally; skipping crash recovery.", file=sys.stderr)
+            return
+        self._render_crash_count += 1
         print(f"[WebView] Crash #{self._render_crash_count}/{self._max_reload_attempts}", file=sys.stderr)
         
         # If too many crashes, disable GPU and retry once, then give up
@@ -1843,6 +2075,8 @@ body {
             return "settings"
         if "timer.html" in url_text or "timer plugin" in title_text:
             return "timer"
+        if "onboarding.html" in url_text or "onboarding" in title_text:
+            return "onboarding"
         return ""
 
     def set_mini_mode(self, enabled):
@@ -1966,25 +2200,87 @@ body {
     def update_theme_mode(self, theme_mode):
         self._theme_mode = theme_mode
         self._apply_page_background()
+        if self._loading_overlay is not None:
+            root = self._loading_overlay.rootObject()
+            if root is not None:
+                root.setProperty("darkMode", bool(_resolve_theme_dark(self._theme_mode)))
         self._schedule_backdrop_apply()
 
     def apply_backdrop_settings(self):
         self._apply_page_background()
+        if self._loading_overlay is not None:
+            root = self._loading_overlay.rootObject()
+            if root is not None:
+                root.setProperty("darkMode", bool(_resolve_theme_dark(self._theme_mode)))
         self._schedule_backdrop_apply()
+
+    def apply_animation_preference(self, disabled):
+        self._disable_animations = bool(disabled)
+        try:
+            self.page().settings().setAttribute(
+                QWebEngineSettings.WebAttribute.ScrollAnimatorEnabled,
+                not self._disable_animations,
+            )
+        except Exception:
+            pass
+        try:
+            state = "true" if self._disable_animations else "false"
+            self.page().runJavaScript(
+                "try {"
+                f"window.__LUMINALIUM_DISABLE_ANIMATIONS = {state};"
+                f"document.documentElement.setAttribute('data-disable-animations', '{state}');"
+                "} catch (e) {}"
+            )
+        except Exception:
+            pass
+        if self._loading_overlay is not None:
+            try:
+                root = self._loading_overlay.rootObject()
+                if root is not None:
+                    root.setProperty("animationsEnabled", not self._disable_animations)
+            except Exception:
+                pass
 
     def showEvent(self, event):
         super().showEvent(event)
         if self._pending_url is not None:
             self.load(self._pending_url)
             self._pending_url = None
+        self._sync_loading_overlay_geometry()
+        if self._loading_overlay is not None:
+            try:
+                root = self._loading_overlay.rootObject()
+                if root is not None and bool(root.property("loading")):
+                    self._loading_overlay.show()
+                    self._raise_loading_overlay()
+            except Exception:
+                pass
         self._apply_page_background()
         self._schedule_backdrop_apply()
-        QTimer.singleShot(50, self._force_refresh)
+        system_backdrop_enabled = self._is_system_backdrop_enabled()
+        if system_backdrop_enabled:
+            QTimer.singleShot(50, self._force_refresh)
         QTimer.singleShot(120, lambda: _force_dwm_redraw(int(self.winId())))
-        if self._is_system_backdrop_enabled():
+        if system_backdrop_enabled:
             QTimer.singleShot(180, self._force_webview_transparent)
             QTimer.singleShot(220, self._force_webview_repaint)
             QTimer.singleShot(260, self._hard_resize_nudge)
+
+    def moveEvent(self, event):
+        super().moveEvent(event)
+        self._sync_loading_overlay_geometry()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._sync_loading_overlay_geometry()
+
+    def hideEvent(self, event):
+        if self._loading_overlay is not None:
+            try:
+                self._loading_overlay.hide()
+            except Exception:
+                pass
+        super().hideEvent(event)
     
     def closeEvent(self, event):
         """Clean up timers and resources when window closes"""
@@ -1994,6 +2290,22 @@ body {
             except Exception:
                 pass
             self._crash_recovery_timer = None
+        if self._loading_overlay_hide_timer is not None:
+            try:
+                self._loading_overlay_hide_timer.stop()
+            except Exception:
+                pass
+            self._loading_overlay_hide_timer = None
+        if self._loading_overlay is not None:
+            try:
+                self._loading_overlay.close()
+            except Exception:
+                pass
+            try:
+                self._loading_overlay.deleteLater()
+            except Exception:
+                pass
+            self._loading_overlay = None
         super().closeEvent(event)
 
 def apply_win11_aesthetics(window, theme_mode=None, settings=None, window_tag=""):

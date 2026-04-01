@@ -36,6 +36,7 @@ class Config(QConfig):
 
     runAtStartup = ConfigItem("General", "RunAtStartup", False, BoolValidator())
     autoShowOverlay = ConfigItem("General", "AutoShowOverlay", True, BoolValidator())
+    disableAnimations = ConfigItem("General", "DisableAnimations", False, BoolValidator(), restart=True)
     crashAutoHandleEnabled = ConfigItem("General", "CrashAutoHandleEnabled", False, BoolValidator())
     crashAutoHandleMode = OptionsConfigItem(
         "General",
@@ -244,6 +245,7 @@ def _bind_auto_save():
     cfg.themeId.valueChanged.connect(lambda *_: _save_cfg())
     cfg.runAtStartup.valueChanged.connect(_on_run_at_startup_changed)
     cfg.autoShowOverlay.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.disableAnimations.valueChanged.connect(lambda *_: _save_cfg())
     cfg.crashAutoHandleEnabled.valueChanged.connect(lambda *_: _save_cfg())
     cfg.crashAutoHandleMode.valueChanged.connect(lambda *_: _save_cfg())
     cfg.showClear.valueChanged.connect(lambda *_: _save_cfg())

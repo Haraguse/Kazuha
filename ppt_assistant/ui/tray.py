@@ -3,13 +3,11 @@ import os
 import sys
 import time
 
-from PySide6.QtCore import QObject, QEvent, QTimer, Qt, QUrl, Signal, Slot
+from PySide6.QtCore import QObject, QEvent, QTimer, Qt, Signal, Slot
 from PySide6.QtGui import QColor, QCursor, QGuiApplication, QIcon, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
-from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWidgets import QSystemTrayIcon
-from qfluentwidgets import Action, FluentIcon as FIF, RoundMenu, isDarkTheme, themeColor
+from PySide6.QtWidgets import QHBoxLayout, QSystemTrayIcon, QVBoxLayout, QWidget
+from qfluentwidgets import Action, BodyLabel, FluentIcon as FIF, Flyout, FlyoutViewBase, PrimaryPushButton, PushButton, RoundMenu, SubtitleLabel, isDarkTheme
 
 from ppt_assistant.core.config import SETTINGS_PATH, cfg
 from ppt_assistant.core.i18n import get_language, t
@@ -17,7 +15,6 @@ from ppt_assistant.core.i18n import get_language, t
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ICON_DIR = os.path.join(ROOT_DIR, "icons")
-HTML_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tray_panel.html")
 VERSION_PATH = os.path.join(ROOT_DIR, "version.json")
 
 
@@ -75,13 +72,6 @@ TRAY_COPY = {
         "exit_desc": "Exit Luminalium",
     },
 }
-
-
-def _icon_url(filename: str) -> str:
-    path = os.path.join(ICON_DIR, filename)
-    if not os.path.exists(path):
-        return ""
-    return QUrl.fromLocalFile(path).toString()
 
 
 def _hex_to_rgb(value: str):
@@ -424,129 +414,59 @@ def _build_theme_tokens(theme_id: str, variant: str):
     }
 
 
-class TrayPanelBridge(QObject):
-    actionRequested = Signal(str)
-    closeRequested = Signal()
-    syncRequested = Signal()
-
-    @Slot()
-    def requestInitState(self):
-        self.syncRequested.emit()
-
-    @Slot(str)
-    def trigger(self, action_id):
-        if not action_id:
-            return
-        self.closeRequested.emit()
-        self.actionRequested.emit(action_id)
-
-    @Slot()
-    def closeMenu(self):
-        self.closeRequested.emit()
-
-
-class TrayPanelWindow(QWebEngineView):
-    actionRequested = Signal(str)
-    panelHidden = Signal()
-
-    def __init__(self):
-        super().__init__()
-        self._menu_data = {}
-        self._theme_data = {}
-        self._page_ready = False
-        self._size = (388, 548)
-
-        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
+class TrayFlyoutAnchor(QWidget):
+    def __init__(self, anchor_pos):
+        super().__init__(None)
+        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setAttribute(Qt.WA_NoSystemBackground)
-        self.setContextMenuPolicy(Qt.NoContextMenu)
-        self.page().setBackgroundColor(Qt.transparent)
+        self.setAttribute(Qt.WA_ShowWithoutActivating)
+        self.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.setFixedSize(1, 1)
+        self.move(anchor_pos)
 
-        self._channel = QWebChannel(self.page())
-        self._bridge = TrayPanelBridge()
-        self._channel.registerObject("trayBridge", self._bridge)
-        self.page().setWebChannel(self._channel)
 
-        self._bridge.actionRequested.connect(self._forward_action)
-        self._bridge.closeRequested.connect(self.hide)
-        self._bridge.syncRequested.connect(self._push_state_to_page)
+class ActionConfirmFlyoutView(FlyoutViewBase):
+    confirmed = Signal()
+    cancelled = Signal()
 
-        self.loadFinished.connect(self._on_load_finished)
-        self.load(QUrl.fromLocalFile(HTML_PATH))
+    def __init__(self, title: str, body: str, confirm_text: str, parent=None):
+        super().__init__(parent)
+        self.setObjectName("trayActionConfirmFlyoutView")
+        self.setFixedWidth(332)
 
-    def _forward_action(self, action_id: str):
-        self.actionRequested.emit(action_id)
+        text_secondary = "rgba(255, 255, 255, 0.70)" if isDarkTheme() else "rgba(0, 0, 0, 0.60)"
 
-    def _on_load_finished(self, ok: bool):
-        self._page_ready = bool(ok)
-        if ok:
-            self._push_state_to_page()
+        root_layout = QVBoxLayout(self)
+        root_layout.setContentsMargins(20, 18, 20, 18)
+        root_layout.setSpacing(14)
 
-    def set_payload(self, menu_data, theme_data):
-        self._menu_data = menu_data or {}
-        self._theme_data = theme_data or {}
+        title_label = SubtitleLabel(title, self)
+        title_label.setWordWrap(True)
+        root_layout.addWidget(title_label)
 
-        primary_items = self._menu_data.get("primaryItems") or []
-        # titlebar=48, brand=88, gap+padding=56, each card≈76px, footer=58
-        height = 48 + 88 + 56 + len(primary_items) * 76
-        if self._menu_data.get("footerActions"):
-            height += 58
-        self._size = (380, max(360, min(620, height)))
-        self.resize(*self._size)
+        body_label = BodyLabel(body, self)
+        body_label.setStyleSheet(f"color: {text_secondary};")
+        body_label.setWordWrap(True)
+        root_layout.addWidget(body_label)
 
-        if self._page_ready:
-            self._push_state_to_page()
+        button_layout = QHBoxLayout()
+        button_layout.setContentsMargins(0, 2, 0, 0)
+        button_layout.setSpacing(12)
+        root_layout.addLayout(button_layout)
 
-    def _push_state_to_page(self):
-        if not self._page_ready:
-            return
+        cancel_button = PushButton(t("tray.action.confirm.cancel"), self)
+        cancel_button.setFixedHeight(34)
+        cancel_button.setMinimumWidth(92)
+        cancel_button.clicked.connect(self.cancelled.emit)
+        button_layout.addWidget(cancel_button)
 
-        menu_json = json.dumps(self._menu_data, ensure_ascii=False)
-        theme_json = json.dumps(self._theme_data, ensure_ascii=False)
-        script = (
-            "if (window.TrayPanel && typeof window.TrayPanel.setState === 'function') {"
-            f"window.TrayPanel.setState({menu_json}, {theme_json});"
-            "}"
-        )
-        self.page().runJavaScript(script)
+        confirm_button = PrimaryPushButton(confirm_text, self)
+        confirm_button.setFixedHeight(34)
+        confirm_button.setMinimumWidth(108)
+        confirm_button.clicked.connect(self.confirmed.emit)
+        button_layout.addWidget(confirm_button)
 
-    def show_at(self, anchor_pos):
-        width, height = self._size
-        self.resize(width, height)
-
-        screen = QGuiApplication.screenAt(anchor_pos) or QGuiApplication.primaryScreen()
-        if screen is not None:
-            geometry = screen.availableGeometry()
-            x = anchor_pos.x() - width + 18
-            y = anchor_pos.y() - height - 14
-
-            if y < geometry.top() + 8:
-                y = min(anchor_pos.y() + 14, geometry.bottom() - height - 8)
-
-            x = max(geometry.left() + 8, min(x, geometry.right() - width - 8))
-            y = max(geometry.top() + 8, min(y, geometry.bottom() - height - 8))
-            self.move(x, y)
-
-        self.show()
-        self.raise_()
-        self.activateWindow()
-
-        def _focus():
-            try:
-                self.setFocus(Qt.ActiveWindowFocusReason)
-            except Exception:
-                pass
-
-        QTimer.singleShot(0, _focus)
-
-    def event(self, event):
-        if event.type() == QEvent.WindowDeactivate and self.isVisible():
-            QTimer.singleShot(0, self.hide)
-        return super().event(event)
-
-    def hideEvent(self, event):
-        super().hideEvent(event)
-        self.panelHidden.emit()
+        button_layout.addStretch(1)
 
 
 class SystemTray(QObject):
@@ -563,8 +483,8 @@ class SystemTray(QObject):
         self._parent = parent
         self._version_text = _load_version_text()
         self._fallback_menu = None
-        self._panel = None
-        self._last_panel_hide_at = 0.0
+        self._confirm_flyout = None
+        self._confirm_anchor = None
 
         self._update_icon()
         self.refresh_menu()
@@ -644,11 +564,11 @@ class SystemTray(QObject):
         self._fallback_menu.addSeparator()
 
         act_restart = Action(FIF.SYNC, t("tray.restart"), self._fallback_menu)
-        act_restart.triggered.connect(self.restart_app.emit)
+        act_restart.triggered.connect(self._show_restart_confirm)
         self._fallback_menu.addAction(act_restart)
 
         act_exit = Action(FIF.POWER_BUTTON, t("tray.exit"), self._fallback_menu)
-        act_exit.triggered.connect(self.exit_app.emit)
+        act_exit.triggered.connect(self._show_exit_confirm)
         self._fallback_menu.addAction(act_exit)
 
         # Bind the new menu instance to the tray icon.
@@ -657,89 +577,6 @@ class SystemTray(QObject):
         # Schedule deletion of the old menu to avoid memory leak.
         if old is not None:
             old.deleteLater()
-
-    def _init_panel(self):
-        # Using qfluentwidgets RoundMenu as the primary tray menu.
-        # Context menu is set inside _init_fallback_menu.
-        self._panel = None
-
-    def _build_menu_data(self):
-        copy = _localized_copy()
-        timer_label = t("tray.timer")
-        try:
-            from ppt_assistant.core.timer_manager import TimerManager
-            tm = TimerManager()
-            if tm.remaining_seconds > 0:
-                mins, secs = divmod(int(tm.remaining_seconds), 60)
-                hrs, mins = divmod(mins, 60)
-                time_str = f"{hrs:02d}:{mins:02d}:{secs:02d}" if hrs > 0 else f"{mins:02d}:{secs:02d}"
-                timer_label += f" ({time_str})"
-        except Exception:
-            pass
-
-        primary_items = [
-            {
-                "id": "settings",
-                "label": t("tray.settings"),
-                "description": copy["settings_desc"],
-                "icon": _icon_url("settings.svg"),
-                "actionLabel": copy["open"],
-            },
-            {
-                "id": "board",
-                "label": t("tray.board"),
-                "description": copy["board_desc"],
-                "icon": _icon_url("board-in-board.svg"),
-                "actionLabel": copy["open"],
-            },
-            {
-                "id": "timer",
-                "label": timer_label,
-                "description": copy["timer_desc"],
-                "icon": _icon_url("timer.svg"),
-                "actionLabel": copy["open"],
-            },
-        ]
-
-        if cfg.compatibilityMode.value:
-            primary_items.append(
-                {
-                    "id": "toggle",
-                    "label": t("tray.toggle"),
-                    "description": copy["toggle_desc"],
-                    "icon": "",
-                    "actionLabel": copy["run"],
-                }
-            )
-
-        footer_actions = [
-            {
-                "id": "restart",
-                "label": t("tray.restart"),
-                "iconKind": "restart",
-            },
-            {
-                "id": "exit",
-                "label": t("tray.exit"),
-                "iconKind": "exit",
-                "danger": True,
-            },
-        ]
-
-        return {
-            "versionText": self._version_text,
-            "primaryItems": primary_items,
-            "footerActions": footer_actions,
-        }
-
-    def _build_theme_data(self):
-        theme_id = str(getattr(cfg.themeId, "value", "default") or "default")
-        variant = _theme_variant_name()
-        return {
-            "themeId": theme_id,
-            "themeVariant": variant,
-            "tokens": _build_theme_tokens(theme_id, variant),
-        }
 
     def _trigger_action(self, action_id: str):
         if action_id == "settings":
@@ -751,32 +588,98 @@ class SystemTray(QObject):
         elif action_id == "toggle":
             self.toggle_overlay.emit()
         elif action_id == "restart":
-            self.restart_app.emit()
+            self._show_restart_confirm()
         elif action_id == "exit":
-            self.exit_app.emit()
+            self._show_exit_confirm()
+
+    def _cleanup_confirm_flyout(self, *_):
+        self._confirm_flyout = None
+        anchor = self._confirm_anchor
+        self._confirm_anchor = None
+        if anchor is not None:
+            try:
+                anchor.hide()
+            except Exception:
+                pass
+            anchor.deleteLater()
+
+    def _close_confirm_flyout(self):
+        flyout = self._confirm_flyout
+        self._confirm_flyout = None
+        if flyout is not None:
+            try:
+                flyout.close()
+            except Exception:
+                pass
+        else:
+            self._cleanup_confirm_flyout()
+
+    def _confirm_restart(self):
+        self._close_confirm_flyout()
+        QTimer.singleShot(0, self.restart_app.emit)
+
+    def _confirm_exit(self):
+        self._close_confirm_flyout()
+        QTimer.singleShot(0, self.exit_app.emit)
+
+    def _show_confirm_flyout(self, title: str, body: str, confirm_text: str, confirmed_slot):
+        flyout = self._confirm_flyout
+        if flyout is not None:
+            try:
+                flyout.raise_()
+                flyout.activateWindow()
+                return
+            except Exception:
+                self._cleanup_confirm_flyout()
+
+        if self._fallback_menu is not None and self._fallback_menu.isVisible():
+            self._fallback_menu.hide()
+
+        anchor = TrayFlyoutAnchor(QCursor.pos())
+        anchor.show()
+
+        view = ActionConfirmFlyoutView(title, body, confirm_text, anchor)
+        self._confirm_anchor = anchor
+        self._confirm_flyout = Flyout.make(view, anchor)
+
+        view.cancelled.connect(self._close_confirm_flyout)
+        view.confirmed.connect(confirmed_slot)
+        self._confirm_flyout.destroyed.connect(self._cleanup_confirm_flyout)
+
+        def _activate():
+            current_flyout = self._confirm_flyout
+            if current_flyout is None:
+                return
+            try:
+                current_flyout.raise_()
+                current_flyout.activateWindow()
+            except Exception:
+                pass
+
+        QTimer.singleShot(0, _activate)
+
+    def _show_restart_confirm(self):
+        self._show_confirm_flyout(
+            t("tray.restart.confirm.title"),
+            t("tray.restart.confirm.body"),
+            t("tray.restart.confirm.confirm"),
+            self._confirm_restart,
+        )
+
+    def _show_exit_confirm(self):
+        self._show_confirm_flyout(
+            t("tray.exit.confirm.title"),
+            t("tray.exit.confirm.body"),
+            t("tray.exit.confirm.confirm"),
+            self._confirm_exit,
+        )
 
     def refresh_menu(self):
         self._init_fallback_menu()
         self._update_icon()
 
-    def _on_panel_hidden(self):
-        self._last_panel_hide_at = time.monotonic()
-
     def _show_panel(self):
-        if self._panel is None:
-            self._fallback_menu.exec(QCursor.pos())
-            return
-
-        now = time.monotonic()
-        if now - self._last_panel_hide_at < 0.2:
-            return
-
-        if self._panel.isVisible():
-            self._panel.hide()
-            return
-
-        self._panel.set_payload(self._build_menu_data(), self._build_theme_data())
-        self._panel.show_at(QCursor.pos())
+        self._fallback_menu.exec(QCursor.pos())
 
     def _on_activated(self, reason):
         if reason in (QSystemTrayIcon.Trigger, QSystemTrayIcon.Context):

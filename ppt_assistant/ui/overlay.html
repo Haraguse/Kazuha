@@ -5,6 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Overlay</title>
     <style>
+        @font-face {
+            font-family: "Google Sans Flex";
+            src: url("../../fonts/Google Sans Flex.ttf") format("truetype");
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "MiSans VF";
+            src: url("../../fonts/MiSansVF.ttf") format("truetype");
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "MiSans Japanese VF";
+            src: url("../../fonts/MiSansJapaneseVF.ttf") format("truetype");
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "MiSans TC VF";
+            src: url("../../fonts/MiSansTCVF.ttf") format("truetype");
+            font-display: swap;
+        }
+
         :root {
             --bg-app: #f2f3f5;
             --bg-surface: #ffffff;
@@ -14,7 +38,7 @@
             --divider: rgba(0, 0, 0, 0.08);
             --item-hover: rgba(0, 0, 0, 0.05);
             --shadow-main: 0 4px 12px rgba(0, 0, 0, 0.06);
-            --font-stack: "MiSans Latin", "HarmonyOS Sans SC", "SF Pro", "苹方-简", "PingFang SC", "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+            --font-stack: "Google Sans Flex", "MiSans VF", "Segoe UI", system-ui, -apple-system, sans-serif;
 
             /* Light Mode Defaults */
             --overlay-toolbar-bg: rgba(255, 255, 255, 0.95);
@@ -57,6 +81,13 @@
             --overlay-dialog-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
             --overlay-dialog-title: #1a1c1e;
             --overlay-dialog-text: rgba(0, 0, 0, 0.65);
+        }
+
+        :root[data-disable-animations="true"] *,
+        :root[data-disable-animations="true"] *::before,
+        :root[data-disable-animations="true"] *::after {
+            transition: none !important;
+            scroll-behavior: auto !important;
         }
 
         [data-theme="dark"] {
@@ -2102,6 +2133,22 @@
         let currentConfig = null;
         let currentPage = 1;
         let totalPage = 1;
+
+        function animationsDisabled() {
+            return !!currentConfig?.disableAnimations;
+        }
+
+        function motionBehavior() {
+            return animationsDisabled() ? 'auto' : 'smooth';
+        }
+
+        function motionDelay(ms) {
+            return animationsDisabled() ? 0 : ms;
+        }
+
+        function applyAnimationPreference() {
+            document.documentElement.setAttribute('data-disable-animations', animationsDisabled() ? 'true' : 'false');
+        }
         const DEFAULT_PEN_COLOR = Object.freeze({ tab: 'highlight', name: '红色', rgb: '255 0 0', hex: '#FF0000' });
         const PEN_COLOR_PRESETS = Object.freeze({
             '#FFFFFF': { tab: 'pen', name: '白色', rgb: '255 255 255', hex: '#FFFFFF' },
@@ -2300,6 +2347,7 @@
 
         function updateConfig(config) {
             currentConfig = config;
+            applyAnimationPreference();
             
             applyOpacity();
             
@@ -2725,7 +2773,7 @@
                 // We do this after a small delay to ensure the DOM has updated and transition started
                 setTimeout(() => {
                     if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
-                }, 50);
+                }, motionDelay(50));
 
                 if (typeof bridge !== 'undefined' && bridge && typeof bridge.resizeNudge === 'function') {
                     bridge.resizeNudge();
@@ -2735,9 +2783,9 @@
                 setTimeout(() => {
                     const activeItem = selector.querySelector('.page-item.active');
                     if (activeItem) {
-                        activeItem.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                        activeItem.scrollIntoView({ block: 'center', behavior: motionBehavior() });
                     }
-                }, 300); // Wait for transition
+                }, motionDelay(300)); // Wait for transition
             }
         }
 
@@ -3092,7 +3140,7 @@
                 if (getStatusLogicalChar(currentSpan.textContent) !== char) {
                     // Only animate digits (0-9), not letters or symbols when animateAll is false
                     const isDigit = /\d/.test(char);
-                    const shouldAnimate = animateAll || isDigit;
+                    const shouldAnimate = !animationsDisabled() && (animateAll || isDigit);
                     
                     if (shouldAnimate && !currentSpan.classList.contains('status-digit-old')) {
                         const newSpan = document.createElement('span');
@@ -3107,7 +3155,7 @@
                                 wrap.removeChild(currentSpan);
                             }
                             newSpan.className = '';
-                        }, 350);
+                        }, motionDelay(350));
                     } else {
                         currentSpan.textContent = getStatusDisplayChar(char);
                     }
@@ -3235,7 +3283,7 @@
                 lastStatusValues.musicBase = currentMusicState.baseText;
             };
 
-            if (flipTitle && lastStatusValues.musicBase !== currentMusicState.baseText) {
+            if (flipTitle && !animationsDisabled() && lastStatusValues.musicBase !== currentMusicState.baseText) {
                 smtcText.classList.remove('status-music-flip-in');
                 smtcText.classList.add('status-music-flip');
 
@@ -3247,8 +3295,8 @@
 
                     setTimeout(() => {
                         smtcText.classList.remove('status-music-flip-in');
-                    }, 300);
-                }, 30);
+                    }, motionDelay(300));
+                }, motionDelay(30));
                 return;
             }
 
@@ -3369,7 +3417,7 @@
             function onEnd() {
                 if (!isDragging) return;
                 isDragging = false;
-                thumb.style.transition = 'transform 0.3s ease';
+                thumb.style.transition = animationsDisabled() ? 'none' : 'transform 0.3s ease';
                 
                 if (currentX > maxDrag * 0.8) {
                     currentX = maxDrag;
@@ -3381,7 +3429,7 @@
                         thumb.style.transform = `translateX(0px)`;
                         text.style.opacity = 1;
                         document.getElementById('eraser-settings').classList.remove('visible');
-                    }, 300);
+                    }, motionDelay(300));
                 } else {
                     currentX = 0;
                     thumb.style.transform = `translateX(0px)`;
@@ -3409,7 +3457,7 @@
         function scheduleMaskUpdate() {
             if (typeof sendMaskUpdate !== 'function') return;
             requestAnimationFrame(() => requestAnimationFrame(sendMaskUpdate));
-            setTimeout(sendMaskUpdate, 360);
+            setTimeout(sendMaskUpdate, motionDelay(360));
         }
 
 

@@ -6,6 +6,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Timer</title>
   <style>
+    @font-face {
+      font-family: "Google Sans Flex";
+      src: url("../../../fonts/Google Sans Flex.ttf") format("truetype");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "MiSans VF";
+      src: url("../../../fonts/MiSansVF.ttf") format("truetype");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "MiSans Japanese VF";
+      src: url("../../../fonts/MiSansJapaneseVF.ttf") format("truetype");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "MiSans TC VF";
+      src: url("../../../fonts/MiSansTCVF.ttf") format("truetype");
+      font-display: swap;
+    }
+
     :root {
       --bg-app: #F5F6F8;
       --bg-surface: #FFFFFF;
@@ -19,8 +43,15 @@
       --ring-bg: rgba(0, 0, 0, 0.05);
       --dialog-overlay: rgba(0, 0, 0, 0.4);
       --dialog-icon-bg: #F2F7FF;
-      --font-stack: "MiSans Latin", "HarmonyOS Sans SC", "SF Pro", "苹方-简", "PingFang SC", "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+      --font-stack: "Google Sans Flex", "MiSans VF", "Segoe UI", system-ui, -apple-system, sans-serif;
       --font-weight-override: 400;
+    }
+
+    :root[data-disable-animations="true"] *,
+    :root[data-disable-animations="true"] *::before,
+    :root[data-disable-animations="true"] *::after {
+      transition: none !important;
+      scroll-behavior: auto !important;
     }
 
     [data-theme="dark"] {
@@ -1779,6 +1810,24 @@
     let settings = window.initialSettings || {};
     let currentLanguage = (settings.General && settings.General.Language) || "zh-CN";
 
+    function animationsDisabled() {
+      return !!settings?.General?.DisableAnimations;
+    }
+
+    function motionBehavior() {
+      return animationsDisabled() ? "auto" : "smooth";
+    }
+
+    function motionDelay(ms) {
+      return animationsDisabled() ? 0 : ms;
+    }
+
+    function applyAnimationPreference() {
+      document.documentElement.setAttribute("data-disable-animations", animationsDisabled() ? "true" : "false");
+    }
+
+    applyAnimationPreference();
+
     function getText(key) {
       const fallbackLang = currentLanguage === "yue-HK" ? "zh-TW" : "zh-CN";
       const langPack = I18N[currentLanguage] || I18N[fallbackLang] || I18N["zh-CN"];
@@ -1789,20 +1838,19 @@
     }
 
     function getDefaultFontStack(lang) {
-      const isSpecial = lang === "zh-TW" || lang === "ja-JP";
       if (lang === "zh-TW") {
-        return "\"Microsoft JhengHei\", \"MiSans Latin\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
+        return "\"Google Sans Flex\", \"MiSans Japanese VF\", \"MiSans TC VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
       }
       if (lang === "yue-HK") {
-        return "\"Meiryo UI\", \"Meiryo\", \"Microsoft JhengHei\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
+        return "\"Google Sans Flex\", \"MiSans VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
       }
       if (lang === "ja-JP") {
-        return "\"MiSans Latin\", \"Hiragino Kaku Gothic Pro\", \"Yu Gothic UI\", \"Meiryo\", \"HarmonyOS Sans JP\", \"SF Pro\", system-ui, -apple-system, sans-serif";
+        return "\"Google Sans Flex\", \"MiSans Japanese VF\", \"MiSans TC VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
       }
       if (lang === "ug-CN") {
-        return "\"Microsoft Uighur\", \"ALKATIP Basma Tom\", \"MiSans Latin\", \"HarmonyOS Sans SC\", \"SF Pro\", system-ui, -apple-system, sans-serif";
+        return "\"Google Sans Flex\", \"Segoe UI\", \"MiSans VF\", system-ui, -apple-system, sans-serif";
       }
-      return "\"MiSans Latin\", \"HarmonyOS Sans SC\", \"SF Pro\", \"苹方-简\", \"PingFang SC\", \"Segoe UI\", \"Microsoft YaHei\", system-ui, -apple-system, sans-serif";
+      return "\"Google Sans Flex\", \"MiSans VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
     }
 
     function getSelectedWebFont(lang) {
@@ -1942,6 +1990,7 @@
           if (s && Object.keys(s).length > 0) {
             settings = s;
           }
+          applyAnimationPreference();
           const lang = settings.General && settings.General.Language;
           if (lang) currentLanguage = lang;
           if (settings && settings.Appearance) {
@@ -1954,11 +2003,13 @@
           applyI18n();
         }).catch(err => {
           console.error("Failed to get settings:", err);
+          applyAnimationPreference();
           applyTheme('Light');
           applySystemBackdropDocument();
           applyI18n();
         });
       } else {
+        applyAnimationPreference();
         applyTheme('Light');
         applySystemBackdropDocument();
         applyI18n();
@@ -2026,7 +2077,7 @@
             // Actually, my CSS for .view-section says display:none.
             // .view-section.exit-left says display:flex.
             // So removing exit-left will make it display:none. Correct.
-          }, 300);
+          }, motionDelay(300));
         }
 
         navItems.forEach(n => n.classList.remove('active'));
@@ -2130,7 +2181,7 @@
         if (e.target.classList.contains('wheel-item')) {
           const val = parseInt(e.target.dataset.val);
           const targetScroll = val * itemHeight;
-          container.scrollTo({ top: targetScroll, behavior: 'smooth' });
+          container.scrollTo({ top: targetScroll, behavior: motionBehavior() });
         }
       });
 
@@ -2173,7 +2224,7 @@
       if (!container) return;
       const itemHeight = 80;
       const targetScroll = val * itemHeight;
-      container.scrollTo({ top: targetScroll, behavior: 'smooth' });
+      container.scrollTo({ top: targetScroll, behavior: motionBehavior() });
     }
 
     function formatPresetLabel(sec) {
@@ -2394,7 +2445,7 @@
       // Wait for fullscreen exit animation/state change
       setTimeout(() => {
         toggleMiniMode();
-      }, 100);
+      }, motionDelay(100));
     }
 
     document.addEventListener('fullscreenchange', () => {
@@ -2533,7 +2584,7 @@
 
         const currentSpan = wrap.lastElementChild;
         // Check if value changed and we are not already animating to this value
-        if (currentSpan.textContent !== char && !currentSpan.classList.contains('digit-new')) {
+        if (!animationsDisabled() && currentSpan.textContent !== char && !currentSpan.classList.contains('digit-new')) {
           const newSpan = document.createElement('span');
           newSpan.textContent = char;
           newSpan.className = 'digit-new';
@@ -2549,7 +2600,9 @@
               wrap.removeChild(currentSpan);
             }
             newSpan.className = ''; // 回归到他妈的static
-          }, 350);
+          }, motionDelay(350));
+        } else if (currentSpan.textContent !== char) {
+          currentSpan.textContent = char;
         }
       });
     }

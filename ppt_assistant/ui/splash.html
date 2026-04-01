@@ -5,6 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Splash</title>
     <style>
+        @font-face {
+            font-family: "Google Sans Flex";
+            src: url("../../fonts/Google Sans Flex.ttf") format("truetype");
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "MiSans VF";
+            src: url("../../fonts/MiSansVF.ttf") format("truetype");
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "MiSans Japanese VF";
+            src: url("../../fonts/MiSansJapaneseVF.ttf") format("truetype");
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "MiSans TC VF";
+            src: url("../../fonts/MiSansTCVF.ttf") format("truetype");
+            font-display: swap;
+        }
+
         :root {
             --bg-color: rgba(255, 255, 255, 0.94);
             --border-color: rgba(0, 0, 0, 0.08);
@@ -16,6 +40,7 @@
             --ver-color: #000000;
             --en-color: rgba(0, 0, 0, 0.47);
             --chunk-color: #3275F5;
+            --font-stack: "Google Sans Flex", "MiSans VF", "Segoe UI", system-ui, -apple-system, sans-serif;
         }
 
         [data-theme="dark"] {
@@ -35,7 +60,7 @@
             margin: 0;
             padding: 0;
             background: transparent;
-            font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+            font-family: var(--font-stack);
             overflow: hidden;
             user-select: none;
             display: flex;
@@ -101,7 +126,7 @@
             font-size: 32px;
             font-weight: 900;
             color: var(--text-primary);
-            font-family: "Yu Gothic UI", "Meiryo UI", sans-serif;
+            font-family: var(--font-stack);
         }
 
         /* Version Info */
@@ -110,7 +135,7 @@
             left: 38px;
             top: 153px;
             line-height: 20px;
-            font-family: "MiSans", sans-serif;
+            font-family: var(--font-stack);
         }
 
         #ver-text {
@@ -167,7 +192,7 @@
             font-size: 15px;
             font-weight: bold;
             color: var(--text-secondary);
-            font-family: "HarmonyOS Sans SC", "Meiryo UI", sans-serif;
+            font-family: var(--font-stack);
         }
 
         /* Progress Bar */

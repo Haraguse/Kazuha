@@ -1,3 +1,27 @@
+@font-face {
+  font-family: "Google Sans Flex";
+  src: url("../../../fonts/Google Sans Flex.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "MiSans VF";
+  src: url("../../../fonts/MiSansVF.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "MiSans Japanese VF";
+  src: url("../../../fonts/MiSansJapaneseVF.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "MiSans TC VF";
+  src: url("../../../fonts/MiSansTCVF.ttf") format("truetype");
+  font-display: swap;
+}
+
 :root {
   --bg-app: #f7f8f9;
   --bg-surface: #ffffff;
@@ -10,7 +34,7 @@
   --item-hover: rgba(0, 0, 0, 0.05);
   --shadow-color: rgba(0, 0, 0, 0.06);
   --shadow-main: 0 4px 12px var(--shadow-color);
-  --font-stack: "MiSans Latin", "HarmonyOS Sans SC", "SF Pro", "PingFang SC", "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  --font-stack: "Google Sans Flex", "MiSans VF", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
 * {

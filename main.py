@@ -304,9 +304,76 @@ def _get_font_weight_from_settings(data, lang: str, scene: str, fallback_scene: 
     return None
 
 
+_BUNDLED_FONT_FILES = {
+    "google_sans_flex": "Google Sans Flex.ttf",
+    "misans_vf": "MiSansVF.ttf",
+    "misans_japanese_vf": "MiSansJapaneseVF.ttf",
+    "misans_tc_vf": "MiSansTCVF.ttf",
+}
+
+
+def _dedupe_font_families(families):
+    seen = set()
+    ordered = []
+    for family in families or []:
+        if not isinstance(family, str):
+            continue
+        name = family.strip()
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        ordered.append(name)
+    return ordered
+
+
+def _load_bundled_font_families(root_dir: str):
+    families = {}
+    fonts_dir = os.path.join(root_dir, "fonts")
+    for key, file_name in _BUNDLED_FONT_FILES.items():
+        font_path = os.path.join(fonts_dir, file_name)
+        if not os.path.exists(font_path):
+            continue
+        try:
+            font_id = QFontDatabase.addApplicationFont(font_path)
+            if font_id == -1:
+                continue
+            loaded = QFontDatabase.applicationFontFamilies(font_id)
+            if loaded:
+                families[key] = loaded[0]
+        except Exception:
+            continue
+    return families
+
+
+def _get_default_font_family_stack(lang: str, bundled_families=None):
+    if bundled_families is None:
+        bundled_families = {}
+    google = bundled_families.get("google_sans_flex", "Google Sans Flex")
+    misans = bundled_families.get("misans_vf", "MiSans VF")
+    misans_jp = bundled_families.get("misans_japanese_vf", "MiSans Japanese VF")
+    misans_tc = bundled_families.get("misans_tc_vf", "MiSans TC VF")
+
+    if lang in ("zh-TW", "ja-JP"):
+        return _dedupe_font_families([google, misans_jp, misans_tc, "Segoe UI"])
+    if lang == "ug-CN":
+        return _dedupe_font_families([google, "Segoe UI", misans])
+    return _dedupe_font_families([google, misans, "Segoe UI"])
+
+
+def _build_css_font_family_value(families):
+    parts = []
+    for family in _dedupe_font_families(families):
+        safe = family.replace("\\", "\\\\").replace("'", "\\'")
+        parts.append(f"'{safe}'")
+    if not parts:
+        parts.append("sans-serif")
+    else:
+        parts.append("sans-serif")
+    return ", ".join(parts)
+
+
 def _apply_global_font(app: QApplication):
     root_dir = os.path.dirname(os.path.abspath(__file__))
-    font_path = os.path.join(root_dir, "fonts", "MiSansVF.ttf")
     selected_family = ""
     data = _load_settings_json()
     lang = data.get("General", {}).get("Language", "zh-CN")
@@ -315,22 +382,17 @@ def _apply_global_font(app: QApplication):
     if isinstance(v, str) and v.strip():
         selected_family = v.strip()
 
-    base_family = ""
-    if os.path.exists(font_path):
-        try:
-            font_id = QFontDatabase.addApplicationFont(font_path)
-            if font_id != -1:
-                families = QFontDatabase.applicationFontFamilies(font_id)
-                if families:
-                    base_family = families[0]
-        except Exception:
-            base_family = ""
+    bundled_families = _load_bundled_font_families(root_dir)
+    default_families = _get_default_font_family_stack(lang, bundled_families)
 
-    preferred_family = "Meiryo UI" if lang == "yue-HK" else ""
-    family = selected_family or preferred_family or base_family
-    if not family:
-        return
-    font = QFont(family)
+    if selected_family:
+        font = QFont(selected_family)
+    else:
+        if not default_families:
+            return
+        font = QFont()
+        font.setStyleHint(QFont.SansSerif)
+        font.setFamilies(default_families)
     weight = _get_font_weight_from_settings(data, lang, "qt")
     if weight is not None:
         font.setWeight(weight)
@@ -571,17 +633,16 @@ class StartupSplash(QWidget):
             margin_bottom = 40
             
             # Fonts
-            # Use "Microsoft YaHei" explicitly for Chinese/CJK support as primary or fallback
-            title_font = QFont("Bahnschrift")
+            splash_font_families = _get_default_font_family_stack(self._language, _load_bundled_font_families(_get_user_root_dir()))
+            title_font = QFont()
             title_font.setStyleHint(QFont.SansSerif)
-            # Add fallback families
-            title_font.setFamilies(["Bahnschrift", "Microsoft YaHei", "SimHei", "Segoe UI"])
+            title_font.setFamilies(splash_font_families)
             title_font.setPixelSize(36)
             title_font.setBold(True)
             
-            sub_font = QFont("Bahnschrift")
+            sub_font = QFont()
             sub_font.setStyleHint(QFont.SansSerif)
-            sub_font.setFamilies(["Bahnschrift", "Microsoft YaHei", "SimHei", "Segoe UI"])
+            sub_font.setFamilies(splash_font_families)
             sub_font.setPixelSize(14)
             
             # Calculate positions from bottom
@@ -615,10 +676,10 @@ class StartupSplash(QWidget):
             
             # Draw Title
             brand_name_map = {
-                "zh-CN": "万演",
-                "zh-TW": "万演",
-                "yue-HK": "萬演",
-                "ja-JP": "カズハ",
+                "zh-CN": "Luminalium",
+                "zh-TW": "Luminalium",
+                "yue-HK": "Luminalium",
+                "ja-JP": "ルマイナリウム",
                 "en-US": "Luminalium",
             }
             brand_name = brand_name_map.get(self._language, "Luminalium")
@@ -628,9 +689,6 @@ class StartupSplash(QWidget):
             painter.drawText(margin_left, title_baseline_y, brand_name)
             
             # Draw Subtitle
-            # Use Microsoft YaHei for potential fallback if needed, but Bahnschrift is primary
-            # QFont combo isn't directly supported in drawText, rely on system fallback or set specific family list
-            # "Bahnschrift, Microsoft YaHei"
             painter.setFont(sub_font)
             painter.setPen(QColor("#888888"))
             subtitle = f"{self._version_text} // {self._code_name_en}"
@@ -696,16 +754,17 @@ class StartupSplash(QWidget):
         self._icon_label.move(38, 37)
 
         brand_name_map = {
-            "zh-CN": "万演",
-            "zh-TW": "万演",
-            "yue-HK": "萬演",
-            "ja-JP": "カズハ",
+            "zh-CN": "Luminalium",
+            "zh-TW": "Luminalium",
+            "yue-HK": "Luminalium",
+            "ja-JP": "ルマイナリウム",
             "en-US": "Luminalium",
         }
         brand_name = brand_name_map.get(self._language, "Luminalium")
         self._brand_label = QLabel(brand_name, self._container)
-        brand_font_family = "Meiryo UI" if self._language == "yue-HK" else "Yu Gothic UI"
-        brand_font = QFont(brand_font_family)
+        splash_font_families = _get_default_font_family_stack(self._language, _load_bundled_font_families(_get_user_root_dir()))
+        brand_font = QFont()
+        brand_font.setFamilies(splash_font_families)
         brand_font.setPixelSize(32)
         brand_font.setWeight(QFont.Black) 
         self._brand_label.setFont(brand_font)
@@ -723,10 +782,11 @@ class StartupSplash(QWidget):
         ver_color = "#FFFFFF" if self._is_dark else "#000000"
         en_color = "rgba(255, 255, 255, 0.47)" if self._is_dark else "rgba(0, 0, 0, 0.47)"
         
+        version_font_css = _build_css_font_family_value(splash_font_families)
         html = f"""
         <div style="line-height: 20px;">
-            <span style="font-family: 'MiSans'; font-size: 11px; font-weight: 500; color: {ver_color};">{ver_text}</span>
-            <span style="font-family: 'MiSans'; font-size: 11px; font-weight: 300; color: {en_color}; margin-left: 2px;">{en_text}</span>
+            <span style="font-family: {version_font_css}; font-size: 11px; font-weight: 500; color: {ver_color};">{ver_text}</span>
+            <span style="font-family: {version_font_css}; font-size: 11px; font-weight: 300; color: {en_color}; margin-left: 2px;">{en_text}</span>
         </div>
         """
         
@@ -743,8 +803,8 @@ class StartupSplash(QWidget):
         # Status Text (element_2) - x: 76, y: 203
         init_text = SPLASH_I18N.get(self._language, SPLASH_I18N["zh-CN"])["initializing"]
         self._percent_label = QLabel(f"{init_text} 0%", self._container)
-        percent_font_family = "Meiryo UI" if self._language == "yue-HK" else "HarmonyOS Sans SC"
-        percent_font = QFont(percent_font_family)
+        percent_font = QFont()
+        percent_font.setFamilies(splash_font_families)
         percent_font.setPixelSize(15)
         percent_font.setBold(True)
         self._percent_label.setFont(percent_font)

@@ -101,12 +101,12 @@ def _read_board_settings():
             popup_border = "rgba(230, 0, 0, 0.15)"
         
         pos = board.get("ToolbarPosition", position)
-        if pos in ("top", "bottom"):
+        if pos in ("top", "bottom", "left", "right"):
             position = pos
         return position, background_color, popup_bg, popup_border, eraser_mode, pen_stroke_enabled
 
     pos = board.get("ToolbarPosition", position)
-    if pos in ("top", "bottom"):
+    if pos in ("top", "bottom", "left", "right"):
         position = pos
     color = board.get("BackgroundColor", background_color)
     if isinstance(color, str) and len(color) == 7 and color.startswith("#"):
@@ -331,8 +331,69 @@ class ColorEncoder(json.JSONEncoder):
             return obj.name(QColor.HexArgb)
         return super().default(obj)
 
+
+def _normalize_board_document(raw):
+    if isinstance(raw, list):
+        return {
+            "currentPage": 1,
+            "pages": [{"strokes": raw, "thumb": ""}],
+        }
+
+    if isinstance(raw, dict):
+        pages = []
+        raw_pages = raw.get("pages")
+        if isinstance(raw_pages, list):
+            for page in raw_pages:
+                if isinstance(page, dict):
+                    strokes = page.get("strokes", [])
+                    thumb = page.get("thumb", "")
+                elif isinstance(page, list):
+                    strokes = page
+                    thumb = ""
+                else:
+                    strokes = []
+                    thumb = ""
+                if not isinstance(strokes, list):
+                    strokes = []
+                if not isinstance(thumb, str):
+                    thumb = ""
+                pages.append({"strokes": strokes, "thumb": thumb})
+
+        if not pages:
+            legacy_strokes = raw.get("strokes")
+            if isinstance(legacy_strokes, list):
+                pages.append({"strokes": legacy_strokes, "thumb": ""})
+
+        if not pages:
+            pages = [{"strokes": [], "thumb": ""}]
+
+        current_page = raw.get("currentPage", 1)
+        try:
+            current_page = int(current_page)
+        except Exception:
+            current_page = 1
+        current_page = max(1, min(current_page, len(pages)))
+
+        return {
+            "currentPage": current_page,
+            "pages": pages,
+        }
+
+    return {
+        "currentPage": 1,
+        "pages": [{"strokes": [], "thumb": ""}],
+    }
+
+
+def _board_document_has_content(document):
+    pages = document.get("pages", []) if isinstance(document, dict) else []
+    for page in pages:
+        if isinstance(page, dict) and isinstance(page.get("strokes"), list) and page["strokes"]:
+            return True
+    return False
+
 class BoardBackend(QObject):
-    maximizedChanged = Signal()
+    windowStateChanged = Signal()
 
     def __init__(self, window):
         super().__init__()
@@ -357,11 +418,16 @@ class BoardBackend(QObject):
 
     @Slot()
     def toggleMaximized(self):
-        if self._window.windowState() == Qt.WindowMaximized:
+        if self.isMaximized:
             self._window.showNormal()
         else:
             self._window.showMaximized()
-        self.maximizedChanged.emit()
+        self.windowStateChanged.emit()
+
+    @Slot()
+    def toggleFullscreen(self):
+        self._window.toggle_fullscreen()
+        self.windowStateChanged.emit()
 
     @Slot(int)
     def startResize(self, edge):
@@ -369,9 +435,13 @@ class BoardBackend(QObject):
         # Combined: 5=TopLeft, 6=BottomLeft, 9=TopRight, 10=BottomRight
         self._window.startSystemResize(Qt.Edge(edge))
 
-    @Property(bool, notify=maximizedChanged)
+    @Property(bool, notify=windowStateChanged)
     def isMaximized(self):
-        return self._window.windowState() == Qt.WindowMaximized
+        return bool(self._window.windowState() & Qt.WindowMaximized)
+
+    @Property(bool, notify=windowStateChanged)
+    def isFullscreen(self):
+        return bool(self._window.windowState() & Qt.WindowFullScreen)
 
 class SaveStrokesDialogBridge(QObject):
     saveRequested = Signal()
@@ -510,7 +580,7 @@ class SaveStrokesDialog(QQuickView):
 class BoardWindow(QQuickView):
     def __init__(self):
         super().__init__()
-        self.setTitle("板中板 - Luminalium")
+        self.setTitle("小黑板 - Luminalium")
         self.setResizeMode(QQuickView.SizeRootObjectToView)
         
         # Native window with restricted flags
@@ -531,6 +601,7 @@ class BoardWindow(QQuickView):
         icons_url = QUrl.fromLocalFile(icons_dir).toString() + "/"
         self._settings_path = SETTINGS_PATH
         self._settings_mtime = None
+        self._restore_maximized_after_fullscreen = False
         self._board_toolbar_position, self._board_background_color, self._board_popup_bg, self._board_popup_border, self._board_eraser_mode, self._board_pen_stroke_enabled = _read_board_settings()
 
         self.rootContext().setContextProperty("iconsDir", icons_url)
@@ -544,6 +615,8 @@ class BoardWindow(QQuickView):
         self.rootContext().setContextProperty("penText", _t("toolbar.pen"))
         self.rootContext().setContextProperty("eraserText", _t("toolbar.eraser"))
         self.rootContext().setContextProperty("clearText", _t("toolbar.clear"))
+        self.rootContext().setContextProperty("undoText", "撤销")
+        self.rootContext().setContextProperty("redoText", "重做")
         self.rootContext().setContextProperty("themeColorsText", _t("toolbar.theme_colors"))
         self.rootContext().setContextProperty("standardColorsText", _t("toolbar.standard_colors"))
         self.rootContext().setContextProperty("eraserPointText", _t("toolbar.eraser_point"))
@@ -640,37 +713,34 @@ class BoardWindow(QQuickView):
 
     def _on_status_changed(self, status):
         if status == QQuickView.Ready:
-            # Load strokes
             if os.path.exists(self.strokes_path):
                 try:
                     with open(self.strokes_path, "r", encoding="utf-8") as f:
-                        strokes = json.load(f)
-                    if strokes and isinstance(strokes, list):
-                        # Pass to QML
-                        # To safely call QML function with complex object, use QMetaObject.invokeMethod
-                        # But simpler is to use a QObject wrapper or rely on PySide6's automatic conversion if possible.
-                        # Direct attribute access might fail if method is not found on QQuickItem wrapper.
-                        # Let's try to find the Canvas child item, as setStrokes is defined in Canvas.
-                        # Wait, setStrokes is defined in Canvas (lines 91-99 of Board.qml) but Canvas is nested inside Rectangle (board) inside root Rectangle.
-                        # But I defined setStrokes inside Canvas.
-                        # The root object is the top-level Rectangle. It does NOT have setStrokes.
-                        
-                        # We need to find the canvas object.
-                        root = self.rootObject()
-                        canvas = root.findChild(QObject, "canvas")
-                        if canvas:
-                            canvas.setStrokes(strokes)
-                        else:
-                            print("Canvas object not found in QML")
-
+                        document = _normalize_board_document(json.load(f))
+                    root = self.rootObject()
+                    if root and hasattr(root, "setBoardDocument"):
+                        root.setBoardDocument(document)
                 except Exception as e:
                     print(f"Failed to load strokes: {e}")
 
     def _on_show_tool_text_changed(self, value):
         self.rootContext().setContextProperty("showToolText", value)
 
+    def toggle_fullscreen(self):
+        if self.windowState() & Qt.WindowFullScreen:
+            if self._restore_maximized_after_fullscreen:
+                self.showMaximized()
+            else:
+                self.showNormal()
+            return
+
+        self._restore_maximized_after_fullscreen = bool(self.windowState() & Qt.WindowMaximized)
+        self.showFullScreen()
+
     def _on_state_changed(self, state):
-        self.backend.maximizedChanged.emit()
+        if not (state & Qt.WindowFullScreen):
+            self._restore_maximized_after_fullscreen = bool(state & Qt.WindowMaximized)
+        self.backend.windowStateChanged.emit()
         self._last_state = state
 
     def closeEvent(self, event):
@@ -678,21 +748,18 @@ class BoardWindow(QQuickView):
             super().closeEvent(event)
             return
 
-        # Check if there are strokes
         try:
             root = self.rootObject()
-            canvas = root.findChild(QObject, "canvas")
-            strokes = []
-            if canvas:
-                strokes_raw = canvas.getStrokes()
-                if hasattr(strokes_raw, "toVariant"):
-                    strokes = strokes_raw.toVariant()
+            document = {"currentPage": 1, "pages": [{"strokes": []}]}
+            if root and hasattr(root, "getBoardDocument"):
+                document_raw = root.getBoardDocument()
+                if hasattr(document_raw, "toVariant"):
+                    document = document_raw.toVariant()
                 else:
-                    strokes = strokes_raw
-            else:
-                print("Canvas object not found in closeEvent")
-                
-            if strokes and len(strokes) > 0:
+                    document = document_raw
+                document = _normalize_board_document(document)
+
+            if _board_document_has_content(document):
                 dialog_result = SaveStrokesDialog.ask(
                     self,
                     _t("dialog.save_strokes_title"),
@@ -703,20 +770,16 @@ class BoardWindow(QQuickView):
                 )
 
                 if dialog_result == SaveStrokesDialog.ResultSave:
-                    # Save strokes
                     with open(self.strokes_path, "w", encoding="utf-8") as f:
-                        json.dump(strokes, f, cls=ColorEncoder)
+                        json.dump(document, f, cls=ColorEncoder)
                 elif dialog_result == SaveStrokesDialog.ResultDiscard:
-                    # Clear strokes
                     if os.path.exists(self.strokes_path):
                         os.remove(self.strokes_path)
                 else:
-                    # Cancel
                     event.ignore()
                     return
 
             else:
-                # No strokes, clear file just in case
                 if os.path.exists(self.strokes_path):
                     os.remove(self.strokes_path)
                     

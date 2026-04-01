@@ -412,22 +412,81 @@ class PPTWorker(QObject):
         try:
             if not win32api or not win32con:
                 return False
-            hwnd = int(self._slideshow_hwnd or 0)
-            if not hwnd:
-                hwnd = self._find_ppt_slideshow_hwnd()
-                if hwnd:
-                    self._slideshow_hwnd = hwnd
-                    self.slideshow_hwnd_changed.emit(hwnd)
+            hwnd = self._focus_slideshow_window()
             if not hwnd:
                 return False
+            win32api.keybd_event(int(vk), 0, 0, 0)
+            win32api.keybd_event(int(vk), 0, win32con.KEYEVENTF_KEYUP, 0)
+            return True
+        except Exception:
+            return False
+
+    def _send_ctrl_shortcut_to_slideshow(self, key_vk: int) -> bool:
+        try:
+            if not win32api or not win32con:
+                return False
+            hwnd = self._focus_slideshow_window()
+            if not hwnd:
+                return False
+            win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+            win32api.keybd_event(int(key_vk), 0, 0, 0)
+            win32api.keybd_event(int(key_vk), 0, win32con.KEYEVENTF_KEYUP, 0)
+            win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+            return True
+        except Exception:
+            return False
+
+    def _focus_slideshow_window(self, hwnd: int = 0) -> int:
+        try:
+            hwnd = int(hwnd or 0)
+        except Exception:
+            hwnd = 0
+        if not hwnd:
+            try:
+                hwnd = int(self._slideshow_hwnd or 0)
+            except Exception:
+                hwnd = 0
+        if not hwnd:
+            hwnd = self._find_ppt_slideshow_hwnd()
+        if hwnd:
+            try:
+                self._slideshow_hwnd = int(hwnd)
+                self.slideshow_hwnd_changed.emit(int(hwnd))
+            except Exception:
+                pass
             if win32gui:
                 try:
                     win32gui.SetForegroundWindow(int(hwnd))
                 except Exception:
                     pass
-            win32api.keybd_event(int(vk), 0, 0, 0)
-            win32api.keybd_event(int(vk), 0, win32con.KEYEVENTF_KEYUP, 0)
-            return True
+        return int(hwnd or 0)
+
+    def _try_apply_pointer_type(self, pointer_type: int, force_arrow_reset: bool = False) -> bool:
+        ss_win = self._get_active_slideshow_window()
+        view = getattr(ss_win, "View", None) if ss_win is not None else None
+        if view is None:
+            return False
+
+        hwnd = self._safe_hwnd_from_ss_win(ss_win)
+        if hwnd:
+            self._focus_slideshow_window(hwnd)
+
+        if force_arrow_reset and pointer_type != 1:
+            try:
+                view.PointerType = 1
+            except Exception:
+                pass
+
+        try:
+            view.PointerType = pointer_type
+        except Exception:
+            return False
+
+        try:
+            current = getattr(view, "PointerType", 0)
+            if callable(current):
+                current = current()
+            return int(current or 0) == int(pointer_type)
         except Exception:
             return False
 
@@ -1225,13 +1284,31 @@ class PPTWorker(QObject):
 
     @Slot(int)
     def set_pointer_type(self, pointer_type):
+        delays = (0.0, 0.08, 0.16, 0.28)
+        last_error = None
+        pointer_type = int(pointer_type)
+        for attempt, delay in enumerate(delays):
+            if delay > 0:
+                time.sleep(delay)
+            try:
+                force_arrow_reset = attempt > 0 or pointer_type == 2
+                if self._try_apply_pointer_type(pointer_type, force_arrow_reset=force_arrow_reset):
+                    self._control_mode = "com"
+                    return
+            except Exception as e:
+                last_error = e
         try:
-            ss_win = self._get_active_slideshow_window()
-            view = getattr(ss_win, "View", None) if ss_win is not None else None
-            if view is not None:
-                view.PointerType = pointer_type
+            if pointer_type == 2 and self._send_ctrl_shortcut_to_slideshow(ord("P")):
+                time.sleep(0.03)
+                if self._try_apply_pointer_type(pointer_type, force_arrow_reset=True):
+                    self._control_mode = "com"
+                    return
+                self._control_mode = "win32"
+                return
         except Exception as e:
-            self._note_error("set_pointer_type", e)
+            last_error = e
+        if last_error is not None:
+            self._note_error("set_pointer_type", last_error)
 
     @Slot(int, int, int)
     def set_pen_color(self, r, g, b):

@@ -5,6 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Luminalium Crash Report</title>
   <style>
+    :root[data-disable-animations="true"] *,
+    :root[data-disable-animations="true"] *::before,
+    :root[data-disable-animations="true"] *::after {
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+
+    @font-face {
+      font-family: "Google Sans Flex";
+      src: url("../../fonts/Google Sans Flex.ttf") format("truetype");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "MiSans VF";
+      src: url("../../fonts/MiSansVF.ttf") format("truetype");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "MiSans Japanese VF";
+      src: url("../../fonts/MiSansJapaneseVF.ttf") format("truetype");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "MiSans TC VF";
+      src: url("../../fonts/MiSansTCVF.ttf") format("truetype");
+      font-display: swap;
+    }
+
     :root {
       --bg-app: #f9f9f9;
       --bg-panel: #ffffff;
@@ -15,6 +46,7 @@
       --accent-color: #3275F5;
       --accent-hover: #2a63d9;
       --error-color: #d32f2f;
+      --font-stack: "Google Sans Flex", "MiSans VF", "Segoe UI", system-ui, -apple-system, sans-serif;
     }
 
     [data-theme="dark"] {
@@ -32,7 +64,7 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      font-family: var(--font-stack);
     }
 
     body {
@@ -237,6 +269,8 @@
     });
 
     function init(data) {
+      const disabled = !!window.initialSettings?.General?.DisableAnimations;
+      document.documentElement.setAttribute('data-disable-animations', disabled ? 'true' : 'false');
       document.getElementById('log-text').textContent = data.text || "No error details available.";
       
       const theme = data.theme || 'auto';

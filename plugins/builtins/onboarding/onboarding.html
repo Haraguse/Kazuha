@@ -5,6 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Welcome to Luminalium</title>
   <style>
+    @font-face {
+      font-family: "Google Sans Flex";
+      src: url("../../../fonts/Google Sans Flex.ttf") format("truetype");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "MiSans VF";
+      src: url("../../../fonts/MiSansVF.ttf") format("truetype");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "MiSans Japanese VF";
+      src: url("../../../fonts/MiSansJapaneseVF.ttf") format("truetype");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "MiSans TC VF";
+      src: url("../../../fonts/MiSansTCVF.ttf") format("truetype");
+      font-display: swap;
+    }
+
     :root,
     .theme-preview-root[data-theme-id="default"][data-theme-variant="light"] {
       --bg-app: #f2f3f5;
@@ -27,7 +51,7 @@
       --hyperos-g3: #fce7f3;
       --hyperos-g4: #d1fae5;
       --hyperos-g5: #ffffff;
-      --font-stack: "MiSans Latin", "HarmonyOS Sans SC", "SF Pro", "苹方-简", "PingFang SC", "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+      --font-stack: "Google Sans Flex", "MiSans VF", "Segoe UI", system-ui, -apple-system, sans-serif;
       --overlay-toolbar-bg: #FFFFFF;
       --overlay-toolbar-border: rgba(0, 0, 0, 0.08);
       --overlay-toolbar-line: rgba(0, 0, 0, 0.08);
@@ -51,6 +75,13 @@
       --overlay-reload-card: rgba(30, 30, 30, 0.86);
       --overlay-reload-text: rgba(255, 255, 255, 0.92);
       --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+    }
+
+    :root[data-disable-animations="true"] *,
+    :root[data-disable-animations="true"] *::before,
+    :root[data-disable-animations="true"] *::after {
+      transition: none !important;
+      scroll-behavior: auto !important;
     }
 
     :root[data-theme-id="default"][data-theme-variant="dark"],
@@ -4502,6 +4533,7 @@ html, body {
         theme: "Light",
         themeId: "default",
         runAtStartup: false,
+        disableAnimations: false,
         crashAutoHandleEnabled: false,
         crashAutoHandleMode: "ShowAnalyzer",
         autoShowOverlay: true,
@@ -4584,6 +4616,16 @@ html, body {
         id: "defaultBehavior",
         render: (t) => {
           const crashEnabled = !!state.config.crashAutoHandleEnabled;
+          /*
+          const disableAnimationsCopy = t.defaultBehavior.disableAnimations || {
+            label: "禁用界面动画",
+            desc: "关闭全局过渡、缩放与滚动动画；开启后各界面会直接切换到最终状态"
+          };
+          */
+          const disableAnimationsCopy = t.defaultBehavior.disableAnimations || {
+            label: "\u7981\u7528\u754c\u9762\u52a8\u753b",
+            desc: "\u5173\u95ed\u5168\u5c40\u8fc7\u6e21\u3001\u7f29\u653e\u4e0e\u6eda\u52a8\u52a8\u753b\uff1b\u5f00\u542f\u540e\u5404\u754c\u9762\u4f1a\u76f4\u63a5\u5207\u6362\u5230\u6700\u7ec8\u72b6\u6001"
+          };
           const validModes = ["Exit", "RestartSilent", "Toast"];
           if (!crashEnabled) {
             state.config.crashAutoHandleMode = "ShowAnalyzer";
@@ -4611,6 +4653,16 @@ html, body {
                 <div class="item-desc">${t.defaultBehavior.runAtStartup.desc}</div>
               </div>
               <div class="switch ${state.config.runAtStartup ? 'active' : ''}" style="pointer-events:none;">
+                 <div class="switch-handle"></div>
+              </div>
+            </div>
+
+            <div class="settings-item" onclick="toggleDisableAnimations()" style="cursor: pointer;">
+              <div class="item-info">
+                <div class="item-label">${disableAnimationsCopy.label}</div>
+                <div class="item-desc">${disableAnimationsCopy.desc}</div>
+              </div>
+              <div class="switch ${state.config.disableAnimations ? 'active' : ''}" style="pointer-events:none;">
                  <div class="switch-handle"></div>
               </div>
             </div>
@@ -4763,6 +4815,14 @@ html, body {
       container.style.setProperty("--select-slider-opacity", "1");
     }
 
+    function animationsDisabled() {
+      return !!state.config.disableAnimations;
+    }
+
+    function applyAnimationPreference() {
+      document.documentElement.setAttribute("data-disable-animations", animationsDisabled() ? "true" : "false");
+    }
+
     // Actions
     window.updateRangeValue = (key, val) => {
       state.config[key] = Number(val);
@@ -4790,6 +4850,11 @@ html, body {
 
     window.toggleStartup = () => {
       state.config.runAtStartup = !state.config.runAtStartup;
+      renderStep();
+    };
+
+    window.toggleDisableAnimations = () => {
+      state.config.disableAnimations = !state.config.disableAnimations;
       renderStep();
     };
 
@@ -4880,6 +4945,10 @@ html, body {
       // Animation
       const card = els.screenSetup.querySelector('.card');
       if (card && direction) {
+          if (animationsDisabled()) {
+              card.classList.remove("slide-in-right", "slide-in-left");
+              return;
+          }
           card.classList.remove("slide-in-right", "slide-in-left");
           void card.offsetWidth; // Force reflow
           if (direction === "next") {
@@ -4910,18 +4979,18 @@ html, body {
 
     function getDefaultFontStack(lang) {
       if (lang === "zh-TW") {
-        return "\"Microsoft JhengHei\", \"MiSans Latin\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
+        return "\"Google Sans Flex\", \"MiSans Japanese VF\", \"MiSans TC VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
       }
       if (lang === "yue-HK") {
-        return "\"Meiryo UI\", \"Meiryo\", \"Microsoft JhengHei\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
+        return "\"Google Sans Flex\", \"MiSans VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
       }
       if (lang === "ja-JP") {
-        return "\"Yu Gothic UI\", \"Meiryo\", \"MiSans Latin\", \"HarmonyOS Sans JP\", \"SF Pro\", system-ui, -apple-system, sans-serif";
+        return "\"Google Sans Flex\", \"MiSans Japanese VF\", \"MiSans TC VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
       }
       if (lang === "ug-CN") {
-        return "\"Microsoft Uighur\", \"ALKATIP Basma Tom\", \"MiSans Latin\", \"HarmonyOS Sans SC\", \"SF Pro\", system-ui, -apple-system, sans-serif";
+        return "\"Google Sans Flex\", \"Segoe UI\", \"MiSans VF\", system-ui, -apple-system, sans-serif";
       }
-      return "\"MiSans Latin\", \"HarmonyOS Sans SC\", \"SF Pro\", \"苹方-简\", \"PingFang SC\", \"Segoe UI\", \"Microsoft YaHei\", system-ui, -apple-system, sans-serif";
+      return "\"Google Sans Flex\", \"MiSans VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
     }
 
     function applyLanguageFont() {
@@ -4981,6 +5050,7 @@ html, body {
           await window.pywebview.api.save_setting("Appearance", "ThemeMode", state.config.theme);
           await window.pywebview.api.save_setting("Appearance", "ThemeId", state.config.themeId);
           await window.pywebview.api.save_setting("General", "RunAtStartup", state.config.runAtStartup);
+          await window.pywebview.api.save_setting("General", "DisableAnimations", state.config.disableAnimations);
           await window.pywebview.api.save_setting("General", "CrashAutoHandleEnabled", state.config.crashAutoHandleEnabled);
           await window.pywebview.api.save_setting("General", "CrashAutoHandleMode", crashMode);
           await window.pywebview.api.save_setting("General", "AutoShowOverlay", state.config.autoShowOverlay);
@@ -5053,18 +5123,6 @@ html, body {
 
     // Init
     function init(settings) {
-      // Start intro animation
-      els.heroContent.classList.add("intro-state");
-      els.heroFooter.classList.add("intro-hidden");
-      
-      // Animate in after delay
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          els.heroContent.classList.remove("intro-state");
-          els.heroFooter.classList.remove("intro-hidden");
-        }, 250); // 2.5s delay
-      });
-
       if (settings) {
         if (settings.General?.Language) {
           state.config.language = settings.General.Language;
@@ -5072,6 +5130,7 @@ html, body {
         if (settings.Appearance?.ThemeMode) state.config.theme = settings.Appearance.ThemeMode;
         if (settings.Appearance?.ThemeId) state.config.themeId = settings.Appearance.ThemeId;
         if (typeof settings.General?.RunAtStartup === "boolean") state.config.runAtStartup = settings.General.RunAtStartup;
+        if (typeof settings.General?.DisableAnimations === "boolean") state.config.disableAnimations = settings.General.DisableAnimations;
         if (typeof settings.General?.CrashAutoHandleEnabled === "boolean") state.config.crashAutoHandleEnabled = settings.General.CrashAutoHandleEnabled;
         if (settings.General?.CrashAutoHandleMode) state.config.crashAutoHandleMode = settings.General.CrashAutoHandleMode;
         if (typeof settings.General?.AutoShowOverlay === "boolean") state.config.autoShowOverlay = settings.General.AutoShowOverlay;
@@ -5079,6 +5138,22 @@ html, body {
         if (settings.Overlay?.Scale) state.config.scale = settings.Overlay.Scale;
         if (settings.Overlay?.PopWindowScale) state.config.popWindowScale = settings.Overlay.PopWindowScale;
         if (settings.Overlay?.SafeArea) state.config.safeArea = settings.Overlay.SafeArea;
+      }
+
+      applyAnimationPreference();
+
+      if (!animationsDisabled()) {
+        els.heroContent.classList.add("intro-state");
+        els.heroFooter.classList.add("intro-hidden");
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            els.heroContent.classList.remove("intro-state");
+            els.heroFooter.classList.remove("intro-hidden");
+          }, 250);
+        });
+      } else {
+        els.heroContent.classList.remove("intro-state");
+        els.heroFooter.classList.remove("intro-hidden");
       }
 
       if (!state.config.crashAutoHandleEnabled) {

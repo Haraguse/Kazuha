@@ -36,6 +36,18 @@
     }
   }
 
+  function animationsDisabled() {
+    return document.documentElement.getAttribute("data-disable-animations") === "true";
+  }
+
+  function motionBehavior() {
+    return animationsDisabled() ? "auto" : "smooth";
+  }
+
+  function motionDelay(ms) {
+    return animationsDisabled() ? 0 : ms;
+  }
+
   function buildSearchIndex() {
     searchIndex = [];
     const sections = document.querySelectorAll('.section:not(#section-search)');
@@ -241,11 +253,11 @@
               parent = parent.parentElement;
           }
 
-          item.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          item.element.scrollIntoView({ behavior: motionBehavior(), block: 'center' });
           item.element.classList.remove('highlight-flash');
           void item.element.offsetWidth; 
           item.element.classList.add('highlight-flash');
-      }, 50);
+      }, motionDelay(50));
   }
   
   // Initialize Search
@@ -277,7 +289,7 @@
       --hyperos-g3: #fce7f3;
       --hyperos-g4: #d1fae5;
       --hyperos-g5: #ffffff;
-      --font-stack: "MiSans Latin", "HarmonyOS Sans SC", "SF Pro", "苹方-简", "PingFang SC", "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+      --font-stack: "Google Sans Flex", "MiSans VF", "Segoe UI", system-ui, -apple-system, sans-serif;
       --font-weight-override: 400;
       --overlay-toolbar-bg: #FFFFFF;
       --overlay-toolbar-border: rgba(0, 0, 0, 0.08);
@@ -1289,6 +1301,13 @@
       background: rgba(20, 20, 20, 0.82) !important;
     }
 
+    :root[data-disable-animations="true"] *,
+    :root[data-disable-animations="true"] *::before,
+    :root[data-disable-animations="true"] *::after {
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+
     body {
       color: var(--text-primary);
       font-family: var(--font-stack);
@@ -1967,6 +1986,22 @@
 
     .sidebar-item.active .sidebar-icon {
       opacity: 1;
+    }
+
+    .sidebar-version {
+      margin-inline-start: auto;
+      text-align: end;
+      direction: ltr;
+      font-size: 12px;
+      line-height: 1;
+      color: var(--text-tertiary);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .sidebar-item.active .sidebar-version {
+      color: currentColor;
+      opacity: 0.85;
     }
 
     .sidebar-item.disabled {
@@ -5578,6 +5613,7 @@
           <path d="M12 8h.01" />
         </svg>
         <span data-i18n="nav.about">关于</span>
+        <span class="sidebar-version" id="sidebar-about-version"></span>
       </div>
       <div class="sidebar-item" data-section="debug" id="nav-debug" style="display:none;">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
@@ -5639,6 +5675,13 @@
               <span class="item-desc" data-i18n="general.runAtStartup.desc">在 Windows 登录后自动启动 Luminalium，仅对当前用户生效</span>
             </div>
             <div class="switch" id="sw-General-RunAtStartup"></div>
+          </div>
+          <div class="settings-item" onclick="toggleSwitch('General', 'DisableAnimations')">
+            <div class="item-info">
+              <span class="item-label" data-i18n="general.disableAnimations.label">禁用界面动画</span>
+              <span class="item-desc" data-i18n="general.disableAnimations.desc">关闭全局过渡、缩放与滚动动画；开启后各界面会直接切换到最终状态</span>
+            </div>
+            <div class="switch" id="sw-General-DisableAnimations"></div>
           </div>
           <div class="settings-item" onclick="toggleCrashAutoHandleEnabled()">
             <div class="item-info">
@@ -6994,6 +7037,8 @@
       "appearance.theme.monet.color.text": "文字",
       "general.runAtStartup.label": "开机自启",
       "general.runAtStartup.desc": "在 Windows 登录后自动启动 Luminalium，仅对当前用户生效",
+      "general.disableAnimations.label": "禁用界面动画",
+      "general.disableAnimations.desc": "关闭全局过渡、缩放与滚动动画；开启后各界面会直接切换到最终状态",
       "general.crashAutoHandle.label": "异常退出处理",
       "general.crashAutoHandle.desc": "程序未捕获异常时，自动打开崩溃详情、后台重启、发送通知或直接退出",
       "general.crashAutoHandle.analyzer": "打开崩溃详情",
@@ -8189,6 +8234,8 @@
       "appearance.theme.monet.color.surface": "Surface",
       "appearance.theme.monet.color.text": "Text",
       "general.runAtStartup.label": "Run at startup",
+      "general.disableAnimations.label": "Disable UI animations",
+      "general.disableAnimations.desc": "Turn off global transitions, scaling, and scroll animations so each screen jumps straight to its final state",
       "general.crashAutoHandle.label": "Crash Response",
       "general.crashAutoHandle.desc": "Choose what happens when the app exits unexpectedly",
       "general.crashAutoHandle.analyzer": "Open crash details",
@@ -8384,6 +8431,8 @@
       "appearance.theme.monet.color.surface": "Surface",
       "appearance.theme.monet.color.text": "Text",
       "general.runAtStartup.label": "Run at startup",
+      "general.disableAnimations.label": "Disable UI animations",
+      "general.disableAnimations.desc": "Turn off global transitions, scaling, and scroll animations so each screen jumps straight to its final state",
       "general.crashAutoHandle.label": "Crash Response",
       "general.crashAutoHandle.desc": "Choose what happens when the app exits unexpectedly",
       "general.crashAutoHandle.analyzer": "Open crash details",
@@ -8751,20 +8800,19 @@
   }
 
   function getDefaultFontStack(lang) {
-    const isSpecial = lang === "zh-TW" || lang === "ja-JP";
     if (lang === "zh-TW") {
-      return "\"Microsoft JhengHei\", \"MiSans Latin\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
+      return "\"Google Sans Flex\", \"MiSans Japanese VF\", \"MiSans TC VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
     }
     if (lang === "yue-HK") {
-      return "\"Meiryo UI\", \"Meiryo\", \"Microsoft JhengHei\", \"HarmonyOS Sans TC\", \"SF Pro\", \"苹方-繁\", \"PingFang TC\", system-ui, -apple-system, sans-serif";
+      return "\"Google Sans Flex\", \"MiSans VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
     }
     if (lang === "ja-JP") {
-      return "\"Hiragino Kaku Gothic Pro\", \"Yu Gothic UI\", \"Meiryo\", \"MiSans Latin\", \"HarmonyOS Sans JP\", \"SF Pro\", system-ui, -apple-system, sans-serif";
+      return "\"Google Sans Flex\", \"MiSans Japanese VF\", \"MiSans TC VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
     }
     if (lang === "ug-CN") {
-      return "\"Microsoft Uighur\", \"ALKATIP Basma Tom\", \"MiSans Latin\", \"HarmonyOS Sans SC\", \"SF Pro\", system-ui, -apple-system, sans-serif";
+      return "\"Google Sans Flex\", \"Segoe UI\", \"MiSans VF\", system-ui, -apple-system, sans-serif";
     }
-    return "\"MiSans Latin\", \"HarmonyOS Sans SC\", \"SF Pro\", \"苹方-简\", \"PingFang SC\", \"Segoe UI\", \"Microsoft YaHei\", system-ui, -apple-system, sans-serif";
+    return "\"Google Sans Flex\", \"MiSans VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
   }
 
   function ensureFontProfiles() {
@@ -8829,23 +8877,17 @@
     return `"${safe}", ${base}`;
   }
 
-  function getDefaultFontLabel(lang, scene) {
-    if (scene === "web") {
-      if (lang === "zh-TW") {
-        return "Microsoft JhengHei / MiSans / SF / PingFang TC";
-      }
-      if (lang === "ja-JP") {
-        return "Hiragino Kaku Gothic Pro / Yu Gothic UI / Meiryo / MiSans / SF";
-      }
-      return "MiSans / HarmonyOS Sans SC / SF / 苹方";
+  function getDefaultFontLabel() {
+    if (currentLanguage === "zh-TW" || currentLanguage === "yue-HK") {
+      return "\u9810\u8a2d\u5b57\u9ad4\u65b9\u6848";
     }
-    if (scene === "qt") {
-      return "MiSans VF";
+    if (currentLanguage === "ja-JP") {
+      return "\u65e2\u5b9a\u306e\u30d5\u30a9\u30f3\u30c8\u69cb\u6210";
     }
-    if (scene === "overlay") {
-      return "MiSans VF";
+    if (currentLanguage === "en-US" || currentLanguage === "ug-CN") {
+      return "Default font profile";
     }
-    return "";
+    return "\u9ed8\u8ba4\u5b57\u4f53\u65b9\u6848";
   }
 
   function getFontPreviewLocalePack() {
@@ -9218,8 +9260,8 @@
 
         const selected = getFontSelection(lang, scene);
         const baseLabel = getText("fonts.option.default") || "默认";
-        const detail = getDefaultFontLabel(lang, scene);
-        const defaultLabel = detail ? `${baseLabel} (${detail})` : baseLabel;
+        const detail = getDefaultFontLabel();
+        const defaultLabel = detail || baseLabel;
         const options = [{ value: "", label: defaultLabel }];
         
         if (!systemFontsLoaded) {
@@ -10497,6 +10539,10 @@
     if (prevIsRtl === nextIsRtl) return;
     const layout = document.getElementById("layout");
     if (!layout) return;
+    if (animationsDisabled()) {
+      layout.classList.remove("dir-switch-rtl", "dir-switch-ltr");
+      return;
+    }
     layout.classList.remove("dir-switch-rtl", "dir-switch-ltr");
     void layout.offsetWidth;
     layout.classList.add(nextIsRtl ? "dir-switch-rtl" : "dir-switch-ltr");
@@ -10609,6 +10655,11 @@
       "data-system-backdrop-mode",
       enabled ? (supported ? "system" : "fallback") : "off"
     );
+  }
+
+  function applyAnimationPreference() {
+    const disabled = !!settings.General?.DisableAnimations;
+    document.documentElement.setAttribute("data-disable-animations", disabled ? "true" : "false");
   }
 
   function initNav() {
@@ -10758,7 +10809,7 @@
   }
 
   let settings = window.initialSettings || {
-    General: { RunAtStartup: false, AutoShowOverlay: true, CompatibilityMode: false, Language: "zh-CN", SystemBackdropEnabled: false, SystemBackdropType: "Opaque" },
+    General: { RunAtStartup: false, AutoShowOverlay: true, DisableAnimations: false, CompatibilityMode: false, Language: "zh-CN", SystemBackdropEnabled: false, SystemBackdropType: "Opaque" },
     PPT: { AutoHandleInk: true },
     Overlay: { ShowStatusBar: true, ClearMode: "slide" },
     Toolbar: { ShowClear: true, ShowToolbarText: true },
@@ -11190,10 +11241,12 @@
     loadOverlayThemes();
     const lang = settings.General && settings.General.Language;
     if (lang) currentLanguage = lang;
+    applyAnimationPreference();
     applyI18n();
     applySystemBackdropDocument();
 
     setSwitch("General", "RunAtStartup");
+    setSwitch("General", "DisableAnimations");
     setSwitch("General", "CrashAutoHandleEnabled");
     setSwitch("General", "SystemBackdropEnabled");
     setSwitch("General", "CompatibilityMode");
@@ -11345,6 +11398,10 @@
         const el = document.getElementById("app-version");
         if (el) {
           el.textContent = `Version ${version} (${codeName}) Build ${build}`;
+        }
+        const sidebarVersion = document.getElementById("sidebar-about-version");
+        if (sidebarVersion) {
+          sidebarVersion.textContent = version ? `${version}` : "";
         }
 
         const wm = document.getElementById("dev-watermark");
@@ -11763,6 +11820,10 @@
 
     if (window.pywebview && window.pywebview.api.save_setting) {
       window.pywebview.api.save_setting(cat, key, newState);
+    }
+
+    if (cat === "General" && key === "DisableAnimations") {
+      showRestartIsland();
     }
 
     if (cat === "Toolbar") {
