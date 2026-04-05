@@ -113,8 +113,8 @@ Rectangle {
             id: canvas
             objectName: "canvas"
             anchors.fill: parent
-            renderTarget: Canvas.FramebufferObject
-            renderStrategy: Canvas.Threaded
+            renderTarget: Canvas.Image
+            renderStrategy: Canvas.Cooperative
             
             property color drawColor: darkBackground ? "white" : "black"
             property int lineWidth: 3
@@ -125,6 +125,7 @@ Rectangle {
             property bool penStrokeEnabled: root.penStrokeEnabled
             property real lastWidth: lineWidth
             property real minSegmentPixels: 1.2
+            property real minSegmentPixelsSquared: minSegmentPixels * minSegmentPixels
             property var undoStack: []
             property var redoStack: []
             property var gestureAddedLines: []
@@ -133,19 +134,53 @@ Rectangle {
             
             property var lastX
             property var lastY
+            property real lastRawX: 0
+            property real lastRawY: 0
+            property real lastFilteredX: 0
+            property real lastFilteredY: 0
+            property bool pointerActive: false
+            property bool hasPendingInput: false
+            property real pendingInputX: 0
+            property real pendingInputY: 0
             property var pendingLines: []
             property var allLines: [] // Store all strokes history
             property bool needsFullRepaint: false
+            property bool paintScheduled: false
+            property real smoothingFactorPen: 0.58
+            property real smoothingFactorEraser: 0.72
+            property real inputFlushIntervalMs: 8
+            property real lowSamplePixels: 2.4
+            property real lowSamplePixelsSquared: lowSamplePixels * lowSamplePixels
+            property real maxSegmentPixels: 9.0
             readonly property bool canUndo: undoStack.length > 0
             readonly property bool canRedo: redoStack.length > 0
 
+            Timer {
+                id: paintFlushTimer
+                interval: 0
+                repeat: false
+                onTriggered: {
+                    canvas.paintScheduled = false;
+                    canvas.requestPaint();
+                }
+            }
+
+            Timer {
+                id: inputFlushTimer
+                interval: Math.max(4, Math.round(canvas.inputFlushIntervalMs))
+                repeat: true
+                onTriggered: {
+                    canvas.flushPendingInput(false);
+                }
+            }
+
             onWidthChanged: {
                 needsFullRepaint = true;
-                requestPaint();
+                schedulePaint();
             }
             onHeightChanged: {
                 needsFullRepaint = true;
-                requestPaint();
+                schedulePaint();
             }
             
             onPaint: {
@@ -228,7 +263,139 @@ Rectangle {
                 allLines = cloneLines(lines);
                 pendingLines = [];
                 needsFullRepaint = true;
-                requestPaint();
+                paintScheduled = false;
+                schedulePaint();
+            }
+
+            function schedulePaint() {
+                if (paintScheduled) return;
+                paintScheduled = true;
+                paintFlushTimer.start();
+            }
+
+            function enqueueLine(line) {
+                pendingLines.push(line);
+                allLines.push(line);
+                gestureAddedLines.push(line);
+                schedulePaint();
+            }
+
+            function calcDynamicWidth(currentX, currentY) {
+                var width = canvas.isEraser ? canvas.eraserWidth : canvas.lineWidth;
+                if (canvas.penStrokeEnabled && !canvas.isEraser) {
+                    var dx = currentX - canvas.lastX;
+                    var dy = currentY - canvas.lastY;
+                    var dist = Math.sqrt(dx * dx + dy * dy);
+                    var speed = dist * Math.max(canvas.width, canvas.height);
+                    var minW = Math.max(1, canvas.lineWidth * 0.6);
+                    var maxW = canvas.lineWidth * 1.8;
+                    var t = Math.min(1, speed / 25);
+                    width = maxW - (maxW - minW) * t;
+                    width = (width + canvas.lastWidth) / 2;
+                    canvas.lastWidth = width;
+                }
+                return width;
+            }
+
+            function appendSegmentTo(currentX, currentY) {
+                var line = {
+                    x1: canvas.lastX,
+                    y1: canvas.lastY,
+                    x2: currentX,
+                    y2: currentY,
+                    color: canvas.drawColor.toString(),
+                    width: calcDynamicWidth(currentX, currentY),
+                    isEraser: canvas.isEraser,
+                    strokeId: canvas.currentStrokeId
+                };
+                canvas.enqueueLine(line);
+                canvas.lastX = currentX;
+                canvas.lastY = currentY;
+            }
+
+            function flushToPoint(currentX, currentY) {
+                processInputPoint(currentX, currentY, true);
+            }
+
+            function queueInputPoint(currentX, currentY) {
+                pendingInputX = currentX;
+                pendingInputY = currentY;
+                hasPendingInput = true;
+                if (!inputFlushTimer.running) {
+                    inputFlushTimer.start();
+                }
+            }
+
+            function flushPendingInput(forceFinal) {
+                if (!pointerActive || !hasPendingInput) return;
+                var x = pendingInputX;
+                var y = pendingInputY;
+                hasPendingInput = false;
+                processInputPoint(x, y, forceFinal);
+            }
+
+            function processInputPoint(currentX, currentY, forceFinal) {
+                var w = Math.max(1, canvas.width);
+                var h = Math.max(1, canvas.height);
+                var rawDxPx = (currentX - canvas.lastRawX) * w;
+                var rawDyPx = (currentY - canvas.lastRawY) * h;
+                var rawDistSquared = rawDxPx * rawDxPx + rawDyPx * rawDyPx;
+                var interval = Math.max(1, inputFlushTimer.interval);
+                var speedPxPerMs = Math.sqrt(rawDistSquared) / interval;
+                canvas.lastRawX = currentX;
+                canvas.lastRawY = currentY;
+                if (!forceFinal && rawDistSquared < canvas.minSegmentPixelsSquared) {
+                    return;
+                }
+                if (canvas.isEraser && canvas.eraserMode === 1) {
+                    if (rawDistSquared < canvas.lowSamplePixelsSquared && !forceFinal) {
+                        return;
+                    }
+                    var hitId = canvas.hitTest(currentX, currentY);
+                    if (hitId !== -1 && !canvas.gestureRemovedStrokeIds[hitId]) {
+                        var removedStroke = canvas.removeStroke(hitId);
+                        if (removedStroke) {
+                            canvas.gestureRemovedStrokes.push(removedStroke);
+                            canvas.gestureRemovedStrokeIds[hitId] = true;
+                        }
+                    }
+                    return;
+                }
+                var baseSmoothing = canvas.isEraser ? canvas.smoothingFactorEraser : canvas.smoothingFactorPen;
+                var lagComp = Math.min(0.32, speedPxPerMs * 0.024);
+                var smoothing = Math.min(0.9, baseSmoothing + lagComp);
+                var targetX = forceFinal ? currentX : (canvas.lastFilteredX + (currentX - canvas.lastFilteredX) * smoothing);
+                var targetY = forceFinal ? currentY : (canvas.lastFilteredY + (currentY - canvas.lastFilteredY) * smoothing);
+                canvas.lastFilteredX = targetX;
+                canvas.lastFilteredY = targetY;
+                appendToTarget(targetX, targetY, forceFinal);
+            }
+
+            function appendToTarget(targetX, targetY, forceFinal) {
+                var w = Math.max(1, canvas.width);
+                var h = Math.max(1, canvas.height);
+                var startX = canvas.lastX;
+                var startY = canvas.lastY;
+                var dxPx = (targetX - startX) * w;
+                var dyPx = (targetY - startY) * h;
+                var movePxSquared = dxPx * dxPx + dyPx * dyPx;
+                if (!forceFinal && movePxSquared < canvas.lowSamplePixelsSquared) {
+                    return;
+                }
+                var steps = Math.ceil(Math.sqrt(movePxSquared) / canvas.maxSegmentPixels);
+                if (steps < 1) steps = 1;
+                if (steps > 4) steps = 4;
+                for (var i = 1; i <= steps; i++) {
+                    var t = i / steps;
+                    var x = startX + (targetX - startX) * t;
+                    var y = startY + (targetY - startY) * t;
+                    var segDxPx = (x - canvas.lastX) * w;
+                    var segDyPx = (y - canvas.lastY) * h;
+                    if (!forceFinal && (segDxPx * segDxPx + segDyPx * segDyPx) < 0.25) {
+                        continue;
+                    }
+                    appendSegmentTo(x, y);
+                }
             }
 
             function pushHistoryAction(action) {
@@ -283,7 +450,7 @@ Rectangle {
                 if (action.type === "add") {
                     allLines = allLines.concat(cloneLines(action.lines));
                     pendingLines = pendingLines.concat(cloneLines(action.lines));
-                    requestPaint();
+                    schedulePaint();
                 } else if (action.type === "remove") {
                     for (var i = 0; i < action.strokes.length; i++) {
                         removeStroke(action.strokes[i].strokeId);
@@ -302,6 +469,7 @@ Rectangle {
                 if (w <= 0 || h <= 0) return -1;
                 
                 var t = 10 / w; // Approximation using width
+                var tSquared = t * t;
                 
                 for (var i = 0; i < allLines.length; i++) {
                     var line = allLines[i];
@@ -314,10 +482,8 @@ Rectangle {
                     var maxY = Math.max(line.y1, line.y2) + t;
                     
                     if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
-                        // Detailed distance check
-                        var dist = distToSegment(x, y, line.x1, line.y1, line.x2, line.y2);
-                        // Normalize distance check roughly (aspect ratio might skew this but ok for now)
-                        if (dist < t) {
+                        var distSquared = distToSegmentSquared(x, y, line.x1, line.y1, line.x2, line.y2);
+                        if (distSquared < tSquared) {
                             return line.strokeId;
                         }
                     }
@@ -325,7 +491,7 @@ Rectangle {
                 return -1;
             }
             
-            function distToSegment(x, y, x1, y1, x2, y2) {
+            function distToSegmentSquared(x, y, x1, y1, x2, y2) {
                 var A = x - x1;
                 var B = y - y1;
                 var C = x2 - x1;
@@ -354,7 +520,7 @@ Rectangle {
                 
                 var dx = x - xx;
                 var dy = y - yy;
-                return Math.sqrt(dx * dx + dy * dy);
+                return dx * dx + dy * dy;
             }
 
             function removeStroke(strokeId) {
@@ -377,7 +543,8 @@ Rectangle {
                 if (changed) {
                     allLines = newLines;
                     needsFullRepaint = true;
-                    requestPaint();
+                    paintScheduled = false;
+                    schedulePaint();
                     return {
                         strokeId: strokeId,
                         startIndex: startIndex,
@@ -410,70 +577,38 @@ Rectangle {
                     canvas.beginGesture()
                     canvas.lastX = mouse.x / canvas.width
                     canvas.lastY = mouse.y / canvas.height
+                    canvas.lastRawX = canvas.lastX
+                    canvas.lastRawY = canvas.lastY
+                    canvas.lastFilteredX = canvas.lastX
+                    canvas.lastFilteredY = canvas.lastY
+                    canvas.pointerActive = true
+                    canvas.hasPendingInput = false
                     canvas.currentStrokeId++;
                     canvas.lastWidth = canvas.lineWidth;
+                    if (!inputFlushTimer.running) {
+                        inputFlushTimer.start();
+                    }
                 }
                 onReleased: (mouse) => {
+                    canvas.queueInputPoint(mouse.x / canvas.width, mouse.y / canvas.height);
+                    canvas.flushPendingInput(true);
+                    canvas.pointerActive = false;
+                    inputFlushTimer.stop();
                     canvas.commitGesture();
                     canvas.lastWidth = canvas.lineWidth;
                 }
                 onCanceled: {
+                    canvas.pointerActive = false;
+                    inputFlushTimer.stop();
                     canvas.commitGesture();
                     canvas.lastWidth = canvas.lineWidth;
                 }
                 onPositionChanged: (mouse) => {
                     var currentX = mouse.x / canvas.width;
                     var currentY = mouse.y / canvas.height;
-                    var dxPx = (currentX - canvas.lastX) * canvas.width;
-                    var dyPx = (currentY - canvas.lastY) * canvas.height;
-                    var movePx = Math.sqrt(dxPx * dxPx + dyPx * dyPx);
-                    if (movePx < canvas.minSegmentPixels) {
-                        return;
-                    }
-                    
-                    if (canvas.isEraser && canvas.eraserMode === 1) {
-                        // Stroke Eraser
-                        var hitId = canvas.hitTest(currentX, currentY);
-                        if (hitId !== -1) {
-                            if (!canvas.gestureRemovedStrokeIds[hitId]) {
-                                var removedStroke = canvas.removeStroke(hitId);
-                                if (removedStroke) {
-                                    canvas.gestureRemovedStrokes = canvas.gestureRemovedStrokes.concat([removedStroke]);
-                                    canvas.gestureRemovedStrokeIds[hitId] = true;
-                                }
-                            }
-                        }
-                    } else {
-                        // Point Eraser or Pen
-                        var width = canvas.isEraser ? canvas.eraserWidth : canvas.lineWidth;
-                        if (canvas.penStrokeEnabled && !canvas.isEraser) {
-                            var dx = currentX - canvas.lastX;
-                            var dy = currentY - canvas.lastY;
-                            var dist = Math.sqrt(dx * dx + dy * dy);
-                            var speed = dist * Math.max(canvas.width, canvas.height);
-                            var minW = Math.max(1, canvas.lineWidth * 0.6);
-                            var maxW = canvas.lineWidth * 1.8;
-                            var t = Math.min(1, speed / 25);
-                            width = maxW - (maxW - minW) * t;
-                            width = (width + canvas.lastWidth) / 2;
-                            canvas.lastWidth = width;
-                        }
-                        var line = {
-                            x1: canvas.lastX,
-                            y1: canvas.lastY,
-                            x2: currentX,
-                            y2: currentY,
-                            color: canvas.drawColor.toString(),
-                            width: width,
-                            isEraser: canvas.isEraser,
-                            strokeId: canvas.currentStrokeId
-                        };
-                        canvas.pendingLines.push(line);
-                        canvas.allLines.push(line);
-                        canvas.gestureAddedLines = canvas.gestureAddedLines.concat([line]);
-                        canvas.lastX = currentX;
-                        canvas.lastY = currentY;
-                        canvas.requestPaint();
+                    canvas.queueInputPoint(currentX, currentY);
+                    if (!inputFlushTimer.running) {
+                        inputFlushTimer.start();
                     }
                 }
             }

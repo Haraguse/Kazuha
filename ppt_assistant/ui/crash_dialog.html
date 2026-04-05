@@ -37,27 +37,215 @@
     }
 
     :root {
-      --bg-app: #f9f9f9;
-      --bg-panel: #ffffff;
+      --bg-app: #F5F6F8;
+      --bg-surface: #FFFFFF;
       --text-primary: #191919;
-      --text-secondary: #666666;
-      --border-color: rgba(0, 0, 0, 0.1);
-      --code-bg: #f5f5f5;
-      --accent-color: #3275F5;
-      --accent-hover: #2a63d9;
-      --error-color: #d32f2f;
+      --text-secondary: #8C8C8C;
+      --text-inverse: #FFFFFF;
+      --accent-blue: #3275F5;
+      --divider: rgba(0, 0, 0, 0.03);
+      --item-hover: rgba(0, 0, 0, 0.03);
+      --shadow-main: 0 4px 24px rgba(0, 0, 0, 0.04);
+      --code-bg: rgba(0, 0, 0, 0.04);
+      --error-color: #D04646;
+      --panel-radius: 16px;
       --font-stack: "Google Sans Flex", "MiSans VF", "Segoe UI", system-ui, -apple-system, sans-serif;
+      --font-weight-override: 400;
     }
 
     [data-theme="dark"] {
-      --bg-app: #202020;
-      --bg-panel: #2d2d2d;
-      --text-primary: #e5e5e5;
-      --text-secondary: #a0a0a0;
-      --border-color: rgba(255, 255, 255, 0.1);
-      --code-bg: #1e1e1e;
-      --accent-color: #4A85F6;
-      --accent-hover: #5b92ff;
+      --bg-app: #121212;
+      --bg-surface: #1E1E1E;
+      --text-primary: #E5E5E5;
+      --text-secondary: #909090;
+      --text-inverse: #FFFFFF;
+      --accent-blue: #4A85F6;
+      --divider: rgba(255, 255, 255, 0.08);
+      --item-hover: rgba(255, 255, 255, 0.05);
+      --shadow-main: 0 8px 32px rgba(0, 0, 0, 0.3);
+      --code-bg: rgba(255, 255, 255, 0.06);
+    }
+
+    :root[data-theme-id="material-you"][data-theme="light"] {
+      --bg-app: #F6F0FF;
+      --bg-surface: #FFF7FF;
+      --text-primary: #2B153E;
+      --text-secondary: #5F4B74;
+      --text-inverse: #FFFFFF;
+      --accent-blue: #7A3BDB;
+      --divider: rgba(42, 26, 61, 0.1);
+      --item-hover: rgba(122, 59, 219, 0.14);
+      --shadow-main: 0 6px 22px rgba(122, 59, 219, 0.18);
+    }
+
+    :root[data-theme-id="material-you"][data-theme="dark"] {
+      --bg-app: #1C1329;
+      --bg-surface: #2A1D3B;
+      --text-primary: #F0E7FF;
+      --text-secondary: #D2C2EA;
+      --text-inverse: #1C1329;
+      --accent-blue: #CDA7FF;
+      --divider: rgba(226, 210, 255, 0.14);
+      --item-hover: rgba(205, 167, 255, 0.22);
+      --shadow-main: 0 12px 34px rgba(0, 0, 0, 0.5);
+    }
+
+    :root[data-theme-id="red-sunrise"][data-theme="light"] {
+      --bg-app: #FFF5F3;
+      --bg-surface: #FFFFFF;
+      --text-primary: #3A0B0B;
+      --text-secondary: #7A3C35;
+      --text-inverse: #FFFFFF;
+      --accent-blue: #E5523C;
+      --divider: rgba(97, 20, 18, 0.12);
+      --item-hover: rgba(229, 82, 60, 0.14);
+      --shadow-main: 0 6px 22px rgba(229, 82, 60, 0.18);
+    }
+
+    :root[data-theme-id="red-sunrise"][data-theme="dark"] {
+      --bg-app: #1A0B0A;
+      --bg-surface: #2B1512;
+      --text-primary: #FFEDE8;
+      --text-secondary: #F1BEB3;
+      --text-inverse: #1A0B0A;
+      --accent-blue: #FF907B;
+      --divider: rgba(255, 210, 200, 0.14);
+      --item-hover: rgba(255, 144, 123, 0.22);
+      --shadow-main: 0 12px 34px rgba(0, 0, 0, 0.5);
+    }
+
+    :root[data-theme-id="emptiness-color"][data-theme="light"] {
+      --bg-app: #F5F6F8;
+      --bg-surface: #FFFFFF;
+      --text-primary: #1B1F23;
+      --text-secondary: #5B636B;
+      --text-inverse: #FFFFFF;
+      --accent-blue: #6B7280;
+      --divider: rgba(27, 31, 35, 0.08);
+      --item-hover: rgba(27, 31, 35, 0.06);
+      --shadow-main: 0 4px 12px rgba(27, 31, 35, 0.08);
+    }
+
+    :root[data-theme-id="emptiness-color"][data-theme="dark"] {
+      --bg-app: #101113;
+      --bg-surface: #1B1C1F;
+      --text-primary: #F1F3F5;
+      --text-secondary: #C3C7CC;
+      --text-inverse: #101113;
+      --accent-blue: #A1A6AD;
+      --divider: rgba(230, 233, 238, 0.12);
+      --item-hover: rgba(161, 166, 173, 0.2);
+      --shadow-main: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    :root[data-theme-id="mung-bean"][data-theme="light"] {
+      --bg-app: #F3FFF7;
+      --bg-surface: #FFFFFF;
+      --text-primary: #0F3D2A;
+      --text-secondary: #3F6B57;
+      --text-inverse: #FFFFFF;
+      --accent-blue: #45B97C;
+      --divider: rgba(18, 63, 44, 0.1);
+      --item-hover: rgba(69, 185, 124, 0.14);
+      --shadow-main: 0 6px 22px rgba(69, 185, 124, 0.18);
+    }
+
+    :root[data-theme-id="mung-bean"][data-theme="dark"] {
+      --bg-app: #0D1A14;
+      --bg-surface: #16231C;
+      --text-primary: #E7FFF1;
+      --text-secondary: #B7E6CD;
+      --text-inverse: #0D1A14;
+      --accent-blue: #7FE3B1;
+      --divider: rgba(199, 240, 219, 0.14);
+      --item-hover: rgba(127, 227, 177, 0.22);
+      --shadow-main: 0 12px 34px rgba(0, 0, 0, 0.5);
+    }
+
+    :root[data-theme-id="orange-wish"][data-theme="light"] {
+      --bg-app: #FFF6EE;
+      --bg-surface: #FFFFFF;
+      --text-primary: #4A2A11;
+      --text-secondary: #7B5A3E;
+      --text-inverse: #FFFFFF;
+      --accent-blue: #FF8A3D;
+      --divider: rgba(80, 40, 12, 0.12);
+      --item-hover: rgba(255, 138, 61, 0.14);
+      --shadow-main: 0 6px 22px rgba(255, 138, 61, 0.18);
+    }
+
+    :root[data-theme-id="orange-wish"][data-theme="dark"] {
+      --bg-app: #1C1108;
+      --bg-surface: #2A190D;
+      --text-primary: #FFEFE3;
+      --text-secondary: #F2C8A6;
+      --text-inverse: #1C1108;
+      --accent-blue: #FFB677;
+      --divider: rgba(255, 220, 195, 0.16);
+      --item-hover: rgba(255, 182, 119, 0.24);
+      --shadow-main: 0 12px 34px rgba(0, 0, 0, 0.5);
+    }
+
+    :root[data-theme-id="year-of-horse"][data-theme="light"] {
+      --bg-app: #FFEBEE;
+      --bg-surface: #FFF5F5;
+      --text-primary: #B71C1C;
+      --text-secondary: rgba(183, 28, 28, 0.6);
+      --text-inverse: #FFFFFF;
+      --accent-blue: #D32F2F;
+      --divider: rgba(211, 47, 47, 0.2);
+      --item-hover: rgba(211, 47, 47, 0.18);
+      --shadow-main: 0 6px 22px rgba(183, 28, 28, 0.2);
+    }
+
+    :root[data-theme-id="year-of-horse"][data-theme="dark"] {
+      --bg-app: #2A0505;
+      --bg-surface: #451212;
+      --text-primary: #FFD700;
+      --text-secondary: #FFB347;
+      --text-inverse: #2A0A0A;
+      --accent-blue: #FF4500;
+      --divider: rgba(255, 69, 0, 0.3);
+      --item-hover: rgba(255, 69, 0, 0.22);
+      --shadow-main: 0 12px 34px rgba(0, 0, 0, 0.5);
+    }
+
+    :root[data-theme-id="year-of-horse"][data-theme="light"] body {
+      background-image: radial-gradient(circle at 100% 0%, rgba(230, 0, 0, 0.12) 0%, transparent 25%),
+                        radial-gradient(circle at 0% 100%, rgba(230, 0, 0, 0.12) 0%, transparent 25%),
+                        radial-gradient(circle at 50% 50%, rgba(230, 0, 0, 0.08) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
+    :root[data-theme-id="year-of-horse"][data-theme="dark"] body {
+      background-image: radial-gradient(circle at 100% 0%, rgba(255, 69, 0, 0.15) 0%, transparent 30%),
+                        radial-gradient(circle at 0% 100%, rgba(255, 69, 0, 0.15) 0%, transparent 30%),
+                        radial-gradient(circle at 50% 50%, rgba(255, 69, 0, 0.08) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
+    :root[data-theme-id="year-of-horse"] body::before {
+      content: "鬩ｬ";
+      position: fixed;
+      bottom: -10vh;
+      right: -10vh;
+      font-size: 60vh;
+      font-family: "Kaiti", "STKaiti", "Xingkai SC", "STXingkai", "Microsoft YaHei", serif;
+      color: var(--accent-blue);
+      opacity: 0.08;
+      pointer-events: none;
+      z-index: 0;
+      transform: rotate(-15deg);
+    }
+
+    [data-theme-id="year-of-horse"] .container {
+      position: relative;
+      z-index: 1;
+    }
+
+    :root[data-system-backdrop="true"],
+    :root[data-system-backdrop="true"] body {
+      background: transparent;
     }
 
     * {
@@ -65,6 +253,11 @@
       margin: 0;
       padding: 0;
       font-family: var(--font-stack);
+    }
+
+    html[data-font-weight-mode="override"] body,
+    html[data-font-weight-mode="override"] body * {
+      font-weight: var(--font-weight-override) !important;
     }
 
     body {
@@ -76,119 +269,163 @@
       overflow: hidden;
     }
 
-    .header {
-      height: 48px;
-      display: flex;
-      align-items: center;
-      padding: 0 24px;
-      font-weight: 600;
-      font-size: 14px;
-      border-bottom: 1px solid var(--border-color);
-      background: var(--bg-panel);
-      -webkit-app-region: drag;
-    }
-
-    .container {
-      flex: 1;
-      display: flex;
-      overflow: hidden;
-    }
-
-    .log-panel {
+    .page {
       flex: 1;
       display: flex;
       flex-direction: column;
-      padding: 24px;
-      border-right: 1px solid var(--border-color);
-      min-width: 300px;
+      min-height: 0;
     }
 
-    .log-title {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 12px;
+    .hero {
       display: flex;
-      align-items: center;
-      gap: 8px;
+      gap: 16px;
+      padding: 18px 24px 8px;
+      -webkit-app-region: drag;
+    }
+
+    .hero-text {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+      padding-left: 8px;
+    }
+
+    .hero-title {
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--text-primary);
+    }
+
+    .hero-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .log-card {
+      margin: 0 24px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--divider);
+      border-radius: var(--panel-radius);
+      box-shadow: var(--shadow-main);
+      padding: 16px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+      flex: 1;
+    }
+
+    .log-hint {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
     }
 
     .log-content {
       flex: 1;
       background: var(--code-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 16px;
+      border: 1px solid var(--divider);
+      border-radius: 12px;
+      padding: 14px 16px;
       font-family: "Consolas", "Monaco", monospace;
       font-size: 12px;
-      line-height: 1.5;
+      line-height: 1.6;
       overflow: auto;
       white-space: pre-wrap;
       word-break: break-all;
-      color: var(--text-secondary);
+      color: var(--text-primary);
     }
 
-    .action-panel {
-      width: 280px;
-      background: var(--bg-panel);
-      padding: 24px;
+    .footer {
+      padding: 14px 24px 18px;
+      border-top: 1px solid var(--divider);
       display: flex;
-      flex-direction: column;
-      gap: 16px;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--bg-app);
     }
 
-    .action-title {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-
-    .action-desc {
-      font-size: 13px;
-      color: var(--text-secondary);
-      line-height: 1.5;
-      margin-bottom: 16px;
+    .footer-left,
+    .footer-right {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
     .btn {
+      min-width: 88px;
       height: 36px;
-      border-radius: 6px;
-      border: 1px solid var(--border-color);
-      background: transparent;
-      color: var(--text-primary);
-      font-size: 13px;
+      border-radius: 18px;
+      border: none;
+      font-size: 13.5px;
+      font-weight: 500;
       cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
       align-items: center;
       justify-content: center;
+      outline: none;
       gap: 8px;
-      transition: all 0.2s;
+      -webkit-app-region: no-drag;
     }
 
-    .btn:hover {
-      background: rgba(0, 0, 0, 0.05);
+    .btn-icon {
+      width: 16px;
+      height: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 16px;
     }
 
-    [data-theme="dark"] .btn:hover {
-      background: rgba(255, 255, 255, 0.05);
+    .btn-icon svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
     }
 
-    .btn-primary {
-      background: var(--accent-color);
-      color: white;
-      border: none;
+    .btn:active {
+      transform: scale(0.96);
     }
 
-    .btn-primary:hover {
-      background: var(--accent-hover);
+    .btn-cancel {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--divider);
+    }
+
+    .btn-cancel:hover {
+      background: var(--item-hover);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+
+    .btn-confirm {
+      background: rgba(50, 117, 245, 0.08);
+      color: var(--accent-blue);
+      border: 1px solid rgba(50, 117, 245, 0.15);
+    }
+
+    .btn-confirm:hover {
+      background: var(--accent-blue);
+      color: #FFFFFF;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(50, 117, 245, 0.2);
     }
 
     .btn-danger {
       color: var(--error-color);
-      border-color: rgba(211, 47, 47, 0.3);
+      border: 1px solid rgba(208, 70, 70, 0.35);
+      background: transparent;
     }
 
     .btn-danger:hover {
-      background: rgba(211, 47, 47, 0.05);
+      background: rgba(208, 70, 70, 0.12);
+      color: var(--text-primary);
+      transform: translateY(-1px);
     }
 
     .toast {
@@ -197,7 +434,7 @@
       left: 50%;
       transform: translateX(-50%);
       background: rgba(0, 0, 0, 0.8);
-      color: white;
+      color: #FFFFFF;
       padding: 8px 16px;
       border-radius: 20px;
       font-size: 12px;
@@ -209,109 +446,314 @@
     .toast.show {
       opacity: 1;
     }
+
+    @media (max-width: 860px) {
+      .hero {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .footer {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .footer-left,
+      .footer-right {
+        justify-content: flex-start;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="header">Luminalium Crash Handler</div>
-  <div class="container">
-    <div class="log-panel">
-      <div class="log-title">
-        <span style="color: var(--error-color)">●</span> Error Log
+  <div class="page">
+    <div class="hero">
+      <div class="hero-text">
+        <div class="hero-title" id="crash-title">TITLE</div>
+        <div class="hero-desc" id="crash-desc">DESC</div>
       </div>
+    </div>
+
+    <div class="log-card">
+      <div class="log-hint" id="log-hint">HINT</div>
       <div class="log-content" id="log-text">Loading error details...</div>
     </div>
-    <div class="action-panel">
-      <div>
-        <div class="action-title">Oops!</div>
-        <div class="action-desc">
-          Something went wrong and the application has crashed. You can copy the error log to report this issue.
-        </div>
+
+    <div class="footer">
+      <div class="footer-left">
+        <button class="btn btn-cancel" id="btn-ignore" onclick="ignoreCrash()">
+          <span class="btn-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M18.3 5.7a1 1 0 0 0-1.4 0L12 10.6 7.1 5.7A1 1 0 1 0 5.7 7.1L10.6 12l-4.9 4.9a1 1 0 1 0 1.4 1.4l4.9-4.9 4.9 4.9a1 1 0 0 0 1.4-1.4L13.4 12l4.9-4.9a1 1 0 0 0 0-1.4z"/></svg>
+          </span>
+          <span class="btn-label">IGNORE</span>
+        </button>
+        <button class="btn btn-danger" id="btn-exit" onclick="exitApp()">
+          <span class="btn-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M10 3h8a2 2 0 0 1 2 2v4h-2V5h-8v14h8v-4h2v4a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm5.59 5.59L13.17 11H20v2h-6.83l2.42 2.41L14.17 17l-4.5-4.5 4.5-4.5 1.42 1.59z"/></svg>
+          </span>
+          <span class="btn-label">EXIT</span>
+        </button>
+        <button class="btn btn-confirm" id="btn-restart" onclick="restartApp()">
+          <span class="btn-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 5a7 7 0 1 1-6.32 4H3l3.5-3.5L10 9H7.76A5 5 0 1 0 12 7c1.3 0 2.5.5 3.4 1.3l1.42-1.42A7 7 0 0 0 12 5z"/></svg>
+          </span>
+          <span class="btn-label">RESTART</span>
+        </button>
       </div>
-
-      <button class="btn btn-primary" onclick="copyLog()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-        </svg>
-        Copy Error Log
-      </button>
-
-      <button class="btn" onclick="ignoreAndContinue()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon points="5 3 19 12 5 21 5 3"></polygon>
-        </svg>
-        Ignore & Continue
-      </button>
-
-      <div style="flex: 1"></div>
-
-      <button class="btn btn-danger" onclick="quitApp()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
-          <line x1="12" y1="2" x2="12" y2="12"></line>
-        </svg>
-        Quit Application
-      </button>
+      <div class="footer-right">
+        <button class="btn btn-cancel" id="btn-copy" onclick="copyLog()">
+          <span class="btn-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H10V7h9v14z"/></svg>
+          </span>
+          <span class="btn-label">COPY</span>
+        </button>
+        <button class="btn btn-cancel" id="btn-feedback" onclick="openFeedback()">
+          <span class="btn-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v10h2v2.17L8.17 16H20V6H4z"/></svg>
+          </span>
+          <span class="btn-label">FEEDBACK</span>
+        </button>
+      </div>
     </div>
   </div>
   <div class="toast" id="toast">Copied to clipboard</div>
 
-  <script>
+<script>
     let dialogData = {};
+    const settings = window.initialSettings || {};
+    let currentLanguage = (settings.General && settings.General.Language) || "zh-CN";
+
+    function requestDialogData() {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.get_dialog_data) {
+        window.pywebview.api.get_dialog_data().then(data => {
+          dialogData = data || {};
+          init(dialogData);
+        });
+        return true;
+      }
+      return false;
+    }
 
     window.addEventListener('pywebviewready', () => {
-      if (window.pywebview.api && window.pywebview.api.get_dialog_data) {
-        window.pywebview.api.get_dialog_data().then(data => {
-          dialogData = data;
-          init(data);
-        });
-      }
+      requestDialogData();
     });
 
-    function init(data) {
-      const disabled = !!window.initialSettings?.General?.DisableAnimations;
-      document.documentElement.setAttribute('data-disable-animations', disabled ? 'true' : 'false');
-      document.getElementById('log-text').textContent = data.text || "No error details available.";
-      
-      const theme = data.theme || 'auto';
-      if (theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.setAttribute('data-theme', 'dark');
-      }
+    window.addEventListener('DOMContentLoaded', () => {
+      init({});
+      if (requestDialogData()) return;
+      let tries = 0;
+      const timer = setInterval(() => {
+        tries += 1;
+        if (requestDialogData() || tries >= 30) {
+          clearInterval(timer);
+        }
+      }, 100);
+    });
 
-      if (data.accentColor) {
-        document.documentElement.style.setProperty('--accent-color', data.accentColor);
+    function applyTheme(themeMode) {
+      let mode = themeMode || (settings.Appearance && settings.Appearance.ThemeMode) || "Auto";
+      if (typeof mode === "string") mode = mode.toLowerCase();
+      let isDark = false;
+      if (mode === "auto") {
+        const resolved = settings.Appearance && settings.Appearance.ResolvedIsDark;
+        if (typeof resolved === "boolean") {
+          isDark = resolved;
+        } else {
+          isDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        }
+      } else {
+        isDark = mode === "dark";
+      }
+      document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+      const themeId = (settings.Appearance && settings.Appearance.ThemeId) || "default";
+      document.documentElement.setAttribute("data-theme-id", themeId);
+    }
+
+    function applySystemBackdropDocument() {
+      const enabled = !!(settings.General && settings.General.SystemBackdropEnabled);
+      const supported = !!window.__SYSTEM_BACKDROP_SUPPORTED;
+      document.documentElement.setAttribute("data-system-backdrop", enabled ? "true" : "false");
+      document.documentElement.setAttribute(
+        "data-system-backdrop-mode",
+        enabled ? (supported ? "system" : "fallback") : "off"
+      );
+    }
+
+    function getDefaultFontStack(lang) {
+      if (lang === "zh-TW") {
+        return "\"Google Sans Flex\", \"MiSans Japanese VF\", \"MiSans TC VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
+      }
+      if (lang === "yue-HK") {
+        return "\"Google Sans Flex\", \"MiSans VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
+      }
+      if (lang === "ja-JP") {
+        return "\"Google Sans Flex\", \"MiSans Japanese VF\", \"MiSans TC VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
+      }
+      if (lang === "ug-CN") {
+        return "\"Google Sans Flex\", \"Segoe UI\", \"MiSans VF\", system-ui, -apple-system, sans-serif";
+      }
+      return "\"Google Sans Flex\", \"MiSans VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
+    }
+
+    function getSelectedWebFont(lang) {
+      if (settings && settings.Fonts && !settings.Fonts.CustomFont) return "";
+      const profiles = settings && settings.Fonts && settings.Fonts.Profiles;
+      const langProfile = profiles && profiles[lang];
+      const v = langProfile && langProfile.web;
+      return (typeof v === "string" && v.trim()) ? v.trim() : "";
+    }
+
+    function normalizeFontWeightValue(value) {
+      let normalized = value;
+      if (typeof normalized === "number" && Number.isFinite(normalized)) {
+        normalized = String(Math.round(normalized));
+      }
+      if (typeof normalized !== "string") return "";
+      normalized = normalized.trim();
+      if (!normalized || !/^\d{3,4}$/.test(normalized)) return "";
+      const num = Number(normalized);
+      if (!Number.isInteger(num) || num < 100 || num > 1000 || num % 100 !== 0) return "";
+      return String(num);
+    }
+
+    function getSelectedWebFontWeight(lang) {
+      if (settings && settings.Fonts && !settings.Fonts.CustomFont) return "";
+      const weights = settings && settings.Fonts && settings.Fonts.Weights;
+      const langProfile = weights && weights[lang];
+      return normalizeFontWeightValue(langProfile && langProfile.web);
+    }
+
+    function applyWebFontWeight(weightValue) {
+      const normalized = normalizeFontWeightValue(weightValue);
+      if (normalized) {
+        document.documentElement.dataset.fontWeightMode = "override";
+        document.documentElement.style.setProperty("--font-weight-override", normalized);
+      } else {
+        document.documentElement.removeAttribute("data-font-weight-mode");
+        document.documentElement.style.removeProperty("--font-weight-override");
       }
     }
 
-    function copyLog() {
+    function applyLanguageFont() {
+      const base = getDefaultFontStack(currentLanguage);
+      const selected = getSelectedWebFont(currentLanguage);
+      const stack = selected ? `"${selected.replace(/"/g, '\\"')}", ${base}` : base;
+      document.documentElement.style.setProperty("--font-stack", stack);
+      applyWebFontWeight(getSelectedWebFontWeight(currentLanguage));
+    }
+
+    function init(data) {
+      const disabled = !!(settings.General && settings.General.DisableAnimations);
+      document.documentElement.setAttribute("data-disable-animations", disabled ? "true" : "false");
+      document.documentElement.lang = currentLanguage;
+      const isRtl = currentLanguage === "ug-CN";
+      document.documentElement.dir = isRtl ? "rtl" : "ltr";
+      document.documentElement.classList.toggle("rtl", isRtl);
+      const appName = (settings.General && settings.General.AppName) ? String(settings.General.AppName) : "Luminalium";
+      const titleEl = document.getElementById("crash-title");
+      if (titleEl) {
+        const fallbackTitle = `${appName} \u53d1\u751f\u9519\u8bef`;
+        titleEl.textContent = (data && data.title) ? String(data.title).trim() : fallbackTitle;
+      }
+      const descEl = document.getElementById("crash-desc");
+      if (descEl) {
+        descEl.textContent = "\u5e94\u7528\u906d\u9047\u4e25\u91cd\u9519\u8bef\u800c\u65e0\u6cd5\u6b63\u5e38\u8fd0\u884c\u3002\u4f60\u53ef\u4ee5\u4fdd\u5b58\u4e0b\u65b9\u7684\u9519\u8bef\u4fe1\u606f\u5e76\u5411\u4ed6\u4eba\u5bfb\u6c42\u5e2e\u52a9\u3002\u5982\u679c\u4f60\u8ba4\u4e3a\u8fd9\u662f\u7531\u8f6f\u4ef6\u672c\u8eab\u7684\u9519\u8bef\u6240\u81f4\uff0c\u8bf7\u70b9\u51fb\u4e0b\u65b9\u201c\u53cd\u9988\u95ee\u9898\u201d\u6309\u94ae\u3002";
+      }
+      const hintEl = document.getElementById("log-hint");
+      if (hintEl) {
+        hintEl.textContent = "\u4ee5\u4e0b\u662f\u9519\u8bef\u65e5\u5fd7\uff0c\u5982\u6709\u53cd\u9988\u9700\u8981\u8bf7\u622a\u56fe\u6b64\u7a97\u53e3\u6216\u590d\u5236\u65e5\u5fd7\u3002";
+      }
+      const btnIgnore = document.getElementById("btn-ignore");
+      if (btnIgnore) btnIgnore.querySelector(".btn-label").textContent = "\u5ffd\u7565";
+      const btnExit = document.getElementById("btn-exit");
+      if (btnExit) btnExit.querySelector(".btn-label").textContent = "\u9000\u51fa\u5e94\u7528";
+      const btnRestart = document.getElementById("btn-restart");
+      if (btnRestart) btnRestart.querySelector(".btn-label").textContent = "\u91cd\u542f\u5e94\u7528";
+      const btnCopy = document.getElementById("btn-copy");
+      if (btnCopy) btnCopy.querySelector(".btn-label").textContent = "\u590d\u5236";
+      const btnFeedback = document.getElementById("btn-feedback");
+      if (btnFeedback) btnFeedback.querySelector(".btn-label").textContent = "\u53cd\u9988\u95ee\u9898";
+      const logEl = document.getElementById("log-text");
+      if (logEl && data && data.text) {
+        logEl.textContent = data.text;
+      }
+      applyTheme(data && data.theme);
+      applySystemBackdropDocument();
+      applyLanguageFont();
+
+      if (data && data.accentColor && !(settings.Appearance && settings.Appearance.ThemeId)) {
+        document.documentElement.style.setProperty("--accent-blue", data.accentColor);
+      }
+    }
+
+    async function copyLog() {
       const text = document.getElementById('log-text').textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        showToast("Copied to clipboard");
-      }).catch(() => {
-        // Fallback
+      try {
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.copy_text_to_clipboard) {
+          const ok = await window.pywebview.api.copy_text_to_clipboard(text);
+          if (ok) {
+            showToast("\u5df2\u590d\u5236\u5230\u526a\u8d34\u677f");
+            return;
+          }
+        }
+      } catch (_) {}
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast("\u5df2\u590d\u5236\u5230\u526a\u8d34\u677f");
+      } catch (_) {
         const ta = document.createElement('textarea');
         ta.value = text;
         document.body.appendChild(ta);
         ta.select();
         document.execCommand('copy');
         document.body.removeChild(ta);
-        showToast("Copied to clipboard");
-      });
+        showToast("\u5df2\u590d\u5236\u5230\u526a\u8d34\u677f");
+      }
     }
 
-    function ignoreAndContinue() {
+    function ignoreCrash() {
       if (window.pywebview && window.pywebview.api) {
-        window.pywebview.api.on_confirm(); // Reuse confirm as "Continue"
+        if (window.pywebview.api.ignore_crash_dialog) {
+          window.pywebview.api.ignore_crash_dialog();
+          return;
+        }
+        window.pywebview.api.on_confirm();
       } else {
         window.close();
       }
     }
 
-    function quitApp() {
+    function exitApp() {
       if (window.pywebview && window.pywebview.api) {
-        window.pywebview.api.on_cancel(); // Reuse cancel as "Quit"
+        if (window.pywebview.api.exit_from_crash_dialog) {
+          window.pywebview.api.exit_from_crash_dialog();
+          return;
+        }
+        window.pywebview.api.on_cancel();
       } else {
         window.close();
+      }
+    }
+
+    function restartApp() {
+      if (window.pywebview && window.pywebview.api) {
+        if (window.pywebview.api.restart_from_crash_dialog) {
+          window.pywebview.api.restart_from_crash_dialog();
+        } else if (window.pywebview.api.restart_app) {
+          window.pywebview.api.restart_app();
+        }
+        if (window.pywebview.api.exit_from_crash_dialog) {
+          window.pywebview.api.exit_from_crash_dialog();
+          return;
+        }
+      }
+      window.close();
+    }
+
+    function openFeedback() {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.open_browser) {
+        window.pywebview.api.open_browser("https://github.com/SECTL/Luminalium/issues");
+        return;
       }
     }
 

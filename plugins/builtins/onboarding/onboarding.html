@@ -3929,10 +3929,13 @@
 
     .step-content {
       min-height: 200px;
+      min-height: 0;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
       flex: 1;
+      overflow-y: auto;
+      padding-right: 4px;
     }
 
     .actions {
@@ -4055,6 +4058,16 @@ html, body {
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 12px;
   border-bottom: none;
+}
+
+/* Compact variant for the "Presentation UI" step only */
+.settings-group.settings-group-compact .settings-item {
+  padding: 12px 16px;
+  min-height: 52px;
+}
+
+.settings-group.settings-group-compact .slider-container {
+  margin-top: 12px;
 }
 
 /* Animation for Final Step */
@@ -4688,7 +4701,7 @@ html, body {
       { // 3
         id: "overlay",
         render: (t) => `
-          <div class="settings-group">
+          <div class="settings-group settings-group-compact">
             <div class="settings-item" onclick="toggleAutoShowOverlay()" style="cursor: pointer;">
               <div class="item-info">
                 <div class="item-label">${t.overlay.autoShowOverlay.label}</div>

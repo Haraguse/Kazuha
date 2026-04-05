@@ -33,7 +33,7 @@ if __name__ == "__main__":
         sys.exit(0)
 
 from PySide6.QtWidgets import QApplication, QDialog, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFrame, QGraphicsDropShadowEffect, QProgressBar
-from PySide6.QtCore import Qt, QTimer, Slot, QSize, QPoint, QCoreApplication, QEvent, QObject, QUrl
+from PySide6.QtCore import Qt, QTimer, Slot, QSize, QPoint, QCoreApplication, QEvent, QObject, QUrl, QRect
 from PySide6.QtGui import QFontDatabase, QFont, QColor, QIcon, QRegion, QPainter, QPen, QBrush, QFontMetrics
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
@@ -1050,11 +1050,22 @@ class CrashHandler:
             return mode
         return "RestartSilent"
 
-    def _launch_crash_dialog(self, error_msg: str):
+    def _parse_crash_dialog_result(self, stdout: str):
+        if not stdout:
+            return None
+        if "CRASH_DIALOG_IGNORED" in stdout:
+            return "ignored"
+        if "CRASH_DIALOG_EXIT" in stdout:
+            return "exit"
+        return None
+
+    def _launch_crash_dialog(self, error_msg: str, wait_for_result: bool = False):
         try:
             base_dir = os.path.dirname(os.path.abspath(__file__))
             root_dir = base_dir
             main_path = os.path.join(root_dir, "main.py")
+            env = os.environ.copy()
+            env["CRASH_PARENT_PID"] = str(os.getpid())
             
             with tempfile.NamedTemporaryFile(mode='w', suffix='.log', delete=False, encoding='utf-8') as f:
                 f.write(error_msg)
@@ -1069,10 +1080,31 @@ class CrashHandler:
                 cmd = [sys.executable, "--webview-runner", "--crash-file", temp_path]
             else:
                 cmd = [sys.executable, main_path, "--webview-runner", "--crash-file", temp_path]
-            
-            subprocess.Popen(cmd, creationflags=creationflags, close_fds=True)
+
+            if not wait_for_result:
+                subprocess.Popen(cmd, env=env, creationflags=creationflags, close_fds=True)
+                return None
+
+            proc = subprocess.Popen(
+                cmd,
+                env=env,
+                creationflags=creationflags,
+                close_fds=True,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
+            try:
+                stdout, _ = proc.communicate()
+            except Exception:
+                return None
+            return self._parse_crash_dialog_result(stdout)
         except Exception as e:
             print(f"Failed to launch crash dialog: {e}", file=sys.stderr)
+        return None
 
     def _restart_silent(self):
         try:
@@ -1123,7 +1155,10 @@ class CrashHandler:
         
         action = self._resolve_crash_action()
         if action == "ShowAnalyzer":
-            self._launch_crash_dialog(error_msg)
+            result = self._launch_crash_dialog(error_msg, wait_for_result=True)
+            if result == "ignored":
+                self._handling = False
+                return
         elif action == "RestartSilent":
             self._restart_silent()
         elif action == "Toast":
@@ -1138,6 +1173,8 @@ class CrashHandler:
         import time
         time.sleep(0.5)
         os._exit(1)
+
+
 
 def _handle_multi_instance(app: QApplication):
     try:
@@ -1172,35 +1209,24 @@ def _handle_multi_instance(app: QApplication):
     proc = show_webview_dialog(
         title="",
         text="",
-        confirm_text="",
-        cancel_text="",
-        is_error=False,
-        hide_cancel=False,
         code="multi_instance"
     )
-    
-    # Wait for the process to exit and check stdout for result
     stdout, _ = proc.communicate()
     
-    # Option 1: Close New Instance
-    if "CLOSE_NEW" in stdout:
-        app.quit()
-        sys.exit(0)
-    
-    # Option 2: Continue New Instance
-    elif "CONTINUE_NEW" in stdout:
-        return
-        
-    # Option 3: Restart Existing Instance (Kill old, continue new)
-    elif "RESTART_OLD" in stdout:
+    if 'DIALOG_VALUE:"RESTART_OLD"' in stdout:
         for pid in pids:
-            try: psutil.Process(pid).terminate()
-            except: pass
+            try:
+                p_obj = psutil.Process(pid)
+                p_obj.kill()
+            except Exception:
+                pass
+        import time
+        time.sleep(0.5)
         return
-
-    # Fallback: If dialog closed or cancelled, exit new instance
-    app.quit()
-    sys.exit(0)
+    elif 'DIALOG_VALUE:"CONTINUE_NEW"' in stdout:
+        return
+    else:
+        sys.exit(0)
 
 
 def _t(key):
@@ -1223,6 +1249,8 @@ class PPTAssistantApp:
         self._reload_timer.setSingleShot(True)
         self._reload_timer.setInterval(150)
         self._reload_timer.timeout.connect(self._reload_overlay)
+        self._onboarding_wait_timer = None
+        self._onboarding_restart_started = False
         
         # Start async initialization
         self._init_gen = self._init_steps()
@@ -1275,22 +1303,10 @@ class PPTAssistantApp:
             if FIRST_RUN and hasattr(self, "onboarding_plugin"):
                 p = self.onboarding_plugin
                 p.execute(preview=False)
-                
-                # Wait for onboarding window to appear (heuristic delay)
-                start_wait = time.time()
-                while time.time() - start_wait < 1.5:
-                     QApplication.processEvents()
-                     time.sleep(0.05)
-                
-                # Hide splash screen to handoff focus to onboarding
                 if self._splash:
-                    self._splash.hide()
-
-                while p.process and p.process.poll() is None:
-                    QApplication.processEvents()
-                    time.sleep(0.1)
-                reload_cfg()
-                self.restart()
+                    QTimer.singleShot(200, self._splash.hide)
+                self._start_onboarding_wait_loop()
+                return
         except Exception:
             pass
         
@@ -1325,6 +1341,34 @@ class PPTAssistantApp:
         except Exception as e:
             print(f"Initialization error: {e}")
             sys.exit(1)
+
+    def _start_onboarding_wait_loop(self):
+        if self._onboarding_wait_timer is not None:
+            self._onboarding_wait_timer.stop()
+            self._onboarding_wait_timer.deleteLater()
+        self._onboarding_wait_timer = QTimer(self.app)
+        self._onboarding_wait_timer.setInterval(100)
+        self._onboarding_wait_timer.timeout.connect(self._check_onboarding_closed)
+        self._onboarding_wait_timer.start()
+
+    def _check_onboarding_closed(self):
+        plugin = getattr(self, "onboarding_plugin", None)
+        handle = getattr(plugin, "process", None) if plugin is not None else None
+        try:
+            finished = handle is None or handle.poll() is not None
+        except Exception:
+            finished = True
+        if not finished:
+            return
+        if self._onboarding_wait_timer is not None:
+            self._onboarding_wait_timer.stop()
+            self._onboarding_wait_timer.deleteLater()
+            self._onboarding_wait_timer = None
+        if self._onboarding_restart_started:
+            return
+        self._onboarding_restart_started = True
+        reload_cfg()
+        self.restart()
 
     def _load_plugins(self):
         """Dynamic plugin loading from builtins and external directory."""

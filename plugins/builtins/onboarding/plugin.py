@@ -1,5 +1,7 @@
 import os
 import json
+import sys
+import subprocess
 
 from PySide6.QtCore import QTimer
 
@@ -48,6 +50,25 @@ class OnboardingPlugin(AssistantPlugin):
         except Exception:
             return {}
 
+    def _launch_external_window(self, preview=False):
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        html_path = os.path.join(base_dir, "onboarding.html")
+        root_dir = os.path.dirname(os.path.dirname(os.path.dirname(base_dir)))
+        main_path = os.path.join(root_dir, "main.py")
+        env = os.environ.copy()
+        env["SETTINGS_PATH"] = SETTINGS_PATH
+        env["ONBOARDING_PREVIEW"] = "true" if preview else "false"
+        title = "Onboarding Preview" if preview else "Onboarding"
+        width = "960"
+        height = "720"
+        if getattr(sys, "frozen", False):
+            cmd = [sys.executable, "--webview-runner", html_path, title, width, height, "true"]
+        else:
+            cmd = [sys.executable, main_path, "--webview-runner", html_path, title, width, height, "true"]
+        self.process = subprocess.Popen(cmd, env=env)
+        self._window = None
+        self._api = None
+
     def _focus_existing_window(self, show_toast=False):
         if self._window is None:
             return False
@@ -95,7 +116,7 @@ class OnboardingPlugin(AssistantPlugin):
             title = "Onboarding Preview" if preview else "Onboarding"
             defer_load = wv._should_defer_initial_load(html_path, title, True)
             theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
-            window = wv.MainWindow(title, html_path, api, 960, 640, theme_mode, False, defer_load)
+            window = wv.MainWindow(title, html_path, api, 960, 720, theme_mode, False, defer_load)
         finally:
             if previous_preview is None:
                 os.environ.pop("ONBOARDING_PREVIEW", None)
@@ -112,6 +133,11 @@ class OnboardingPlugin(AssistantPlugin):
 
     def execute(self, preview=False):
         preview = bool(preview)
+        if not preview:
+            if self.process is not None and self.process.poll() is None:
+                return
+            self._launch_external_window(preview=False)
+            return
         if self._window is not None and self._preview != preview:
             self.terminate()
         if self._focus_existing_window(show_toast=True):

@@ -259,7 +259,7 @@ def _apply_window_theme(hwnd, is_dark):
 def _resolve_system_backdrop_type(settings, window_tag):
     if sys.platform != "win32":
         return None
-    if window_tag not in ("settings", "timer"):
+    if window_tag not in ("settings", "timer", "crash"):
         return None
     if not _supports_system_backdrop():
         return DWMSBT_NONE
@@ -926,6 +926,11 @@ class Api(QObject):
         if self._window:
             self._window.set_mini_mode(enabled)
 
+    @Slot()
+    def start_window_drag(self):
+        if self._window and hasattr(self._window, "start_window_drag"):
+            self._window.start_window_drag()
+
     @Slot(bool)
     def set_fullscreen(self, enabled):
         if self._window:
@@ -954,7 +959,15 @@ class Api(QObject):
 
     @Slot(result="QVariant")
     def get_settings(self):
-        return self.settings
+        import copy
+        settings_dict = copy.deepcopy(self.settings) if isinstance(self.settings, dict) else {}
+        if "Appearance" not in settings_dict:
+            settings_dict["Appearance"] = {}
+        
+        theme_mode = settings_dict["Appearance"].get("ThemeMode", "Auto")
+        settings_dict["Appearance"]["ResolvedIsDark"] = _resolve_theme_dark(theme_mode)
+        
+        return settings_dict
 
     @Slot(result="QVariant")
     def get_version(self):
@@ -1350,6 +1363,23 @@ class Api(QObject):
             print(f"Error triggering restart: {e}", file=sys.stderr)
 
     @Slot()
+    def restart_from_crash_dialog(self):
+        try:
+            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            main_path = os.path.join(root_dir, "main.py")
+            if getattr(sys, "frozen", False):
+                cmd = [sys.executable, "--silent"]
+            else:
+                cmd = [sys.executable, main_path, "--silent"]
+            if sys.platform == "win32":
+                creationflags = 0x00000008  # DETACHED_PROCESS
+            else:
+                creationflags = 0
+            subprocess.Popen(cmd, creationflags=creationflags, close_fds=True)
+        except Exception as e:
+            print(f"Failed to restart from crash dialog: {e}", file=sys.stderr)
+
+    @Slot()
     def reset_to_pre_onboarding_state(self):
         settings_path = self._get_settings_path()
         reset_marker = self._get_settings_reset_marker_path()
@@ -1478,6 +1508,50 @@ class Api(QObject):
     @Slot()
     def on_cancel(self):
         print("DIALOG_CANCELLED")
+        sys.stdout.flush()
+        self._close_current_window()
+        if not self._in_process:
+            sys.exit(0)
+
+    @Slot(str, result=bool)
+    def copy_text_to_clipboard(self, text):
+        try:
+            clipboard = QGuiApplication.clipboard()
+            clipboard.setText(str(text or ""))
+            print("CRASH_LOG_COPIED")
+            sys.stdout.flush()
+            return True
+        except Exception:
+            return False
+
+    @Slot()
+    def ignore_crash_dialog(self):
+        print("CRASH_DIALOG_IGNORED")
+        sys.stdout.flush()
+        self._close_current_window()
+        if not self._in_process:
+            sys.exit(0)
+
+    @Slot()
+    def exit_from_crash_dialog(self):
+        try:
+            parent_pid = int((self.dialog_data or {}).get("parentPid") or 0)
+        except Exception:
+            parent_pid = 0
+        if parent_pid > 0 and parent_pid != os.getpid():
+            try:
+                if sys.platform == "win32":
+                    subprocess.run(
+                        ["taskkill", "/PID", str(parent_pid), "/T", "/F"],
+                        check=False,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                else:
+                    os.kill(parent_pid, 9)
+            except Exception:
+                pass
+        print("CRASH_DIALOG_EXIT")
         sys.stdout.flush()
         self._close_current_window()
         if not self._in_process:
@@ -1691,6 +1765,9 @@ class MainWindow(QWebEngineView):
         self._custom_border = custom_border
         self._defer_load = defer_load
         self._mini_mode = False
+        self._pre_mini_geometry = None
+        self._pre_mini_was_maximized = False
+        self._pre_mini_was_fullscreen = False
         self._pending_url = None
         self._did_hard_refresh = False
         self._window_tag = self._detect_window_tag(url, title)
@@ -1724,7 +1801,13 @@ class MainWindow(QWebEngineView):
         script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
         script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         self.page().scripts().insert(script)
-        settings_json = json.dumps(api.settings, ensure_ascii=False)
+        import copy
+        settings_dict = copy.deepcopy(api.settings) if isinstance(api.settings, dict) else {}
+        if "Appearance" not in settings_dict:
+            settings_dict["Appearance"] = {}
+        settings_dict["Appearance"]["ResolvedIsDark"] = _resolve_theme_dark(theme_mode)
+        
+        settings_json = json.dumps(settings_dict, ensure_ascii=False)
         settings_script = QWebEngineScript()
         settings_script.setSourceCode(f"window.initialSettings = {settings_json};")
         settings_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
@@ -2075,6 +2158,8 @@ body {
             return "settings"
         if "timer.html" in url_text or "timer plugin" in title_text:
             return "timer"
+        if "crash_dialog.html" in url_text or "crash" in title_text:
+            return "crash"
         if "onboarding.html" in url_text or "onboarding" in title_text:
             return "onboarding"
         return ""
@@ -2084,25 +2169,71 @@ body {
             return
         self._mini_mode = enabled
         if enabled:
+            self._pre_mini_was_maximized = bool(self.isMaximized())
+            self._pre_mini_was_fullscreen = bool(self.isFullScreen())
+            try:
+                if self._pre_mini_was_maximized or self._pre_mini_was_fullscreen:
+                    self._pre_mini_geometry = self.normalGeometry()
+                else:
+                    self._pre_mini_geometry = self.geometry()
+            except Exception:
+                self._pre_mini_geometry = None
             self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
             self.setAttribute(Qt.WA_TranslucentBackground)
-            self.resize(220, 220)
+            self.resize(340, 400)
             
             # Move to top-right corner
             screen = QApplication.primaryScreen()
             if screen:
                 geo = screen.availableGeometry()
-                x = geo.x() + geo.width() - 220 - 20
+                x = geo.x() + geo.width() - 340 - 20
                 y = geo.y() + 20
                 self.move(x, y)
         else:
             self.setWindowFlags(Qt.Window)
             self.setAttribute(Qt.WA_TranslucentBackground, False)
-            self.resize(800, 600)
-            self._center_on_screen()
+            restored = False
+            geo = self._pre_mini_geometry
+            if geo is not None:
+                try:
+                    if geo.width() > 0 and geo.height() > 0:
+                        self.setGeometry(geo)
+                        restored = True
+                except Exception:
+                    restored = False
+            if self._pre_mini_was_maximized:
+                self.showMaximized()
+                restored = True
+            elif self._pre_mini_was_fullscreen:
+                self.showFullScreen()
+                restored = True
+            elif not restored:
+                self.resize(800, 600)
+                self._center_on_screen()
+            self._pre_mini_geometry = None
+            self._pre_mini_was_maximized = False
+            self._pre_mini_was_fullscreen = False
         
         self._apply_page_background()
         self.show()
+
+    def start_window_drag(self):
+        # Reliable drag entrypoint for frameless mini windows.
+        try:
+            handle = self.windowHandle()
+            if handle is not None and hasattr(handle, "startSystemMove"):
+                if handle.startSystemMove():
+                    return
+        except Exception:
+            pass
+        if sys.platform == "win32":
+            try:
+                hwnd = int(self.winId())
+                user32 = ctypes.windll.user32
+                user32.ReleaseCapture()
+                user32.SendMessageW(hwnd, 0x00A1, 0x0002, 0)
+            except Exception:
+                pass
 
     def _center_on_screen(self):
         screen = QApplication.primaryScreen()
@@ -2388,6 +2519,10 @@ def main():
                         dialog_data["accentColor"] = default_accent
                 else:
                     error_msg = f.read()
+                    try:
+                        parent_pid = int(os.environ.get("CRASH_PARENT_PID", "0") or 0)
+                    except Exception:
+                        parent_pid = 0
                     dialog_data = {
                         "title": "程序崩溃了 (´；ω；`) ",
                         "text": error_msg,
@@ -2395,7 +2530,8 @@ def main():
                         "confirmText": "关闭",
                         "cancelText": "复制错误",
                         "theme": default_theme,
-                        "accentColor": default_accent
+                        "accentColor": default_accent,
+                        "parentPid": parent_pid
                     }
         except Exception:
             pass

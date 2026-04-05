@@ -9483,7 +9483,12 @@
 
   function getThemeVariant(mode) {
     const m = mode || "Light";
-    return m === "Auto" ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : (m === "Dark" ? "dark" : "light");
+    if (m === "Auto") {
+      const resolvedIsDark = (typeof settings !== 'undefined' && settings && settings.Appearance && settings.Appearance.ResolvedIsDark)
+        || (window.initialSettings && window.initialSettings.Appearance && window.initialSettings.Appearance.ResolvedIsDark);
+      return resolvedIsDark ? "dark" : "light";
+    }
+    return m === "Dark" ? "dark" : "light";
   }
 
   function clamp(value, min, max) {
