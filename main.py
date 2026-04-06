@@ -59,7 +59,7 @@ from ppt_assistant.core.ppt_monitor import PPTMonitor
 from ppt_assistant.ui.overlay import OverlayWindow, create_overlay_window
 from plugins.builtins.settings.plugin import SettingsPlugin
 from plugins.builtins.timer.plugin import TimerPlugin
-from ppt_assistant.ui.tray import SystemTray
+from ppt_assistant.ui.tray import SystemTray, is_system_tray_supported
 from ppt_assistant.core.config import cfg, SETTINGS_PATH, PLUGINS_DIR, reload_cfg, _apply_theme_and_color, Theme, qconfig, FIRST_RUN
 from ppt_assistant.core.timer_manager import TimerManager
 from ppt_assistant.core.i18n import t
@@ -270,10 +270,12 @@ def _apply_graphics_settings():
 
 
 def _should_enable_system_tray() -> bool:
-    if sys.platform != "linux":
-        return True
     value = str(os.environ.get("LUMINALIUM_ENABLE_TRAY", "")).strip().lower()
-    return value in ("1", "true", "yes", "on")
+    if value in ("0", "false", "no", "off"):
+        return False
+    if value in ("1", "true", "yes", "on"):
+        return True
+    return is_system_tray_supported()
 
 
 def _load_settings_json():
@@ -1364,7 +1366,7 @@ class PPTAssistantApp:
         if _should_enable_system_tray():
             self.tray = SystemTray()
         else:
-            print("[Main] Skipping system tray on Linux. Set LUMINALIUM_ENABLE_TRAY=1 to re-enable it.")
+            print("[Main] System tray disabled or unavailable. Set LUMINALIUM_ENABLE_TRAY=1 to force-enable it.")
         
         # Step 7: Finalize connections
         yield 85, "finalizing"

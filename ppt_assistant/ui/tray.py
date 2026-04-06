@@ -177,6 +177,17 @@ def _load_version_text():
     return "  ".join(parts)
 
 
+def is_system_tray_supported() -> bool:
+    try:
+        available = bool(QSystemTrayIcon.isSystemTrayAvailable())
+    except Exception as e:
+        print(f"[Tray] Failed to query system tray availability: {e}")
+        return False
+    if not available:
+        print("[Tray] System tray is not available in the current desktop session.")
+    return available
+
+
 PRESET_THEME_BASES = {
     "default": {
         "light": {

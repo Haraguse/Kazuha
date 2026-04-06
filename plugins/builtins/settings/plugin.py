@@ -1,10 +1,62 @@
 import os
 import json
+import sys
+import subprocess
 
 from PySide6.QtCore import QTimer
 
 from plugins.interface import AssistantPlugin
 from ppt_assistant.core.config import SETTINGS_PATH
+
+
+def _use_external_webview_process() -> bool:
+    return sys.platform == "linux"
+
+
+def _build_webview_runner_command(html_path, title, width, height, custom_border=True):
+    root_dir = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    )
+    args = [
+        html_path,
+        title,
+        str(int(width)),
+        str(int(height)),
+        "true" if custom_border else "false",
+    ]
+    if getattr(sys, "frozen", False):
+        return [sys.executable, "--webview-runner", *args]
+    main_path = os.path.join(root_dir, "main.py")
+    return [sys.executable, main_path, "--webview-runner", *args]
+
+
+def _build_linux_webview_env():
+    env = os.environ.copy()
+    env["SETTINGS_PATH"] = SETTINGS_PATH
+    if sys.platform != "linux":
+        return env
+    if env.get("DISPLAY"):
+        env["QT_QPA_PLATFORM"] = "xcb"
+    env["QT_OPENGL"] = "software"
+    env["QT_RHI_BACKEND"] = "software"
+    env["QT_VULKAN_DISABLE"] = "1"
+    env["QT_QUICK_BACKEND"] = "software"
+    env["QT_XCB_FORCE_SOFTWARE_OPENGL"] = "1"
+    env["QTWEBENGINE_DISABLE_SANDBOX"] = "1"
+    env["DEFER_WEBENGINE_LOAD"] = "1"
+    flags = [
+        "--disable-gpu",
+        "--disable-gpu-compositing",
+        "--enable-software-rasterizer",
+        "--disable-vulkan",
+        "--no-sandbox",
+    ]
+    merged = str(env.get("QTWEBENGINE_CHROMIUM_FLAGS", "")).split()
+    for flag in flags:
+        if flag not in merged:
+            merged.append(flag)
+    env["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(merged).strip()
+    return env
 
 
 class SettingsPlugin(AssistantPlugin):
@@ -14,7 +66,8 @@ class SettingsPlugin(AssistantPlugin):
         self._window = None
         self._api = None
         self._wv = None
-        QTimer.singleShot(1200, self._prewarm_webview)
+        if not _use_external_webview_process():
+            QTimer.singleShot(1200, self._prewarm_webview)
 
     def get_name(self):
         return ""
@@ -69,6 +122,14 @@ class SettingsPlugin(AssistantPlugin):
         self._api = None
         self.process = None
 
+    def _launch_external_window(self):
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        html_path = os.path.join(base_dir, "settings.html")
+        cmd = _build_webview_runner_command(html_path, "Settings", 1256, 734, True)
+        env = _build_linux_webview_env()
+        self.process = subprocess.Popen(cmd, env=env, close_fds=True)
+        return self.process
+
     def _ensure_window(self):
         if self._window is not None:
             return self._window
@@ -98,6 +159,12 @@ class SettingsPlugin(AssistantPlugin):
         return window
 
     def execute(self):
+        if _use_external_webview_process():
+            if self.process is not None and self.process.poll() is None:
+                return
+            self._launch_external_window()
+            return
+
         if self._focus_existing_window(show_toast=True):
             return
 
@@ -110,6 +177,11 @@ class SettingsPlugin(AssistantPlugin):
             pass
 
     def terminate(self):
+        if self.process is not None and self.process.poll() is None:
+            try:
+                self.process.terminate()
+            except Exception:
+                pass
         if self._window is not None:
             try:
                 self._window.close()

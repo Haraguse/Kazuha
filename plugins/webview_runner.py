@@ -1616,6 +1616,7 @@ class Api(QObject):
     def get_timer_state(self):
         return {
             "remaining": int(os.environ.get("TIMER_REMAINING", 0)),
+            "total": int(os.environ.get("TIMER_TOTAL", 0)),
             "is_running": os.environ.get("TIMER_IS_RUNNING", "false") == "true"
         }
 
