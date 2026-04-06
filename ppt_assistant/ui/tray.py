@@ -528,6 +528,48 @@ class SystemTray(QObject):
         painter.end()
         return QIcon(pixmap)
 
+    def _build_linux_tray_icon(self) -> QIcon:
+        raster_candidates = [
+            os.path.join(ICON_DIR, "logo.ico"),
+            os.path.join(ICON_DIR, "logo.png"),
+        ]
+        for candidate in raster_candidates:
+            if os.path.exists(candidate):
+                icon = QIcon(candidate)
+                if not icon.isNull():
+                    return icon
+
+        symbolic_path = os.path.join(ICON_DIR, "logo.svg")
+        preserve_color = True
+        if not os.path.exists(symbolic_path):
+            symbolic_path = os.path.join(ICON_DIR, "Pen.svg")
+            preserve_color = False
+
+        renderer = QSvgRenderer(symbolic_path)
+        if not renderer.isValid():
+            fallback_path = os.path.join(ICON_DIR, "logo.ico")
+            if os.path.exists(fallback_path):
+                return QIcon(fallback_path)
+            return QIcon(symbolic_path) if os.path.exists(symbolic_path) else QIcon()
+
+        icon = QIcon()
+        color = QColor(248, 249, 250) if isDarkTheme() else QColor(32, 32, 32)
+        for size in (16, 18, 20, 22, 24, 32, 48, 64):
+            pixmap = QPixmap(size, size)
+            pixmap.fill(Qt.transparent)
+
+            painter = QPainter(pixmap)
+            painter.setRenderHint(QPainter.Antialiasing)
+            renderer.render(painter)
+            if not preserve_color:
+                painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
+                painter.fillRect(pixmap.rect(), color)
+            painter.end()
+
+            icon.addPixmap(pixmap)
+
+        return icon
+
     def _update_timer_text(self):
         if not hasattr(self, '_act_timer') or not self._act_timer: return
         timer_text = t("tray.timer")
@@ -759,8 +801,11 @@ class SystemTray(QObject):
                 self.tray_icon.setIcon(QIcon(logo_path))
             return
 
-        if sys.platform == "linux" and os.path.exists(logo_path):
-            self.tray_icon.setIcon(QIcon(logo_path))
+        if sys.platform == "linux":
+            icon = self._build_linux_tray_icon()
+            if not icon.isNull():
+                self.tray_icon.setIcon(icon)
+                return
 
         try:
             color = themeColor()
