@@ -13,6 +13,7 @@ from PySide6.QtCore import QObject, Slot, Signal, Qt, QUrl, QTimer, QRect, QPoin
 from PySide6.QtGui import QColor, QRegion, QGuiApplication, QIcon
 from PySide6.QtQuick import QQuickView
 from PySide6.QtQml import QQmlComponent
+from PySide6.QtWidgets import QWidget
 from ppt_assistant.core.config import cfg
 from ppt_assistant.core.i18n import t
 from ppt_assistant.core.app_icon import load_app_icon
@@ -26,6 +27,20 @@ import subprocess
 
 PLUGIN_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "plugins", "builtins")
 
+
+def _is_wayland_session() -> bool:
+    qpa = str(os.environ.get("QT_QPA_PLATFORM", "")).strip().lower()
+    if qpa.startswith("wayland"):
+        return True
+    return bool(os.environ.get("WAYLAND_DISPLAY"))
+
+
+def _should_use_webengine_overlay() -> bool:
+    if not _is_wayland_session():
+        return True
+    value = str(os.environ.get("LUMINALIUM_ENABLE_WEBENGINE_OVERLAY", "")).strip().lower()
+    return value in ("1", "true", "yes", "on")
+
 class OverlayBridge(QObject):
     def __init__(self, overlay):
         super().__init__()
@@ -33,12 +48,7 @@ class OverlayBridge(QObject):
 
     @Slot()
     def requestInitState(self):
-        if self._overlay.monitor:
-            pass
-        self._overlay.reset_pen_color_ui()
-        self._overlay.reset_tool_state_ui()
-        self._overlay.update_theme()
-        self._overlay.update_config()
+        QTimer.singleShot(0, self._overlay.apply_initial_state)
 
     @Slot(int, int, int)
     def setPenColor(self, r, g, b):
@@ -135,6 +145,146 @@ class InkPromptBridge(QObject):
     def discard(self):
         self.result.emit(False)
 
+
+class WaylandFallbackOverlayWindow(QWidget):
+    request_next = Signal()
+    request_prev = Signal()
+    request_goto = Signal(int)
+    request_clear = Signal()
+    request_end = Signal()
+    request_ptr_arrow = Signal()
+    request_ptr_pen = Signal()
+    request_ptr_eraser = Signal()
+    request_pen_color = Signal(int, int, int)
+    request_thumbnail = Signal(int)
+    start_background_caching = Signal(int)
+    ink_prompt_result = Signal(bool)
+    thumbnail_ready = Signal(int, str)
+
+    def __init__(self):
+        super().__init__()
+        self.monitor = None
+        self.plugins = []
+        self._icon_cache = {}
+        self._is_light = False
+        self._slideshow_hwnd = 0
+        self._protected_view = False
+        self._presentation_readonly = False
+        self._active_on_slideshow = False
+        self._warned_visibility = False
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
+        screen = QGuiApplication.primaryScreen()
+        if screen:
+            self.setGeometry(screen.geometry())
+        icon = load_app_icon()
+        if not icon.isNull():
+            self.setWindowIcon(icon)
+        print("[Overlay] WebEngine overlay disabled on Wayland. Set LUMINALIUM_ENABLE_WEBENGINE_OVERLAY=1 to force-enable it.")
+
+    def _log_visibility_skip(self):
+        if self._warned_visibility:
+            return
+        self._warned_visibility = True
+        print("[Overlay] Wayland fallback overlay is active; overlay window rendering is disabled to avoid native crashes.")
+
+    def apply_initial_state(self):
+        pass
+
+    def nudge_size(self):
+        pass
+
+    def set_monitor(self, monitor):
+        self.monitor = monitor
+        if monitor and hasattr(monitor, "set_overlay"):
+            monitor.set_overlay(self)
+
+    def on_thumbnail_ready(self, index, path):
+        pass
+
+    def on_start_background_caching(self, total_pages):
+        pass
+
+    def on_slide_changed(self, current, total):
+        pass
+
+    def update_page_info(self, current, total):
+        pass
+
+    def update_mask(self, rects_data):
+        pass
+
+    def update_theme(self):
+        pass
+
+    def update_config(self):
+        pass
+
+    def reset_tool_state_ui(self, tool: str = "select"):
+        pass
+
+    def reset_pen_color_ui(self):
+        pass
+
+    def show_ink_prompt(self):
+        self.ink_prompt_result.emit(False)
+
+    def execute_plugin(self, name):
+        pass
+
+    def bind_config_signals(self):
+        pass
+
+    def show(self):
+        self._log_visibility_skip()
+
+    def hide(self):
+        pass
+
+    def raise_(self):
+        pass
+
+    def isVisible(self):
+        return False
+
+    def set_active_on_slideshow(self, active: bool, animate: bool = True):
+        self._active_on_slideshow = bool(active)
+        if active:
+            self._log_visibility_skip()
+
+    def on_slideshow_start_cleanup(self):
+        pass
+
+    def on_slideshow_end_cleanup(self):
+        pass
+
+    def _mark_ui_alive(self):
+        pass
+
+    def bind_monitor_signals(self):
+        pass
+
+    def show_reload_mask(self, text=""):
+        pass
+
+    def hide_reload_mask(self):
+        pass
+
+    def set_slideshow_hwnd(self, hwnd):
+        try:
+            self._slideshow_hwnd = int(hwnd or 0)
+        except Exception:
+            self._slideshow_hwnd = 0
+
+    def set_ppt_restrictions(self, protected_view: bool, presentation_readonly: bool):
+        self._protected_view = bool(protected_view)
+        self._presentation_readonly = bool(presentation_readonly)
+
+    def cleanup(self):
+        pass
+
+    def update_geometry(self, rect, screen):
+        pass
+
 class OverlayWindow(QWebEngineView):
     request_next = Signal()
     request_prev = Signal()
@@ -153,6 +303,10 @@ class OverlayWindow(QWebEngineView):
     def __init__(self):
         super().__init__()
         
+        self._page_ready = False
+        self._pending_scripts = []
+        self._wayland_compatible_mode = _is_wayland_session()
+
         # Background thumbnail caching
         self._background_thumbnail_timer = None
         self._pending_thumbnails = []
@@ -198,16 +352,24 @@ class OverlayWindow(QWebEngineView):
         except Exception as e:
             print(f"[Overlay] Error configuring profile: {e}", file=sys.stderr)
         
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus | Qt.Tool | Qt.WindowStaysOnTopHint)
-        self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setAttribute(Qt.WA_NoSystemBackground)
-        
-        self.page().setBackgroundColor(Qt.transparent)
+        if self._wayland_compatible_mode:
+            self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
+            self.setAttribute(Qt.WA_TranslucentBackground, False)
+            self.setAttribute(Qt.WA_NoSystemBackground, False)
+            self.setStyleSheet("background: #101010;")
+            self.page().setBackgroundColor(QColor("#101010"))
+            print("[Overlay] Wayland compatibility mode enabled: using conservative window flags and opaque background.")
+        else:
+            self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus | Qt.Tool | Qt.WindowStaysOnTopHint)
+            self.setAttribute(Qt.WA_TranslucentBackground)
+            self.setAttribute(Qt.WA_NoSystemBackground)
+            self.page().setBackgroundColor(Qt.transparent)
         
         self.channel = QWebChannel()
         self.bridge = OverlayBridge(self)
         self.channel.registerObject("bridge", self.bridge)
         self.page().setWebChannel(self.channel)
+        self.loadFinished.connect(self._on_load_finished)
         
         theme_name = cfg.overlayTheme.value
 
@@ -290,6 +452,44 @@ class OverlayWindow(QWebEngineView):
         self._crash_recovery_timer = None
             
         self.renderProcessTerminated.connect(self._on_render_process_terminated)
+
+    def _run_javascript(self, script: str):
+        if not script:
+            return
+        try:
+            page = self.page()
+        except RuntimeError:
+            return
+        if page is None:
+            return
+        if not self._page_ready:
+            self._pending_scripts.append(script)
+            return
+        page.runJavaScript(script)
+
+    def _flush_pending_scripts(self):
+        if not self._page_ready or not self._pending_scripts:
+            return
+        pending = self._pending_scripts
+        self._pending_scripts = []
+        for script in pending:
+            try:
+                self.page().runJavaScript(script)
+            except RuntimeError:
+                break
+
+    def _on_load_finished(self, ok: bool):
+        self._page_ready = bool(ok)
+        if self._page_ready:
+            self._flush_pending_scripts()
+
+    def apply_initial_state(self):
+        if self.monitor:
+            pass
+        self.reset_pen_color_ui()
+        self.reset_tool_state_ui()
+        self.update_theme()
+        self.update_config()
 
     def _ensure_topmost(self):
         if sys.platform != "win32":
@@ -379,7 +579,7 @@ class OverlayWindow(QWebEngineView):
         # Path needs to be converted to file URL
         url = QUrl.fromLocalFile(path).toString()
         script = f"if (typeof updatePageThumbnail === 'function') updatePageThumbnail({index}, '{url}');"
-        self.page().runJavaScript(script)
+        self._run_javascript(script)
         
         # Start next background caching task if available
         self._process_next_background_thumbnail()
@@ -422,7 +622,7 @@ class OverlayWindow(QWebEngineView):
         
     def on_slide_changed(self, current, total):
         script = f"if (typeof updatePageInfo === 'function') updatePageInfo({current}, {total});"
-        self.page().runJavaScript(script)
+        self._run_javascript(script)
 
     def update_page_info(self, current, total):
         try:
@@ -431,7 +631,7 @@ class OverlayWindow(QWebEngineView):
         except Exception:
             return
         script = f"if (typeof updatePageInfo === 'function') updatePageInfo({current}, {total});"
-        self.page().runJavaScript(script)
+        self._run_javascript(script)
 
     def update_mask(self, rects_data):
         region = QRegion()
@@ -503,7 +703,7 @@ class OverlayWindow(QWebEngineView):
         
         theme_id = cfg.themeId.value
         js = f"if (typeof setTheme === 'function') setTheme({'false' if is_light else 'true'}, '{color_str}', '{theme_id}');"
-        self.page().runJavaScript(js)
+        self._run_javascript(js)
         if self._ink_prompt_view:
             self._apply_ink_prompt_context(self._ink_prompt_view.rootContext())
 
@@ -570,13 +770,13 @@ class OverlayWindow(QWebEngineView):
             }
             
             js = f"if(window.updateSystemStatus) window.updateSystemStatus({json.dumps(data)});"
-            self.page().runJavaScript(js)
+            self._run_javascript(js)
         except Exception as e:
             print(f"Status update error: {e}")
 
     def _on_status_bar_visibility_changed(self, visible):
         js = f"if(window.toggleStatusBar) window.toggleStatusBar({'true' if visible else 'false'});"
-        self.page().runJavaScript(js)
+        self._run_javascript(js)
 
     def update_config(self):
         try:
@@ -688,7 +888,7 @@ class OverlayWindow(QWebEngineView):
         
         js = f"if(window.updateConfig) window.updateConfig({json.dumps(config_data)});"
         try:
-            self.page().runJavaScript(js)
+            self._run_javascript(js)
         except RuntimeError:
             pass
 
@@ -696,13 +896,13 @@ class OverlayWindow(QWebEngineView):
         try:
             tool = (tool or "select").replace("'", "")
             js = f"if (window.resetToolState) resetToolState('{tool}');"
-            self.page().runJavaScript(js)
+            self._run_javascript(js)
         except RuntimeError:
             pass
 
     def reset_pen_color_ui(self):
         try:
-            self.page().runJavaScript("if (window.resetPenColorState) resetPenColorState();")
+            self._run_javascript("if (window.resetPenColorState) resetPenColorState();")
         except RuntimeError:
             pass
 
@@ -987,7 +1187,10 @@ Item {
 
     def showEvent(self, event):
         super().showEvent(event)
-        self.page().setBackgroundColor(Qt.transparent)
+        if self._wayland_compatible_mode:
+            self.page().setBackgroundColor(QColor("#101010"))
+        else:
+            self.page().setBackgroundColor(Qt.transparent)
         self.update_theme()
     
     def closeEvent(self, event):
@@ -1060,3 +1263,9 @@ Item {
             self.setGeometry(screen.geometry())
         elif rect:
             self.setGeometry(rect)
+
+
+def create_overlay_window():
+    if _should_use_webengine_overlay():
+        return OverlayWindow()
+    return WaylandFallbackOverlayWindow()

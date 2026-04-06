@@ -6,8 +6,8 @@ import time
 from PySide6.QtCore import QObject, QEvent, QTimer, Qt, Signal, Slot
 from PySide6.QtGui import QColor, QCursor, QGuiApplication, QIcon, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
-from PySide6.QtWidgets import QHBoxLayout, QSystemTrayIcon, QVBoxLayout, QWidget
-from qfluentwidgets import Action, BodyLabel, FluentIcon as FIF, Flyout, FlyoutViewBase, PrimaryPushButton, PushButton, RoundMenu, SubtitleLabel, isDarkTheme
+from PySide6.QtWidgets import QHBoxLayout, QMenu, QSystemTrayIcon, QVBoxLayout, QWidget
+from qfluentwidgets import Action, BodyLabel, FluentIcon as FIF, Flyout, FlyoutViewBase, PrimaryPushButton, PushButton, RoundMenu, SubtitleLabel, isDarkTheme, themeColor
 
 from ppt_assistant.core.config import SETTINGS_PATH, cfg
 from ppt_assistant.core.i18n import get_language, t
@@ -483,8 +483,10 @@ class SystemTray(QObject):
         self._parent = parent
         self._version_text = _load_version_text()
         self._fallback_menu = None
+        self._native_menu = None
         self._confirm_flyout = None
         self._confirm_anchor = None
+        self._use_native_menu = (sys.platform == "linux")
 
         self._update_icon()
         self.refresh_menu()
@@ -575,6 +577,52 @@ class SystemTray(QObject):
         self.tray_icon.setContextMenu(self._fallback_menu)
 
         # Schedule deletion of the old menu to avoid memory leak.
+        if old is not None:
+            old.deleteLater()
+
+    def _init_native_menu(self):
+        old = self._native_menu
+        self._native_menu = QMenu(parent=self._parent)
+        self._native_menu.aboutToShow.connect(self._update_timer_text)
+
+        self.tray_icon.setToolTip(t("tray.tooltip"))
+
+        header = Action(QIcon(os.path.join(ICON_DIR, "logo.svg")), t("tray.title"), self._native_menu)
+        header.setEnabled(False)
+        self._native_menu.addAction(header)
+        self._native_menu.addSeparator()
+
+        act_settings = Action(FIF.SETTING, t("tray.settings"), self._native_menu)
+        act_settings.triggered.connect(self.show_settings.emit)
+        self._native_menu.addAction(act_settings)
+
+        board_icon = self._render_menu_icon(os.path.join(ICON_DIR, "board-in-board.svg"))
+        act_board = Action(board_icon, t("tray.board"), self._native_menu)
+        act_board.triggered.connect(self.show_board.emit)
+        self._native_menu.addAction(act_board)
+
+        timer_icon = self._render_menu_icon(os.path.join(ICON_DIR, "timer.svg"))
+        self._act_timer = Action(timer_icon, t("tray.timer"), self._native_menu)
+        self._act_timer.triggered.connect(self.show_timer.emit)
+        self._native_menu.addAction(self._act_timer)
+
+        if cfg.compatibilityMode.value:
+            act_toggle = Action(FIF.APPLICATION, t("tray.toggle"), self._native_menu)
+            act_toggle.triggered.connect(self.toggle_overlay.emit)
+            self._native_menu.addAction(act_toggle)
+
+        self._native_menu.addSeparator()
+
+        act_restart = Action(FIF.SYNC, t("tray.restart"), self._native_menu)
+        act_restart.triggered.connect(self.restart_app.emit)
+        self._native_menu.addAction(act_restart)
+
+        act_exit = Action(FIF.POWER_BUTTON, t("tray.exit"), self._native_menu)
+        act_exit.triggered.connect(self.exit_app.emit)
+        self._native_menu.addAction(act_exit)
+
+        self.tray_icon.setContextMenu(self._native_menu)
+
         if old is not None:
             old.deleteLater()
 
@@ -675,10 +723,15 @@ class SystemTray(QObject):
         )
 
     def refresh_menu(self):
-        self._init_fallback_menu()
+        if self._use_native_menu:
+            self._init_native_menu()
+        else:
+            self._init_fallback_menu()
         self._update_icon()
 
     def _show_panel(self):
+        if self._use_native_menu:
+            return
         self._fallback_menu.exec(QCursor.pos())
 
     def _on_activated(self, reason):

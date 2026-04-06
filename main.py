@@ -1,3 +1,4 @@
+import shutil
 import sys
 import os
 import traceback
@@ -11,9 +12,25 @@ import time
 import warnings
 
 if sys.platform == "linux":
-    _HAS_DISPLAY = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+    _HAS_X11_DISPLAY = bool(os.environ.get("DISPLAY"))
+    _HAS_WAYLAND_DISPLAY = bool(os.environ.get("WAYLAND_DISPLAY"))
+    _HAS_DISPLAY = _HAS_X11_DISPLAY or _HAS_WAYLAND_DISPLAY
+    _LINUX_QPA_OVERRIDE = str(os.environ.get("LUMINALIUM_QPA_PLATFORM", "")).strip()
     if "QT_QPA_PLATFORM" not in os.environ:
-        os.environ["QT_QPA_PLATFORM"] = "xcb" if _HAS_DISPLAY else "offscreen"
+        if _LINUX_QPA_OVERRIDE:
+            os.environ["QT_QPA_PLATFORM"] = _LINUX_QPA_OVERRIDE
+        elif _HAS_WAYLAND_DISPLAY:
+            os.environ["QT_QPA_PLATFORM"] = "wayland"
+        elif _HAS_X11_DISPLAY:
+            os.environ["QT_QPA_PLATFORM"] = "xcb"
+        else:
+            os.environ["QT_QPA_PLATFORM"] = "offscreen"
+    print(
+        "[Main] Linux display detection:"
+        f" wayland={_HAS_WAYLAND_DISPLAY}"
+        f" x11={_HAS_X11_DISPLAY}"
+        f" qpa={os.environ.get('QT_QPA_PLATFORM', '')}"
+    )
     # Add --no-sandbox to avoid zygote crash on some Linux environments
     # This must be done BEFORE any Qt import or QApp creation
     if "--no-sandbox" not in sys.argv:
@@ -39,7 +56,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 
 
 from ppt_assistant.core.ppt_monitor import PPTMonitor
-from ppt_assistant.ui.overlay import OverlayWindow
+from ppt_assistant.ui.overlay import OverlayWindow, create_overlay_window
 from plugins.builtins.settings.plugin import SettingsPlugin
 from plugins.builtins.timer.plugin import TimerPlugin
 from ppt_assistant.ui.tray import SystemTray
@@ -180,21 +197,32 @@ def _get_screen_refresh_rate():
 
 def _apply_graphics_settings():
     if sys.platform == "linux":
+        qpa_platform = str(os.environ.get("QT_QPA_PLATFORM", "")).strip().lower()
         # Force software rendering on Linux to avoid compatibility issues with Mesa/drivers
         os.environ["QT_OPENGL"] = "software"
         os.environ["QT_RHI_BACKEND"] = "software"
         os.environ["QT_VULKAN_DISABLE"] = "1"
-        os.environ["QT_XCB_FORCE_SOFTWARE_OPENGL"] = "1"
         os.environ["QT_QUICK_BACKEND"] = "software"
-        flags = ["--disable-gpu", "--no-sandbox"]
-        if _HAS_DISPLAY:
-            flags.append("--disable-software-rasterizer")
+        os.environ["QTWEBENGINE_DISABLE_SANDBOX"] = "1"
+        if qpa_platform == "xcb" and _HAS_X11_DISPLAY:
+            os.environ["QT_XCB_FORCE_SOFTWARE_OPENGL"] = "1"
+        flags = [
+            "--disable-gpu",
+            "--disable-gpu-compositing",
+            "--enable-software-rasterizer",
+            "--no-sandbox",
+        ]
         current = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
         merged = current.split()
         for flag in flags:
             if flag not in merged:
                 merged.append(flag)
         os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(merged)
+        print(
+            "[Main] Linux graphics settings:"
+            f" qpa={qpa_platform or 'unset'}"
+            f" flags={os.environ.get('QTWEBENGINE_CHROMIUM_FLAGS', '')}"
+        )
         return
 
     # Base flags for high performance
@@ -239,6 +267,13 @@ def _apply_graphics_settings():
     os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(merged)
     
 
+
+
+def _should_enable_system_tray() -> bool:
+    if sys.platform != "linux":
+        return True
+    value = str(os.environ.get("LUMINALIUM_ENABLE_TRAY", "")).strip().lower()
+    return value in ("1", "true", "yes", "on")
 
 
 def _load_settings_json():
@@ -1186,22 +1221,35 @@ def _handle_multi_instance(app: QApplication):
     current_entry = os.path.abspath(sys.executable if getattr(sys, "frozen", False) else __file__)
     pids = []
     for p in psutil.process_iter(["pid", "cmdline"]):
-        if p.info.get("pid") == current_pid: continue
+        if p.info.get("pid") == current_pid:
+            continue
         cmd = p.info.get("cmdline") or []
         
         if "--webview-runner" in cmd:
             continue
 
+        try:
+            proc_cwd = p.cwd()
+        except Exception:
+            proc_cwd = None
+
         for part in cmd:
             try:
-                normalized = os.path.abspath(part)
+                if not isinstance(part, str) or not part:
+                    continue
+                if part.startswith("-"):
+                    continue
+                if os.path.isabs(part):
+                    normalized = os.path.abspath(part)
+                elif proc_cwd:
+                    normalized = os.path.abspath(os.path.join(proc_cwd, part))
+                else:
+                    continue
                 if normalized == current_entry:
                     pids.append(p.info.get("pid"))
                     break
-                if not getattr(sys, "frozen", False) and os.path.basename(part).lower() == "main.py":
-                    pids.append(p.info.get("pid"))
-                    break
-            except: continue
+            except Exception:
+                continue
     
     if not pids: 
         return
@@ -1237,6 +1285,7 @@ class PPTAssistantApp:
         self.app = app
         self.app.setQuitOnLastWindowClosed(False)
         self._splash = splash
+        self.tray = None
         self._timer_manager = TimerManager()
         self._focus_watcher = WindowsFocusWatcher(self.app)
         self._focus_watcher.start()
@@ -1294,7 +1343,7 @@ class PPTAssistantApp:
         # We can split Overlay creation if needed, but yielding before is key
         pass 
         
-        self.overlay = OverlayWindow()
+        self.overlay = create_overlay_window()
         
         # Step 5: Plugins (IO/Process - expensive)
         yield 60, "loading_plugins"
@@ -1312,7 +1361,10 @@ class PPTAssistantApp:
         
         # Step 6: Tray (UI)
         yield 80, "init_tray"
-        self.tray = SystemTray()
+        if _should_enable_system_tray():
+            self.tray = SystemTray()
+        else:
+            print("[Main] Skipping system tray on Linux. Set LUMINALIUM_ENABLE_TRAY=1 to re-enable it.")
         
         # Step 7: Finalize connections
         yield 85, "finalizing"
@@ -1474,12 +1526,13 @@ class PPTAssistantApp:
         self.overlay.request_pen_color.connect(self.monitor.set_pen_color)
         self.overlay.request_thumbnail.connect(lambda idx: self.monitor.export_slide_thumbnail(idx, os.path.join(tempfile.gettempdir(), "luminalium_ppt_thumbs", f"thumb_{idx}.png")))
 
-        self.tray.show_settings.connect(self.settings_plugin.execute)
-        self.tray.show_board.connect(self.board_plugin.execute)
-        self.tray.show_timer.connect(self.timer_plugin.execute)
-        self.tray.toggle_overlay.connect(self.toggle_overlay_visibility)
-        self.tray.restart_app.connect(self.restart)
-        self.tray.exit_app.connect(self.app.quit)
+        if self.tray is not None:
+            self.tray.show_settings.connect(self.settings_plugin.execute)
+            self.tray.show_board.connect(self.board_plugin.execute)
+            self.tray.show_timer.connect(self.timer_plugin.execute)
+            self.tray.toggle_overlay.connect(self.toggle_overlay_visibility)
+            self.tray.restart_app.connect(self.restart)
+            self.tray.exit_app.connect(self.app.quit)
 
         self.timer_plugin.background_mode_entered.connect(self._on_timer_background_mode)
 
@@ -1750,11 +1803,11 @@ class PPTAssistantApp:
             # Layout mode change is now handled by auto-reload above, no restart prompt needed
             
             if cfg.themeMode.value != old_theme:
-                if hasattr(self, 'tray'):
+                if self.tray is not None:
                     self.tray._update_icon()
 
             if new_lang != old_lang or cfg.compatibilityMode.value != old_compat:
-                if hasattr(self, 'tray'):
+                if self.tray is not None:
                     self.tray.refresh_menu()
             
             if new_rebuild_at is not None:
@@ -1771,10 +1824,10 @@ class PPTAssistantApp:
             # Import overlay again to refresh module-level LANGUAGE
             import ppt_assistant.ui.overlay as overlay_mod
             importlib.reload(overlay_mod)
-            from ppt_assistant.ui.overlay import OverlayWindow
+            from ppt_assistant.ui.overlay import create_overlay_window
             
             # Create new overlay first (prevent crash if creation fails)
-            new_overlay = OverlayWindow()
+            new_overlay = create_overlay_window()
             new_overlay.set_monitor(self.monitor)
             
             # Re-connect signals
@@ -1881,7 +1934,7 @@ if __name__ == "__main__":
         app.installEventFilter(app._window_icon_filter)
     _apply_global_font(app)
     crash_handler = CrashHandler(app)
-    _handle_multi_instance(app)
+    # _handle_multi_instance(app)
 
     show_splash = True
     try:
@@ -1905,7 +1958,7 @@ if __name__ == "__main__":
                     if not (start_t <= now <= end_t):
                         show_splash = False
                 else:
-                    if not (now >= start_t or now <= end_t):
+                    if not (now >= start_t   or now <= end_t):
                         show_splash = False
     except Exception as e:
         print(f"Error determining splash visibility: {e}")
