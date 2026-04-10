@@ -8,6 +8,8 @@ dependencies = [
     "pyside6-fluent-widgets>=1.0.0",
     "psutil>=5.9.0",
     "pillow>=10.0.0",
+    "pywpsrpc>=2.3.12; sys_platform == 'linux'",
+    "pynput>=1.7.0; sys_platform == 'linux'",
 ]
 
 [dependency-groups]
@@ -29,4 +31,5 @@ line-length = 88
 
 [tool.pyright]
 pythonVersion = "3.11"
-pythonPlatform = ["Windows", "Linux"]
+pythonPlatform = "Windows"
+reportMissingImports = false

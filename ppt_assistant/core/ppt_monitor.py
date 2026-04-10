@@ -8,6 +8,9 @@ from PySide6.QtCore import QObject, Signal, QThread, QTimer, QPoint, QRect, Slot
 from PySide6.QtGui import QGuiApplication
 import time
 import os
+import sys
+import shutil
+import subprocess
 from collections import deque
 from ppt_assistant.core.config import cfg
 
@@ -480,6 +483,184 @@ class PPTWorker(QObject):
                 except Exception:
                     pass
         return int(hwnd or 0)
+
+    def _can_use_linux_xdotool(self) -> bool:
+        return sys.platform.startswith("linux") and shutil.which("xdotool") is not None
+
+    def _run_xdotool(self, *args: str) -> tuple[bool, str]:
+        if not self._can_use_linux_xdotool():
+            return False, ""
+        try:
+            result = subprocess.run(
+                ["xdotool", *args],
+                capture_output=True,
+                text=True,
+                timeout=1.5,
+            )
+        except Exception as e:
+            self._note_error("xdotool", e)
+            return False, ""
+        output = (result.stdout or "").strip()
+        error = (result.stderr or "").strip()
+        if result.returncode == 0:
+            return True, output
+        return False, error or output
+
+    def _parse_xdotool_window_ids(self, raw: str) -> list[int]:
+        window_ids: list[int] = []
+        for line in str(raw or "").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                window_ids.append(int(line, 0))
+            except Exception:
+                pass
+        return window_ids
+
+    def _linux_window_looks_like_slideshow(self, window_id: int) -> bool:
+        if not window_id:
+            return False
+        title = ""
+        class_name = ""
+        ok, output = self._run_xdotool("getwindowname", str(int(window_id)))
+        if ok:
+            title = output
+        ok, output = self._run_xdotool("getwindowclassname", str(int(window_id)))
+        if ok:
+            class_name = output
+
+        title_lower = str(title or "").strip().lower()
+        class_lower = str(class_name or "").strip().lower()
+        if self._title_looks_like_slideshow(title):
+            return True
+        if any(hint in title_lower for hint in SLIDESHOW_WINDOW_TITLE_HINTS):
+            return True
+        if any(token in class_lower for token in ("screenclass", "wpp", "wps", "yozo", "powerpnt")):
+            return True
+        return False
+
+    def _find_linux_slideshow_window_id(self) -> int:
+        if not self._can_use_linux_xdotool():
+            return 0
+
+        candidates: list[int] = []
+        seen: set[int] = set()
+
+        def add_candidate(window_id: int):
+            try:
+                value = int(window_id or 0)
+            except Exception:
+                value = 0
+            if value <= 0 or value in seen:
+                return
+            seen.add(value)
+            candidates.append(value)
+
+        add_candidate(self._slideshow_hwnd)
+        if candidates and self._linux_window_looks_like_slideshow(candidates[0]):
+            return candidates[0]
+
+        active_window_id = 0
+        ok, output = self._run_xdotool("getactivewindow")
+        if ok:
+            ids = self._parse_xdotool_window_ids(output)
+            if ids:
+                active_window_id = ids[0]
+                add_candidate(active_window_id)
+                if self._linux_window_looks_like_slideshow(active_window_id):
+                    return active_window_id
+
+        search_terms = list(STRICT_SLIDESHOW_WINDOW_TITLE_HINTS) + [
+            hint for hint in SLIDESHOW_WINDOW_TITLE_HINTS if hint not in STRICT_SLIDESHOW_WINDOW_TITLE_HINTS
+        ]
+        for term in search_terms:
+            ok, output = self._run_xdotool("search", "--onlyvisible", "--name", term)
+            if not ok:
+                continue
+            for window_id in self._parse_xdotool_window_ids(output):
+                add_candidate(window_id)
+
+        if shutil.which("pgrep"):
+            for pattern in ("kwpp", "wpp", "wps", "powerpnt", "yozo"):
+                try:
+                    result = subprocess.run(
+                        ["pgrep", "-f", pattern],
+                        capture_output=True,
+                        text=True,
+                        timeout=1.0,
+                    )
+                except Exception:
+                    continue
+                if result.returncode != 0:
+                    continue
+                for line in result.stdout.splitlines():
+                    pid = line.strip()
+                    if not pid:
+                        continue
+                    ok, output = self._run_xdotool("search", "--onlyvisible", "--pid", pid)
+                    if not ok:
+                        continue
+                    for window_id in self._parse_xdotool_window_ids(output):
+                        add_candidate(window_id)
+
+        for window_id in candidates:
+            if self._linux_window_looks_like_slideshow(window_id):
+                return window_id
+        return int(active_window_id or 0)
+
+    def _focus_linux_slideshow_window(self, window_id: int = 0) -> int:
+        try:
+            window_id = int(window_id or 0)
+        except Exception:
+            window_id = 0
+        if window_id:
+            ok, _ = self._run_xdotool("windowactivate", "--sync", str(int(window_id)))
+            if ok:
+                try:
+                    self._slideshow_hwnd = int(window_id)
+                    self.slideshow_hwnd_changed.emit(int(window_id))
+                except Exception:
+                    pass
+                return int(window_id)
+            window_id = 0
+        cached_window_id = 0
+        try:
+            cached_window_id = int(self._slideshow_hwnd or 0)
+        except Exception:
+            cached_window_id = 0
+        if cached_window_id:
+            ok, _ = self._run_xdotool("windowactivate", "--sync", str(int(cached_window_id)))
+            if ok:
+                return int(cached_window_id)
+        if not window_id:
+            window_id = self._find_linux_slideshow_window_id()
+        if not window_id:
+            return 0
+        try:
+            self._slideshow_hwnd = int(window_id)
+            self.slideshow_hwnd_changed.emit(int(window_id))
+        except Exception:
+            pass
+        ok, _ = self._run_xdotool("windowactivate", "--sync", str(int(window_id)))
+        return int(window_id) if ok else 0
+
+    def _send_linux_shortcut_to_slideshow(self, shortcut: str, *, hwnd: int = 0) -> bool:
+        if not self._can_use_linux_xdotool():
+            return False
+        window_id = self._focus_linux_slideshow_window(hwnd)
+        if window_id:
+            ok, _ = self._run_xdotool(
+                "key",
+                "--window",
+                str(int(window_id)),
+                "--clearmodifiers",
+                str(shortcut),
+            )
+            if ok:
+                return True
+        ok, _ = self._run_xdotool("key", "--clearmodifiers", str(shortcut))
+        return bool(ok)
 
     def _try_apply_pointer_type(self, pointer_type: int, force_arrow_reset: bool = False) -> bool:
         ss_win = self._get_active_slideshow_window()
@@ -1078,6 +1259,9 @@ class PPTWorker(QObject):
             return
         if cfg.compatibilityMode.value:
             try:
+                if self._send_linux_shortcut_to_slideshow("Next"):
+                    self._control_mode = "win32"
+                    return
                 hwnd = int(self._slideshow_hwnd or 0) or self._find_ppt_slideshow_hwnd()
                 if hwnd and win32gui:
                     try:
@@ -1101,8 +1285,13 @@ class PPTWorker(QObject):
         except Exception as e:
             self._note_error("go_next_com", e)
         try:
+            if self._send_linux_shortcut_to_slideshow("Next"):
+                self._control_mode = "win32"
+                ok = True
+            else:
+                self._control_mode = "win32"
+                ok = self._send_vk_to_slideshow(win32con.VK_NEXT if win32con else 0x22)
             self._control_mode = "win32"
-            ok = self._send_vk_to_slideshow(win32con.VK_NEXT if win32con else 0x22)
             if ok and self._degraded_total > 0:
                 if self._degraded_current <= 0:
                     self._degraded_current = 1
@@ -1121,6 +1310,9 @@ class PPTWorker(QObject):
             return
         if cfg.compatibilityMode.value:
             try:
+                if self._send_linux_shortcut_to_slideshow("Prior"):
+                    self._control_mode = "win32"
+                    return
                 hwnd = int(self._slideshow_hwnd or 0) or self._find_ppt_slideshow_hwnd()
                 if hwnd and win32gui:
                     try:
@@ -1144,8 +1336,13 @@ class PPTWorker(QObject):
         except Exception as e:
             self._note_error("go_previous_com", e)
         try:
+            if self._send_linux_shortcut_to_slideshow("Prior"):
+                self._control_mode = "win32"
+                ok = True
+            else:
+                self._control_mode = "win32"
+                ok = self._send_vk_to_slideshow(win32con.VK_PRIOR if win32con else 0x21)
             self._control_mode = "win32"
-            ok = self._send_vk_to_slideshow(win32con.VK_PRIOR if win32con else 0x21)
             if ok and self._degraded_total > 0:
                 if self._degraded_current <= 0:
                     self._degraded_current = 1
@@ -1199,6 +1396,8 @@ class PPTWorker(QObject):
             self._note_error("clear_screen_com", e)
         try:
             self._control_mode = "win32"
+            if self._send_linux_shortcut_to_slideshow("e"):
+                return
             hwnd = int(self._slideshow_hwnd or 0) or self._find_ppt_slideshow_hwnd()
             if hwnd and win32gui:
                 try:
@@ -1264,6 +1463,8 @@ class PPTWorker(QObject):
             self._note_error("end_show_com", e)
         try:
             self._control_mode = "win32"
+            if self._send_linux_shortcut_to_slideshow("Escape"):
+                return
             self._send_vk_to_slideshow(win32con.VK_ESCAPE if win32con else 0x1B)
         except Exception:
             pass
@@ -1302,6 +1503,8 @@ class PPTWorker(QObject):
             self._note_error("end_show_ink", e)
         try:
             self._control_mode = "win32"
+            if self._send_linux_shortcut_to_slideshow("Escape"):
+                return
             self._send_vk_to_slideshow(win32con.VK_ESCAPE if win32con else 0x1B)
         except Exception:
             pass
@@ -1331,6 +1534,18 @@ class PPTWorker(QObject):
                 return
         except Exception as e:
             last_error = e
+        shortcut = {
+            1: "ctrl+a",
+            2: "ctrl+p",
+            5: "ctrl+e",
+        }.get(pointer_type)
+        if shortcut:
+            try:
+                if self._send_linux_shortcut_to_slideshow(shortcut):
+                    self._control_mode = "win32"
+                    return
+            except Exception as e:
+                last_error = e
         if last_error is not None:
             self._note_error("set_pointer_type", last_error)
 

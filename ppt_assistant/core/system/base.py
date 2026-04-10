@@ -1,5 +1,3 @@
-import sys
-
 class SystemAPI:
     """
     Abstract base class for system-level operations.
@@ -70,3 +68,38 @@ class SystemAPI:
         Set platform-specific window attribute (e.g. DWM).
         """
         pass
+
+    def is_wps_slideshow_active(self) -> bool:
+        """
+        Check if WPS slideshow is currently active.
+        Linux-specific: uses pywpsrpc to check WPS state.
+        """
+        return False
+
+    def get_wps_slide_info(self) -> tuple[int, int]:
+        """
+        Get current slide position and total slides from WPS.
+        Linux-specific: uses pywpsrpc to get slide info.
+        Returns: (current_slide, total_slides)
+        """
+        return 0, 0
+
+    def find_wps_process(self) -> bool:
+        """
+        Check if WPS process is running.
+        Linux-specific: uses pgrep to find WPS processes.
+        """
+        return False
+
+    def get_active_window_info(self) -> dict:
+        """
+        Get information about the currently active window.
+        Returns: dict with keys 'title', 'class', 'pid', 'is_wps', 'is_slideshow'
+        """
+        return {
+            "title": "",
+            "class": "",
+            "pid": 0,
+            "is_wps": False,
+            "is_slideshow": False,
+        }

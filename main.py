@@ -16,9 +16,16 @@ if sys.platform == "linux":
     _HAS_WAYLAND_DISPLAY = bool(os.environ.get("WAYLAND_DISPLAY"))
     _HAS_DISPLAY = _HAS_X11_DISPLAY or _HAS_WAYLAND_DISPLAY
     _LINUX_QPA_OVERRIDE = str(os.environ.get("LUMINALIUM_QPA_PLATFORM", "")).strip()
+    _FORCE_X11 = str(os.environ.get("LUMINALIUM_FORCE_X11", "")).strip().lower() in ("1", "true", "yes")
+    if _FORCE_X11:
+        os.environ["QT_QPA_PLATFORM"] = "xcb"
+        print("[Main] LUMINALIUM_FORCE_X11 is set, using X11/XWayland for WPS RPC compatibility")
     if "QT_QPA_PLATFORM" not in os.environ:
         if _LINUX_QPA_OVERRIDE:
             os.environ["QT_QPA_PLATFORM"] = _LINUX_QPA_OVERRIDE
+        elif _FORCE_X11 and _HAS_X11_DISPLAY:
+            os.environ["QT_QPA_PLATFORM"] = "xcb"
+            print("[Main] LUMINALIUM_FORCE_X11 is set, using X11/XWayland for WPS RPC compatibility")
         elif _HAS_WAYLAND_DISPLAY:
             os.environ["QT_QPA_PLATFORM"] = "wayland"
         elif _HAS_X11_DISPLAY:
@@ -30,6 +37,7 @@ if sys.platform == "linux":
         f" wayland={_HAS_WAYLAND_DISPLAY}"
         f" x11={_HAS_X11_DISPLAY}"
         f" qpa={os.environ.get('QT_QPA_PLATFORM', '')}"
+        f" force_x11={_FORCE_X11}"
     )
     # Add --no-sandbox to avoid zygote crash on some Linux environments
     # This must be done BEFORE any Qt import or QApp creation
