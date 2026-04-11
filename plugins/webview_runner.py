@@ -11,8 +11,7 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
-if sys.platform == "linux" and "QT_QPA_PLATFORM" not in os.environ:
-    os.environ["QT_QPA_PLATFORM"] = "xcb"
+
 
 from PySide6.QtWidgets import QApplication, QFileDialog
 from PySide6.QtQuick import QQuickView
@@ -57,8 +56,6 @@ DWMSBT_TRANSIENTWINDOW = 3
 DWMSBT_TABBEDWINDOW = 4
 
 def _supports_system_backdrop():
-    if sys.platform != "win32":
-        return False
     try:
         return sys.getwindowsversion().build >= 22000
     except Exception:
@@ -208,8 +205,6 @@ def _load_app_icon() -> QIcon:
     return QIcon(path)
 
 def _get_windows_dark_mode():
-    if sys.platform != "win32":
-        return False
     try:
         import winreg
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize") as key:
@@ -229,7 +224,7 @@ def _resolve_theme_dark(theme_mode):
     return False
 
 def _apply_window_theme(hwnd, is_dark):
-    if sys.platform != "win32" or not hwnd:
+    if not hwnd:
         return
     try:
         dwmapi = ctypes.windll.dwmapi
@@ -257,8 +252,6 @@ def _apply_window_theme(hwnd, is_dark):
         pass
 
 def _resolve_system_backdrop_type(settings, window_tag):
-    if sys.platform != "win32":
-        return None
     if window_tag not in ("settings", "timer", "crash"):
         return None
     if not _supports_system_backdrop():
@@ -288,7 +281,7 @@ def _animations_disabled(settings) -> bool:
     return bool(general.get("DisableAnimations"))
 
 def _apply_system_backdrop(hwnd, backdrop_type):
-    if sys.platform != "win32" or not hwnd or backdrop_type is None:
+    if not hwnd or backdrop_type is None:
         return
     try:
         dwmapi = ctypes.windll.dwmapi
@@ -298,7 +291,7 @@ def _apply_system_backdrop(hwnd, backdrop_type):
         pass
 
 def _force_dwm_redraw(hwnd):
-    if sys.platform != "win32" or not hwnd:
+    if not hwnd:
         return
     try:
         user32 = ctypes.windll.user32
@@ -350,6 +343,14 @@ def _maybe_add_vxkex_path():
             if path not in existing.split(os.pathsep):
                 os.environ["PATH"] = path + os.pathsep + existing
             break
+
+
+def _is_windows7():
+    try:
+        v = sys.getwindowsversion()
+        return v.major == 6 and v.minor == 1
+    except Exception:
+        return False
 
 
 def _get_screen_refresh_rate():
@@ -488,11 +489,10 @@ def _should_defer_initial_load(url, title, explicit_defer=False):
 
 def _apply_chromium_flags():
     _maybe_add_vxkex_path()
+    # Configure for smooth GPU rendering
     flags = [
-        "--enable-gpu",
-        "--ignore-gpu-blocklist",
         "--enable-zero-copy",
-        "--enable-features=BackForwardCache",
+        "--enable-features=BackForwardCache,GpuRasterization,VaapiVideoDecoder",
         "--disable-frame-rate-limit",
         "--disable-gpu-vsync",
         "--disable-renderer-backgrounding",
@@ -504,12 +504,20 @@ def _apply_chromium_flags():
         "--disable-speech-api",
         "--disable-web-security",
         "--wm-window-animations-disabled",
+        "--enable-gpu-rasterization",
+        "--enable-hardware-overlays",
+        "--ignore-gpu-blocklist",
     ]
-    
+
+    if _is_virtual_gpu():
+        flags.extend([
+            "--disable-gpu",
+            "--disable-gpu-compositing",
+        ])
+
     rate = _get_screen_refresh_rate()
     target_fps = rate * 3
     os.environ["LUMINALIUM_TARGET_FPS"] = str(target_fps)
-
 
     current = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
     if current:
@@ -523,18 +531,65 @@ def _apply_chromium_flags():
     else:
         os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(flags)
 
-def _is_windows7():
-    if sys.platform != "win32":
-        return False
+_VIRTUAL_GPU = None
+
+def _is_virtual_gpu():
+    global _VIRTUAL_GPU
+    if _VIRTUAL_GPU is not None:
+        return _VIRTUAL_GPU
+    names = []
     try:
-        v = sys.getwindowsversion()
-        return v.major == 6 and v.minor == 1
+        from ctypes import wintypes
+
+        class DISPLAY_DEVICEW(ctypes.Structure):
+            _fields_ = [
+                ("cb", wintypes.DWORD),
+                ("DeviceName", wintypes.WCHAR * 32),
+                ("DeviceString", wintypes.WCHAR * 128),
+                ("StateFlags", wintypes.DWORD),
+                ("DeviceID", wintypes.WCHAR * 128),
+                ("DeviceKey", wintypes.WCHAR * 128),
+            ]
+
+        user32 = ctypes.windll.user32
+        i = 0
+        while True:
+            dd = DISPLAY_DEVICEW()
+            dd.cb = ctypes.sizeof(DISPLAY_DEVICEW)
+            if not user32.EnumDisplayDevicesW(None, i, ctypes.byref(dd), 0):
+                break
+            for field in (dd.DeviceString, dd.DeviceID, dd.DeviceName):
+                try:
+                    if field:
+                        names.append(str(field).lower())
+                except Exception:
+                    continue
+            i += 1
     except Exception:
-        return False
+        _VIRTUAL_GPU = False
+        return _VIRTUAL_GPU
+
+    hay = " ".join(names)
+    keywords = [
+        "vmware",
+        "virtualbox",
+        "vbox",
+        "svga",
+        "qxl",
+        "virtio",
+        "parallels",
+        "hyper-v",
+        "microsoft basic display",
+        "basic display adapter",
+        "remote display",
+        "citrix",
+        "xen",
+        "bochs",
+    ]
+    _VIRTUAL_GPU = any(k in hay for k in keywords)
+    return _VIRTUAL_GPU
 
 def _get_wallpaper_path():
-    if sys.platform != "win32":
-        return None
     try:
         SPI_GETDESKWALLPAPER = 0x0073
         path = ctypes.create_unicode_buffer(260)
@@ -598,7 +653,6 @@ def _create_shortcut(target_path, shortcut_path, work_dir=None, icon_path=None, 
         return False
 
 def _set_run_at_startup(enable):
-    if sys.platform != "win32": return
     import winreg
     key = winreg.HKEY_CURRENT_USER
     sub_key = r"Software\Microsoft\Windows\CurrentVersion\Run"
@@ -620,7 +674,6 @@ def _set_run_at_startup(enable):
         print(f"Error setting startup: {e}", file=sys.stderr)
 
 def _pin_to_start(enable):
-    if sys.platform != "win32": return
     try:
         programs_path = os.path.join(os.environ["APPDATA"], r"Microsoft\Windows\Start Menu\Programs")
         if not os.path.exists(programs_path):
@@ -640,7 +693,6 @@ def _pin_to_start(enable):
         print(f"Error pinning to start: {e}", file=sys.stderr)
 
 def _pin_to_taskbar(enable):
-    if sys.platform != "win32": return
     # Best effort: Create a shortcut on Desktop if requested, 
     # as Taskbar pinning is restricted.
     # But user specifically asked for Taskbar. 
@@ -743,7 +795,7 @@ class Api(QObject):
 
     def _flash_window(self):
         hwnd = self._get_window_hwnd()
-        if sys.platform != "win32" or not hwnd:
+        if not hwnd:
             return
         try:
             from ctypes import wintypes
@@ -1003,8 +1055,6 @@ class Api(QObject):
 
     @Slot(result="QVariant")
     def get_system_fonts(self):
-        if sys.platform != "win32":
-            return []
         try:
             import winreg
             keys = [
@@ -1371,11 +1421,11 @@ class Api(QObject):
                 cmd = [sys.executable, "--silent"]
             else:
                 cmd = [sys.executable, main_path, "--silent"]
-            if sys.platform == "win32":
-                creationflags = 0x00000008  # DETACHED_PROCESS
-            else:
-                creationflags = 0
-            subprocess.Popen(cmd, creationflags=creationflags, close_fds=True)
+            creationflags = 0x00000008  # DETACHED_PROCESS
+            env = os.environ.copy()
+            env["LUMINALIUM_RESTART"] = "1"
+            env["LUMINALIUM_RESTART_PID"] = str(os.getpid())
+            subprocess.Popen(cmd, env=env, creationflags=creationflags, close_fds=True)
         except Exception as e:
             print(f"Failed to restart from crash dialog: {e}", file=sys.stderr)
 
@@ -1540,15 +1590,12 @@ class Api(QObject):
             parent_pid = 0
         if parent_pid > 0 and parent_pid != os.getpid():
             try:
-                if sys.platform == "win32":
-                    subprocess.run(
-                        ["taskkill", "/PID", str(parent_pid), "/T", "/F"],
-                        check=False,
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                    )
-                else:
-                    os.kill(parent_pid, 9)
+                subprocess.run(
+                    ["taskkill", "/PID", str(parent_pid), "/T", "/F"],
+                    check=False,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
             except Exception:
                 pass
         print("CRASH_DIALOG_EXIT")
@@ -1676,35 +1723,33 @@ class Api(QObject):
     @Slot(result="QVariant")
     def get_screen_list(self):
         screens = []
-
-        if sys.platform == "win32":
-            try:
-                qt_screens = QGuiApplication.screens() or []
-                primary = QGuiApplication.primaryScreen()
-                for i, s in enumerate(qt_screens):
-                    key = (s.name() or "").replace("\x00", "").strip()
-                    name = ""
-                    try:
-                        manufacturer = (s.manufacturer() or "").replace("\x00", "").strip()
-                        model = (s.model() or "").replace("\x00", "").strip()
-                        if manufacturer or model:
-                            name = f"{manufacturer} {model}".strip()
-                        else:
-                            name = (s.name() or "").replace("\x00", "").strip()
-                    except Exception:
+        try:
+            qt_screens = QGuiApplication.screens() or []
+            primary = QGuiApplication.primaryScreen()
+            for i, s in enumerate(qt_screens):
+                key = (s.name() or "").replace("\x00", "").strip()
+                name = ""
+                try:
+                    manufacturer = (s.manufacturer() or "").replace("\x00", "").strip()
+                    model = (s.model() or "").replace("\x00", "").strip()
+                    if manufacturer or model:
+                        name = f"{manufacturer} {model}".strip()
+                    else:
                         name = (s.name() or "").replace("\x00", "").strip()
-                    if not name:
-                        name = f"Display {i + 1}"
-                    screens.append(
-                        {
-                            "id": i,
-                            "key": key,
-                            "name": name,
-                            "is_primary": (primary is not None and s == primary),
-                        }
-                    )
-            except Exception as e:
-                print(f"Error getting screens: {e}", file=sys.stderr)
+                except Exception:
+                    name = (s.name() or "").replace("\x00", "").strip()
+                if not name:
+                    name = f"Display {i + 1}"
+                screens.append(
+                    {
+                        "id": i,
+                        "key": key,
+                        "name": name,
+                        "is_primary": (primary is not None and s == primary),
+                    }
+                )
+        except Exception as e:
+            print(f"Error getting screens: {e}", file=sys.stderr)
         return screens
 
 _QWEBCHANNEL_JS_CACHE = None
@@ -1769,18 +1814,20 @@ class MainWindow(QWebEngineView):
         self._pre_mini_was_maximized = False
         self._pre_mini_was_fullscreen = False
         self._pending_url = None
+        self._pending_load_timer = None
         self._did_hard_refresh = False
         self._window_tag = self._detect_window_tag(url, title)
         self._loading_overlay = None
         self._loading_overlay_hide_timer = None
-        self._loading_overlay_enabled = self._window_tag in ("settings", "timer", "onboarding")
+        # Disable loading overlay for onboarding to avoid QML/OpenGL issues
+        self._loading_overlay_enabled = self._window_tag in ("settings", "timer")
         self._render_crash_count = 0
         self._max_reload_attempts = 3
         self._crash_recovery_timer = None
         self._disable_animations = _animations_disabled(getattr(api, "settings", {}))
         self._apply_page_background()
         settings = self.page().settings()
-        allow_gpu = not _is_windows7()
+        allow_gpu = (not _is_windows7()) and (not _is_virtual_gpu())
         settings.setAttribute(QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, allow_gpu)
         settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, allow_gpu)
         settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
@@ -1862,6 +1909,12 @@ class MainWindow(QWebEngineView):
         target_url = QUrl.fromUserInput(url)
         if self._defer_load:
             self._pending_url = target_url
+            # Fallback: if showEvent doesn't fire, still kick the initial load
+            # to avoid a stuck onboarding window.
+            self._pending_load_timer = QTimer(self)
+            self._pending_load_timer.setSingleShot(True)
+            self._pending_load_timer.timeout.connect(self._ensure_pending_load)
+            self._pending_load_timer.start(200)
         else:
             self.load(target_url)
         self.loadFinished.connect(lambda *_: (self._apply_page_background(), self._schedule_backdrop_apply()))
@@ -1919,6 +1972,14 @@ class MainWindow(QWebEngineView):
         self._sync_loading_overlay_geometry()
         overlay.show()
         self._raise_loading_overlay()
+
+    def _ensure_pending_load(self):
+        if self._pending_url is None:
+            return
+        try:
+            self.load(self._pending_url)
+        finally:
+            self._pending_url = None
 
     def _sync_loading_overlay_geometry(self):
         if self._loading_overlay is None:
@@ -2226,14 +2287,13 @@ body {
                     return
         except Exception:
             pass
-        if sys.platform == "win32":
-            try:
-                hwnd = int(self.winId())
-                user32 = ctypes.windll.user32
-                user32.ReleaseCapture()
-                user32.SendMessageW(hwnd, 0x00A1, 0x0002, 0)
-            except Exception:
-                pass
+        try:
+            hwnd = int(self.winId())
+            user32 = ctypes.windll.user32
+            user32.ReleaseCapture()
+            user32.SendMessageW(hwnd, 0x00A1, 0x0002, 0)
+        except Exception:
+            pass
 
     def _center_on_screen(self):
         screen = QApplication.primaryScreen()
@@ -2256,7 +2316,7 @@ body {
         self.activateWindow()
 
     def nativeEvent(self, eventType, message):
-        if sys.platform == "win32" and _EXISTING_WINDOW_NOTIFY_MESSAGE:
+        if _EXISTING_WINDOW_NOTIFY_MESSAGE:
             try:
                 msg_ptr = int(message)
                 if msg_ptr:
@@ -2323,8 +2383,6 @@ body {
         self._did_hard_refresh = True
 
     def _schedule_backdrop_apply(self):
-        if sys.platform != "win32":
-            return
         for delay in (0, 200, 800):
             QTimer.singleShot(delay, self._apply_backdrop)
 
@@ -2377,6 +2435,12 @@ body {
         if self._pending_url is not None:
             self.load(self._pending_url)
             self._pending_url = None
+        if self._pending_load_timer is not None:
+            try:
+                self._pending_load_timer.stop()
+            except Exception:
+                pass
+            self._pending_load_timer = None
         self._sync_loading_overlay_geometry()
         if self._loading_overlay is not None:
             try:
@@ -2421,6 +2485,12 @@ body {
             except Exception:
                 pass
             self._crash_recovery_timer = None
+        if self._pending_load_timer is not None:
+            try:
+                self._pending_load_timer.stop()
+            except Exception:
+                pass
+            self._pending_load_timer = None
         if self._loading_overlay_hide_timer is not None:
             try:
                 self._loading_overlay_hide_timer.stop()
@@ -2440,40 +2510,39 @@ body {
         super().closeEvent(event)
 
 def apply_win11_aesthetics(window, theme_mode=None, settings=None, window_tag=""):
-    if sys.platform == "win32":
-        try:
-            hwnd = int(window.winId())
-            dwmapi = ctypes.windll.dwmapi
-            corner_preference = ctypes.c_int(2)
-            dwmapi.DwmSetWindowAttribute(
-                hwnd,
-                33,
-                ctypes.byref(corner_preference),
-                ctypes.sizeof(corner_preference)
-            )
-            _apply_window_theme(hwnd, _resolve_theme_dark(theme_mode))
-            backdrop_type = _resolve_system_backdrop_type(settings, window_tag)
-            _apply_system_backdrop(hwnd, backdrop_type)
-            if backdrop_type is not None and backdrop_type != DWMSBT_NONE:
-                border = ctypes.c_int(_DWM_COLOR_NONE)
-                dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ctypes.byref(border), ctypes.sizeof(border))
-            icon_path = _resolve_logo_ico_path()
-            if icon_path and os.path.exists(icon_path):
-                user32 = ctypes.windll.user32
-                IMAGE_ICON = 1
-                LR_LOADFROMFILE = 0x00000010
-                WM_SETICON = 0x0080
-                ICON_SMALL = 0
-                ICON_BIG = 1
+    try:
+        hwnd = int(window.winId())
+        dwmapi = ctypes.windll.dwmapi
+        corner_preference = ctypes.c_int(2)
+        dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            33,
+            ctypes.byref(corner_preference),
+            ctypes.sizeof(corner_preference)
+        )
+        _apply_window_theme(hwnd, _resolve_theme_dark(theme_mode))
+        backdrop_type = _resolve_system_backdrop_type(settings, window_tag)
+        _apply_system_backdrop(hwnd, backdrop_type)
+        if backdrop_type is not None and backdrop_type != DWMSBT_NONE:
+            border = ctypes.c_int(_DWM_COLOR_NONE)
+            dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ctypes.byref(border), ctypes.sizeof(border))
+        icon_path = _resolve_logo_ico_path()
+        if icon_path and os.path.exists(icon_path):
+            user32 = ctypes.windll.user32
+            IMAGE_ICON = 1
+            LR_LOADFROMFILE = 0x00000010
+            WM_SETICON = 0x0080
+            ICON_SMALL = 0
+            ICON_BIG = 1
 
-                hicon_small = user32.LoadImageW(0, icon_path, IMAGE_ICON, 16, 16, LR_LOADFROMFILE)
-                hicon_big = user32.LoadImageW(0, icon_path, IMAGE_ICON, 32, 32, LR_LOADFROMFILE)
-                if hicon_small:
-                    user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, hicon_small)
-                if hicon_big:
-                    user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon_big)
-        except Exception:
-            pass
+            hicon_small = user32.LoadImageW(0, icon_path, IMAGE_ICON, 16, 16, LR_LOADFROMFILE)
+            hicon_big = user32.LoadImageW(0, icon_path, IMAGE_ICON, 32, 32, LR_LOADFROMFILE)
+            if hicon_small:
+                user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, hicon_small)
+            if hicon_big:
+                user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon_big)
+    except Exception:
+        pass
 
 def main():
     _apply_chromium_flags()

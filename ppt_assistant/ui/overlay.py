@@ -293,20 +293,24 @@ class OverlayWindow(QWebEngineView):
 
     def _ensure_topmost(self):
         if sys.platform != "win32":
+            print("[Overlay] Not on Windows, skipping topmost")
             return
         try:
             user32 = ctypes.windll.user32
             hwnd = int(self.winId())
+            print(f"[Overlay] _ensure_topmost: hwnd={hwnd}")
             if not hwnd:
+                print("[Overlay] No hwnd, cannot set topmost")
                 return
             HWND_TOPMOST = -1
             SWP_NOMOVE = 0x0002
             SWP_NOSIZE = 0x0001
             SWP_NOACTIVATE = 0x0010
             SWP_SHOWWINDOW = 0x0040
-            user32.SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW)
-        except Exception:
-            pass
+            result = user32.SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW)
+            print(f"[Overlay] SetWindowPos result: {result}")
+        except Exception as e:
+            print(f"[Overlay] Error in _ensure_topmost: {e}")
 
     def _on_render_process_terminated(self, status, exit_code):
         status_name = ""
@@ -986,9 +990,11 @@ Item {
         cfg.disabledTools.valueChanged.connect(lambda *_: self.update_config())
 
     def showEvent(self, event):
+        print(f"[Overlay] showEvent called, window visible: {self.isVisible()}")
         super().showEvent(event)
         self.page().setBackgroundColor(Qt.transparent)
         self.update_theme()
+        print(f"[Overlay] After showEvent, window visible: {self.isVisible()}")
     
     def closeEvent(self, event):
         """Clean up resources when overlay window closes"""
@@ -1007,19 +1013,28 @@ Item {
         super().closeEvent(event)
 
     def set_active_on_slideshow(self, active: bool, animate: bool = True):
+        print(f"[Overlay] set_active_on_slideshow({active}, animate={animate})")
+        import traceback
+        traceback.print_stack(limit=5)
         self._active_on_slideshow = bool(active)
         if self._active_on_slideshow:
             try:
+                print(f"[Overlay] Calling show(), isVisible before: {self.isVisible()}")
                 self.show()
+                print(f"[Overlay] After show(), isVisible: {self.isVisible()}")
                 self.raise_()
                 self._ensure_topmost()
-            except Exception:
-                pass
+                print(f"[Overlay] After raise/topmost, isVisible: {self.isVisible()}")
+            except Exception as e:
+                print(f"[Overlay] Error in set_active_on_slideshow(True): {e}")
+                import traceback
+                traceback.print_exc()
         else:
             try:
+                print(f"[Overlay] Calling hide()")
                 self.hide()
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[Overlay] Error in set_active_on_slideshow(False): {e}")
 
     def on_slideshow_start_cleanup(self):
         self.reset_pen_color_ui()

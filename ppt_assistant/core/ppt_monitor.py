@@ -760,6 +760,7 @@ class PPTWorker(QObject):
                             except Exception:
                                 pass
                             self._slideshow_started_at = time.monotonic()
+                            print("[Monitor] PPT slideshow_started signal emitted (COM mode)")
                             self.slideshow_started.emit()
 
                         self._update_slide_info_from_ss_win(ss_win, self.ppt_app, "ppt")
@@ -783,6 +784,7 @@ class PPTWorker(QObject):
                             self._slideshow_hwnd = int(hwnd)
                             self.slideshow_hwnd_changed.emit(int(hwnd))
                         self._slideshow_started_at = time.monotonic()
+                        print("[Monitor] PPT slideshow_started signal emitted (Win32 mode)")
                         self.slideshow_started.emit()
                         self._init_degraded_page_info()
                     self._update_window_rect_hwnd(hwnd)
@@ -828,6 +830,7 @@ class PPTWorker(QObject):
                     except Exception:
                         pass
                     self._slideshow_started_at = time.monotonic()
+                    print("[Monitor] WPS slideshow_started signal emitted")
                     self.slideshow_started.emit()
 
                 if ss_win is not None:
@@ -871,6 +874,7 @@ class PPTWorker(QObject):
                     except Exception:
                         pass
                     self._slideshow_started_at = time.monotonic()
+                    print("[Monitor] YOZO slideshow_started signal emitted")
                     self.slideshow_started.emit()
 
                 if ss_win is not None:
@@ -1078,18 +1082,19 @@ class PPTWorker(QObject):
             return
         if cfg.compatibilityMode.value:
             try:
-                hwnd = int(self._slideshow_hwnd or 0) or self._find_ppt_slideshow_hwnd()
-                if hwnd and win32gui:
-                    try:
-                        win32gui.SetForegroundWindow(int(hwnd))
-                    except Exception:
-                        pass
-                if win32api and win32con:
-                    win32api.keybd_event(win32con.VK_DOWN, 0, 0, 0)
-                    win32api.keybd_event(win32con.VK_DOWN, 0, win32con.KEYEVENTF_KEYUP, 0)
+                if self._send_vk_to_slideshow(win32con.VK_DOWN if win32con else 0x28):
+                    self._control_mode = "win32"
             except Exception:
                 pass
             return
+
+        try:
+            # Prefer keyboard behavior (skip COM-specific differences).
+            if self._send_vk_to_slideshow(win32con.VK_DOWN if win32con else 0x28):
+                self._control_mode = "win32"
+                return
+        except Exception:
+            pass
 
         try:
             ss_win = self._get_active_slideshow_window()
@@ -1102,16 +1107,7 @@ class PPTWorker(QObject):
             self._note_error("go_next_com", e)
         try:
             self._control_mode = "win32"
-            ok = self._send_vk_to_slideshow(win32con.VK_NEXT if win32con else 0x22)
-            if ok and self._degraded_total > 0:
-                if self._degraded_current <= 0:
-                    self._degraded_current = 1
-                if self._degraded_current < self._degraded_total:
-                    self._degraded_current += 1
-                if self._degraded_current != self._current_slide or self._degraded_total != self._total_slides:
-                    self._current_slide = self._degraded_current
-                    self._total_slides = self._degraded_total
-                    self.slide_changed.emit(self._degraded_current, self._degraded_total)
+            self._send_vk_to_slideshow(win32con.VK_DOWN if win32con else 0x28)
         except Exception:
             pass
 

@@ -7,7 +7,7 @@ from PySide6.QtCore import QObject, QEvent, QTimer, Qt, Signal, Slot
 from PySide6.QtGui import QColor, QCursor, QGuiApplication, QIcon, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QHBoxLayout, QSystemTrayIcon, QVBoxLayout, QWidget
-from qfluentwidgets import Action, BodyLabel, FluentIcon as FIF, Flyout, FlyoutViewBase, PrimaryPushButton, PushButton, RoundMenu, SubtitleLabel, isDarkTheme
+from qfluentwidgets import Action, BodyLabel, FluentIcon as FIF, Flyout, FlyoutViewBase, PrimaryPushButton, PushButton, RoundMenu, SubtitleLabel, isDarkTheme, themeColor
 
 from ppt_assistant.core.config import SETTINGS_PATH, cfg
 from ppt_assistant.core.i18n import get_language, t
@@ -502,18 +502,25 @@ class SystemTray(QObject):
     def _render_menu_icon(self, path, size=16):
         if not os.path.exists(path):
             return QIcon()
-        color = QColor(245, 245, 245) if isDarkTheme() else QColor(32, 32, 32)
-        pixmap = QPixmap(size, size)
-        pixmap.fill(Qt.transparent)
-        renderer = QSvgRenderer(path)
-        if not renderer.isValid():
+        try:
+            color = QColor(245, 245, 245) if isDarkTheme() else QColor(32, 32, 32)
+            pixmap = QPixmap(size, size)
+            pixmap.fill(Qt.transparent)
+            renderer = QSvgRenderer(path)
+            if not renderer.isValid():
+                return QIcon(path)
+            painter = QPainter(pixmap)
+            if not painter.isActive():
+                return QIcon(path)
+            painter.setRenderHint(QPainter.Antialiasing)
+            renderer.render(painter)
+            painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
+            painter.fillRect(pixmap.rect(), color)
+            painter.end()
+            return QIcon(pixmap)
+        except Exception as e:
+            print(f"Error rendering menu icon {path}: {e}")
             return QIcon(path)
-        painter = QPainter(pixmap)
-        renderer.render(painter)
-        painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
-        painter.fillRect(pixmap.rect(), color)
-        painter.end()
-        return QIcon(pixmap)
 
     def _update_timer_text(self):
         if not hasattr(self, '_act_timer') or not self._act_timer: return
@@ -674,6 +681,22 @@ class SystemTray(QObject):
             self._confirm_exit,
         )
 
+    def prepare_shutdown(self):
+        self._close_confirm_flyout()
+        if self._fallback_menu is not None:
+            try:
+                self._fallback_menu.hide()
+            except Exception:
+                pass
+        try:
+            self.tray_icon.setContextMenu(None)
+        except Exception:
+            pass
+        try:
+            self.tray_icon.hide()
+        except Exception:
+            pass
+
     def refresh_menu(self):
         self._init_fallback_menu()
         self._update_icon()
@@ -690,12 +713,7 @@ class SystemTray(QObject):
         if not os.path.exists(logo_path):
             logo_path = os.path.join(ICON_DIR, "Pen.svg")
 
-        if sys.platform == "win32":
-            if os.path.exists(logo_path):
-                self.tray_icon.setIcon(QIcon(logo_path))
-            return
-
-        if sys.platform == "linux" and os.path.exists(logo_path):
+        if os.path.exists(logo_path):
             self.tray_icon.setIcon(QIcon(logo_path))
 
         try:

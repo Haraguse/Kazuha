@@ -3665,9 +3665,40 @@
       transform: translateY(120px);
     }
 
-    /* Solid color background, glow removed */
+    /* Flowing light background effect */
     .hyperos-bg {
-      display: none;
+      position: absolute;
+      top: -30%;
+      left: -30%;
+      width: 160%;
+      height: 160%;
+      background: radial-gradient(circle at 20% 20%, var(--hyperos-g1) 0%, transparent 40%),
+        radial-gradient(circle at 80% 80%, var(--hyperos-g2) 0%, transparent 40%),
+        radial-gradient(circle at 20% 80%, var(--hyperos-g3) 0%, transparent 40%),
+        radial-gradient(circle at 80% 20%, var(--hyperos-g4) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, var(--hyperos-g5) 0%, transparent 50%),
+        radial-gradient(circle at 50% 12%, var(--hyperos-g2) 0%, transparent 42%),
+        radial-gradient(circle at 12% 50%, var(--hyperos-g4) 0%, transparent 42%),
+        radial-gradient(circle at 88% 50%, var(--hyperos-g1) 0%, transparent 42%),
+        radial-gradient(circle at 50% 88%, var(--hyperos-g3) 0%, transparent 42%),
+        radial-gradient(circle at 70% 30%, var(--hyperos-g5) 0%, transparent 46%);
+      filter: blur(60px);
+      animation: hyperos-flow 25s infinite linear;
+      opacity: 0.7;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @keyframes hyperos-flow {
+      0% {
+        transform: rotate(0deg) scale(1);
+      }
+      50% {
+        transform: rotate(180deg) scale(1.1);
+      }
+      100% {
+        transform: rotate(360deg) scale(1);
+      }
     }
 
     .hero-logo {
@@ -3798,9 +3829,7 @@
       margin-top: -12px;
     }
 
-
-
-
+    
     .hero-links {
       display: flex;
       gap: 24px;
@@ -3870,6 +3899,13 @@
       box-sizing: border-box;
       position: relative;
       padding: 48px;
+      background: rgba(255, 255, 255, 0.8) !important;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    [data-theme="dark"] .hero-screen .card {
+      background: rgba(30, 30, 30, 0.8) !important;
     }
 
     #screen-hero .card {

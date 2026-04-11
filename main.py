@@ -10,14 +10,7 @@ from typing import Optional
 import time
 import warnings
 
-if sys.platform == "linux":
-    _HAS_DISPLAY = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
-    if "QT_QPA_PLATFORM" not in os.environ:
-        os.environ["QT_QPA_PLATFORM"] = "xcb" if _HAS_DISPLAY else "offscreen"
-    # Add --no-sandbox to avoid zygote crash on some Linux environments
-    # This must be done BEFORE any Qt import or QApp creation
-    if "--no-sandbox" not in sys.argv:
-        sys.argv.append("--no-sandbox")
+
 
 # Delay heavy imports or move them inside if __name__ == "__main__" logic
 # to allow --webview-runner to start fast and clean.
@@ -157,8 +150,6 @@ SPLASH_I18N = {
 
 
 def _is_windows7():
-    if sys.platform != "win32":
-        return False
     try:
         v = sys.getwindowsversion()
         return v.major == 6 and v.minor == 1
@@ -178,41 +169,59 @@ def _get_screen_refresh_rate():
         return 60
 
 
-def _apply_graphics_settings():
-    if sys.platform == "linux":
-        # Force software rendering on Linux to avoid compatibility issues with Mesa/drivers
-        os.environ["QT_OPENGL"] = "software"
-        os.environ["QT_RHI_BACKEND"] = "software"
-        os.environ["QT_VULKAN_DISABLE"] = "1"
-        os.environ["QT_XCB_FORCE_SOFTWARE_OPENGL"] = "1"
-        os.environ["QT_QUICK_BACKEND"] = "software"
-        flags = ["--disable-gpu", "--no-sandbox"]
-        if _HAS_DISPLAY:
-            flags.append("--disable-software-rasterizer")
-        current = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
-        merged = current.split()
-        for flag in flags:
-            if flag not in merged:
-                merged.append(flag)
-        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(merged)
-        return
+def _env_flag_enabled(name: str, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
 
-    # Base flags for high performance
-    flags = [
-        "--disable-frame-rate-limit",
-        "--disable-gpu-vsync",
-        "--ignore-gpu-blocklist",
-    ]
+
+def _is_compatibility_mode_enabled() -> bool:
+    try:
+        data = _load_settings_json()
+        general = data.get("General", {}) if isinstance(data, dict) else {}
+        return bool(general.get("CompatibilityMode", False)) if isinstance(general, dict) else False
+    except Exception:
+        return False
+
+
+def _apply_graphics_settings():
+    # Configure rendering backend for best performance
+    # Use native OpenGL for smooth rendering
+    os.environ["QT_OPENGL"] = "desktop"
+    os.environ["QT_VULKAN_DISABLE"] = "1"
+    # Let Qt automatically choose the best RHI backend
+    # Don't force QSG_RHI_BACKEND to allow fallback
     
-    # Try to set a target FPS if possible, but mostly just unlock it.
-    # User asked for 3x refresh rate.
-    rate = _get_screen_refresh_rate()
-    target_fps = rate * 3
-    # Chromium doesn't have a direct --limit-fps flag in stable, but we can try --frames-throttled
-    # or just rely on disabling the limit.
-    # We will just unlock it as that satisfies "solve 60fps cap".
-    # And we can set an env var that we might use elsewhere or just for reference.
-    os.environ["LUMINALIUM_TARGET_FPS"] = str(target_fps)
+    use_software_webengine = _is_compatibility_mode_enabled() or _env_flag_enabled("LUMINALIUM_WEBENGINE_SOFTWARE", False)
+
+    if use_software_webengine:
+        os.environ["QSG_RHI_BACKEND"] = "software"
+        os.environ["QT_QUICK_BACKEND"] = "software"
+        os.environ["QT_OPENGL"] = "software"
+        os.environ["QTWEBENGINE_DISABLE_GPU"] = "1"
+        flags = [
+            "--disable-gpu",
+            "--disable-gpu-compositing",
+            "--disable-gpu-rasterization",
+            "--disable-software-rasterizer",
+        ]
+    else:
+        # Base flags tuned for smoother rendering
+        flags = [
+            "--disable-frame-rate-limit",
+            "--disable-gpu-vsync",
+            "--enable-gpu-rasterization",
+            "--enable-zero-copy",
+            "--enable-features=VaapiVideoDecoder,VaapiVideoEncoder",
+            "--ignore-gpu-blocklist",
+            "--enable-hardware-overlays",
+        ]
+        
+        # Get refresh rate for target FPS
+        rate = _get_screen_refresh_rate()
+        target_fps = rate * 3
+        os.environ["LUMINALIUM_TARGET_FPS"] = str(target_fps)
 
     # Windows 7 Fallback
     if _is_windows7():
@@ -265,6 +274,40 @@ def _load_settings_json():
 def _get_settings_reset_marker_path():
     return os.path.join(os.path.dirname(SETTINGS_PATH), "settings.reset")
 
+def _get_restart_marker_path():
+    return os.path.join(os.path.dirname(SETTINGS_PATH), "restart.marker")
+
+def _write_restart_marker():
+    try:
+        path = _get_restart_marker_path()
+        data = {"pid": os.getpid(), "ts": time.time()}
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+def _consume_restart_marker(max_age_seconds: float = 5.0) -> bool:
+    path = _get_restart_marker_path()
+    if not os.path.exists(path):
+        return False
+    data = {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        data = {}
+    finally:
+        try:
+            os.remove(path)
+        except Exception:
+            pass
+    try:
+        ts = float(data.get("ts", 0))
+    except Exception:
+        ts = 0.0
+    if ts <= 0:
+        return False
+    return (time.time() - ts) <= max_age_seconds
 
 def _get_current_language():
     data = _load_settings_json()
@@ -392,6 +435,8 @@ def _apply_global_font(app: QApplication):
             return
         font = QFont()
         font.setStyleHint(QFont.SansSerif)
+        if default_families:
+            font.setFamily(default_families[0])
         font.setFamilies(default_families)
     weight = _get_font_weight_from_settings(data, lang, "qt")
     if weight is not None:
@@ -636,12 +681,16 @@ class StartupSplash(QWidget):
             splash_font_families = _get_default_font_family_stack(self._language, _load_bundled_font_families(_get_user_root_dir()))
             title_font = QFont()
             title_font.setStyleHint(QFont.SansSerif)
+            if splash_font_families:
+                title_font.setFamily(splash_font_families[0])
             title_font.setFamilies(splash_font_families)
             title_font.setPixelSize(36)
             title_font.setBold(True)
             
             sub_font = QFont()
             sub_font.setStyleHint(QFont.SansSerif)
+            if splash_font_families:
+                sub_font.setFamily(splash_font_families[0])
             sub_font.setFamilies(splash_font_families)
             sub_font.setPixelSize(14)
             
@@ -676,7 +725,7 @@ class StartupSplash(QWidget):
             
             # Draw Title
             brand_name_map = {
-                "zh-CN": "Luminalium",
+                "zh-CN": "荧素万演",
                 "zh-TW": "Luminalium",
                 "yue-HK": "Luminalium",
                 "ja-JP": "ルマイナリウム",
@@ -764,6 +813,8 @@ class StartupSplash(QWidget):
         self._brand_label = QLabel(brand_name, self._container)
         splash_font_families = _get_default_font_family_stack(self._language, _load_bundled_font_families(_get_user_root_dir()))
         brand_font = QFont()
+        if splash_font_families:
+            brand_font.setFamily(splash_font_families[0])
         brand_font.setFamilies(splash_font_families)
         brand_font.setPixelSize(32)
         brand_font.setWeight(QFont.Black) 
@@ -1071,10 +1122,7 @@ class CrashHandler:
                 f.write(error_msg)
                 temp_path = f.name
             
-            if sys.platform == "win32":
-                creationflags = 0x00000008 # DETACHED_PROCESS
-            else:
-                creationflags = 0
+            creationflags = 0x00000008 # DETACHED_PROCESS
 
             if getattr(sys, "frozen", False):
                 cmd = [sys.executable, "--webview-runner", "--crash-file", temp_path]
@@ -1122,12 +1170,12 @@ class CrashHandler:
             else:
                 cmd = [sys.executable, main_path] + filtered_args
 
-            if sys.platform == "win32":
-                creationflags = 0x00000008 # DETACHED_PROCESS
-            else:
-                creationflags = 0
-
-            subprocess.Popen(cmd, creationflags=creationflags, close_fds=True)
+            creationflags = 0x00000008  # DETACHED_PROCESS
+            env = os.environ.copy()
+            env["LUMINALIUM_RESTART"] = "1"
+            env["LUMINALIUM_RESTART_PID"] = str(os.getpid())
+            _write_restart_marker()
+            subprocess.Popen(cmd, env=env, creationflags=creationflags, close_fds=True)
         except Exception as e:
             print(f"Failed to restart silently: {e}", file=sys.stderr)
 
@@ -1182,6 +1230,9 @@ def _handle_multi_instance(app: QApplication):
     except ImportError:
         return
 
+    restart_flag = os.environ.pop("LUMINALIUM_RESTART", None)
+    restart_marker = _consume_restart_marker()
+
     current_pid = os.getpid()
     current_entry = os.path.abspath(sys.executable if getattr(sys, "frozen", False) else __file__)
     pids = []
@@ -1205,6 +1256,25 @@ def _handle_multi_instance(app: QApplication):
     
     if not pids: 
         return
+
+    if restart_flag or restart_marker:
+        try:
+            deadline = time.time() + 1.2
+            alive = list(pids)
+            while time.time() < deadline:
+                alive = [pid for pid in alive if psutil.pid_exists(pid)]
+                if not alive:
+                    return
+                time.sleep(0.05)
+            for pid in alive:
+                try:
+                    p_obj = psutil.Process(pid)
+                    p_obj.kill()
+                except Exception:
+                    pass
+            return
+        finally:
+            os.environ.pop("LUMINALIUM_RESTART_PID", None)
     
     proc = show_webview_dialog(
         title="",
@@ -1220,7 +1290,6 @@ def _handle_multi_instance(app: QApplication):
                 p_obj.kill()
             except Exception:
                 pass
-        import time
         time.sleep(0.5)
         return
     elif 'DIALOG_VALUE:"CONTINUE_NEW"' in stdout:
@@ -1323,8 +1392,10 @@ class PPTAssistantApp:
 
         yield 95, "finalizing"
         self.monitor.start_monitoring()
+        print(f"[APP] Monitor started. compatibilityMode={cfg.compatibilityMode.value}")
 
         if cfg.compatibilityMode.value:
+            print("[APP] Showing overlay in compatibility mode")
             self.overlay.show()
 
         if self._splash is not None:
@@ -1354,6 +1425,16 @@ class PPTAssistantApp:
     def _check_onboarding_closed(self):
         plugin = getattr(self, "onboarding_plugin", None)
         handle = getattr(plugin, "process", None) if plugin is not None else None
+        
+        # Wait at least 3 seconds before checking to allow window to fully initialize
+        if not hasattr(self, '_onboarding_start_time'):
+            self._onboarding_start_time = time.time()
+            return
+        
+        elapsed = time.time() - self._onboarding_start_time
+        if elapsed < 3.0:  # Minimum 3 seconds before checking
+            return
+            
         try:
             finished = handle is None or handle.poll() is not None
         except Exception:
@@ -1478,8 +1559,8 @@ class PPTAssistantApp:
         self.tray.show_board.connect(self.board_plugin.execute)
         self.tray.show_timer.connect(self.timer_plugin.execute)
         self.tray.toggle_overlay.connect(self.toggle_overlay_visibility)
-        self.tray.restart_app.connect(self.restart)
-        self.tray.exit_app.connect(self.app.quit)
+        self.tray.restart_app.connect(self._restart_from_tray)
+        self.tray.exit_app.connect(self._exit_from_tray)
 
         self.timer_plugin.background_mode_entered.connect(self._on_timer_background_mode)
 
@@ -1499,8 +1580,35 @@ class PPTAssistantApp:
                 self.overlay.hide()
             else:
                 self.overlay.show()
-                self.overlay.raise_()
-                # self.overlay.activateWindow()
+
+    def _prepare_shutdown(self, restarting=False):
+        try:
+            if hasattr(self, "tray") and self.tray:
+                self.tray.prepare_shutdown()
+        except Exception:
+            pass
+        if restarting:
+            try:
+                os.environ["LUMINALIUM_RESTART"] = "1"
+                os.environ["LUMINALIUM_RESTART_PID"] = str(os.getpid())
+                _write_restart_marker()
+            except Exception:
+                pass
+        try:
+            self.app.processEvents()
+        except Exception:
+            pass
+
+    @Slot()
+    def _exit_from_tray(self):
+        self._prepare_shutdown(restarting=False)
+        self.app.quit()
+
+    @Slot()
+    def _restart_from_tray(self):
+        self._prepare_shutdown(restarting=True)
+        self._launch_new_instance()
+        self.app.quit()
 
     @Slot()
     def _on_timer_finished(self):
@@ -1519,10 +1627,11 @@ class PPTAssistantApp:
     @Slot()
     def on_slideshow_start(self):
         self._slideshow_running = True
+        print("[APP] Slideshow started")
         try:
             self.overlay.on_slideshow_start_cleanup()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[APP] Error in on_slideshow_start_cleanup: {e}")
         # Cleanup slide thumbnails from previous session
         temp_dir = os.path.join(tempfile.gettempdir(), "luminalium_ppt_thumbs")
         if os.path.exists(temp_dir):
@@ -1536,17 +1645,24 @@ class PPTAssistantApp:
             pass
         try:
             active_kind = getattr(self.monitor, "_active_kind", None)
+            print(f"[APP] autoShowOverlay={cfg.autoShowOverlay.value}, compatibilityMode={cfg.compatibilityMode.value}, active_kind={active_kind}")
             if cfg.autoShowOverlay.value and not cfg.compatibilityMode.value:
+                print("[APP] Calling set_active_on_slideshow(True) - autoShowOverlay path")
                 if self._last_slideshow_rect is not None:
                     try:
                         self.overlay.update_geometry(self._last_slideshow_rect, self._last_slideshow_screen)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        print(f"[APP] Error updating geometry: {e}")
                 self.overlay.set_active_on_slideshow(True, animate=False)
             elif active_kind == "yozo" and not cfg.compatibilityMode.value:
+                print("[APP] Calling set_active_on_slideshow(True) - yozo path")
                 self.overlay.set_active_on_slideshow(True, animate=False)
-        except Exception:
-            pass
+            else:
+                print("[APP] Not showing overlay - conditions not met")
+        except Exception as e:
+            print(f"[APP] Error in on_slideshow_start: {e}")
+            import traceback
+            traceback.print_exc()
     
     @Slot()
     def on_slideshow_end(self):
@@ -1842,9 +1958,32 @@ class PPTAssistantApp:
         finally:
             self._reloading_overlay = False
 
+    def _launch_new_instance(self):
+        """Start a fresh copy of the application as a detached child process."""
+        try:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            main_path = os.path.join(base_dir, "main.py")
+            filtered_args = [
+                a for a in sys.argv[1:]
+                if a not in ("--silent", "--webview-runner", "--dialog", "--crash-file")
+            ]
+            if getattr(sys, "frozen", False):
+                cmd = [sys.executable] + filtered_args
+            else:
+                cmd = [sys.executable, main_path] + filtered_args
+            env = os.environ.copy()
+            env["LUMINALIUM_RESTART"] = "1"
+            env["LUMINALIUM_RESTART_PID"] = str(os.getpid())
+            creationflags = 0x00000008  # DETACHED_PROCESS
+            subprocess.Popen(cmd, env=env, creationflags=creationflags, close_fds=True)
+        except Exception as e:
+            print(f"Failed to launch new instance: {e}", file=sys.stderr)
+
     def restart(self):
-        self.cleanup()
-        os.execl(sys.executable, sys.executable, *sys.argv)
+        """Restart for internal callers (settings reset, onboarding, etc.)."""
+        self._prepare_shutdown(restarting=True)
+        self._launch_new_instance()
+        self.app.quit()
 
     def cleanup(self):
         """Cleanup app resources and terminate subprocesses."""
@@ -1870,8 +2009,8 @@ if __name__ == "__main__":
     
     _ensure_user_dirs()
     _apply_graphics_settings()
-    if sys.platform == "linux" and not _HAS_DISPLAY:
-        QCoreApplication.setAttribute(Qt.AA_UseSoftwareOpenGL)
+    # Use Desktop OpenGL for better compatibility with Qt6
+    QCoreApplication.setAttribute(Qt.AA_UseDesktopOpenGL)
     QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     app = QApplication(sys.argv)
     app_icon = load_app_icon()
