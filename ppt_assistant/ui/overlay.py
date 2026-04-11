@@ -1398,9 +1398,19 @@ Item {
 
 def create_overlay_window():
     if _should_use_linux_widget_overlay():
-        from ppt_assistant.ui.linux_widget_overlay import LinuxCompatOverlayWindow
+        try:
+            from ppt_assistant.ui.linux_qml_overlay import LinuxQmlOverlayWindow
 
-        return LinuxCompatOverlayWindow()
+            return LinuxQmlOverlayWindow()
+        except Exception as exc:
+            print(
+                f"[Overlay] Failed to initialize Linux QML overlay, "
+                f"falling back to QWidget compatibility overlay: {exc}",
+                flush=True,
+            )
+            from ppt_assistant.ui.linux_widget_overlay import LinuxCompatOverlayWindow
+
+            return LinuxCompatOverlayWindow()
     if _should_use_webengine_overlay():
         return OverlayWindow()
     return WaylandFallbackOverlayWindow()
