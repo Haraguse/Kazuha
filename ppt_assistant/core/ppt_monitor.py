@@ -4,15 +4,27 @@ try:
 except ImportError:
     win32com = None
     pythoncom = None
-from PySide6.QtCore import QObject, Signal, QThread, QTimer, QPoint, QRect, Slot
+from PySide6.QtCore import QObject, Signal, QThread, QTimer, QRect, Slot
 from PySide6.QtGui import QGuiApplication
 import time
 import os
 import sys
-import shutil
-import subprocess
 from collections import deque
 from ppt_assistant.core.config import cfg
+from ppt_assistant.core.system.linux import (
+    can_use_xdotool as linux_can_use_xdotool,
+    describe_linux_tool_capabilities,
+    find_linux_slideshow_window,
+    find_linux_slideshow_window_id,
+    format_window_snapshot as format_linux_window_snapshot,
+    get_active_window_snapshot,
+    get_window_snapshot as get_linux_window_snapshot,
+    infer_linux_presentation_kind,
+    run_xdotool_command,
+    snapshot_is_transient,
+    window_looks_like_editor,
+    window_looks_like_slideshow as linux_window_looks_like_slideshow,
+)
 
 try:
     import win32gui
@@ -118,11 +130,15 @@ class PPTWorker(QObject):
         self._presentation_readonly = False
         self._control_mode = "com"
         self._last_error_by_key = {}
+        self._last_info_by_key = {}
+        self._last_state_by_key = {}
         self._degraded_current = 0
         self._degraded_total = 0
         self._pending_ink_prompt = False
         self._page_turn_times = deque()
         self._page_turn_window_seconds = 1.0
+        self._last_linux_probe_at = 0.0
+        self._last_linux_slideshow_seen_at = 0.0
 
     def _consume_page_turn_token(self) -> bool:
         now = time.monotonic()
@@ -145,6 +161,11 @@ class PPTWorker(QObject):
         if kind == self._active_kind:
             return
         self._active_kind = kind
+        self._note_state(
+            "active_kind",
+            kind or "",
+            f"active_kind -> {kind or 'none'}",
+        )
         try:
             self.active_kind_changed.emit(kind or "")
         except Exception:
@@ -485,26 +506,27 @@ class PPTWorker(QObject):
         return int(hwnd or 0)
 
     def _can_use_linux_xdotool(self) -> bool:
-        return sys.platform.startswith("linux") and shutil.which("xdotool") is not None
+        return linux_can_use_xdotool()
 
     def _run_xdotool(self, *args: str) -> tuple[bool, str]:
         if not self._can_use_linux_xdotool():
-            return False, ""
-        try:
-            result = subprocess.run(
-                ["xdotool", *args],
-                capture_output=True,
-                text=True,
-                timeout=1.5,
+            self._note_info(
+                "linux_xdotool_unavailable",
+                "Linux xdotool probe unavailable: " + describe_linux_tool_capabilities(),
+                min_interval=5.0,
             )
-        except Exception as e:
-            self._note_error("xdotool", e)
             return False, ""
-        output = (result.stdout or "").strip()
-        error = (result.stderr or "").strip()
-        if result.returncode == 0:
+        ok, output = run_xdotool_command(*args, timeout=1.5)
+        if ok:
             return True, output
-        return False, error or output
+        action = str(args[0] or "") if args else "unknown"
+        if action in {"windowactivate", "key"}:
+            self._note_info(
+                f"xdotool_action:{action}",
+                f"xdotool {' '.join(args)} failed: {output or 'unknown error'}",
+                min_interval=2.0,
+            )
+        return False, output
 
     def _parse_xdotool_window_ids(self, raw: str) -> list[int]:
         window_ids: list[int] = []
@@ -519,95 +541,32 @@ class PPTWorker(QObject):
         return window_ids
 
     def _linux_window_looks_like_slideshow(self, window_id: int) -> bool:
-        if not window_id:
-            return False
-        title = ""
-        class_name = ""
-        ok, output = self._run_xdotool("getwindowname", str(int(window_id)))
-        if ok:
-            title = output
-        ok, output = self._run_xdotool("getwindowclassname", str(int(window_id)))
-        if ok:
-            class_name = output
+        return bool(linux_window_looks_like_slideshow(window_id=window_id))
 
-        title_lower = str(title or "").strip().lower()
-        class_lower = str(class_name or "").strip().lower()
-        if self._title_looks_like_slideshow(title):
-            return True
-        if any(hint in title_lower for hint in SLIDESHOW_WINDOW_TITLE_HINTS):
-            return True
-        if any(token in class_lower for token in ("screenclass", "wpp", "wps", "yozo", "powerpnt")):
-            return True
-        return False
+    def _get_linux_window_snapshot(self, window_id: int) -> dict:
+        snapshot = get_linux_window_snapshot(window_id)
+        return {
+            "window_id": int(snapshot.get("window_id", 0) or 0),
+            "title": str(snapshot.get("title", "") or ""),
+            "class_name": str(snapshot.get("class", "") or ""),
+            "pid": int(snapshot.get("pid", 0) or 0),
+            "match_source": str(snapshot.get("match_source", "") or ""),
+        }
+
+    def _format_linux_window_snapshot(self, window_id: int, title: str = "", class_name: str = "") -> str:
+        return format_linux_window_snapshot(
+            {
+                "window_id": int(window_id or 0),
+                "title": str(title or ""),
+                "class": str(class_name or ""),
+            }
+        )
+
+    def _infer_linux_presentation_kind(self, title: str, class_name: str) -> str | None:
+        return infer_linux_presentation_kind(title, class_name)
 
     def _find_linux_slideshow_window_id(self) -> int:
-        if not self._can_use_linux_xdotool():
-            return 0
-
-        candidates: list[int] = []
-        seen: set[int] = set()
-
-        def add_candidate(window_id: int):
-            try:
-                value = int(window_id or 0)
-            except Exception:
-                value = 0
-            if value <= 0 or value in seen:
-                return
-            seen.add(value)
-            candidates.append(value)
-
-        add_candidate(self._slideshow_hwnd)
-        if candidates and self._linux_window_looks_like_slideshow(candidates[0]):
-            return candidates[0]
-
-        active_window_id = 0
-        ok, output = self._run_xdotool("getactivewindow")
-        if ok:
-            ids = self._parse_xdotool_window_ids(output)
-            if ids:
-                active_window_id = ids[0]
-                add_candidate(active_window_id)
-                if self._linux_window_looks_like_slideshow(active_window_id):
-                    return active_window_id
-
-        search_terms = list(STRICT_SLIDESHOW_WINDOW_TITLE_HINTS) + [
-            hint for hint in SLIDESHOW_WINDOW_TITLE_HINTS if hint not in STRICT_SLIDESHOW_WINDOW_TITLE_HINTS
-        ]
-        for term in search_terms:
-            ok, output = self._run_xdotool("search", "--onlyvisible", "--name", term)
-            if not ok:
-                continue
-            for window_id in self._parse_xdotool_window_ids(output):
-                add_candidate(window_id)
-
-        if shutil.which("pgrep"):
-            for pattern in ("kwpp", "wpp", "wps", "powerpnt", "yozo"):
-                try:
-                    result = subprocess.run(
-                        ["pgrep", "-f", pattern],
-                        capture_output=True,
-                        text=True,
-                        timeout=1.0,
-                    )
-                except Exception:
-                    continue
-                if result.returncode != 0:
-                    continue
-                for line in result.stdout.splitlines():
-                    pid = line.strip()
-                    if not pid:
-                        continue
-                    ok, output = self._run_xdotool("search", "--onlyvisible", "--pid", pid)
-                    if not ok:
-                        continue
-                    for window_id in self._parse_xdotool_window_ids(output):
-                        add_candidate(window_id)
-
-        for window_id in candidates:
-            if self._linux_window_looks_like_slideshow(window_id):
-                return window_id
-        return int(active_window_id or 0)
+        return int(find_linux_slideshow_window_id(self._slideshow_hwnd) or 0)
 
     def _focus_linux_slideshow_window(self, window_id: int = 0) -> int:
         try:
@@ -699,7 +658,36 @@ class PPTWorker(QObject):
                 return
             self._last_error_by_key[key] = now
             try:
-                print(f"[ppt_monitor] {key} failed: {type(exc).__name__}: {exc}")
+                print(
+                    f"[ppt_monitor] {key} failed: {type(exc).__name__}: {exc}",
+                    flush=True,
+                )
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _note_info(self, key: str, message: str, *, min_interval: float = 2.0):
+        try:
+            now = time.monotonic()
+            last = float(self._last_info_by_key.get(key, 0.0) or 0.0)
+            if now - last < float(min_interval):
+                return
+            self._last_info_by_key[key] = now
+            try:
+                print(f"[ppt_monitor] {message}", flush=True)
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _note_state(self, key: str, value, message: str):
+        try:
+            if self._last_state_by_key.get(key) == value:
+                return
+            self._last_state_by_key[key] = value
+            try:
+                print(f"[ppt_monitor] {message}", flush=True)
             except Exception:
                 pass
         except Exception:
@@ -785,16 +773,34 @@ class PPTWorker(QObject):
 
     @Slot()
     def start(self):
-        if not pythoncom:
+        if not pythoncom and not sys.platform.startswith("linux"):
+            self._note_info(
+                "start_no_pythoncom",
+                "pythoncom is unavailable; PPT monitor cannot start on this platform.",
+                min_interval=30.0,
+            )
             return
 
-        if not self._com_initialized:
+        if pythoncom and not self._com_initialized:
             pythoncom.CoInitialize()
             self._com_initialized = True
+            self._note_info("com_initialized", "COM initialized for PPT monitor.", min_interval=30.0)
+        elif sys.platform.startswith("linux"):
+            self._note_info(
+                "linux_timer_start",
+                "Starting PPT monitor in Linux xdotool probe mode (COM unavailable).",
+                min_interval=30.0,
+            )
+            self._note_info(
+                "linux_tool_capabilities",
+                "Linux X11 tools: " + describe_linux_tool_capabilities(),
+                min_interval=30.0,
+            )
             
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._check_ppt_state)
         self._timer.start(200)
+        self._note_info("timer_started", "PPT monitor timer started (interval=200ms).", min_interval=30.0)
 
     @Slot()
     def stop(self):
@@ -808,6 +814,7 @@ class PPTWorker(QObject):
             except Exception:
                 pass
             self._com_initialized = False
+        self._note_info("timer_stopped", "PPT monitor stopped.", min_interval=0.0)
         self.finished.emit()
 
     def _get_active_app(self):
@@ -896,6 +903,14 @@ class PPTWorker(QObject):
     def _check_ppt_state(self):
         try:
             if not win32com:
+                if sys.platform.startswith("linux"):
+                    self._check_linux_x11_state()
+                else:
+                    self._note_info(
+                        "check_no_win32com",
+                        "win32com is unavailable; skipping PPT/WPS COM probing.",
+                        min_interval=30.0,
+                    )
                 return
             if self._active_kind == "wps":
                 self._check_wps_state()
@@ -981,8 +996,111 @@ class PPTWorker(QObject):
                 self._check_yozo_state()
             return
 
+    def _check_linux_x11_state(self):
+        now = time.monotonic()
+        if now - self._last_linux_probe_at < 0.8:
+            return
+        self._last_linux_probe_at = now
+
+        if not self._can_use_linux_xdotool():
+            self._note_info(
+                "linux_probe_unavailable",
+                "Linux slideshow probe unavailable: " + describe_linux_tool_capabilities(),
+                min_interval=5.0,
+            )
+            if self._running:
+                self._note_info(
+                    "linux_probe_stop",
+                    "Linux slideshow tracking stopped because xdotool probe is unavailable.",
+                    min_interval=1.0,
+                )
+                self._handle_stop(self._active_kind or "wps")
+            return
+
+        active_snapshot = get_active_window_snapshot()
+        active_summary = format_linux_window_snapshot(active_snapshot)
+        self._note_state(
+            "linux_active_window",
+            active_summary,
+            f"Linux active window {active_summary}",
+        )
+
+        slideshow_snapshot = find_linux_slideshow_window(self._slideshow_hwnd)
+        window_id = int(slideshow_snapshot.get("window_id", 0) or 0)
+
+        if not window_id:
+            if window_looks_like_editor(
+                title=str(active_snapshot.get("title", "") or ""),
+                class_name=str(active_snapshot.get("class", "") or ""),
+            ):
+                reason = "editor-window"
+            elif snapshot_is_transient(active_snapshot):
+                reason = "transient-window"
+            else:
+                reason = "no-slideshow-hint"
+            self._note_state(
+                "linux_no_slideshow",
+                f"{reason}:{active_summary}",
+                f"No Linux slideshow window matched ({reason}); active={active_summary}",
+            )
+            if self._running:
+                elapsed = now - float(self._last_linux_slideshow_seen_at or 0.0)
+                if reason in {"editor-window", "transient-window"} and elapsed < 1.5:
+                    self._note_state(
+                        "linux_slideshow_hold",
+                        f"{reason}:{active_summary}",
+                        f"Holding Linux slideshow state for {reason}; "
+                        f"last_seen={elapsed:.2f}s active={active_summary}",
+                    )
+                    return
+                self._note_info(
+                    "linux_slideshow_ended",
+                    "Linux slideshow window disappeared; emitting slideshow_ended.",
+                    min_interval=1.0,
+                )
+                self._handle_stop(self._active_kind or "wps")
+            return
+
+        kind = str(slideshow_snapshot.get("kind", "") or "") or self._active_kind or "wps"
+        match_source = str(slideshow_snapshot.get("match_source", "") or "unknown")
+        match_summary = format_linux_window_snapshot(slideshow_snapshot)
+        self._note_state(
+            "linux_matched_slideshow",
+            f"{kind}:{match_source}:{match_summary}",
+            f"Linux slideshow matched kind={kind} source={match_source} {match_summary}",
+        )
+        self._last_linux_slideshow_seen_at = now
+
+        self._control_mode = "linux_x11"
+        if kind != self._active_kind:
+            self._set_active_kind(kind)
+        if int(window_id) != int(self._slideshow_hwnd or 0):
+            self._slideshow_hwnd = int(window_id)
+            self._note_info(
+                "linux_hwnd_changed",
+                f"Linux slideshow hwnd -> {int(window_id)}",
+                min_interval=0.0,
+            )
+            self.slideshow_hwnd_changed.emit(int(window_id))
+        if not self._running:
+            self._running = True
+            self._slideshow_started_at = time.monotonic()
+            self._note_info(
+                "linux_slideshow_started",
+                f"Linux slideshow started: kind={kind}, hwnd={int(window_id)}",
+                min_interval=0.0,
+            )
+            self.slideshow_started.emit()
+            self._init_degraded_page_info()
+
     def _check_wps_state(self):
         if not win32com:
+            if sys.platform.startswith("linux"):
+                self._note_info(
+                    "wps_com_skipped_linux",
+                    "Skipping WPS COM polling on Linux; using xdotool slideshow probing instead.",
+                    min_interval=30.0,
+                )
             return
         try:
             self.wps_app = self._safe_get_active_object("KWPP.Application")
@@ -1026,6 +1144,12 @@ class PPTWorker(QObject):
 
     def _check_yozo_state(self):
         if not win32com:
+            if sys.platform.startswith("linux"):
+                self._note_info(
+                    "yozo_com_skipped_linux",
+                    "Skipping Yozo COM polling on Linux; using xdotool slideshow probing instead.",
+                    min_interval=30.0,
+                )
             return
         try:
             self.yozo_app = self._safe_get_active_object_any(YOZO_COM_PROG_IDS)
@@ -1069,6 +1193,12 @@ class PPTWorker(QObject):
 
     def _handle_stop(self, kind):
         if self._running and (self._active_kind == kind or self._active_kind is None):
+            self._note_info(
+                "handle_stop",
+                "Stopping slideshow tracking for "
+                f"{kind or self._active_kind or 'unknown'}; hwnd={int(self._slideshow_hwnd or 0)}",
+                min_interval=0.0,
+            )
             self._running = False
             self._set_active_kind(None)
             self._pending_ink_prompt = False
@@ -1087,6 +1217,7 @@ class PPTWorker(QObject):
                 self._slideshow_hwnd = 0
                 self.slideshow_hwnd_changed.emit(0)
             self._slideshow_started_at = 0.0
+            self._last_linux_slideshow_seen_at = 0.0
 
     def _update_window_rect(self, ss_win):
         try:

@@ -17,21 +17,38 @@ if sys.platform == "linux":
     _HAS_DISPLAY = _HAS_X11_DISPLAY or _HAS_WAYLAND_DISPLAY
     _LINUX_QPA_OVERRIDE = str(os.environ.get("LUMINALIUM_QPA_PLATFORM", "")).strip()
     _FORCE_X11 = str(os.environ.get("LUMINALIUM_FORCE_X11", "")).strip().lower() in ("1", "true", "yes")
-    if _FORCE_X11:
-        os.environ["QT_QPA_PLATFORM"] = "xcb"
-        print("[Main] LUMINALIUM_FORCE_X11 is set, using X11/XWayland for WPS RPC compatibility")
     if "QT_QPA_PLATFORM" not in os.environ:
         if _LINUX_QPA_OVERRIDE:
             os.environ["QT_QPA_PLATFORM"] = _LINUX_QPA_OVERRIDE
-        elif _FORCE_X11 and _HAS_X11_DISPLAY:
-            os.environ["QT_QPA_PLATFORM"] = "xcb"
-            print("[Main] LUMINALIUM_FORCE_X11 is set, using X11/XWayland for WPS RPC compatibility")
-        elif _HAS_WAYLAND_DISPLAY:
-            os.environ["QT_QPA_PLATFORM"] = "wayland"
         elif _HAS_X11_DISPLAY:
             os.environ["QT_QPA_PLATFORM"] = "xcb"
+            if _FORCE_X11:
+                print("[Main] LUMINALIUM_FORCE_X11 is set, using X11/XWayland for WPS RPC compatibility")
+        elif _HAS_WAYLAND_DISPLAY:
+            os.environ["QT_QPA_PLATFORM"] = "wayland"
         else:
             os.environ["QT_QPA_PLATFORM"] = "offscreen"
+    _SELECTED_QPA_PLATFORM = str(os.environ.get("QT_QPA_PLATFORM", "")).strip().lower()
+    if _SELECTED_QPA_PLATFORM.startswith("xcb") and _HAS_X11_DISPLAY:
+        if _HAS_WAYLAND_DISPLAY:
+            os.environ["LUMINALIUM_XWAYLAND_SESSION"] = "1"
+            original_wayland_display = os.environ.get("WAYLAND_DISPLAY")
+            if original_wayland_display:
+                os.environ["LUMINALIUM_ORIGINAL_WAYLAND_DISPLAY"] = original_wayland_display
+                os.environ.pop("WAYLAND_DISPLAY", None)
+            if "LUMINALIUM_ORIGINAL_XDG_SESSION_TYPE" not in os.environ:
+                current_session_type = os.environ.get("XDG_SESSION_TYPE")
+                os.environ["LUMINALIUM_ORIGINAL_XDG_SESSION_TYPE"] = (
+                    current_session_type if current_session_type is not None else ""
+                )
+            os.environ["XDG_SESSION_TYPE"] = "x11"
+            print(
+                "[Main] Normalized Linux environment for QtWebEngine:"
+                " xcb session will hide WAYLAND_DISPLAY and force XDG_SESSION_TYPE=x11",
+                flush=True,
+            )
+        else:
+            os.environ.pop("LUMINALIUM_XWAYLAND_SESSION", None)
     print(
         "[Main] Linux display detection:"
         f" wayland={_HAS_WAYLAND_DISPLAY}"
@@ -64,14 +81,13 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 
 
 from ppt_assistant.core.ppt_monitor import PPTMonitor
-from ppt_assistant.ui.overlay import OverlayWindow, create_overlay_window
-from plugins.builtins.settings.plugin import SettingsPlugin
-from plugins.builtins.timer.plugin import TimerPlugin
+from ppt_assistant.ui.overlay import create_overlay_window
 from ppt_assistant.ui.tray import SystemTray, is_system_tray_supported
 from ppt_assistant.core.config import cfg, SETTINGS_PATH, PLUGINS_DIR, reload_cfg, _apply_theme_and_color, Theme, qconfig, FIRST_RUN
 from ppt_assistant.core.timer_manager import TimerManager
 from ppt_assistant.core.i18n import t
 from ppt_assistant.core.app_icon import load_app_icon
+from ppt_assistant.core.linux_focus_watcher import LinuxFocusWatcher
 from ppt_assistant.core.win_focus_watcher import WindowsFocusWatcher
 
 
@@ -220,6 +236,10 @@ def _apply_graphics_settings():
             "--enable-software-rasterizer",
             "--no-sandbox",
         ]
+        if qpa_platform == "xcb" and _HAS_X11_DISPLAY:
+            for flag in ("--disable-features=UseOzonePlatform",):
+                if flag not in flags:
+                    flags.append(flag)
         current = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
         merged = current.split()
         for flag in flags:
@@ -305,6 +325,12 @@ def _load_settings_json():
             continue
         return data if isinstance(data, dict) else {}
     return {}
+
+
+def _create_focus_watcher(parent):
+    if sys.platform == "linux":
+        return LinuxFocusWatcher(parent)
+    return WindowsFocusWatcher(parent)
 
 
 def _get_settings_reset_marker_path():
@@ -1297,7 +1323,7 @@ class PPTAssistantApp:
         self._splash = splash
         self.tray = None
         self._timer_manager = TimerManager()
-        self._focus_watcher = WindowsFocusWatcher(self.app)
+        self._focus_watcher = _create_focus_watcher(self.app)
         self._focus_watcher.start()
         self._last_timer_notify_at = 0.0
         self._reloading_overlay = False
@@ -1352,8 +1378,10 @@ class PPTAssistantApp:
         # Yield to event loop BEFORE creating heavy UI to prevent freeze
         # We can split Overlay creation if needed, but yielding before is key
         pass 
-        
+
+        print("[Main] Creating overlay window...", flush=True)
         self.overlay = create_overlay_window()
+        print(f"[Main] Overlay window created: {type(self.overlay).__name__}", flush=True)
         
         # Step 5: Plugins (IO/Process - expensive)
         yield 60, "loading_plugins"
@@ -1371,26 +1399,36 @@ class PPTAssistantApp:
         
         # Step 6: Tray (UI)
         yield 80, "init_tray"
+        print("[Main] Initializing tray...", flush=True)
         if _should_enable_system_tray():
             self.tray = SystemTray()
         else:
             print("[Main] System tray disabled or unavailable. Set LUMINALIUM_ENABLE_TRAY=1 to force-enable it.")
+        print("[Main] Tray initialization finished.", flush=True)
         
         # Step 7: Finalize connections
         yield 85, "finalizing"
+        print("[Main] Binding overlay to monitor...", flush=True)
         self.overlay.set_monitor(self.monitor)
+        print("[Main] Overlay bound to monitor.", flush=True)
 
         yield 90, "finalizing"
+        print("[Main] Connecting app signals...", flush=True)
         self._connect_signals()
+        print("[Main] App signals connected.", flush=True)
 
         yield 95, "finalizing"
+        print("[Main] Starting PPT monitor...", flush=True)
         self.monitor.start_monitoring()
+        print("[Main] PPT monitor start requested.", flush=True)
 
         if cfg.compatibilityMode.value:
             self.overlay.show()
 
         if self._splash is not None:
+            print("[Main] Finishing splash...", flush=True)
             self._splash.finish()
+            print("[Main] Splash finished.", flush=True)
 
     def _perform_init_step(self):
         try:
@@ -1581,6 +1619,15 @@ class PPTAssistantApp:
 
     @Slot()
     def on_slideshow_start(self):
+        try:
+            print(
+                "[Main] slideshow started: "
+                f"kind={getattr(self.monitor, '_active_kind', None) or 'unknown'}, "
+                f"hwnd={int(getattr(self.monitor, '_slideshow_hwnd', 0) or 0)}",
+                flush=True,
+            )
+        except Exception:
+            pass
         self._slideshow_running = True
         try:
             self.overlay.on_slideshow_start_cleanup()
@@ -1613,6 +1660,10 @@ class PPTAssistantApp:
     
     @Slot()
     def on_slideshow_end(self):
+        try:
+            print("[Main] slideshow ended.", flush=True)
+        except Exception:
+            pass
         self._slideshow_running = False
         try:
             self.overlay.on_slideshow_end_cleanup()
@@ -1658,6 +1709,10 @@ class PPTAssistantApp:
 
     @Slot(bool)
     def _on_focus_on_slideshow_changed(self, focused: bool):
+        try:
+            print(f"[Main] focus_on_slideshow -> {bool(focused)}", flush=True)
+        except Exception:
+            pass
         try:
             if cfg.compatibilityMode.value:
                 return

@@ -28,18 +28,67 @@ import subprocess
 PLUGIN_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "plugins", "builtins")
 
 
-def _is_wayland_session() -> bool:
+def _qt_platform_name() -> str:
+    app = QGuiApplication.instance()
+    if app is not None:
+        try:
+            return str(app.platformName() or "").strip().lower()
+        except Exception:
+            return ""
+    return ""
+
+
+def _is_wayland_backend() -> bool:
+    platform_name = _qt_platform_name()
+    if platform_name:
+        if platform_name.startswith("wayland"):
+            return True
+        if platform_name.startswith("xcb"):
+            return False
     qpa = str(os.environ.get("QT_QPA_PLATFORM", "")).strip().lower()
-    if qpa.startswith("wayland"):
-        return True
+    if qpa:
+        return qpa.startswith("wayland")
     return bool(os.environ.get("WAYLAND_DISPLAY"))
 
 
+def _is_wayland_compositor_session() -> bool:
+    marker = str(os.environ.get("LUMINALIUM_XWAYLAND_SESSION", "")).strip().lower()
+    if marker in ("1", "true", "yes", "on"):
+        return True
+    platform_name = _qt_platform_name()
+    if platform_name.startswith("wayland"):
+        return True
+    if bool(os.environ.get("WAYLAND_DISPLAY")):
+        return True
+    qpa = str(os.environ.get("QT_QPA_PLATFORM", "")).strip().lower()
+    return qpa.startswith("wayland")
+
+
 def _should_use_webengine_overlay() -> bool:
-    if not _is_wayland_session():
+    if not _is_wayland_backend():
         return True
     value = str(os.environ.get("LUMINALIUM_ENABLE_WEBENGINE_OVERLAY", "")).strip().lower()
     return value in ("1", "true", "yes", "on")
+
+
+def _should_use_linux_compat_overlay_page() -> bool:
+    if sys.platform != "linux":
+        return False
+    if not _is_wayland_compositor_session():
+        return False
+    value = str(os.environ.get("LUMINALIUM_FORCE_FULL_OVERLAY_HTML", "")).strip().lower()
+    return value not in ("1", "true", "yes", "on")
+
+
+def _should_use_linux_widget_overlay() -> bool:
+    if sys.platform != "linux":
+        return False
+    if not bool(os.environ.get("DISPLAY")):
+        return False
+    if not _is_wayland_compositor_session():
+        return False
+    force_webengine = str(os.environ.get("LUMINALIUM_ENABLE_WEBENGINE_OVERLAY", "")).strip().lower()
+    return force_webengine not in ("1", "true", "yes", "on")
 
 class OverlayBridge(QObject):
     def __init__(self, overlay):
@@ -305,78 +354,66 @@ class OverlayWindow(QWebEngineView):
         
         self._page_ready = False
         self._pending_scripts = []
-        self._wayland_compatible_mode = _is_wayland_session()
+        self._runtime_initialized = False
+        self._post_load_initialized = False
+        self._webengine_env_override = None
+        self._wayland_compatible_mode = _is_wayland_compositor_session()
+        self._linux_compat_page_mode = _should_use_linux_compat_overlay_page()
 
         # Background thumbnail caching
         self._background_thumbnail_timer = None
         self._pending_thumbnails = []
         self._cached_thumbnails = set()
         
-        # Configure WebEngine profile before any page operations
-        try:
-            profile = self.page().profile()
-            cache_path = os.path.join(tempfile.gettempdir(), "luminalium_overlay_cache")
-            
-            # Clear old cache directory if it exists and is too large (corrupted)
-            if os.path.exists(cache_path):
-                try:
-                    import shutil
-                    cache_size = sum(os.path.getsize(os.path.join(dirpath, filename))
-                                   for dirpath, dirnames, filenames in os.walk(cache_path)
-                                   for filename in filenames)
-                    # If cache is over 500MB, it's likely corrupted - clear it
-                    if cache_size > 500 * 1024 * 1024:
-                        print(f"[Overlay] Clearing corrupted cache ({cache_size / 1024 / 1024:.1f}MB)", file=sys.stderr)
-                        shutil.rmtree(cache_path, ignore_errors=True)
-                except Exception as e:
-                    print(f"[Overlay] Error checking cache: {e}", file=sys.stderr)
-            
-            profile.setCachePath(cache_path)
-            profile.setPersistentStoragePath(cache_path)
-            profile.setHttpCacheType(profile.HttpCacheType.DiskHttpCache)
-            profile.setHttpCacheMaximumSize(50 * 1024 * 1024)  # 50 MB limit
-            
-            # Disable problematic features that cause heap corruption
-            settings = self.page().settings()
-            from PySide6.QtWebEngineCore import QWebEngineSettings
-            for attr_name, enabled in [
-                ("LocalStorageEnabled", False),
-                ("SessionStorageEnabled", False),
-                ("WebGLEnabled", False),
-                ("Accelerated2dCanvasEnabled", False),
-                ("ScrollAnimatorEnabled", not cfg.disableAnimations.value),
-            ]:
-                attr = getattr(QWebEngineSettings.WebAttribute, attr_name, None)
-                if attr is not None:
-                    settings.setAttribute(attr, enabled)
-        except Exception as e:
-            print(f"[Overlay] Error configuring profile: {e}", file=sys.stderr)
-        
         if self._wayland_compatible_mode:
             self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
             self.setAttribute(Qt.WA_TranslucentBackground, False)
             self.setAttribute(Qt.WA_NoSystemBackground, False)
             self.setStyleSheet("background: #101010;")
-            self.page().setBackgroundColor(QColor("#101010"))
-            print("[Overlay] Wayland compatibility mode enabled: using conservative window flags and opaque background.")
+            print(
+                "[Overlay] Wayland/XWayland compatibility mode enabled: "
+                "using conservative window flags and opaque background."
+            )
         else:
             self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus | Qt.Tool | Qt.WindowStaysOnTopHint)
             self.setAttribute(Qt.WA_TranslucentBackground)
             self.setAttribute(Qt.WA_NoSystemBackground)
-            self.page().setBackgroundColor(Qt.transparent)
-        
-        self.channel = QWebChannel()
-        self.bridge = OverlayBridge(self)
-        self.channel.registerObject("bridge", self.bridge)
-        self.page().setWebChannel(self.channel)
-        self.loadFinished.connect(self._on_load_finished)
-        
-        theme_name = cfg.overlayTheme.value
 
+        self.monitor = None
+        self.plugins = []
+        self._icon_cache = {}
+        self._is_light = False
+        self._slideshow_hwnd = 0
+        self._protected_view = False
+        self._presentation_readonly = False
+        self._active_on_slideshow = False
+        self._ink_prompt_view = None
+        self._ink_prompt_bridge = None
+        
+        self._smtc_info = {"status": "", "title": "", "position_ms": 0, "duration_ms": 0}
+        self._smtc_thread = None
+        self._stop_smtc = False
+        self.status_timer = None
+        
+        screen = QGuiApplication.primaryScreen()
+        if screen:
+            self.setGeometry(screen.geometry())
+            
+        icon = load_app_icon()
+        if not icon.isNull():
+            self.setWindowIcon(icon)
+        
+        # Crash recovery tracking
+        self._render_crash_count = 0
+        self._max_reload_attempts = 3
+        self._crash_recovery_timer = None
+
+    def _resolve_theme_path(self) -> str:
+        theme_name = cfg.overlayTheme.value
         root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         if getattr(sys, "frozen", False):
             root_dir = os.path.dirname(sys.executable)
-            
+
         def resolve_user_theme_path(name: str) -> Optional[str]:
             theme_dir = os.path.join(root_dir, "user", "themes", name)
             if not os.path.isdir(theme_dir):
@@ -401,57 +438,130 @@ class OverlayWindow(QWebEngineView):
             return html_path
 
         theme_path = resolve_user_theme_path(theme_name)
-
         if not theme_path:
-             theme_path = resolve_user_theme_path("default")
+            theme_path = resolve_user_theme_path("default")
         if not theme_path:
-             theme_path = os.path.join(root_dir, "themes", theme_name, "index.html")
+            theme_path = os.path.join(root_dir, "themes", theme_name, "index.html")
         if not os.path.exists(theme_path):
-             theme_path = os.path.join(root_dir, "themes", "default", "index.html")
-
+            theme_path = os.path.join(root_dir, "themes", "default", "index.html")
         if not os.path.exists(theme_path):
-             theme_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "overlay.html")
+            theme_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "overlay.html")
+        return theme_path
 
-        url = QUrl.fromLocalFile(theme_path)
-        self.load(url)
-        
-        self.monitor = None
-        self.plugins = []
-        self._icon_cache = {}
-        self._is_light = False
-        self._slideshow_hwnd = 0
-        self._protected_view = False
-        self._presentation_readonly = False
-        self._active_on_slideshow = False
-        self._ink_prompt_view = None
-        self._ink_prompt_bridge = None
-        
-        self._smtc_info = {"status": "", "title": "", "position_ms": 0, "duration_ms": 0}
-        self._smtc_thread = None
-        self._stop_smtc = False
-        self._start_smtc_thread()
+    def _resolve_runtime_page_path(self) -> str:
+        if self._linux_compat_page_mode:
+            compat_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "overlay_linux_compat.html")
+            if os.path.exists(compat_path):
+                return compat_path
+        return self._resolve_theme_path()
 
-        self.load_plugins()
-        self.bind_config_signals()
-        
-        self.status_timer = QTimer(self)
-        self.status_timer.timeout.connect(self._update_system_status)
-        self.status_timer.start(2000)
-        
-        screen = QGuiApplication.primaryScreen()
-        if screen:
-            self.setGeometry(screen.geometry())
-            
-        icon = load_app_icon()
-        if not icon.isNull():
-            self.setWindowIcon(icon)
-        
-        # Crash recovery tracking
-        self._render_crash_count = 0
-        self._max_reload_attempts = 3
-        self._crash_recovery_timer = None
-            
+    def _ensure_runtime_initialized(self):
+        if self._runtime_initialized:
+            return
+        self._runtime_initialized = True
+        print("[Overlay] Initializing WebEngine runtime...", flush=True)
+        try:
+            profile = self.page().profile()
+            cache_path = os.path.join(tempfile.gettempdir(), "luminalium_overlay_cache")
+
+            if os.path.exists(cache_path):
+                try:
+                    import shutil
+                    cache_size = sum(
+                        os.path.getsize(os.path.join(dirpath, filename))
+                        for dirpath, dirnames, filenames in os.walk(cache_path)
+                        for filename in filenames
+                    )
+                    if cache_size > 500 * 1024 * 1024:
+                        print(
+                            f"[Overlay] Clearing corrupted cache ({cache_size / 1024 / 1024:.1f}MB)",
+                            file=sys.stderr,
+                        )
+                        shutil.rmtree(cache_path, ignore_errors=True)
+                except Exception as e:
+                    print(f"[Overlay] Error checking cache: {e}", file=sys.stderr)
+
+            profile.setCachePath(cache_path)
+            profile.setPersistentStoragePath(cache_path)
+            profile.setHttpCacheType(profile.HttpCacheType.DiskHttpCache)
+            profile.setHttpCacheMaximumSize(50 * 1024 * 1024)
+
+            settings = self.page().settings()
+            from PySide6.QtWebEngineCore import QWebEngineSettings
+            for attr_name, enabled in [
+                ("LocalStorageEnabled", False),
+                ("SessionStorageEnabled", False),
+                ("WebGLEnabled", False),
+                ("Accelerated2dCanvasEnabled", False),
+                ("ScrollAnimatorEnabled", not cfg.disableAnimations.value),
+            ]:
+                attr = getattr(QWebEngineSettings.WebAttribute, attr_name, None)
+                if attr is not None:
+                    settings.setAttribute(attr, enabled)
+        except Exception as e:
+            print(f"[Overlay] Error configuring profile: {e}", file=sys.stderr)
+
+        if self._wayland_compatible_mode:
+            self.page().setBackgroundColor(QColor("#101010"))
+        else:
+            self.page().setBackgroundColor(Qt.transparent)
+
+        self.channel = QWebChannel()
+        self.bridge = OverlayBridge(self)
+        self.channel.registerObject("bridge", self.bridge)
+        self.page().setWebChannel(self.channel)
+        print("[Overlay] WebChannel ready.", flush=True)
+        self.loadFinished.connect(self._on_load_finished)
         self.renderProcessTerminated.connect(self._on_render_process_terminated)
+
+        theme_path = self._resolve_runtime_page_path()
+        self._apply_linux_webengine_env_override()
+        if self._linux_compat_page_mode:
+            print(
+                "[Overlay] Linux compatibility overlay page enabled for XWayland stability.",
+                flush=True,
+            )
+        print(f"[Overlay] Loading overlay page: {theme_path}", flush=True)
+        self.load(QUrl.fromLocalFile(theme_path))
+
+    def _apply_linux_webengine_env_override(self):
+        if self._webengine_env_override is not None:
+            return
+        if sys.platform != "linux":
+            return
+        platform_name = _qt_platform_name()
+        if not platform_name.startswith("xcb"):
+            return
+        override = {}
+        if "WAYLAND_DISPLAY" in os.environ:
+            override["WAYLAND_DISPLAY"] = os.environ.get("WAYLAND_DISPLAY")
+            os.environ.pop("WAYLAND_DISPLAY", None)
+        current_session_type = os.environ.get("XDG_SESSION_TYPE")
+        if current_session_type != "x11":
+            override["XDG_SESSION_TYPE"] = current_session_type
+            os.environ["XDG_SESSION_TYPE"] = "x11"
+        if not override:
+            return
+        self._webengine_env_override = override
+        print(
+            "[Overlay] Applied temporary X11 environment override for WebEngine runtime.",
+            flush=True,
+        )
+
+    def _restore_linux_webengine_env_override(self):
+        if self._webengine_env_override is None:
+            return
+        override = dict(self._webengine_env_override)
+        self._webengine_env_override = None
+        for key, previous in override.items():
+            if previous is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = previous
+        print(
+            "[Overlay] Restored environment after WebEngine startup.",
+            flush=True,
+        )
 
     def _run_javascript(self, script: str):
         if not script:
@@ -479,9 +589,27 @@ class OverlayWindow(QWebEngineView):
                 break
 
     def _on_load_finished(self, ok: bool):
+        self._restore_linux_webengine_env_override()
         self._page_ready = bool(ok)
+        print(f"[Overlay] loadFinished ok={bool(ok)}", flush=True)
         if self._page_ready:
+            self._ensure_post_load_initialized()
             self._flush_pending_scripts()
+
+    def _ensure_post_load_initialized(self):
+        if self._post_load_initialized:
+            return
+        self._post_load_initialized = True
+        print("[Overlay] Initializing post-load services...", flush=True)
+        self._start_smtc_thread()
+        self.load_plugins()
+        self.bind_config_signals()
+        if self.status_timer is None:
+            self.status_timer = QTimer(self)
+            self.status_timer.timeout.connect(self._update_system_status)
+            self.status_timer.start(2000)
+        self.apply_initial_state()
+        print("[Overlay] Post-load services ready.", flush=True)
 
     def apply_initial_state(self):
         if self.monitor:
@@ -509,6 +637,7 @@ class OverlayWindow(QWebEngineView):
             pass
 
     def _on_render_process_terminated(self, status, exit_code):
+        self._restore_linux_webengine_env_override()
         status_name = ""
         try:
             status_name = str(getattr(status, "name", status))
@@ -1186,6 +1315,7 @@ Item {
         cfg.disabledTools.valueChanged.connect(lambda *_: self.update_config())
 
     def showEvent(self, event):
+        self._ensure_runtime_initialized()
         super().showEvent(event)
         if self._wayland_compatible_mode:
             self.page().setBackgroundColor(QColor("#101010"))
@@ -1213,6 +1343,7 @@ Item {
         self._active_on_slideshow = bool(active)
         if self._active_on_slideshow:
             try:
+                self._ensure_runtime_initialized()
                 self.show()
                 self.raise_()
                 self._ensure_topmost()
@@ -1266,6 +1397,10 @@ Item {
 
 
 def create_overlay_window():
+    if _should_use_linux_widget_overlay():
+        from ppt_assistant.ui.linux_widget_overlay import LinuxCompatOverlayWindow
+
+        return LinuxCompatOverlayWindow()
     if _should_use_webengine_overlay():
         return OverlayWindow()
     return WaylandFallbackOverlayWindow()

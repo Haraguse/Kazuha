@@ -21,7 +21,7 @@ class SystemAPI:
         """
         return None
 
-    def get_ppt_slideshow_hwnd(self):
+    def get_ppt_slideshow_hwnd(self) -> int:
         """
         Get the HWND of the PowerPoint slideshow window.
         """
