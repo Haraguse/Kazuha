@@ -19,3 +19,4 @@ Luminalium.spec
 .nuget/
 scripts/smtc_helper/bin/
 scripts/smtc_helper/obj/
+.workbuddy

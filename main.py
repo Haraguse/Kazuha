@@ -223,13 +223,13 @@ def _apply_graphics_settings():
     if sys.platform == "linux":
         qpa_platform = str(os.environ.get("QT_QPA_PLATFORM", "")).strip().lower()
         # Force software rendering on Linux to avoid compatibility issues with Mesa/drivers
-        os.environ["QT_OPENGL"] = "software"
-        os.environ["QT_RHI_BACKEND"] = "software"
-        os.environ["QT_VULKAN_DISABLE"] = "1"
-        os.environ["QT_QUICK_BACKEND"] = "software"
+        # os.environ["QT_OPENGL"] = "software"
+        # os.environ["QT_RHI_BACKEND"] = "software"
+        # os.environ["QT_VULKAN_DISABLE"] = "1"
+        # os.environ["QT_QUICK_BACKEND"] = "software"
         os.environ["QTWEBENGINE_DISABLE_SANDBOX"] = "1"
-        if qpa_platform == "xcb" and _HAS_X11_DISPLAY:
-            os.environ["QT_XCB_FORCE_SOFTWARE_OPENGL"] = "1"
+        # if qpa_platform == "xcb" and _HAS_X11_DISPLAY:
+        #     os.environ["QT_XCB_FORCE_SOFTWARE_OPENGL"] = "1"
         flags = [
             "--disable-gpu",
             "--disable-gpu-compositing",
