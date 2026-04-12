@@ -532,6 +532,228 @@ def find_linux_slideshow_window_id(cached_window_id: int = 0) -> int:
     return int(snapshot.get("window_id", 0) or 0)
 
 
+def extract_filename_from_title(title: str) -> str | None:
+    """
+    从 WPS 演示窗口标题中提取文件名（格式为 `[文件名]`）。
+
+    Args:
+        title: 窗口标题，如 "[坚持] - WPS 演示" 或 "[presentation] WPS Presentation Slide Show"
+
+    Returns:
+        提取的文件名，如 "坚持" 或 "presentation"；如果未找到则返回 None
+    """
+    if not title:
+        return None
+
+    # 匹配 [文件名] 格式，支持中英文、空格、特殊字符
+    match = re.search(r'\[([^\]]+)\]', str(title))
+    if match:
+        filename = match.group(1).strip()
+        return filename if filename else None
+    return None
+
+
+def find_ppt_path_by_pid(pid: int, filename: str) -> str | None:
+    """
+    通过进程 ID 在 /proc/{pid}/fd 中查找匹配文件名的完整路径。
+
+    Args:
+        pid: 进程 ID
+        filename: 要查找的文件名（不含扩展名）
+
+    Returns:
+        完整文件路径；如果未找到则返回 None
+    """
+    if not pid or not filename:
+        return None
+
+    fd_dir = f"/proc/{pid}/fd"
+    if not os.path.isdir(fd_dir):
+        return None
+
+    try:
+        # 执行 ls -la /proc/{pid}/fd
+        result = subprocess.run(
+            ["ls", "-la", fd_dir],
+            capture_output=True,
+            text=True,
+            timeout=5.0,
+        )
+        if result.returncode != 0:
+            return None
+
+        filename_lower = filename.lower()
+        candidates = []
+
+        for line in result.stdout.splitlines():
+            # 解析形如: lr-x------ 1 user user 64 Apr 11 18:03 66 -> /home/user/坚持.pptx
+            match = re.search(r'->\s*(.+)$', line)
+            if not match:
+                continue
+
+            file_path = match.group(1).strip()
+            basename = os.path.basename(file_path)
+            basename_lower = basename.lower()
+
+            # 检查文件名是否匹配（支持部分匹配）
+            if filename_lower in basename_lower:
+                # 检查是否是 PPT 文件
+                if basename_lower.endswith(('.ppt', '.pptx', '.pps', '.ppsx', '.dps', '.dpt')):
+                    candidates.append(file_path)
+
+        if not candidates:
+            return None
+
+        # 优先返回非临时文件路径（不包含 .~ 前缀的路径）
+        for path in candidates:
+            basename = os.path.basename(path)
+            if not basename.startswith('.~'):
+                return path
+
+        # 如果没有非临时文件，返回第一个候选
+        return candidates[0]
+
+    except Exception:
+        return None
+
+
+def get_ppt_path_from_slideshow_window(window_id: int) -> str | None:
+    """
+    从 WPS 放映窗口获取对应的 PPT 文件路径。
+
+    Args:
+        window_id: 窗口 ID
+
+    Returns:
+        PPT 文件的完整路径；如果未找到则返回 None
+    """
+    if not window_id:
+        return None
+
+    # 获取窗口信息
+    snapshot = get_window_snapshot(window_id)
+    title = snapshot.get("title", "")
+    pid = snapshot.get("pid", 0)
+
+    if not title or not pid:
+        return None
+
+    # 从标题提取文件名
+    filename = extract_filename_from_title(title)
+    if not filename:
+        return None
+
+    # 通过 PID 查找文件路径
+    return find_ppt_path_by_pid(pid, filename)
+
+
+def has_libreoffice() -> bool:
+    """检查系统是否安装了 LibreOffice。"""
+    return shutil.which("libreoffice") is not None or shutil.which("soffice") is not None
+
+
+def get_libreoffice_command() -> str:
+    """获取 LibreOffice 命令路径。"""
+    for cmd in ["libreoffice", "soffice"]:
+        path = shutil.which(cmd)
+        if path:
+            return path
+    return "libreoffice"
+
+
+def generate_thumbnail_with_libreoffice(
+    ppt_path: str,
+    output_path: str,
+    slide_index: int = 1,
+    width: int = 320,
+    height: int = 180,
+) -> bool:
+    """
+    使用 LibreOffice 无头模式生成 PPT 幻灯片缩略图。
+
+    Args:
+        ppt_path: PPT 文件路径
+        output_path: 输出图片路径
+        slide_index: 幻灯片索引（从1开始）
+        width: 输出图片宽度
+        height: 输出图片高度
+
+    Returns:
+        是否成功生成缩略图
+    """
+    if not has_libreoffice():
+        return False
+
+    if not os.path.exists(ppt_path):
+        return False
+
+    # 确保输出目录存在
+    output_dir = os.path.dirname(output_path)
+    if output_dir and not os.path.exists(output_dir):
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+        except Exception:
+            return False
+
+    import tempfile
+
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            libreoffice = get_libreoffice_command()
+
+            # LibreOffice 导出所有幻灯片为图片
+            # 使用 --headless 模式避免启动 GUI
+            cmd = [
+                libreoffice,
+                "--headless",
+                "--convert-to", "png",
+                "--outdir", tmpdir,
+                ppt_path,
+            ]
+
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=60.0,
+            )
+
+            if result.returncode != 0:
+                return False
+
+            # LibreOffice 生成的文件名格式: 原文件名-幻灯片索引.png
+            # 例如: test.pptx -> test-1.png, test-2.png, ...
+            base_name = os.path.splitext(os.path.basename(ppt_path))[0]
+            generated_name = f"{base_name}-{slide_index}.png"
+            generated_path = os.path.join(tmpdir, generated_name)
+
+            # 如果指定索引的文件不存在，尝试找第一个生成的文件
+            if not os.path.exists(generated_path):
+                # 查找所有生成的 png 文件
+                png_files = [
+                    f for f in os.listdir(tmpdir)
+                    if f.endswith('.png') and f.startswith(base_name)
+                ]
+                if not png_files:
+                    return False
+                # 按名称排序，取第一个
+                png_files.sort()
+                generated_path = os.path.join(tmpdir, png_files[0])
+
+            # 使用 PIL 调整图片大小
+            from PIL import Image
+
+            with Image.open(generated_path) as img:
+                # 保持宽高比，缩放到指定尺寸
+                img.thumbnail((width, height), Image.Resampling.LANCZOS)
+                img.save(output_path, format='PNG')
+
+            return True
+
+    except Exception:
+        return False
+
+
 class LinuxSystemAPI(SystemAPI):
     def __init__(self):
         self._last_slideshow_window_id = 0
