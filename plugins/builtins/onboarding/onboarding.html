@@ -1900,6 +1900,32 @@
       z-index: 1000;
     }
 
+    /* Light Theme: Yellow-Pink-Purple shine effect */
+    [data-theme="light"] .shine-effect::after {
+      background: linear-gradient(
+        60deg,
+        transparent 15%,
+        rgba(250, 204, 21, 0.3) 28%,
+        rgba(236, 72, 153, 0.5) 42%,
+        rgba(147, 51, 234, 0.35) 58%,
+        rgba(250, 204, 21, 0.25) 72%,
+        transparent 85%
+      );
+    }
+
+    /* Dark Theme: Purple-Pink-Green shine effect */
+    [data-theme="dark"] .shine-effect::after {
+      background: linear-gradient(
+        60deg,
+        transparent 15%,
+        rgba(147, 51, 234, 0.35) 28%,
+        rgba(236, 72, 153, 0.5) 42%,
+        rgba(34, 197, 94, 0.35) 58%,
+        rgba(147, 51, 234, 0.25) 72%,
+        transparent 85%
+      );
+    }
+
     .toolbar-preview-bar {
       display: inline-flex;
       align-items: center;
@@ -2356,14 +2382,19 @@
     }
 
     .switch {
-      width: 44px;
-      height: 22px;
+      width: 48px;
+      height: 24px;
       background: var(--divider);
-      border-radius: 11px;
+      border-radius: 12px;
       position: relative;
       cursor: pointer;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       flex-shrink: 0;
+      overflow: visible;
+      border: none;
+      margin-right: 20px;
+      display: inline-block;
+      vertical-align: middle;
     }
 
     .switch.active {
@@ -2373,18 +2404,39 @@
     .switch::after {
       content: "";
       position: absolute;
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 16px;
       background: var(--bg-surface);
-      border-radius: 50%;
-      top: 2px;
-      left: 2px;
+      border-radius: 8px;
+      top: 50%;
+      left: 4px;
+      margin-top: -8px;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 2px 4px var(--shadow-color);
+      box-shadow: 0 1px 2px var(--shadow-color);
     }
 
     .switch.active::after {
-      transform: translateX(20px);
+      left: calc(100% - 24px);
+      background: #fff;
+    }
+
+    .switch::before {
+      content: "关";
+      position: absolute;
+      right: -24px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      pointer-events: none;
+      transition: color 0.2s;
+      line-height: 1;
+    }
+
+    .switch.active::before {
+      content: "开";
+      color: var(--accent-blue);
     }
 
     .styled-select {
@@ -3379,37 +3431,7 @@
     }
 
     /* Switch */
-    .switch {
-      width: 44px;
-      height: 22px;
-      background: var(--divider);
-      border-radius: 11px;
-      position: relative;
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      flex-shrink: 0;
-    }
-
-    .switch.active {
-      background: var(--accent-blue);
-    }
-
-    .switch::after {
-      content: "";
-      position: absolute;
-      width: 18px;
-      height: 18px;
-      background: var(--bg-surface);
-      border-radius: 50%;
-      top: 2px;
-      left: 2px;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 2px 4px var(--shadow-color);
-    }
-
-    .switch.active::after {
-      transform: translateX(20px);
-    }
+    /* Removed - Using unified styles from the first .switch definition above */
 
     /* Custom Select */
     .custom-select-container {
@@ -3609,6 +3631,18 @@
     }
 
     .modal-btn-secondary:hover {
+      background: var(--item-hover);
+      color: var(--text-primary);
+      border-color: var(--text-secondary);
+    }
+
+    .modal-btn-cancel {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--divider);
+    }
+
+    .modal-btn-cancel:hover {
       background: var(--item-hover);
       color: var(--text-primary);
       border-color: var(--text-secondary);
@@ -3899,13 +3933,17 @@
       box-sizing: border-box;
       position: relative;
       padding: 48px;
-      background: rgba(255, 255, 255, 0.8) !important;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.6) !important;
+      backdrop-filter: blur(30px) saturate(180%);
+      -webkit-backdrop-filter: blur(30px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.3) !important;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
     }
 
     [data-theme="dark"] .hero-screen .card {
-      background: rgba(30, 30, 30, 0.8) !important;
+      background: rgba(30, 30, 30, 0.45) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
     }
 
     #screen-hero .card {
@@ -4326,6 +4364,22 @@ html, body {
 
   <div id="dev-watermark" class="dev-watermark" style="display: none;"></div>
 
+  <!-- Import Config Confirmation Modal -->
+  <div class="modal-overlay" id="import-confirm-modal">
+    <div class="modal-dialog" style="width: 500px;">
+      <div class="modal-title" id="import-modal-title">确定要导入如下的设置方案么</div>
+      <div class="modal-island" style="flex: 1; overflow-y: auto; padding: 16px; font-size: 13px; line-height: 1.6;">
+        <div id="import-config-preview" style="color: var(--text-secondary);">
+          <!-- Config preview will be populated here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-cancel" id="btn-import-cancel">取消</button>
+        <button class="modal-btn modal-btn-confirm" id="btn-import-confirm">确定</button>
+      </div>
+    </div>
+  </div>
+
   <!-- License Modal -->
   <div class="modal-overlay" id="license-modal">
     <div class="modal-dialog" style="width: 600px; height: 70vh; max-height: 800px;">
@@ -4620,7 +4674,9 @@ html, body {
       finishDesc: document.getElementById("finish-desc"),
       finishSubtitle: document.getElementById("finish-subtitle"),
       finishHint: document.getElementById("finish-hint"),
-      btnFinish: document.getElementById("btn-finish")
+      btnFinish: document.getElementById("btn-finish"),
+      btnImportCancel: document.getElementById("btn-import-cancel"),
+      btnImportConfirm: document.getElementById("btn-import-confirm")
     };
 
     // Theme Definitions
@@ -5315,6 +5371,19 @@ html, body {
         });
     }
     
+    // Import button listeners
+    if (els.btnImportCancel) {
+      els.btnImportCancel.addEventListener("click", () => {
+        window.closeImportModal();
+      });
+    }
+    
+    if (els.btnImportConfirm) {
+      els.btnImportConfirm.addEventListener("click", async () => {
+        await window.confirmImportConfig();
+      });
+    }
+    
     // els.langSelect listener removed, replaced by custom logic
 
     els.linkGpl.addEventListener("click", () => {
@@ -5335,6 +5404,50 @@ html, body {
     document.getElementById('license-modal')?.addEventListener('click', (e) => {
         if (e.target.id === 'license-modal') {
             closeLicenseModal();
+        }
+    });
+
+    // Import Config Modal Functions
+    window.closeImportModal = () => {
+        document.getElementById('import-confirm-modal')?.classList.remove('active');
+    };
+
+    window.confirmImportConfig = async () => {
+        closeImportModal();
+        if (state.importedConfig) {
+            // Apply imported config to state
+            Object.assign(state.config, state.importedConfig);
+            // Skip to finish screen
+            if (window.pywebview?.api?.save_setting) {
+                try {
+                    const crashMode = state.config.crashAutoHandleEnabled ? state.config.crashAutoHandleMode : "ShowAnalyzer";
+                    await window.pywebview.api.save_setting("General", "Language", state.config.language);
+                    await window.pywebview.api.save_setting("Appearance", "ThemeMode", state.config.theme);
+                    await window.pywebview.api.save_setting("Appearance", "ThemeId", state.config.themeId);
+                    await window.pywebview.api.save_setting("General", "RunAtStartup", state.config.runAtStartup);
+                    await window.pywebview.api.save_setting("General", "DisableAnimations", state.config.disableAnimations);
+                    await window.pywebview.api.save_setting("General", "CrashAutoHandleEnabled", state.config.crashAutoHandleEnabled);
+                    await window.pywebview.api.save_setting("General", "CrashAutoHandleMode", crashMode);
+                    await window.pywebview.api.save_setting("General", "AutoShowOverlay", state.config.autoShowOverlay);
+                    await window.pywebview.api.save_setting("Overlay", "Scale", state.config.scale);
+                    await window.pywebview.api.save_setting("Overlay", "PopWindowScale", state.config.popWindowScale);
+                    await window.pywebview.api.save_setting("Overlay", "SafeArea", state.config.safeArea);
+                    await window.pywebview.api.save_setting("Overlay", "ShowStatusBar", state.config.showStatusBar);
+                } catch (e) {
+                    console.error("Error saving imported config:", e);
+                }
+            }
+            if (window.pywebview?.api?.on_confirm) {
+                await window.pywebview.api.on_confirm();
+            } else {
+                window.close();
+            }
+        }
+    };
+
+    document.getElementById('import-confirm-modal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'import-confirm-modal') {
+            closeImportModal();
         }
     });
 
@@ -5518,9 +5631,110 @@ makes it unnecessary.
 
   (Full text available at https://www.gnu.org/licenses/gpl-3.0.txt)
 `;
-    els.linkImport.addEventListener("click", async () => {
-      if (window.pywebview?.api?.import_settings) {
-        await window.pywebview.api.import_settings();
+    els.linkImport.addEventListener("click", () => {
+      console.log("=== Import Link Clicked ===");
+      console.log("pywebview available:", !!window.pywebview);
+      console.log("api available:", !!window.pywebview?.api);
+      console.log("import_settings available:", !!window.pywebview?.api?.import_settings);
+      
+      if (!window.pywebview?.api?.import_settings) {
+        console.error("import_settings API not available");
+        alert("导入功能不可用");
+        return;
+      }
+      
+      try {
+        console.log("Calling import_settings()...");
+        const resultStr = window.pywebview.api.import_settings();
+        console.log("=== Import Result (from API) ===");
+        console.log("Result type:", typeof resultStr);
+        console.log("Result is null:", resultStr === null);
+        console.log("Result is undefined:", resultStr === undefined);
+        console.log("Raw result:", resultStr);
+        
+        if (!resultStr) {
+          console.warn("import_settings returned null/undefined");
+          alert("导入配置成功但文件为空");
+          return;
+        }
+        
+        // Parse JSON string
+        let result;
+        try {
+          if (typeof resultStr === 'string') {
+            result = JSON.parse(resultStr);
+            console.log("✓ Parsed JSON string successfully");
+          } else {
+            result = resultStr;
+            console.log("⚠ Result is not a string, using as-is");
+          }
+        } catch (parseErr) {
+          console.error("Failed to parse JSON:", parseErr);
+          console.error("Raw string:", resultStr);
+          alert("配置解析失败：JSON格式错误");
+          return;
+        }
+        
+        console.log("=== Parsed Result ===");
+        console.log("Parsed result:", result);
+        console.log("Result type:", typeof result);
+        console.log("Object.keys(result):", Object.keys(result));
+        console.log("result.config exists:", !!result.config);
+        console.log("result.preview exists:", !!result.preview);
+        if (result.config) {
+          console.log("result.config type:", typeof result.config);
+          console.log("Object.keys(config):", Object.keys(result.config));
+          console.log("config content:", result.config);
+        }
+        
+        // Extract config and preview
+        let config = result.config;
+        let preview = result.preview;
+        
+        console.log("Extracted config:", config);
+        console.log("Extracted preview length:", preview ? preview.length : 0);
+        
+        if (!config) {
+          console.error("✗ No config found in result");
+          alert("配置解析失败：找不到config字段");
+          return;
+        }
+        
+        // Store the config
+        state.importedConfig = config;
+        console.log("Stored in state.importedConfig");
+        
+        // Update modal content
+        const previewEl = document.getElementById('import-config-preview');
+        if (previewEl) {
+          previewEl.textContent = preview;
+          console.log("Updated preview element");
+        } else {
+          console.error("Preview element not found!");
+        }
+        
+        // Show modal
+        const modal = document.getElementById('import-confirm-modal');
+        console.log("Modal element found:", !!modal);
+        
+        if (modal) {
+          console.log("Modal visible before:", window.getComputedStyle(modal).display);
+          modal.classList.remove('active');  // Reset first
+          console.log("Removed 'active' class");
+          setTimeout(() => {
+            modal.classList.add('active');
+            console.log("Added 'active' class");
+            console.log("Modal visible after:", window.getComputedStyle(modal).display);
+          }, 10);
+        } else {
+          console.error("Modal element not found in DOM!");
+        }
+        
+      } catch (e) {
+        console.error("=== Import Exception ===");
+        console.error("Error:", e);
+        console.error("Stack:", e.stack);
+        alert("导入配置出错：" + e.message);
       }
     });
 

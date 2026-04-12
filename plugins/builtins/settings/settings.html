@@ -6584,6 +6584,17 @@
             </div>
             <div class="switch" id="sw-Debug-ShowLog"></div>
           </div>
+          <div class="settings-item" onclick="openLogsWindow()">
+            <div class="item-info">
+              <span class="item-label" data-i18n="debug.openLogsWindow.label">打开日志窗口</span>
+              <span class="item-desc" data-i18n="debug.openLogsWindow.desc">打开独立日志窗口查看完整日志</span>
+            </div>
+            <div class="item-state">
+              <svg class="chevron" viewBox="0 0 24 24">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </div>
+          </div>
           <div class="settings-item" onclick="toggleSwitch('Debug', 'RtlTest')">
             <div class="item-info">
               <span class="item-label" data-i18n="debug.rtlTest.label">RTL 布局测试</span>
@@ -7240,6 +7251,8 @@
       "debug.triggerCrash.desc": "手动触发一个 RuntimeError 以测试崩溃处理器的表现",
       "debug.showLogs.label": "显示日志",
       "debug.showLogs.desc": "实时显示设置页运行日志",
+      "debug.openLogsWindow.label": "打开日志窗口",
+      "debug.openLogsWindow.desc": "打开独立日志窗口查看完整日志",
       "debug.showLogs.panelTitle": "日志输出",
       "debug.showLogs.clear": "清空日志",
       "debug.rtlTest.label": "RTL 布局测试",
@@ -7539,6 +7552,8 @@
       "debug.triggerCrash.desc": "手動觸發一個 RuntimeError 以測試當機處理器的表現",
       "debug.showLogs.label": "顯示日誌",
       "debug.showLogs.desc": "即時顯示設定頁執行日誌",
+      "debug.openLogsWindow.label": "開啟日誌視窗",
+      "debug.openLogsWindow.desc": "開啟獨立日誌視窗查看完整日誌",
       "debug.showLogs.panelTitle": "日誌輸出",
       "debug.showLogs.clear": "清空日誌",
       "debug.rtlTest.label": "RTL 版面測試",
@@ -7835,6 +7850,8 @@
       "debug.triggerCrash.desc": "手動觸發 RuntimeError 測試崩潰處理",
       "debug.showLogs.label": "顯示日誌",
       "debug.showLogs.desc": "即時顯示設定頁日誌",
+      "debug.openLogsWindow.label": "打開日誌視窗",
+      "debug.openLogsWindow.desc": "打開獨立日誌視窗睇完整日誌",
       "debug.showLogs.panelTitle": "日誌輸出",
       "debug.showLogs.clear": "清空日誌",
       "debug.rtlTest.label": "RTL 版面測試",
@@ -8135,6 +8152,8 @@
       "debug.triggerCrash.desc": "RuntimeError を発生させてクラッシュハンドラをテストします",
       "debug.showLogs.label": "ログを表示",
       "debug.showLogs.desc": "設定ページのログをリアルタイム表示",
+      "debug.openLogsWindow.label": "ログウィンドウを開く",
+      "debug.openLogsWindow.desc": "独立したログウィンドウで完全なログを表示",
       "debug.showLogs.panelTitle": "ログ出力",
       "debug.showLogs.clear": "ログをクリア",
       "debug.rtlTest.label": "RTL レイアウトテスト",
@@ -8638,6 +8657,8 @@
       "debug.triggerCrash.desc": "Manually trigger a RuntimeError to test the crash handler",
       "debug.showLogs.label": "Show Logs",
       "debug.showLogs.desc": "Show settings page logs in real time",
+      "debug.openLogsWindow.label": "Open Logs Window",
+      "debug.openLogsWindow.desc": "Open standalone logs window for full logs",
       "debug.showLogs.panelTitle": "Log Output",
       "debug.showLogs.clear": "Clear Logs",
       "debug.rtlTest.label": "RTL Layout Test",
@@ -8684,6 +8705,8 @@
       "language.ug-CN": "ئۇيغۇرچە",
       "debug.showLogs.label": "ژۇرنال كۆرسىتىش",
       "debug.showLogs.desc": "تەڭشەك بېتىنىڭ ژۇرنىلىنى دەرھال كۆرسىتىش",
+      "debug.openLogsWindow.label": "ژۇرنال كۆزنەكىنى ئېچىش",
+      "debug.openLogsWindow.desc": "مۇكەممەل ژۇرنالنى مۇستەقىل كۆزنەكتە كۆرۈش",
       "debug.showLogs.panelTitle": "ژۇرنال چىقىرىش",
       "debug.showLogs.clear": "ژۇرنالنى تازىلاش",
       "debug.rtlTest.label": "RTL تەرتىپ سىناق",
@@ -12573,6 +12596,12 @@
   function openOnboardingPreview() {
     if (window.pywebview && window.pywebview.api.open_onboarding_preview) {
       window.pywebview.api.open_onboarding_preview();
+    }
+  }
+
+  function openLogsWindow() {
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.open_logs_window) {
+      window.pywebview.api.open_logs_window();
     }
   }
 

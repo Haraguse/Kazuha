@@ -1462,7 +1462,8 @@ class PPTAssistantApp:
             "plugins.builtins.board.plugin.BoardPlugin",
             "plugins.builtins.timer.plugin.TimerPlugin",
             "plugins.builtins.spotlight.plugin.SpotlightPlugin",
-            "plugins.builtins.app_launcher.plugin.AppLauncherPlugin"
+            "plugins.builtins.app_launcher.plugin.AppLauncherPlugin",
+            "plugins.builtins.logs.plugin.LogsPlugin"
         ]
         
         for p_path in builtin_plugins:
@@ -1483,6 +1484,8 @@ class PPTAssistantApp:
                     self.board_plugin = plugin
                 elif cls_name == "TimerPlugin":
                     self.timer_plugin = plugin
+                elif cls_name == "LogsPlugin":
+                    self.logs_plugin = plugin
             except Exception as e:
                 print(f"Failed to load builtin plugin {p_path}: {e}")
 
@@ -1558,6 +1561,7 @@ class PPTAssistantApp:
         self.tray.show_settings.connect(self.settings_plugin.execute)
         self.tray.show_board.connect(self.board_plugin.execute)
         self.tray.show_timer.connect(self.timer_plugin.execute)
+        self.tray.show_logs.connect(self.logs_plugin.execute)
         self.tray.toggle_overlay.connect(self.toggle_overlay_visibility)
         self.tray.restart_app.connect(self._restart_from_tray)
         self.tray.exit_app.connect(self._exit_from_tray)
@@ -2021,6 +2025,19 @@ if __name__ == "__main__":
     _apply_global_font(app)
     crash_handler = CrashHandler(app)
     _handle_multi_instance(app)
+    
+    # Initialize log manager to capture application logs
+    from ppt_assistant.core.log_manager import init_log_manager, get_log_manager
+    init_log_manager()
+    # Load log level settings from config
+    log_manager = get_log_manager()
+    log_filters = {
+        "debug": cfg.showDebug.value if hasattr(cfg, 'showDebug') else True,
+        "info": cfg.showInfo.value if hasattr(cfg, 'showInfo') else True,
+        "warn": cfg.showWarn.value if hasattr(cfg, 'showWarn') else True,
+        "error": cfg.showError.value if hasattr(cfg, 'showError') else True,
+    }
+    log_manager.set_filters(log_filters)
 
     show_splash = True
     try:

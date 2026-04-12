@@ -1,0 +1,9 @@
+{
+    "name": "日志 - Luminalium",
+    "version": "1.0.0",
+    "description": "查看应用日志和系统信息",
+    "entry": "plugin.LogsPlugin",
+    "icon": "debug.svg",
+    "type": "window",
+    "author": "Luminalium"
+}

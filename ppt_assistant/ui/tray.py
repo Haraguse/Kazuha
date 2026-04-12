@@ -473,6 +473,7 @@ class SystemTray(QObject):
     show_settings = Signal()
     show_board = Signal()
     show_timer = Signal()
+    show_logs = Signal()
     toggle_overlay = Signal()
     restart_app = Signal()
     exit_app = Signal()

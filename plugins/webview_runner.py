@@ -771,6 +771,8 @@ class Api(QObject):
         self.version = {}
         self.dialog_data = {}
         self._icon_cache = {}
+        self._logs_window = None
+        self._logs_api = None
 
     def set_window(self, window):
         self._window = window
@@ -1395,6 +1397,90 @@ class Api(QObject):
         except Exception as e:
             print(f"Error saving settings: {e}", file=sys.stderr)
 
+    @Slot(result=str)
+    def import_settings(self):
+        """Import settings from a user-selected JSON file"""
+        import json as json_module
+        try:
+            file_path, _ = QFileDialog.getOpenFileName(
+                self._window,
+                "选择配置文件",
+                "",
+                "JSON 配置文件 (*.json);;所有文件 (*)"
+            )
+            
+            if not file_path:
+                print("No file selected", file=sys.stderr)
+                return None
+            
+            print(f"Importing from: {file_path}", file=sys.stderr)
+            
+            # Load the config file
+            with open(file_path, "r", encoding="utf-8") as f:
+                config_data = json.load(f)
+            
+            print(f"Config data loaded: {list(config_data.keys())}", file=sys.stderr)
+            
+            if not isinstance(config_data, dict):
+                print("Config is not a dict", file=sys.stderr)
+                return None
+            
+            # Extract relevant config sections
+            imported_config = {}
+            
+            # Map from file config structure to state.config structure
+            general = config_data.get("General", {})
+            appearance = config_data.get("Appearance", {})
+            overlay = config_data.get("Overlay", {})
+            
+            if "Language" in general:
+                imported_config["language"] = general["Language"]
+            if "ThemeMode" in appearance:
+                imported_config["theme"] = appearance["ThemeMode"]
+            if "ThemeId" in appearance:
+                imported_config["themeId"] = appearance["ThemeId"]
+            if "RunAtStartup" in general:
+                imported_config["runAtStartup"] = general["RunAtStartup"]
+            if "DisableAnimations" in general:
+                imported_config["disableAnimations"] = general["DisableAnimations"]
+            if "CrashAutoHandleEnabled" in general:
+                imported_config["crashAutoHandleEnabled"] = general["CrashAutoHandleEnabled"]
+            if "CrashAutoHandleMode" in general:
+                imported_config["crashAutoHandleMode"] = general["CrashAutoHandleMode"]
+            if "AutoShowOverlay" in general:
+                imported_config["autoShowOverlay"] = general["AutoShowOverlay"]
+            if "Scale" in overlay:
+                imported_config["scale"] = overlay["Scale"]
+            if "PopWindowScale" in overlay:
+                imported_config["popWindowScale"] = overlay["PopWindowScale"]
+            if "SafeArea" in overlay:
+                imported_config["safeArea"] = overlay["SafeArea"]
+            if "ShowStatusBar" in overlay:
+                imported_config["showStatusBar"] = overlay["ShowStatusBar"]
+            
+            # Generate preview text
+            preview_lines = []
+            for key, value in imported_config.items():
+                preview_lines.append(f"• {key}: {value}")
+            preview = "\n".join(preview_lines) if preview_lines else "未检测到支持的配置项"
+            
+            # Return as JSON string for reliable serialization
+            result = {
+                "config": imported_config,
+                "preview": preview
+            }
+            
+            result_json = json_module.dumps(result, ensure_ascii=False)
+            print(f"Returning JSON string, length: {len(result_json)}", file=sys.stderr)
+            print(f"Config keys={list(imported_config.keys())}, preview={len(preview)} chars", file=sys.stderr)
+            
+            return result_json
+        except Exception as e:
+            print(f"Error importing settings: {e}", file=sys.stderr)
+            import traceback
+            traceback.print_exc(file=sys.stderr)
+            return None
+
     @Slot()
     def restart_app(self):
         settings_path = self._get_settings_path()
@@ -1620,6 +1706,46 @@ class Api(QObject):
             subprocess.Popen([sys.executable, "--webview-runner", onboarding_html, "Onboarding Preview", width, height, "true"], env=env)
         else:
             subprocess.Popen([sys.executable, main_path, "--webview-runner", onboarding_html, "Onboarding Preview", width, height, "true"], env=env)
+
+    @Slot()
+    def open_logs_window(self):
+        try:
+            if self._logs_window is not None:
+                try:
+                    if self._logs_window.isMinimized():
+                        self._logs_window.showNormal()
+                    self._logs_window.show()
+                    self._logs_window.raise_()
+                    self._logs_window.activateWindow()
+                    self._show_existing_window_toast("已经存在打开的窗口！")
+                    return
+                except RuntimeError:
+                    self._logs_window = None
+                    self._logs_api = None
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            logs_html = os.path.join(base_dir, "builtins", "logs", "logs.html")
+            api = Api()
+            api.set_in_process(True)
+            api.settings = self.settings
+            api.version = self.version
+            theme_mode = (self.settings or {}).get("Appearance", {}).get("ThemeMode", "Auto")
+            defer_load = _should_defer_initial_load(logs_html, "Logs", True)
+            window = MainWindow("Logs", logs_html, api, 1000, 700, theme_mode, True, defer_load)
+            window.setMinimumWidth(800)
+
+            def _clear_logs_window(*_):
+                self._logs_window = None
+                self._logs_api = None
+
+            window.destroyed.connect(_clear_logs_window)
+            self._logs_api = api
+            self._logs_window = window
+            window.show()
+            window.raise_()
+            window.activateWindow()
+        except Exception as e:
+            print(f"Error opening logs window: {e}", file=sys.stderr)
+
     @Slot()
     def open_license(self):
         root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -1630,34 +1756,100 @@ class Api(QObject):
                 webbrowser.open("file:///" + license_path.replace("\\", "/"))
             except Exception:
                 pass
-    @Slot(result="QVariant")
-    def import_settings(self):
-        preview_mode = os.environ.get("ONBOARDING_PREVIEW", "").lower() == "true"
-        target_path = self._get_settings_path()
-        file_path = None
-        try:
-            file_path, _ = QFileDialog.getOpenFileName(self._window, "选择设置文件", "", "JSON (*.json);;所有文件 (*.*)")
-        except Exception:
-            file_path = None
-        if not file_path:
-            return self.settings
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            if not isinstance(data, dict):
-                return self.settings
-            if not preview_mode:
-                with open(target_path, "w", encoding="utf-8") as wf:
-                    json.dump(data, wf, indent=4, ensure_ascii=False)
-            self.settings = data
-            self.update_settings(data)
-            return data
-        except Exception:
-            return self.settings
 
     @Slot(result=str)
     def get_assets_path(self):
         return os.environ.get("ASSETS_PATH", "")
+
+    @Slot(str, "QVariant", result="QVariant")
+    def get_logs(self, search_text="", levels=None):
+        """获取应用日志"""
+        try:
+            from ppt_assistant.core.log_manager import get_log_manager
+            manager = get_log_manager()
+            
+            if levels is None:
+                levels = ["debug", "info", "warn", "error"]
+            elif isinstance(levels, str):
+                levels = [levels]
+            
+            return manager.get_logs(levels=levels, search_text=search_text)
+        except Exception as e:
+            print(f"Error getting logs: {e}", file=sys.stderr)
+            return []
+
+    @Slot(result="QVariant")
+    def get_log_stats(self):
+        """获取日志统计"""
+        try:
+            from ppt_assistant.core.log_manager import get_log_manager
+            manager = get_log_manager()
+            return manager.get_stats()
+        except Exception as e:
+            print(f"Error getting log stats: {e}", file=sys.stderr)
+            return {"debug": 0, "info": 0, "warn": 0, "error": 0}
+
+    @Slot(result="QVariant")
+    def get_log_filters(self):
+        """获取日志级别过滤设置"""
+        try:
+            from ppt_assistant.core.log_manager import get_log_manager
+            manager = get_log_manager()
+            return manager.get_filters()
+        except Exception as e:
+            print(f"Error getting log filters: {e}", file=sys.stderr)
+            return {"debug": True, "info": True, "warn": True, "error": True}
+
+    @Slot(str)
+    def set_log_filters(self, filters_json):
+        """设置日志级别过滤"""
+        try:
+            import json
+            from ppt_assistant.core.log_manager import get_log_manager
+            manager = get_log_manager()
+            filters = json.loads(filters_json)
+            manager.set_filters(filters)
+        except Exception as e:
+            print(f"Error setting log filters: {e}", file=sys.stderr)
+
+    @Slot()
+    def clear_logs(self):
+        """清空日志"""
+        try:
+            from ppt_assistant.core.log_manager import get_log_manager
+            manager = get_log_manager()
+            manager.clear_logs()
+        except Exception as e:
+            print(f"Error clearing logs: {e}", file=sys.stderr)
+
+    @Slot(result="QVariant")
+    def get_system_info(self):
+        """Get system information for the logs viewer"""
+        import platform
+        try:
+            version_data = self._load_json_file(os.environ.get("VERSION_PATH", ""))
+            version = version_data.get("version", "Unknown")
+        except Exception:
+            version = "Unknown"
+        
+        return {
+            "app_version": version,
+            "python_version": platform.python_version(),
+            "platform": platform.system(),
+            "platform_version": platform.release(),
+            "processor": platform.processor() or "Unknown",
+            "architecture": platform.machine()
+        }
+    
+    def _load_json_file(self, path):
+        """Helper to load JSON files"""
+        if not path or not os.path.exists(path):
+            return {}
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
 
     @Slot(result="QVariant")
     def get_timer_state(self):
