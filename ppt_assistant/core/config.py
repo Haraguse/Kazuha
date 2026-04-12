@@ -15,6 +15,33 @@ from qfluentwidgets.common.config import EnumSerializer
 import os
 import json
 import sys
+
+# Nuitka standalone detection and compatibility
+if hasattr(sys, "nuitka_binary"):
+    sys.frozen = True
+
+def get_root_dir():
+    """Get the root directory of the application, supporting both dev and packaged modes."""
+    # If frozen (PyInstaller or Nuitka)
+    if getattr(sys, "frozen", False):
+        # PyInstaller temp dir
+        if hasattr(sys, "_MEIPASS"):
+            return sys._MEIPASS
+        # Nuitka or other standalone folder: resources are usually relative to the exe or __file__
+        # In Nuitka standalone, __file__ points to the source location in the dist folder
+        # In Nuitka onefile, __file__ points to the temp directory
+        # For our structure, the root is 3 levels up from ppt_assistant/core/config.py
+        try:
+            return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        except:
+            return os.path.dirname(sys.executable)
+            
+    # Dev mode: root is 3 levels up from ppt_assistant/core/config.py
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+_root_dir = get_root_dir()
+ROOT_DIR = _root_dir # For convenience
+
 from ppt_assistant.core.platform_integration import set_run_at_startup as platform_set_run_at_startup
 try:
     import winreg
@@ -109,22 +136,18 @@ class Config(QConfig):
 
 
 cfg = Config()
-_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# 路径配置：开发环境保持原样，打包环境迁移到程序同级
+# Path configuration using the new ROOT_DIR
 if getattr(sys, "frozen", False):
-    # 打包环境：settings.json 和 plugins 文件夹都在 exe 同级
-    pass
-# Path config: keep dev layout; package layout lives next to the exe.
-if getattr(sys, "frozen", False):
-    _base_exe_dir = os.path.dirname(sys.executable)
-    SETTINGS_PATH = os.path.join(_base_exe_dir, "settings.json")
-    PLUGINS_DIR = os.path.join(_base_exe_dir, "plugins")
+    # For packaged builds, settings.json lives next to the EXE (usually)
+    # But for Nuitka onefile, we want it next to the EXE, not in temp dir.
+    _exe_dir = os.path.dirname(sys.executable)
+    SETTINGS_PATH = os.path.join(_exe_dir, "settings.json")
+    PLUGINS_DIR = os.path.join(ROOT_DIR, "plugins")
 else:
-    # 开发环境：settings.json 在项目根目录，外置插件目录也在根目录下的 plugins_external (避免与源码 plugins 冲突)
-    _root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    SETTINGS_PATH = os.path.join(_root_dir, "settings.json")
-    PLUGINS_DIR = os.path.join(_root_dir, "plugins_external")
+    # Dev mode: settings.json in root, external plugins in plugins_external
+    SETTINGS_PATH = os.path.join(ROOT_DIR, "settings.json")
+    PLUGINS_DIR = os.path.join(ROOT_DIR, "plugins_external")
 
 if not os.path.exists(PLUGINS_DIR):
     try:

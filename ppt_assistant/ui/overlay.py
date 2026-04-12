@@ -15,7 +15,7 @@ from PySide6.QtQuick import QQuickView
 from PySide6.QtQml import QQmlComponent
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import Theme, isDarkTheme, MessageBox, MessageDialog, themeColor
-from ppt_assistant.core.config import cfg
+from ppt_assistant.core.config import cfg, ROOT_DIR
 from ppt_assistant.core.i18n import t
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.icon_helper import get_file_icon_base64
@@ -26,7 +26,7 @@ import asyncio
 import threading
 import subprocess
 
-PLUGIN_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "plugins", "builtins")
+PLUGIN_DIR = os.path.join(ROOT_DIR, "plugins", "builtins")
 
 class OverlayBridge(QObject):
     def __init__(self, overlay):
@@ -249,9 +249,7 @@ class OverlayWindow(QWebEngineView):
         
         theme_name = cfg.overlayTheme.value
 
-        root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        if getattr(sys, "frozen", False):
-            root_dir = os.path.dirname(sys.executable)
+        root_dir = ROOT_DIR
             
         def resolve_user_theme_path(name: str) -> Optional[str]:
             theme_dir = os.path.join(root_dir, "user", "themes", name)

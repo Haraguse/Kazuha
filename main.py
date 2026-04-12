@@ -41,7 +41,7 @@ from ppt_assistant.ui.overlay import OverlayWindow
 from plugins.builtins.settings.plugin import SettingsPlugin
 from plugins.builtins.timer.plugin import TimerPlugin
 from ppt_assistant.ui.tray import SystemTray
-from ppt_assistant.core.config import cfg, SETTINGS_PATH, PLUGINS_DIR, reload_cfg, _apply_theme_and_color, Theme, qconfig, FIRST_RUN
+from ppt_assistant.core.config import cfg, SETTINGS_PATH, PLUGINS_DIR, reload_cfg, _apply_theme_and_color, Theme, qconfig, FIRST_RUN, ROOT_DIR
 from ppt_assistant.core.timer_manager import TimerManager
 from ppt_assistant.core.i18n import t
 from ppt_assistant.core.app_icon import load_app_icon
@@ -499,10 +499,7 @@ def _is_dev_preview_version(version: str) -> bool:
 
 
 def _get_user_root_dir() -> str:
-    root_dir = os.path.dirname(os.path.abspath(__file__))
-    if getattr(sys, "frozen", False):
-        root_dir = os.path.dirname(sys.executable)
-    return root_dir
+    return ROOT_DIR
 
 
 def _ensure_user_dirs():
