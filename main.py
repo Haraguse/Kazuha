@@ -1,5 +1,10 @@
 import sys
 import os
+
+# Nuitka standalone detection and compatibility
+if hasattr(sys, "nuitka_binary"):
+    sys.frozen = True
+
 import traceback
 import tempfile
 import subprocess
