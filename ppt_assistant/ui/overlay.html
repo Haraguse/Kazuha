@@ -1,0 +1,3626 @@
+// 不小心把代码删掉的是下头顺直
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overlay</title>
+    <style>
+        @font-face {
+            font-family: "Google Sans Flex";
+            src: url("../../fonts/Google Sans Flex.ttf") format("truetype");
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "MiSans VF";
+            src: url("../../fonts/MiSansVF.ttf") format("truetype");
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "MiSans Japanese VF";
+            src: url("../../fonts/MiSansJapaneseVF.ttf") format("truetype");
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "MiSans TC VF";
+            src: url("../../fonts/MiSansTCVF.ttf") format("truetype");
+            font-display: swap;
+        }
+
+        :root {
+            --bg-app: #f2f3f5;
+            --bg-surface: #ffffff;
+            --text-primary: #1a1c1e;
+            --text-secondary: #5e6368;
+            --accent-color: #3275F5;
+            --divider: rgba(0, 0, 0, 0.08);
+            --item-hover: rgba(0, 0, 0, 0.05);
+            --shadow-main: 0 4px 12px rgba(0, 0, 0, 0.06);
+            --font-stack: "Google Sans Flex", "MiSans VF", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+            /* Light Mode Defaults */
+            --overlay-toolbar-bg: rgba(255, 255, 255, 0.95);
+            --overlay-toolbar-border: rgba(0, 0, 0, 0.08);
+            --overlay-toolbar-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --overlay-toolbar-fg: #333333;
+            
+            --overlay-button-hover: rgba(0, 0, 0, 0.06);
+            --overlay-button-active: rgba(0, 0, 0, 0.12);
+            
+            --overlay-status-bg: rgba(255, 255, 255, 0.98);
+            --overlay-status-fg: #333333;
+            --overlay-status-sep: rgba(0, 0, 0, 0.1);
+            
+            --overlay-page-bg: var(--overlay-toolbar-bg);
+            --overlay-page-border: var(--overlay-toolbar-border);
+            --overlay-page-fg: #333333;
+            --overlay-page-hint: rgba(0, 0, 0, 0.5);
+            --overlay-page-hover: var(--overlay-button-hover);
+            --overlay-page-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+            /* Popup & Controls (Light) */
+            --overlay-popup-bg: rgba(255, 255, 255, 0.98);
+            --overlay-popup-border: rgba(0, 0, 0, 0.08);
+            --overlay-popup-shadow: none;
+            
+            --overlay-control-bg: rgba(0, 0, 0, 0.06);
+            --overlay-control-hover: rgba(0, 0, 0, 0.1);
+            --overlay-control-active: rgba(0, 0, 0, 0.15);
+            
+            --overlay-text-primary: #333333;
+            --overlay-text-secondary: rgba(0, 0, 0, 0.6);
+            
+            --overlay-thumb-bg: #FFFFFF;
+            --overlay-thumb-icon: #333333;
+
+            --overlay-dialog-mask: rgba(0, 0, 0, 0.2);
+            --overlay-dialog-bg: rgba(255, 255, 255, 0.98);
+            --overlay-dialog-border: rgba(0, 0, 0, 0.08);
+            --overlay-dialog-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+            --overlay-dialog-title: #1a1c1e;
+            --overlay-dialog-text: rgba(0, 0, 0, 0.65);
+        }
+
+        :root[data-disable-animations="true"] *,
+        :root[data-disable-animations="true"] *::before,
+        :root[data-disable-animations="true"] *::after {
+            transition: none !important;
+            scroll-behavior: auto !important;
+        }
+
+        [data-theme="dark"] {
+            --bg-app: #121212;
+            --bg-surface: #1E1E1E;
+            --text-primary: #E5E5E5;
+            --text-secondary: #909090;
+            --accent-color: #4A85F6;
+            --divider: rgba(255, 255, 255, 0.08);
+            --item-hover: rgba(255, 255, 255, 0.05);
+            --shadow-main: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+            /* Dark Mode Overrides */
+            --overlay-toolbar-bg: rgba(40, 40, 40, 0.95);
+            --overlay-toolbar-border: rgba(255, 255, 255, 0.15);
+            --overlay-toolbar-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            --overlay-toolbar-fg: #FFFFFF;
+            
+            --overlay-button-hover: rgba(255, 255, 255, 0.1);
+            --overlay-button-active: rgba(255, 255, 255, 0.2);
+            
+            --overlay-status-bg: rgba(0, 0, 0, 0.85);
+            --overlay-status-fg: #FFFFFF;
+            --overlay-status-sep: rgba(255, 255, 255, 0.2);
+            
+            --overlay-page-bg: var(--overlay-toolbar-bg);
+            --overlay-page-border: var(--overlay-toolbar-border);
+            --overlay-page-fg: #FFFFFF;
+            --overlay-page-hint: rgba(255, 255, 255, 0.6);
+            --overlay-page-hover: var(--overlay-button-hover);
+            --overlay-page-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            
+            /* Popup & Controls (Dark) */
+            --overlay-popup-bg: rgba(30, 30, 30, 0.98);
+            --overlay-popup-border: rgba(255, 255, 255, 0.1);
+            --overlay-popup-shadow: none;
+            
+            --overlay-control-bg: rgba(255, 255, 255, 0.1);
+            --overlay-control-hover: rgba(255, 255, 255, 0.15);
+            --overlay-control-active: rgba(255, 255, 255, 0.2);
+            
+            --overlay-text-primary: #FFFFFF;
+            --overlay-text-secondary: rgba(255, 255, 255, 0.6);
+            
+            --overlay-thumb-bg: #FFFFFF;
+            --overlay-thumb-icon: #000000;
+
+            --overlay-dialog-mask: rgba(0, 0, 0, 0.35);
+            --overlay-dialog-bg: rgba(24, 24, 24, 0.96);
+            --overlay-dialog-border: rgba(255, 255, 255, 0.12);
+            --overlay-dialog-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+            --overlay-dialog-title: #FFFFFF;
+            --overlay-dialog-text: rgba(255, 255, 255, 0.68);
+        }
+
+        [data-theme-id="year-of-horse"] {
+            /* Light Mode Year of Horse - Synced with Settings */
+            --accent-color: #D32F2F;
+            --overlay-toolbar-bg: #FFEBEE;
+            --overlay-toolbar-border: rgba(211, 47, 47, 0.25);
+            --overlay-toolbar-fg: #B71C1C;
+            --overlay-toolbar-shadow: rgba(183, 28, 28, 0.2);
+            
+            --overlay-button-hover: rgba(211, 47, 47, 0.15);
+            --overlay-button-active: rgba(211, 47, 47, 0.25);
+            
+            --overlay-status-bg: rgba(183, 28, 28, 0.9);
+            --overlay-status-fg: #FFFFFF;
+            --overlay-status-sep: rgba(255, 255, 255, 0.6);
+            
+            --overlay-page-bg: #FFEBEE;
+            --overlay-page-border: rgba(211, 47, 47, 0.25);
+            --overlay-page-fg: #B71C1C;
+            --overlay-page-hint: rgba(183, 28, 28, 0.7);
+            --overlay-page-hover: rgba(211, 47, 47, 0.15);
+            --overlay-page-shadow: rgba(183, 28, 28, 0.2);
+            
+            --overlay-popup-bg: #FFEBEE;
+            --overlay-popup-border: rgba(211, 47, 47, 0.25);
+            --overlay-popup-fg: #B71C1C;
+            
+            --overlay-control-bg: rgba(211, 47, 47, 0.15);
+            --overlay-control-hover: rgba(211, 47, 47, 0.18);
+            --overlay-control-active: rgba(211, 47, 47, 0.25);
+            
+            --overlay-text-primary: #B71C1C;
+            --overlay-text-secondary: rgba(183, 28, 28, 0.6);
+            
+            --overlay-thumb-bg: #D32F2F;
+            --overlay-thumb-icon: #FFFFFF;
+            
+            --overlay-dialog-bg: #FFEBEE;
+            --overlay-dialog-border: rgba(211, 47, 47, 0.25);
+            --overlay-dialog-title: #B71C1C;
+            --overlay-dialog-text: rgba(183, 28, 28, 0.6);
+        }
+
+        [data-theme="dark"][data-theme-id="year-of-horse"] {
+            /* Dark Mode Year of Horse - Synced with Settings */
+            --accent-color: #FF4500;
+            --overlay-toolbar-bg: #451212;
+            --overlay-toolbar-border: rgba(255, 69, 0, 0.3);
+            --overlay-toolbar-fg: #FFD700;
+            --overlay-toolbar-shadow: rgba(0, 0, 0, 0.38);
+            
+            --overlay-button-hover: rgba(255, 69, 0, 0.22);
+            --overlay-button-active: rgba(255, 69, 0, 0.3);
+            
+            --overlay-status-bg: rgba(255, 213, 79, 0.8);
+            --overlay-status-fg: #3E2723;
+            --overlay-status-sep: rgba(62, 39, 35, 0.32);
+            
+            --overlay-popup-bg: #451212;
+            --overlay-popup-border: rgba(255, 69, 0, 0.3);
+            --overlay-popup-fg: #FFD700;
+            
+            --overlay-page-bg: #451212;
+            --overlay-page-border: rgba(255, 69, 0, 0.3);
+            --overlay-page-fg: #FFD700;
+            --overlay-page-hint: rgba(255, 215, 0, 0.68);
+            --overlay-page-hover: rgba(255, 69, 0, 0.22);
+            --overlay-page-shadow: rgba(0, 0, 0, 0.38);
+            
+            --overlay-control-bg: rgba(255, 69, 0, 0.15);
+            --overlay-control-hover: rgba(255, 69, 0, 0.22);
+            --overlay-control-active: rgba(255, 69, 0, 0.3);
+            
+            --overlay-text-primary: #FFD700;
+            --overlay-text-secondary: #FFB347;
+            
+            --overlay-thumb-bg: #FF4500;
+            --overlay-thumb-icon: #451212;
+            
+            --overlay-dialog-bg: #451212;
+            --overlay-dialog-border: rgba(255, 69, 0, 0.3);
+            --overlay-dialog-title: #FFD700;
+            --overlay-dialog-text: #FFB347;
+        }
+
+        /* Year of Horse Background Pattern */
+        [data-theme-id="year-of-horse"] .flipper {
+            background-image: radial-gradient(circle at 50% 0%, rgba(230, 0, 0, 0.12), transparent 70%),
+                              radial-gradient(circle at 50% 100%, rgba(230, 0, 0, 0.08), transparent 70%);
+            background-size: cover;
+        }
+        [data-theme="dark"][data-theme-id="year-of-horse"] .flipper {
+            background-image: radial-gradient(circle at 50% 0%, rgba(255, 69, 0, 0.15), transparent 70%),
+                              radial-gradient(circle at 50% 100%, rgba(255, 69, 0, 0.1), transparent 70%);
+        }
+
+        /* Material You */
+        :root[data-theme-id="material-you"][data-theme-variant="light"],
+        .theme-preview-root[data-theme-id="material-you"][data-theme-variant="light"] {
+            --bg-app: #F6F0FF;
+            --bg-surface: #FFF7FF;
+            --bg-color: #FFF7FF;
+            --sidebar-bg: #FFF7FF;
+            --border-color: rgba(42, 26, 61, 0.1);
+            --text-primary: #2B153E;
+            --text-secondary: #5F4B74;
+            --accent-blue: #7A3BDB;
+            --divider: rgba(42, 26, 61, 0.1);
+            --card-bg: rgba(122, 59, 219, 0.1);
+            --card-border: rgba(122, 59, 219, 0.2);
+            --item-hover: rgba(122, 59, 219, 0.14);
+            --shadow-color: rgba(122, 59, 219, 0.18);
+            --shadow-main: 0 6px 22px var(--shadow-color);
+            --logo-glow: rgba(122, 59, 219, 0.24);
+            --hyperos-g1: #F6F0FF;
+            --hyperos-g2: #EAD9FF;
+            --hyperos-g3: #F1E6FF;
+            --hyperos-g4: #C9A7FF;
+            --hyperos-g5: #FFF7FF;
+            --overlay-toolbar-bg: #FFF7FF;
+            --overlay-toolbar-border: rgba(42, 26, 61, 0.1);
+            --overlay-toolbar-line: rgba(42, 26, 61, 0.1);
+            --overlay-toolbar-shadow: rgba(42, 26, 61, 0.2);
+            --overlay-toolbar-fg: #2B153E;
+            --overlay-button-hover: rgba(122, 59, 219, 0.14);
+            --overlay-button-active: rgba(122, 59, 219, 0.22);
+            --overlay-status-bg: rgba(35, 20, 50, 0.28);
+            --overlay-status-fg: #FFFFFF;
+            --overlay-status-sep: rgba(255, 255, 255, 0.32);
+            --overlay-popup-bg: #FFF7FF;
+            --overlay-popup-border: rgba(42, 26, 61, 0.14);
+            --overlay-popup-fg: #2B153E;
+            --overlay-page-bg: #FFF7FF;
+            --overlay-page-border: rgba(42, 26, 61, 0.14);
+            --overlay-page-fg: #2B153E;
+            --overlay-page-hint: rgba(43, 21, 62, 0.55);
+            --overlay-page-hover: rgba(122, 59, 219, 0.14);
+            --overlay-page-shadow: rgba(42, 26, 61, 0.2);
+            --overlay-reload-mask: rgba(36, 22, 54, 0.48);
+            --overlay-reload-card: rgba(52, 32, 78, 0.9);
+            --overlay-reload-text: rgba(255, 255, 255, 0.94);
+            --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+            
+            --overlay-control-bg: var(--card-bg);
+            --overlay-control-hover: var(--item-hover);
+            --overlay-control-active: rgba(122, 59, 219, 0.22);
+            --overlay-text-primary: var(--text-primary);
+            --overlay-text-secondary: var(--text-secondary);
+            --overlay-thumb-bg: #FFFFFF;
+            --overlay-thumb-icon: var(--accent-blue);
+            --overlay-dialog-bg: var(--overlay-popup-bg);
+            --overlay-dialog-border: var(--overlay-popup-border);
+            --overlay-dialog-title: var(--text-primary);
+            --overlay-dialog-text: var(--text-secondary);
+        }
+
+        :root[data-theme-id="material-you"][data-theme-variant="dark"],
+        .theme-preview-root[data-theme-id="material-you"][data-theme-variant="dark"] {
+            --bg-app: #1C1329;
+            --bg-surface: #2A1D3B;
+            --bg-color: #2A1D3B;
+            --sidebar-bg: #2A1D3B;
+            --border-color: rgba(226, 210, 255, 0.14);
+            --text-primary: #F0E7FF;
+            --text-secondary: #D2C2EA;
+            --accent-blue: #CDA7FF;
+            --divider: rgba(226, 210, 255, 0.14);
+            --card-bg: rgba(205, 167, 255, 0.18);
+            --card-border: rgba(205, 167, 255, 0.28);
+            --item-hover: rgba(205, 167, 255, 0.22);
+            --shadow-color: rgba(0, 0, 0, 0.5);
+            --shadow-main: 0 12px 34px var(--shadow-color);
+            --logo-glow: rgba(205, 167, 255, 0.28);
+            --hyperos-g1: #1C1329;
+            --hyperos-g2: #2A1D3B;
+            --hyperos-g3: #3B2A55;
+            --hyperos-g4: #4A366A;
+            --hyperos-g5: #2A1D3B;
+            --overlay-toolbar-bg: #2A1D3B;
+            --overlay-toolbar-border: rgba(226, 210, 255, 0.16);
+            --overlay-toolbar-line: rgba(226, 210, 255, 0.2);
+            --overlay-toolbar-shadow: rgba(0, 0, 0, 0.38);
+            --overlay-toolbar-fg: #F0E7FF;
+            --overlay-button-hover: rgba(205, 167, 255, 0.22);
+            --overlay-button-active: rgba(205, 167, 255, 0.3);
+            --overlay-status-bg: rgba(0, 0, 0, 0.3);
+            --overlay-status-fg: #FFFFFF;
+            --overlay-status-sep: rgba(255, 255, 255, 0.32);
+            --overlay-popup-bg: #2A1D3B;
+            --overlay-popup-border: rgba(226, 210, 255, 0.24);
+            --overlay-popup-fg: #F0E7FF;
+            --overlay-page-bg: #2A1D3B;
+            --overlay-page-border: rgba(226, 210, 255, 0.18);
+            --overlay-page-fg: #F0E7FF;
+            --overlay-page-hint: rgba(226, 210, 255, 0.68);
+            --overlay-page-hover: rgba(205, 167, 255, 0.22);
+            --overlay-page-shadow: rgba(0, 0, 0, 0.38);
+            --overlay-reload-mask: rgba(0, 0, 0, 0.48);
+            --overlay-reload-card: rgba(49, 31, 74, 0.92);
+            --overlay-reload-text: rgba(255, 255, 255, 0.94);
+            --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+            
+            --overlay-control-bg: var(--card-bg);
+            --overlay-control-hover: var(--item-hover);
+            --overlay-control-active: rgba(205, 167, 255, 0.3);
+            --overlay-text-primary: var(--text-primary);
+            --overlay-text-secondary: var(--text-secondary);
+            --overlay-thumb-bg: var(--accent-blue);
+            --overlay-thumb-icon: #1C1329;
+            --overlay-dialog-bg: var(--overlay-popup-bg);
+            --overlay-dialog-border: var(--overlay-popup-border);
+            --overlay-dialog-title: var(--text-primary);
+            --overlay-dialog-text: var(--text-secondary);
+        }
+
+        /* Red Sunrise */
+        :root[data-theme-id="red-sunrise"][data-theme-variant="light"],
+        .theme-preview-root[data-theme-id="red-sunrise"][data-theme-variant="light"] {
+            --bg-app: #FFF5F3;
+            --bg-surface: #FFFFFF;
+            --bg-color: #FFFFFF;
+            --sidebar-bg: #FFFFFF;
+            --border-color: rgba(97, 20, 18, 0.12);
+            --text-primary: #3A0B0B;
+            --text-secondary: #7A3C35;
+            --accent-blue: #E5523C;
+            --divider: rgba(97, 20, 18, 0.12);
+            --card-bg: rgba(229, 82, 60, 0.1);
+            --card-border: rgba(229, 82, 60, 0.2);
+            --item-hover: rgba(229, 82, 60, 0.14);
+            --shadow-color: rgba(229, 82, 60, 0.18);
+            --shadow-main: 0 6px 22px var(--shadow-color);
+            --logo-glow: rgba(229, 82, 60, 0.22);
+            --hyperos-g1: #FFF1EC;
+            --hyperos-g2: #FFD6C8;
+            --hyperos-g3: #FFE7DB;
+            --hyperos-g4: #FFB8A4;
+            --hyperos-g5: #FFFFFF;
+            --overlay-toolbar-bg: #FFF7F4;
+            --overlay-toolbar-border: rgba(97, 20, 18, 0.12);
+            --overlay-toolbar-line: rgba(97, 20, 18, 0.12);
+            --overlay-toolbar-shadow: rgba(97, 20, 18, 0.2);
+            --overlay-toolbar-fg: #3A0B0B;
+            --overlay-button-hover: rgba(229, 82, 60, 0.14);
+            --overlay-button-active: rgba(229, 82, 60, 0.22);
+            --overlay-status-bg: rgba(56, 18, 12, 0.28);
+            --overlay-status-fg: #FFFFFF;
+            --overlay-status-sep: rgba(255, 255, 255, 0.32);
+            --overlay-popup-bg: #FFF7F4;
+            --overlay-popup-border: rgba(97, 20, 18, 0.14);
+            --overlay-popup-fg: #3A0B0B;
+            --overlay-page-bg: #FFF7F4;
+            --overlay-page-border: rgba(97, 20, 18, 0.14);
+            --overlay-page-fg: #3A0B0B;
+            --overlay-page-hint: rgba(58, 11, 11, 0.55);
+            --overlay-page-hover: rgba(229, 82, 60, 0.14);
+            --overlay-page-shadow: rgba(97, 20, 18, 0.2);
+            --overlay-reload-mask: rgba(54, 18, 12, 0.48);
+            --overlay-reload-card: rgba(64, 26, 20, 0.9);
+            --overlay-reload-text: rgba(255, 255, 255, 0.94);
+            --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+            
+            --overlay-control-bg: var(--card-bg);
+            --overlay-control-hover: var(--item-hover);
+            --overlay-control-active: var(--overlay-button-active);
+            --overlay-text-primary: var(--text-primary);
+            --overlay-text-secondary: var(--text-secondary);
+            --overlay-thumb-bg: #FFFFFF;
+            --overlay-thumb-icon: var(--accent-blue);
+            --overlay-dialog-bg: var(--overlay-popup-bg);
+            --overlay-dialog-border: var(--overlay-popup-border);
+            --overlay-dialog-title: var(--text-primary);
+            --overlay-dialog-text: var(--text-secondary);
+        }
+
+        :root[data-theme-id="red-sunrise"][data-theme-variant="dark"],
+        .theme-preview-root[data-theme-id="red-sunrise"][data-theme-variant="dark"] {
+            --bg-app: #1A0B0A;
+            --bg-surface: #2B1512;
+            --bg-color: #2B1512;
+            --sidebar-bg: #2B1512;
+            --border-color: rgba(255, 210, 200, 0.14);
+            --text-primary: #FFEDE8;
+            --text-secondary: #F1BEB3;
+            --accent-blue: #FF907B;
+            --divider: rgba(255, 210, 200, 0.14);
+            --card-bg: rgba(255, 144, 123, 0.18);
+            --card-border: rgba(255, 144, 123, 0.28);
+            --item-hover: rgba(255, 144, 123, 0.22);
+            --shadow-color: rgba(0, 0, 0, 0.5);
+            --shadow-main: 0 12px 34px var(--shadow-color);
+            --logo-glow: rgba(255, 144, 123, 0.28);
+            --hyperos-g1: #1A0B0A;
+            --hyperos-g2: #2B1512;
+            --hyperos-g3: #3C1D18;
+            --hyperos-g4: #4D241E;
+            --hyperos-g5: #2B1512;
+            --overlay-toolbar-bg: #2B1512;
+            --overlay-toolbar-border: rgba(255, 210, 200, 0.18);
+            --overlay-toolbar-line: rgba(255, 210, 200, 0.22);
+            --overlay-toolbar-shadow: rgba(0, 0, 0, 0.38);
+            --overlay-toolbar-fg: #FFEDE8;
+            --overlay-button-hover: rgba(255, 144, 123, 0.22);
+            --overlay-button-active: rgba(255, 144, 123, 0.3);
+            --overlay-status-bg: rgba(0, 0, 0, 0.3);
+            --overlay-status-fg: #FFFFFF;
+            --overlay-status-sep: rgba(255, 255, 255, 0.32);
+            --overlay-popup-bg: #2B1512;
+            --overlay-popup-border: rgba(255, 210, 200, 0.24);
+            --overlay-popup-fg: #FFEDE8;
+            --overlay-page-bg: #2B1512;
+            --overlay-page-border: rgba(255, 210, 200, 0.2);
+            --overlay-page-fg: #FFEDE8;
+            --overlay-page-hint: rgba(255, 210, 200, 0.68);
+            --overlay-page-hover: rgba(255, 144, 123, 0.22);
+            --overlay-page-shadow: rgba(0, 0, 0, 0.38);
+            --overlay-reload-mask: rgba(0, 0, 0, 0.48);
+            --overlay-reload-card: rgba(51, 22, 18, 0.92);
+            --overlay-reload-text: rgba(255, 255, 255, 0.94);
+            --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+            
+            --overlay-control-bg: var(--card-bg);
+            --overlay-control-hover: var(--item-hover);
+            --overlay-control-active: var(--overlay-button-active);
+            --overlay-text-primary: var(--text-primary);
+            --overlay-text-secondary: var(--text-secondary);
+            --overlay-thumb-bg: var(--accent-blue);
+            --overlay-thumb-icon: #1A0B0A;
+            --overlay-dialog-bg: var(--overlay-popup-bg);
+            --overlay-dialog-border: var(--overlay-popup-border);
+            --overlay-dialog-title: var(--text-primary);
+            --overlay-dialog-text: var(--text-secondary);
+        }
+
+        /* Emptiness Color */
+        :root[data-theme-id="emptiness-color"][data-theme-variant="light"],
+        .theme-preview-root[data-theme-id="emptiness-color"][data-theme-variant="light"] {
+            --bg-app: #F5F6F8;
+            --bg-surface: #FFFFFF;
+            --bg-color: #FFFFFF;
+            --sidebar-bg: #FFFFFF;
+            --border-color: rgba(27, 31, 35, 0.08);
+            --text-primary: #1B1F23;
+            --text-secondary: #5B636B;
+            --accent-blue: #6B7280;
+            --divider: rgba(27, 31, 35, 0.08);
+            --card-bg: rgba(27, 31, 35, 0.03);
+            --card-border: rgba(27, 31, 35, 0.06);
+            --item-hover: rgba(27, 31, 35, 0.06);
+            --shadow-color: rgba(27, 31, 35, 0.08);
+            --shadow-main: 0 4px 12px var(--shadow-color);
+            --logo-glow: rgba(27, 31, 35, 0.08);
+            --hyperos-g1: #F3F4F6;
+            --hyperos-g2: #E5E7EB;
+            --hyperos-g3: #F9FAFB;
+            --hyperos-g4: #D1D5DB;
+            --hyperos-g5: #FFFFFF;
+            --overlay-toolbar-bg: #FFFFFF;
+            --overlay-toolbar-border: rgba(27, 31, 35, 0.08);
+            --overlay-toolbar-line: rgba(27, 31, 35, 0.08);
+            --overlay-toolbar-shadow: rgba(27, 31, 35, 0.16);
+            --overlay-toolbar-fg: #1B1F23;
+            --overlay-button-hover: rgba(27, 31, 35, 0.06);
+            --overlay-button-active: rgba(27, 31, 35, 0.12);
+            --overlay-status-bg: rgba(27, 31, 35, 0.26);
+            --overlay-status-fg: #FFFFFF;
+            --overlay-status-sep: rgba(255, 255, 255, 0.32);
+            --overlay-popup-bg: #FFFFFF;
+            --overlay-popup-border: rgba(27, 31, 35, 0.12);
+            --overlay-popup-fg: #1B1F23;
+            --overlay-page-bg: #FFFFFF;
+            --overlay-page-border: rgba(27, 31, 35, 0.12);
+            --overlay-page-fg: #1B1F23;
+            --overlay-page-hint: rgba(27, 31, 35, 0.5);
+            --overlay-page-hover: rgba(27, 31, 35, 0.06);
+            --overlay-page-shadow: rgba(27, 31, 35, 0.16);
+            --overlay-reload-mask: rgba(27, 31, 35, 0.43);
+            --overlay-reload-card: rgba(30, 30, 30, 0.86);
+            --overlay-reload-text: rgba(255, 255, 255, 0.92);
+            --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+            
+            --overlay-control-bg: var(--card-bg);
+            --overlay-control-hover: var(--item-hover);
+            --overlay-control-active: var(--overlay-button-active);
+            --overlay-text-primary: var(--text-primary);
+            --overlay-text-secondary: var(--text-secondary);
+            --overlay-thumb-bg: #FFFFFF;
+            --overlay-thumb-icon: var(--accent-blue);
+            --overlay-dialog-bg: var(--overlay-popup-bg);
+            --overlay-dialog-border: var(--overlay-popup-border);
+            --overlay-dialog-title: var(--text-primary);
+            --overlay-dialog-text: var(--text-secondary);
+        }
+
+        :root[data-theme-id="emptiness-color"][data-theme-variant="dark"],
+        .theme-preview-root[data-theme-id="emptiness-color"][data-theme-variant="dark"] {
+            --bg-app: #101113;
+            --bg-surface: #1B1C1F;
+            --bg-color: #1B1C1F;
+            --sidebar-bg: #1B1C1F;
+            --border-color: rgba(230, 233, 238, 0.12);
+            --text-primary: #F1F3F5;
+            --text-secondary: #C3C7CC;
+            --accent-blue: #A1A6AD;
+            --divider: rgba(230, 233, 238, 0.12);
+            --card-bg: rgba(161, 166, 173, 0.14);
+            --card-border: rgba(161, 166, 173, 0.22);
+            --item-hover: rgba(161, 166, 173, 0.2);
+            --shadow-color: rgba(0, 0, 0, 0.4);
+            --shadow-main: 0 10px 30px var(--shadow-color);
+            --logo-glow: rgba(161, 166, 173, 0.2);
+            --hyperos-g1: #101113;
+            --hyperos-g2: #1B1C1F;
+            --hyperos-g3: #23252A;
+            --hyperos-g4: #2C2F36;
+            --hyperos-g5: #1B1C1F;
+            --overlay-toolbar-bg: #1B1C1F;
+            --overlay-toolbar-border: rgba(230, 233, 238, 0.16);
+            --overlay-toolbar-line: rgba(230, 233, 238, 0.2);
+            --overlay-toolbar-shadow: rgba(0, 0, 0, 0.32);
+            --overlay-toolbar-fg: #F1F3F5;
+            --overlay-button-hover: rgba(161, 166, 173, 0.2);
+            --overlay-button-active: rgba(161, 166, 173, 0.28);
+            --overlay-status-bg: rgba(0, 0, 0, 0.28);
+            --overlay-status-fg: #FFFFFF;
+            --overlay-status-sep: rgba(255, 255, 255, 0.32);
+            --overlay-popup-bg: #1B1C1F;
+            --overlay-popup-border: rgba(230, 233, 238, 0.2);
+            --overlay-popup-fg: #F1F3F5;
+            --overlay-page-bg: #1B1C1F;
+            --overlay-page-border: rgba(230, 233, 238, 0.18);
+            --overlay-page-fg: #F1F3F5;
+            --overlay-page-hint: rgba(230, 233, 238, 0.62);
+            --overlay-page-hover: rgba(161, 166, 173, 0.2);
+            --overlay-page-shadow: rgba(0, 0, 0, 0.32);
+            --overlay-reload-mask: rgba(0, 0, 0, 0.46);
+            --overlay-reload-card: rgba(26, 27, 30, 0.9);
+            --overlay-reload-text: rgba(255, 255, 255, 0.94);
+            --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+            
+            --overlay-control-bg: var(--card-bg);
+            --overlay-control-hover: var(--item-hover);
+            --overlay-control-active: var(--overlay-button-active);
+            --overlay-text-primary: var(--text-primary);
+            --overlay-text-secondary: var(--text-secondary);
+            --overlay-thumb-bg: var(--accent-blue);
+            --overlay-thumb-icon: #101113;
+            --overlay-dialog-bg: var(--overlay-popup-bg);
+            --overlay-dialog-border: var(--overlay-popup-border);
+            --overlay-dialog-title: var(--text-primary);
+            --overlay-dialog-text: var(--text-secondary);
+        }
+
+    /* Mung Bean */
+    :root[data-theme-id="mung-bean"][data-theme-variant="light"],
+    .theme-preview-root[data-theme-id="mung-bean"][data-theme-variant="light"] {
+      --bg-app: #F3FFF7;
+      --bg-surface: #FFFFFF;
+      --bg-color: #FFFFFF;
+      --sidebar-bg: #FFFFFF;
+      --border-color: rgba(18, 63, 44, 0.1);
+      --text-primary: #0F3D2A;
+      --text-secondary: #3F6B57;
+      --accent-blue: #45B97C;
+      --divider: rgba(18, 63, 44, 0.1);
+      --card-bg: rgba(69, 185, 124, 0.1);
+      --card-border: rgba(69, 185, 124, 0.2);
+      --item-hover: rgba(69, 185, 124, 0.14);
+      --shadow-color: rgba(69, 185, 124, 0.18);
+      --shadow-main: 0 6px 22px var(--shadow-color);
+      --logo-glow: rgba(69, 185, 124, 0.22);
+      --hyperos-g1: #ECFFF4;
+      --hyperos-g2: #CFF5DF;
+      --hyperos-g3: #E4FFF0;
+      --hyperos-g4: #B5EBCB;
+      --hyperos-g5: #FFFFFF;
+      --overlay-toolbar-bg: #FFFFFF;
+      --overlay-toolbar-border: rgba(18, 63, 44, 0.1);
+      --overlay-toolbar-line: rgba(18, 63, 44, 0.1);
+      --overlay-toolbar-shadow: rgba(18, 63, 44, 0.2);
+      --overlay-toolbar-fg: #0F3D2A;
+      --overlay-button-hover: rgba(69, 185, 124, 0.14);
+      --overlay-button-active: rgba(69, 185, 124, 0.22);
+      --overlay-status-bg: rgba(16, 50, 35, 0.28);
+      --overlay-status-fg: #FFFFFF;
+      --overlay-status-sep: rgba(255, 255, 255, 0.32);
+      --overlay-popup-bg: #FFFFFF;
+      --overlay-popup-border: rgba(18, 63, 44, 0.14);
+      --overlay-popup-fg: #0F3D2A;
+      --overlay-page-bg: #FFFFFF;
+      --overlay-page-border: rgba(18, 63, 44, 0.14);
+      --overlay-page-fg: #0F3D2A;
+      --overlay-page-hint: rgba(15, 61, 42, 0.52);
+      --overlay-page-hover: rgba(69, 185, 124, 0.14);
+      --overlay-page-shadow: rgba(18, 63, 44, 0.2);
+      --overlay-reload-mask: rgba(16, 50, 35, 0.48);
+      --overlay-reload-card: rgba(28, 58, 45, 0.9);
+      --overlay-reload-text: rgba(255, 255, 255, 0.94);
+      --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+
+      --overlay-control-bg: var(--card-bg);
+      --overlay-control-hover: var(--item-hover);
+      --overlay-control-active: var(--overlay-button-active);
+      --overlay-text-primary: var(--text-primary);
+      --overlay-text-secondary: var(--text-secondary);
+      --overlay-thumb-bg: #FFFFFF;
+      --overlay-thumb-icon: var(--accent-blue);
+      --overlay-dialog-bg: var(--overlay-popup-bg);
+      --overlay-dialog-border: var(--overlay-popup-border);
+      --overlay-dialog-title: var(--text-primary);
+      --overlay-dialog-text: var(--text-secondary);
+    }
+
+    :root[data-theme-id="mung-bean"][data-theme-variant="dark"],
+    .theme-preview-root[data-theme-id="mung-bean"][data-theme-variant="dark"] {
+      --bg-app: #0D1A14;
+      --bg-surface: #16231C;
+      --bg-color: #16231C;
+      --sidebar-bg: #16231C;
+      --border-color: rgba(199, 240, 219, 0.14);
+      --text-primary: #E7FFF1;
+      --text-secondary: #B7E6CD;
+      --accent-blue: #7FE3B1;
+      --divider: rgba(199, 240, 219, 0.14);
+      --card-bg: rgba(127, 227, 177, 0.18);
+      --card-border: rgba(127, 227, 177, 0.28);
+      --item-hover: rgba(127, 227, 177, 0.22);
+      --shadow-color: rgba(0, 0, 0, 0.5);
+      --shadow-main: 0 12px 34px var(--shadow-color);
+      --logo-glow: rgba(127, 227, 177, 0.26);
+      --hyperos-g1: #0D1A14;
+      --hyperos-g2: #16231C;
+      --hyperos-g3: #1C2E25;
+      --hyperos-g4: #24392F;
+      --hyperos-g5: #16231C;
+      --overlay-toolbar-bg: #16231C;
+      --overlay-toolbar-border: rgba(199, 240, 219, 0.18);
+      --overlay-toolbar-line: rgba(199, 240, 219, 0.22);
+      --overlay-toolbar-shadow: rgba(0, 0, 0, 0.36);
+      --overlay-toolbar-fg: #E7FFF1;
+      --overlay-button-hover: rgba(127, 227, 177, 0.22);
+      --overlay-button-active: rgba(127, 227, 177, 0.3);
+      --overlay-status-bg: rgba(0, 0, 0, 0.3);
+      --overlay-status-fg: #FFFFFF;
+      --overlay-status-sep: rgba(255, 255, 255, 0.32);
+      --overlay-popup-bg: #16231C;
+      --overlay-popup-border: rgba(199, 240, 219, 0.24);
+      --overlay-popup-fg: #E7FFF1;
+      --overlay-page-bg: #16231C;
+      --overlay-page-border: rgba(199, 240, 219, 0.2);
+      --overlay-page-fg: #E7FFF1;
+      --overlay-page-hint: rgba(199, 240, 219, 0.68);
+      --overlay-page-hover: rgba(127, 227, 177, 0.22);
+      --overlay-page-shadow: rgba(0, 0, 0, 0.36);
+      --overlay-reload-mask: rgba(0, 0, 0, 0.48);
+      --overlay-reload-card: rgba(21, 40, 32, 0.92);
+      --overlay-reload-text: rgba(255, 255, 255, 0.94);
+      --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+
+      --overlay-control-bg: var(--card-bg);
+      --overlay-control-hover: var(--item-hover);
+      --overlay-control-active: var(--overlay-button-active);
+      --overlay-text-primary: var(--text-primary);
+      --overlay-text-secondary: var(--text-secondary);
+      --overlay-thumb-bg: var(--accent-blue);
+      --overlay-thumb-icon: #0D1A14;
+      --overlay-dialog-bg: var(--overlay-popup-bg);
+      --overlay-dialog-border: var(--overlay-popup-border);
+      --overlay-dialog-title: var(--text-primary);
+      --overlay-dialog-text: var(--text-secondary);
+    }
+
+    /* Orange Wish */
+    :root[data-theme-id="orange-wish"][data-theme-variant="light"],
+    .theme-preview-root[data-theme-id="orange-wish"][data-theme-variant="light"] {
+      --bg-app: #FFF6EE;
+      --bg-surface: #FFFFFF;
+      --bg-color: #FFFFFF;
+      --sidebar-bg: #FFFFFF;
+      --border-color: rgba(80, 40, 12, 0.12);
+      --text-primary: #4A2A11;
+      --text-secondary: #7B5A3E;
+      --accent-blue: #FF8A3D;
+      --divider: rgba(80, 40, 12, 0.12);
+      --card-bg: rgba(255, 138, 61, 0.1);
+      --card-border: rgba(255, 138, 61, 0.2);
+      --item-hover: rgba(255, 138, 61, 0.14);
+      --shadow-color: rgba(255, 138, 61, 0.18);
+      --shadow-main: 0 6px 22px var(--shadow-color);
+      --logo-glow: rgba(255, 138, 61, 0.24);
+      --hyperos-g1: #FFF1E4;
+      --hyperos-g2: #FFD9BF;
+      --hyperos-g3: #FFEBDD;
+      --hyperos-g4: #FFC69B;
+      --hyperos-g5: #FFFFFF;
+      --overlay-toolbar-bg: #FFFFFF;
+      --overlay-toolbar-border: rgba(80, 40, 12, 0.12);
+      --overlay-toolbar-line: rgba(80, 40, 12, 0.12);
+      --overlay-toolbar-shadow: rgba(80, 40, 12, 0.2);
+      --overlay-toolbar-fg: #4A2A11;
+      --overlay-button-hover: rgba(255, 138, 61, 0.14);
+      --overlay-button-active: rgba(255, 138, 61, 0.22);
+      --overlay-status-bg: rgba(62, 32, 12, 0.28);
+      --overlay-status-fg: #FFFFFF;
+      --overlay-status-sep: rgba(255, 255, 255, 0.32);
+      --overlay-popup-bg: #FFFFFF;
+      --overlay-popup-border: rgba(80, 40, 12, 0.14);
+      --overlay-popup-fg: #4A2A11;
+      --overlay-page-bg: #FFFFFF;
+      --overlay-page-border: rgba(80, 40, 12, 0.14);
+      --overlay-page-fg: #4A2A11;
+      --overlay-page-hint: rgba(74, 42, 17, 0.52);
+      --overlay-page-hover: rgba(255, 138, 61, 0.14);
+      --overlay-page-shadow: rgba(80, 40, 12, 0.2);
+      --overlay-reload-mask: rgba(62, 32, 12, 0.48);
+      --overlay-reload-card: rgba(70, 40, 20, 0.9);
+      --overlay-reload-text: rgba(255, 255, 255, 0.94);
+      --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+
+      --overlay-control-bg: var(--card-bg);
+      --overlay-control-hover: var(--item-hover);
+      --overlay-control-active: var(--overlay-button-active);
+      --overlay-text-primary: var(--text-primary);
+      --overlay-text-secondary: var(--text-secondary);
+      --overlay-thumb-bg: #FFFFFF;
+      --overlay-thumb-icon: var(--accent-blue);
+      --overlay-dialog-bg: var(--overlay-popup-bg);
+      --overlay-dialog-border: var(--overlay-popup-border);
+      --overlay-dialog-title: var(--text-primary);
+      --overlay-dialog-text: var(--text-secondary);
+    }
+
+    :root[data-theme-id="orange-wish"][data-theme-variant="dark"],
+    .theme-preview-root[data-theme-id="orange-wish"][data-theme-variant="dark"] {
+      --bg-app: #1C1108;
+      --bg-surface: #2A190D;
+      --bg-color: #2A190D;
+      --sidebar-bg: #2A190D;
+      --border-color: rgba(255, 220, 195, 0.16);
+      --text-primary: #FFEFE3;
+      --text-secondary: #F2C8A6;
+      --accent-blue: #FFB677;
+      --divider: rgba(255, 220, 195, 0.16);
+      --card-bg: rgba(255, 182, 119, 0.2);
+      --card-border: rgba(255, 182, 119, 0.3);
+      --item-hover: rgba(255, 182, 119, 0.24);
+      --shadow-color: rgba(0, 0, 0, 0.5);
+      --shadow-main: 0 12px 34px var(--shadow-color);
+      --logo-glow: rgba(255, 182, 119, 0.28);
+      --hyperos-g1: #1C1108;
+      --hyperos-g2: #2A190D;
+      --hyperos-g3: #3A2314;
+      --hyperos-g4: #4A2C19;
+      --hyperos-g5: #2A190D;
+      --overlay-toolbar-bg: #2A190D;
+      --overlay-toolbar-border: rgba(255, 220, 195, 0.2);
+      --overlay-toolbar-line: rgba(255, 220, 195, 0.24);
+      --overlay-toolbar-shadow: rgba(0, 0, 0, 0.36);
+      --overlay-toolbar-fg: #FFEFE3;
+      --overlay-button-hover: rgba(255, 182, 119, 0.24);
+      --overlay-button-active: rgba(255, 182, 119, 0.32);
+      --overlay-status-bg: rgba(0, 0, 0, 0.3);
+      --overlay-status-fg: #FFFFFF;
+      --overlay-status-sep: rgba(255, 255, 255, 0.32);
+      --overlay-popup-bg: #2A190D;
+      --overlay-popup-border: rgba(255, 220, 195, 0.26);
+      --overlay-popup-fg: #FFEFE3;
+      --overlay-page-bg: #2A190D;
+      --overlay-page-border: rgba(255, 220, 195, 0.22);
+      --overlay-page-fg: #FFEFE3;
+      --overlay-page-hint: rgba(255, 220, 195, 0.7);
+      --overlay-page-hover: rgba(255, 182, 119, 0.24);
+      --overlay-page-shadow: rgba(0, 0, 0, 0.36);
+      --overlay-reload-mask: rgba(0, 0, 0, 0.48);
+      --overlay-reload-card: rgba(46, 28, 16, 0.92);
+      --overlay-reload-text: rgba(255, 255, 255, 0.94);
+      --overlay-dev-watermark: rgba(255, 255, 255, 0.47);
+
+      --overlay-control-bg: var(--card-bg);
+      --overlay-control-hover: var(--item-hover);
+      --overlay-control-active: var(--overlay-button-active);
+      --overlay-text-primary: var(--text-primary);
+      --overlay-text-secondary: var(--text-secondary);
+      --overlay-thumb-bg: var(--accent-blue);
+      --overlay-thumb-icon: #1C1108;
+      --overlay-dialog-bg: var(--overlay-popup-bg);
+      --overlay-dialog-border: var(--overlay-popup-border);
+      --overlay-dialog-title: var(--text-primary);
+      --overlay-dialog-text: var(--text-secondary);
+    }
+
+        body {
+            background: transparent;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            user-select: none;
+            font-family: var(--font-stack);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            pointer-events: none;
+        }
+
+        .interactive {
+            pointer-events: auto;
+        }
+
+        .disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            filter: grayscale(0.8);
+        }
+
+        #status-bar {
+            width: 100%;
+            height: 32px;
+            background: var(--overlay-status-bg);
+            color: var(--overlay-status-fg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            box-sizing: border-box;
+            font-size: 12px;
+            font-weight: 900;
+            /* backdrop-filter: blur(10px); */
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-bottom: 1px solid var(--overlay-status-sep);
+        }
+
+        #time-display {
+            font-weight: 900;
+            font-size: 14px;
+            letter-spacing: 0.02em;
+        }
+
+        /* Digit animation for status bar */
+        .status-digit-wrapper {
+            display: inline-grid;
+            place-items: center;
+            position: relative;
+            overflow: visible;
+            vertical-align: bottom;
+        }
+
+        .status-digit-wrapper > span {
+            grid-area: 1 / 1;
+            backface-visibility: hidden;
+            will-change: transform, opacity, filter;
+        }
+
+        .status-separator {
+            display: inline-block;
+            width: 0.6em;
+        }
+
+        .status-digit-old {
+            animation: statusDigitExit 0.03s ease-in forwards;
+        }
+
+        .status-digit-new {
+            animation: statusDigitEnter 0.3s cubic-bezier(0.2, 1.25, 0.4, 1) forwards;
+        }
+
+        @keyframes statusDigitExit {
+            0% {
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100%) scale(0.7);
+                filter: blur(10px);
+                opacity: 0;
+            }
+        }
+
+        @keyframes statusDigitEnter {
+            0% {
+                transform: translateY(100%) scale(0.7);
+                filter: blur(10px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes musicFlipOut {
+            0% {
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100%) scale(0.7);
+                filter: blur(10px);
+                opacity: 0;
+            }
+        }
+
+        @keyframes musicFlipIn {
+            0% {
+                transform: translateY(100%) scale(0.7);
+                filter: blur(10px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+                opacity: 1;
+            }
+        }
+
+        .status-music-flip {
+            animation: musicFlipOut 0.03s ease-in forwards;
+        }
+
+        .status-music-flip-in {
+            animation: musicFlipIn 0.3s cubic-bezier(0.2, 1.25, 0.4, 1) forwards;
+        }
+
+        #status-bar.visible {
+            opacity: 1;
+        }
+        
+        #system-status {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .status-text {
+            font-size: 14px;
+            font-weight: 900;
+            color: var(--overlay-status-fg);
+            white-space: pre;
+        }
+        
+        .status-item .icon-mask {
+            width: 16px;
+            height: 16px;
+            background-color: var(--overlay-status-fg);
+        }
+
+        #center-area {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .flipper {
+            width: 54px;
+            height: 160px;
+            background: var(--overlay-page-bg);
+            border: 0.5px solid var(--overlay-page-border);
+            border-radius: 27px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            /* box-shadow: var(--overlay-page-shadow); */
+            pointer-events: auto;
+            /* backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px); */
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        .flipper:active {
+            transform: scale(0.95);
+        }
+
+        /* Flipper Bottom Layout */
+        .flipper.flipper-bottom {
+            height: 54px;
+            width: 160px;
+            flex-direction: row;
+            align-items: center;
+            border-radius: 27px;
+            position: absolute;
+            bottom: 20px;
+            /* Reset transform from center layout */
+            transform: none !important; 
+        }
+
+        #left-flipper.flipper-bottom {
+            left: 20px;
+        }
+
+        #right-flipper.flipper-bottom {
+            right: 20px;
+        }
+
+        /* Strict edge alignment for flipper bottom layout */
+        #left-flipper.flipper-bottom.strict-edge-alignment {
+            left: 0px;
+        }
+
+        #right-flipper.flipper-bottom.strict-edge-alignment {
+            right: 0px;
+        }
+
+        .flipper.flipper-bottom.strict-edge-alignment {
+            bottom: 0px;
+        }
+        
+        .flipper.flipper-bottom .flipper-btn {
+            margin: 0 4px;
+        }
+        
+        .flipper.flipper-bottom .icon-previous {
+            transform: rotate(0deg);
+        }
+        
+        .flipper.flipper-bottom .icon-next {
+            transform: rotate(0deg);
+        }
+
+        .flipper.flipper-bottom .page-info-container {
+             padding: 0 4px;
+             flex-direction: row;
+        }
+
+        #ink-prompt {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: var(--overlay-dialog-mask);
+            width: 100vw;
+            height: 100vh;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 9999;
+            pointer-events: auto;
+        }
+
+        #ink-prompt.visible {
+            display: flex;
+        }
+
+        .ink-card {
+            min-width: 320px;
+            max-width: 520px;
+            padding: 22px 24px;
+            border-radius: 16px;
+            background: var(--overlay-dialog-bg);
+            border: 1px solid var(--overlay-dialog-border);
+            box-shadow: var(--overlay-dialog-shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: auto;
+        }
+
+        .ink-title {
+            font-size: 18px;
+            font-weight: 900;
+            color: var(--overlay-dialog-title);
+        }
+
+        .ink-text {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--overlay-dialog-text);
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .ink-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 4px;
+        }
+
+        .ink-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 8px 18px;
+            font-size: 14px;
+            font-weight: 900;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.08);
+            color: var(--overlay-dialog-title);
+        }
+
+        .ink-btn:hover {
+            filter: brightness(1.02);
+        }
+
+        .ink-btn.confirm {
+            background: var(--accent-color);
+            color: #ffffff;
+        }
+        
+        .flipper-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 8px;
+            flex: none;
+        }
+        
+        .flipper-btn:hover {
+            background: var(--overlay-page-hover);
+        }
+
+        .flipper-btn:active {
+            background: var(--overlay-button-active);
+        }
+        
+        .flipper-btn:first-child {
+            border-radius: 50%;
+            margin-bottom: 0;
+        }
+        
+        .flipper-btn:last-child {
+            border-radius: 50%;
+            margin-top: 0;
+        }
+        
+        .flipper .icon-previous {
+            transform: rotate(90deg);
+        }
+        
+        .flipper .icon-next {
+            transform: rotate(90deg);
+        }
+
+        .page-info-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.2;
+            padding: 4px 0;
+        }
+
+        .page-count-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+        }
+
+        .page-curr {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--overlay-page-fg);
+        }
+
+        .page-total-grp {
+            font-size: 10px;
+            color: var(--overlay-page-hint);
+            margin-left: 2px;
+        }
+
+        .page-label {
+            font-size: 10px;
+            color: var(--overlay-page-hint);
+            margin-top: -2px;
+        }
+
+        #toolbar-container {
+            position: absolute;
+            pointer-events: none;
+            z-index: 100;
+            display: flex;
+            padding: 20px;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        #toolbar-container.strict-edge-alignment {
+            padding: 0px;
+        }
+
+        /* Bottom Position (Default) */
+        #toolbar-container.pos-bottom {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        /* Top Position */
+        #toolbar-container.pos-top {
+            top: 0;
+            left: 0;
+            right: 0;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* Left Position */
+        #toolbar-container.pos-left {
+            top: 0;
+            bottom: 0;
+            left: 0;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* Right Position */
+        #toolbar-container.pos-right {
+            top: 0;
+            bottom: 0;
+            right: 0;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        /* Adjust toolbar for vertical layout */
+        #toolbar-container.pos-left #toolbar,
+        #toolbar-container.pos-right #toolbar {
+            flex-direction: column;
+            width: auto;
+            height: auto;
+        }
+
+        #toolbar-container.pos-left .separator,
+        #toolbar-container.pos-right .separator {
+            width: 24px;
+            height: 1px;
+            margin: 4px auto;
+        }
+
+
+        #toolbar-handle {
+            position: absolute;
+            width: 32px;
+            height: 12px;
+            bottom: -16px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            pointer-events: auto;
+            z-index: 101;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        #toolbar-handle:hover {
+            opacity: 1;
+        }
+
+        .handle-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background-color: var(--overlay-toolbar-fg);
+            margin: 0 2px;
+            opacity: 0.5;
+        }
+
+        #toolbar {
+            background: var(--overlay-toolbar-bg);
+            border: 0.5px solid var(--overlay-toolbar-border);
+            border-radius: 999px;
+            padding: 8px 8px 8px 12px;
+            display: flex;
+            gap: 4px;
+            /* box-shadow: var(--overlay-toolbar-shadow); */
+            transition: opacity 0.3s, transform 0.3s;
+            position: relative;
+            /* backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px); */
+        }
+
+        .compat-label {
+            position: relative;
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 12px;
+            color: var(--accent-color);
+            font-weight: 600;
+            background: rgba(50, 117, 245, 0.1);
+            margin: auto 8px auto 0;
+        }
+
+        .compat-label::after {
+            content: "";
+            position: absolute;
+            inset: -3px;
+            border-radius: 50%;
+            border: 1px solid rgba(50, 117, 245, 0.35);
+        }
+        
+        .tool-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 19px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+        }
+        
+        .tool-btn:hover {
+            background: var(--overlay-button-hover);
+        }
+        
+        .tool-btn.active {
+            background: var(--overlay-button-active);
+        }
+
+        .tool-btn-danger:hover {
+            background: rgba(224, 62, 62, 0.14);
+        }
+
+        .tool-btn-danger.active,
+        .tool-btn-danger:active {
+            background: rgba(224, 62, 62, 0.22);
+        }
+        
+        .tool-btn img {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .separator {
+            width: 1px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.15);
+            margin: auto 4px;
+        }
+        
+        .icon-mask {
+            width: 20px;
+            height: 20px;
+            background-color: var(--overlay-toolbar-fg);
+            -webkit-mask-size: contain;
+            -webkit-mask-repeat: no-repeat;
+            -webkit-mask-position: center;
+            mask-size: contain;
+            mask-repeat: no-repeat;
+            mask-position: center;
+        }
+
+        .icon-mouse { -webkit-mask-image: url('../../icons/Mouse.svg'); mask-image: url('../../icons/Mouse.svg'); }
+        .icon-previous { -webkit-mask-image: url('../../icons/Previous.svg'); mask-image: url('../../icons/Previous.svg'); }
+        .icon-next { -webkit-mask-image: url('../../icons/Next.svg'); mask-image: url('../../icons/Next.svg'); }
+        .icon-pen { -webkit-mask-image: url('../../icons/Pen.svg'); mask-image: url('../../icons/Pen.svg'); }
+        .icon-eraser { -webkit-mask-image: url('../../icons/Eraser.svg'); mask-image: url('../../icons/Eraser.svg'); }
+        .icon-clear { -webkit-mask-image: url('../../icons/Clear.svg'); mask-image: url('../../icons/Clear.svg'); }
+        .icon-spotlight { -webkit-mask-image: url('../../icons/spotlight.svg'); mask-image: url('../../icons/spotlight.svg'); }
+        .icon-board { -webkit-mask-image: url('../../icons/board-in-board.svg'); mask-image: url('../../icons/board-in-board.svg'); }
+        .icon-timer { -webkit-mask-image: url('../../icons/timer.svg'); mask-image: url('../../icons/timer.svg'); }
+        .icon-app { -webkit-mask-image: url('../../icons/More.svg'); mask-image: url('../../icons/More.svg'); }
+        .icon-minimize { 
+            -webkit-mask-image: url('../../icons/Minimize.svg'); 
+            mask-image: url('../../icons/Minimize.svg');
+            background-color: var(--overlay-toolbar-fg);
+        }
+
+        .tool-btn-danger .icon-mask {
+            background-color: #D9485A;
+        }
+
+        .tool-btn-danger:hover .icon-mask,
+        .tool-btn-danger.active .icon-mask,
+        .tool-btn-danger:active .icon-mask {
+            background-color: #C53244;
+        }
+        
+        /* Status Bar Icons */
+        .icon-battery { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16 4h-1V2.5C15 2.22 14.78 2 14.5 2h-5C9.22 2 9 2.22 9 2.5V4H8C6.9 4 6 4.9 6 6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16 4h-1V2.5C15 2.22 14.78 2 14.5 2h-5C9.22 2 9 2.22 9 2.5V4H8C6.9 4 6 4.9 6 6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z'/%3E%3C/svg%3E"); }
+        .icon-battery-charging { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 4h-1c0-1.1-.9-2-2-2s-2 .9-2 2H9c-1.11 0-2 .89-2 2v12c0 1.1.89 2 2 2h6c1.11 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM11 20v-5.5H9L13 7v5.5h2L11 20z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 4h-1c0-1.1-.9-2-2-2s-2 .9-2 2H9c-1.11 0-2 .89-2 2v12c0 1.1.89 2 2 2h6c1.11 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM11 20v-5.5H9L13 7v5.5h2L11 20z'/%3E%3C/svg%3E"); }
+        .icon-wifi { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12.01 21.49L23.64 7c-.45-.34-4.93-4-11.64-4C5.28 3 .81 6.66.36 7l11.63 14.49.01.01.01-.01z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12.01 21.49L23.64 7c-.45-.34-4.93-4-11.64-4C5.28 3 .81 6.66.36 7l11.63 14.49.01.01.01-.01z'/%3E%3C/svg%3E"); }
+        .icon-wifi-off { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M23.64 7c-.45-.34-4.93-4-11.64-4-1.5 0-2.89.19-4.15.48L18.18 13.8 23.64 7zm-6.6 8.22L3.27 1.44 2 2.72l2.05 2.06C1.91 5.76.59 6.82.36 7l11.63 14.49.01.01.01-.01 3.9-4.86 3.32 3.32 1.27-1.27-3.46-3.46z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M23.64 7c-.45-.34-4.93-4-11.64-4-1.5 0-2.89.19-4.15.48L18.18 13.8 23.64 7zm-6.6 8.22L3.27 1.44 2 2.72l2.05 2.06C1.91 5.76.59 6.82.36 7l11.63 14.49.01.01.01-.01 3.9-4.86 3.32 3.32 1.27-1.27-3.46-3.46z'/%3E%3C/svg%3E"); }
+        .icon-volume { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z'/%3E%3C/svg%3E"); }
+        .icon-music { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z'/%3E%3C/svg%3E"); }
+        .icon-desktop { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 2C2.9 2 2 2.9 2 4V20C2 21.1 2.9 22 4 22H20C21.1 22 22 21.1 22 20V4C22 2.9 21.1 2 20 2H4ZM4 4H20V20H4V4ZM6 6V8H18V6H6ZM6 10V12H10V10H6ZM6 16C6 16.55 6.45 17 7 17C7.55 17 8 16.55 8 16C8 15.45 7.55 15 7 15C6.45 15 6 15.45 6 16Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 2C2.9 2 2 2.9 2 4V20C2 21.1 2.9 22 4 22H20C21.1 22 22 21.1 22 20V4C22 2.9 21.1 2 20 2H4ZM4 4H20V20H4V4ZM6 6V8H18V6H6ZM6 10V12H10V10H6ZM6 16C6 16.55 6.45 17 7 17C7.55 17 8 16.55 8 16C8 15.45 7.55 15 7 15C6.45 15 6 15.45 6 16Z'/%3E%3C/svg%3E"); }
+
+        .icon-img {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+        
+        #eraser-settings {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--overlay-popup-bg);
+            border: 1px solid var(--overlay-popup-border);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: var(--overlay-popup-shadow);
+            /* backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px); */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            z-index: 100;
+        }
+
+        #eraser-settings.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .slider-container {
+            width: 200px;
+            height: 44px;
+            background: var(--overlay-control-bg);
+            border-radius: 22px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .slider-text {
+            color: var(--overlay-text-secondary);
+            font-size: 14px;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .slider-thumb {
+            width: 40px;
+            height: 40px;
+            background: var(--overlay-thumb-bg);
+            border-radius: 50%;
+            position: absolute;
+            left: 2px;
+            top: 2px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+        }
+        
+        .slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+
+        .slider-thumb .icon-mask {
+            background-color: var(--overlay-thumb-icon);
+            width: 20px;
+            height: 20px;
+        }
+
+        .clear-btn-container {
+            display: none;
+            width: 200px;
+            height: 44px;
+            background: var(--overlay-control-bg);
+            border-radius: 22px;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .clear-btn-container:hover {
+            background: var(--overlay-control-hover);
+        }
+        
+        .clear-btn-container:active {
+            background: var(--overlay-control-active);
+            transform: scale(0.98);
+        }
+
+        .clear-btn-icon {
+            width: 24px;
+            height: 24px;
+            background-color: var(--overlay-text-primary);
+            margin-right: 8px;
+            -webkit-mask-image: url('../../icons/Clear.svg');
+            mask-image: url('../../icons/Clear.svg');
+            -webkit-mask-size: contain;
+            -webkit-mask-repeat: no-repeat;
+            -webkit-mask-position: center;
+            mask-size: contain;
+            mask-repeat: no-repeat;
+            mask-position: center;
+        }
+
+        .clear-btn-text {
+            color: var(--overlay-text-primary);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        body.popup-active {
+            pointer-events: auto !important;
+        }
+        
+        #page-selector {
+            position: fixed;
+            top: 24px;
+            bottom: 24px;
+            right: 16px; /* Floating gap */
+            left: auto;
+            transform: translateX(calc(100% + 32px));
+            background: var(--overlay-popup-bg);
+            border: 1px solid var(--overlay-popup-border);
+            border-radius: 16px;
+            padding: 12px;
+            box-shadow: none; /* Removed shadow */
+            opacity: 1;
+            pointer-events: auto;
+            transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+            z-index: 200;
+            max-height: none;
+            overflow-y: auto;
+            width: 260px;
+            /* Scrollbar styling */
+            scrollbar-width: thin;
+            scrollbar-color: var(--overlay-thumb-bg) transparent;
+        }
+
+        #page-selector.visible {
+            transform: translateX(0);
+        }
+
+        #page-selector.left-side {
+            right: auto;
+            left: 16px;
+            transform: translateX(calc(-100% - 32px));
+            border: 1px solid var(--overlay-popup-border);
+            box-shadow: none; /* Removed shadow */
+        }
+        
+        #page-selector.left-side.visible {
+            transform: translateX(0);
+        }
+
+        .page-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .page-item {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: var(--overlay-control-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .page-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .page-item.active {
+            border-color: var(--accent-color);
+        }
+        
+        .page-item .page-num {
+            position: absolute;
+            bottom: 4px;
+            right: 8px;
+            font-size: 2em;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+            pointer-events: none;
+            z-index: 2;
+            line-height: 1;
+        }
+        
+        .page-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .page-item img.loaded {
+            opacity: 1;
+        }
+
+        .loading-spinner {
+            width: 27px;
+            height: 27px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .loading-spinner.hidden {
+            opacity: 0;
+        }
+
+        .loading-spinner svg {
+            width: 27px;
+            height: 27px;
+        }
+
+        .loading-spinner .spinner-ring {
+            fill: none;
+            stroke: var(--overlay-page-hint);
+            stroke-width: 3;
+        }
+
+        .loading-spinner .spinner-dot {
+            fill: var(--overlay-page-hint);
+        }
+
+        .loading-spinner .spinner-orbit {
+            transform-origin: 13.5px 13.5px;
+            animation: spin-rotate 1s linear infinite;
+        }
+
+        @keyframes spin-rotate {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #color-picker, #eraser-settings, #toolbar, .flipper, #status-bar {
+            z-index: 100;
+        }
+
+        #page-selector {
+            z-index: 200;
+        }
+
+        #color-picker {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--overlay-popup-bg);
+            border: 1px solid var(--overlay-popup-border);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: var(--overlay-popup-shadow);
+            /* backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px); */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            z-index: 100;
+            min-width: 320px;
+        }
+
+        #color-picker.visible {
+            opacity: 1;
+            pointer-events: auto;
+            /* transform is handled in JS for scale support */
+        }
+
+        .color-section-title {
+            font-size: 13px;
+            color: var(--overlay-text-primary);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .color-row {
+            display: flex;
+            gap: 8px;
+            justify-content: space-between;
+        }
+
+        .color-option {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s, border-color 0.2s;
+            box-sizing: border-box;
+        }
+        
+        .color-option:hover {
+            transform: scale(1.15);
+            z-index: 1;
+        }
+
+        .color-option.active {
+            border-color: var(--overlay-text-primary);
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.3);
+        }
+
+
+
+        .pivot-container {
+            display: flex;
+            gap: 24px;
+            border-bottom: 1px solid var(--overlay-popup-border);
+            margin-bottom: 12px;
+            padding: 0 4px;
+        }
+
+        .pivot-item {
+            padding: 8px 4px 12px 4px;
+            font-size: 14px;
+            color: var(--overlay-text-secondary);
+            cursor: pointer;
+            position: relative;
+            transition: color 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            font-weight: 500;
+        }
+
+        .pivot-item:active {
+            transform: scale(0.96);
+        }
+
+        .pivot-item:hover {
+            color: var(--overlay-text-primary);
+        }
+
+        .pivot-item.active {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        @keyframes pivotUnderlineIn {
+            from {
+                opacity: 0;
+                transform: scaleX(0.5);
+            }
+            to {
+                opacity: 1;
+                transform: scaleX(1);
+            }
+        }
+
+        .pivot-item.active::after {
+            content: "";
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--accent-color);
+            border-radius: 1px;
+            animation: pivotUnderlineIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .pivot-content {
+            display: none;
+        }
+
+        .pivot-content.active {
+            display: block;
+            animation: pivotSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .color-info {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--overlay-popup-border);
+            font-size: 12px;
+            color: var(--overlay-text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .color-info div {
+            white-space: nowrap;
+        }
+        
+        #left-flipper, #right-flipper {
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        
+        #left-flipper.hidden-flipper, #right-flipper.hidden-flipper {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.9);
+        }
+
+        @keyframes pivotSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateX(10px);
+                filter: blur(4px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+                filter: blur(0);
+            }
+        }
+        /* Toolbar Collapse/Expand (iOS Style) */
+        #toolbar-handle {
+            width: 48px;
+            height: 5px;
+            background: var(--overlay-text-secondary);
+            border-radius: 3px;
+            opacity: 0;
+            margin: 6px auto;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            pointer-events: none;
+            cursor: pointer;
+            z-index: 101;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* Handle Visibility */
+        #toolbar-container.collapsed #toolbar-handle {
+            opacity: 0.6;
+            pointer-events: auto;
+            height: 5px;
+            background: var(--overlay-text-primary);
+        }
+        
+        #toolbar-container.collapsed #toolbar-handle:hover {
+            opacity: 1;
+            height: 6px;
+        }
+
+        /* Toolbar Transitions */
+        #toolbar {
+            transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease;
+        }
+
+        /* Position: Bottom */
+        #toolbar-container.pos-bottom #toolbar-handle {
+            bottom: 8px; /* Slightly above bottom edge */
+        }
+        
+        #toolbar-container.pos-bottom.collapsed #toolbar {
+            transform: translateY(120%) scale(0.92);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #toolbar-container.pos-bottom.collapsed #toolbar-handle {
+            transform: translateX(-50%) translateY(-6px);
+        }
+
+        /* Position: Top */
+        #toolbar-container.pos-top #toolbar-handle {
+            top: 8px;
+        }
+
+        #toolbar-container.pos-top.collapsed #toolbar {
+            transform: translateY(-120%) scale(0.92);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #toolbar-container.pos-top.collapsed #toolbar-handle {
+            transform: translateX(-50%) translateY(6px);
+        }
+
+        /* Position: Left */
+        #toolbar-container.pos-left #toolbar-handle {
+            width: 5px;
+            height: 48px;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            margin: auto 6px;
+        }
+
+        #toolbar-container.pos-left.collapsed #toolbar {
+            transform: translateX(-120%) scale(0.92);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #toolbar-container.pos-left.collapsed #toolbar-handle {
+            transform: translateY(-50%) translateX(6px);
+        }
+
+        /* Position: Right */
+        #toolbar-container.pos-right #toolbar-handle {
+            width: 5px;
+            height: 48px;
+            right: 8px;
+            left: auto; /* Override left: 50% */
+            top: 50%;
+            transform: translateY(-50%);
+            margin: auto 6px;
+        }
+
+        #toolbar-container.pos-right.collapsed #toolbar {
+            transform: translateX(120%) scale(0.92);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #toolbar-container.pos-right.collapsed #toolbar-handle {
+            transform: translateY(-50%) translateX(-6px);
+        }
+
+    </style>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+</head>
+<body>
+    <div id="status-bar" class="interactive">
+        <span id="time-display">12:00</span>
+        <div id="system-status">
+            <div class="status-item" id="status-smtc" style="display: none;">
+                <div class="icon-mask icon-music"></div>
+                <span class="status-text"></span>
+            </div>
+            <div class="status-item" id="status-volume">
+                <div class="icon-mask icon-volume"></div>
+                <span class="status-text">--%</span>
+            </div>
+            <div class="status-item" id="status-network">
+                <div class="icon-mask icon-wifi"></div>
+            </div>
+            <div class="status-item" id="status-battery">
+                <span class="status-text" id="battery-text"></span>
+                <div class="icon-mask icon-battery"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="eraser-settings" class="interactive">
+        <div class="slider-container" id="clear-slider">
+            <div class="slider-text">滑动清屏</div>
+            <div class="slider-track"></div>
+            <div class="slider-thumb" id="clear-thumb">
+                <div class="icon-mask icon-clear"></div>
+            </div>
+        </div>
+        <div class="clear-btn-container" id="clear-btn" onclick="bridge.clearScreen(); closePopup()">
+            <div class="clear-btn-icon"></div>
+            <div class="clear-btn-text">清空屏幕</div>
+        </div>
+    </div>
+
+    <div id="page-selector" class="interactive">
+        <div class="page-grid" id="page-grid-content">
+            <!-- Items injected by JS -->
+        </div>
+    </div>
+
+    <div id="color-picker" class="interactive">
+        <div class="pivot-container">
+            <div class="pivot-item active" onclick="switchColorTab('pen', this)">普通笔</div>
+            <div class="pivot-item" onclick="switchColorTab('highlight', this)">荧光笔</div>
+        </div>
+
+        <div id="tab-pen" class="pivot-content active">
+            <div class="color-row">
+                <div class="color-option" style="background-color: #FFFFFF;" onclick="selectColor(255,255,255, this)" onmouseover="updateColorInfo('白色', '255 255 255', '#FFFFFF')"></div>
+                <div class="color-option" style="background-color: #000000;" onclick="selectColor(0,0,0, this)" onmouseover="updateColorInfo('黑色', '0 0 0', '#000000')"></div>
+                <div class="color-option" style="background-color: #E7E6E6;" onclick="selectColor(231,230,230, this)" onmouseover="updateColorInfo('浅灰色', '231 230 230', '#E7E6E6')"></div>
+                <div class="color-option" style="background-color: #44546A;" onclick="selectColor(68,84,106, this)" onmouseover="updateColorInfo('蓝灰色', '68 84 106', '#44546A')"></div>
+                <div class="color-option" style="background-color: #4472C4;" onclick="selectColor(68,114,196, this)" onmouseover="updateColorInfo('蓝色', '68 114 196', '#4472C4')"></div>
+                <div class="color-option" style="background-color: #ED7D31;" onclick="selectColor(237,125,49, this)" onmouseover="updateColorInfo('橙色', '237 125 49', '#ED7D31')"></div>
+                <div class="color-option" style="background-color: #A5A5A5;" onclick="selectColor(165,165,165, this)" onmouseover="updateColorInfo('灰色', '165 165 165', '#A5A5A5')"></div>
+                <div class="color-option" style="background-color: #FFC000;" onclick="selectColor(255,192,0, this)" onmouseover="updateColorInfo('金色', '255 192 0', '#FFC000')"></div>
+                <div class="color-option" style="background-color: #5B9BD5;" onclick="selectColor(91,155,213, this)" onmouseover="updateColorInfo('浅蓝色', '91 155 213', '#5B9BD5')"></div>
+                <div class="color-option" style="background-color: #70AD47;" onclick="selectColor(112,173,71, this)" onmouseover="updateColorInfo('绿色', '112 173 71', '#70AD47')"></div>
+            </div>
+        </div>
+
+        <div id="tab-highlight" class="pivot-content">
+            <div class="color-row">
+                <div class="color-option" style="background-color: #C00000;" onclick="selectColor(192,0,0, this)" onmouseover="updateColorInfo('深红色', '192 0 0', '#C00000')"></div>
+                <div class="color-option" style="background-color: #FF0000;" onclick="selectColor(255,0,0, this)" onmouseover="updateColorInfo('红色', '255 0 0', '#FF0000')"></div>
+                <div class="color-option" style="background-color: #FFC000;" onclick="selectColor(255,192,0, this)" onmouseover="updateColorInfo('金色', '255 192 0', '#FFC000')"></div>
+                <div class="color-option" style="background-color: #FFFF00;" onclick="selectColor(255,255,0, this)" onmouseover="updateColorInfo('黄色', '255 255 0', '#FFFF00')"></div>
+                <div class="color-option" style="background-color: #92D050;" onclick="selectColor(146,208,80, this)" onmouseover="updateColorInfo('浅绿色', '146 208 80', '#92D050')"></div>
+                <div class="color-option" style="background-color: #00B050;" onclick="selectColor(0,176,80, this)" onmouseover="updateColorInfo('绿色', '0 176 80', '#00B050')"></div>
+                <div class="color-option" style="background-color: #00B0F0;" onclick="selectColor(0,176,240, this)" onmouseover="updateColorInfo('浅蓝色', '0 176 240', '#00B0F0')"></div>
+                <div class="color-option" style="background-color: #0070C0;" onclick="selectColor(0,112,192, this)" onmouseover="updateColorInfo('蓝色', '0 112 192', '#0070C0')"></div>
+                <div class="color-option" style="background-color: #002060;" onclick="selectColor(0,32,96, this)" onmouseover="updateColorInfo('深蓝色', '0 32 96', '#002060')"></div>
+                <div class="color-option" style="background-color: #7030A0;" onclick="selectColor(112,48,160, this)" onmouseover="updateColorInfo('紫色', '112 48 160', '#7030A0')"></div>
+            </div>
+        </div>
+        
+        <div class="color-info" id="color-info-box">
+            <div id="info-name">黑色</div>
+            <div id="info-rgb">RGB (0 0 0)</div>
+            <div id="info-hex">#000000</div>
+        </div>
+    </div>
+
+    <div id="center-area">
+        <div id="left-flipper" class="interactive flipper">
+            <div class="flipper-btn" onclick="bridge.prevPage()">
+                <div class="icon-mask icon-previous"></div>
+            </div>
+            <div class="page-info-container" onclick="togglePageSelector(event)" style="cursor: pointer;">
+                <div class="page-count-row">
+                    <span class="page-curr" id="curr-page-l">1</span>
+                    <span class="page-total-grp" id="total-page-l">/1</span>
+                </div>
+
+            </div>
+            <div class="flipper-btn" onclick="bridge.nextPage()">
+                <div class="icon-mask icon-next"></div>
+            </div>
+        </div>
+
+        <div id="right-flipper" class="interactive flipper">
+            <div class="flipper-btn" onclick="bridge.prevPage()">
+                <div class="icon-mask icon-previous"></div>
+            </div>
+            <div class="page-info-container" onclick="togglePageSelector(event)" style="cursor: pointer;">
+                <div class="page-count-row">
+                    <span class="page-curr" id="curr-page-r">1</span>
+                    <span class="page-total-grp" id="total-page-r">/1</span>
+                </div>
+
+            </div>
+            <div class="flipper-btn" onclick="bridge.nextPage()">
+                <div class="icon-mask icon-next"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toolbar-container">
+        <div id="toolbar" class="interactive">
+            <div id="toolbar-handle" onclick="toggleToolbar(false)">
+                <div class="handle-dot"></div>
+                <div class="handle-dot"></div>
+                <div class="handle-dot"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="ink-prompt" class="interactive">
+        <div class="ink-card">
+            <div class="ink-title">是否保留墨迹注释？</div>
+            <div class="ink-text">检测到放映期间添加了墨迹注释，是否保留到幻灯片中？</div>
+            <div class="ink-actions">
+                <button class="ink-btn" onclick="onInkPrompt(false)">不保留</button>
+                <button class="ink-btn confirm" onclick="onInkPrompt(true)">保留</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let bridge = null;
+        let currentTool = 'select';
+        let currentConfig = null;
+        let currentPage = 1;
+        let totalPage = 1;
+
+        function animationsDisabled() {
+            return !!currentConfig?.disableAnimations;
+        }
+
+        function motionBehavior() {
+            return animationsDisabled() ? 'auto' : 'smooth';
+        }
+
+        function motionDelay(ms) {
+            return animationsDisabled() ? 0 : ms;
+        }
+
+        function applyAnimationPreference() {
+            document.documentElement.setAttribute('data-disable-animations', animationsDisabled() ? 'true' : 'false');
+        }
+        const DEFAULT_PEN_COLOR = Object.freeze({ tab: 'highlight', name: '红色', rgb: '255 0 0', hex: '#FF0000' });
+        const PEN_COLOR_PRESETS = Object.freeze({
+            '#FFFFFF': { tab: 'pen', name: '白色', rgb: '255 255 255', hex: '#FFFFFF' },
+            '#000000': { tab: 'pen', name: '黑色', rgb: '0 0 0', hex: '#000000' },
+            '#E7E6E6': { tab: 'pen', name: '浅灰色', rgb: '231 230 230', hex: '#E7E6E6' },
+            '#44546A': { tab: 'pen', name: '蓝灰色', rgb: '68 84 106', hex: '#44546A' },
+            '#4472C4': { tab: 'pen', name: '蓝色', rgb: '68 114 196', hex: '#4472C4' },
+            '#ED7D31': { tab: 'pen', name: '橙色', rgb: '237 125 49', hex: '#ED7D31' },
+            '#A5A5A5': { tab: 'pen', name: '灰色', rgb: '165 165 165', hex: '#A5A5A5' },
+            '#FFC000': { tab: 'highlight', name: '金色', rgb: '255 192 0', hex: '#FFC000' },
+            '#5B9BD5': { tab: 'pen', name: '浅蓝色', rgb: '91 155 213', hex: '#5B9BD5' },
+            '#70AD47': { tab: 'pen', name: '绿色', rgb: '112 173 71', hex: '#70AD47' },
+            '#C00000': { tab: 'highlight', name: '深红色', rgb: '192 0 0', hex: '#C00000' },
+            '#FF0000': { tab: 'highlight', name: '红色', rgb: '255 0 0', hex: '#FF0000' },
+            '#FFFF00': { tab: 'highlight', name: '黄色', rgb: '255 255 0', hex: '#FFFF00' },
+            '#92D050': { tab: 'highlight', name: '浅绿色', rgb: '146 208 80', hex: '#92D050' },
+            '#00B050': { tab: 'highlight', name: '绿色', rgb: '0 176 80', hex: '#00B050' },
+            '#00B0F0': { tab: 'highlight', name: '浅蓝色', rgb: '0 176 240', hex: '#00B0F0' },
+            '#0070C0': { tab: 'highlight', name: '蓝色', rgb: '0 112 192', hex: '#0070C0' },
+            '#002060': { tab: 'highlight', name: '深蓝色', rgb: '0 32 96', hex: '#002060' },
+            '#7030A0': { tab: 'highlight', name: '紫色', rgb: '112 48 160', hex: '#7030A0' }
+        });
+        let currentPenColor = { ...DEFAULT_PEN_COLOR };
+
+        new QWebChannel(qt.webChannelTransport, function(channel) {
+            bridge = channel.objects.bridge;
+            bridge.requestInitState();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!document.body.classList.contains('popup-active')) return;
+            
+            const isClickInside = e.target.closest('#color-picker') || 
+                                  e.target.closest('#eraser-settings') ||
+                                  e.target.closest('#page-selector') ||
+                                  e.target.closest('.tool-btn');
+            
+            if (!isClickInside) {
+                closePopup();
+            }
+        });
+
+        function rgbToHex(r, g, b) {
+            const toHex = value => Number(value).toString(16).padStart(2, '0').toUpperCase();
+            return '#' + toHex(r) + toHex(g) + toHex(b);
+        }
+
+        function normalizeHexColor(color) {
+            if (!color) return '';
+            const raw = String(color).trim();
+            if (raw.startsWith('#')) {
+                if (raw.length === 4) {
+                    return ('#' + raw[1] + raw[1] + raw[2] + raw[2] + raw[3] + raw[3]).toUpperCase();
+                }
+                return raw.toUpperCase();
+            }
+            const match = raw.match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/i);
+            if (!match) return raw.toUpperCase();
+            return rgbToHex(match[1], match[2], match[3]);
+        }
+
+        function activateColorTab(tab) {
+            const items = Array.from(document.querySelectorAll('.pivot-item'));
+            const activeIndex = tab === 'highlight' ? 1 : 0;
+            items.forEach((item, index) => item.classList.toggle('active', index === activeIndex));
+            document.querySelectorAll('.pivot-content').forEach(content => {
+                content.classList.toggle('active', content.id === 'tab-' + tab);
+            });
+        }
+
+        function findColorOption(hex, preferredTab) {
+            const normalized = normalizeHexColor(hex);
+            if (preferredTab) {
+                const tabContent = document.getElementById('tab-' + preferredTab);
+                if (tabContent) {
+                    const preferredMatch = Array.from(tabContent.querySelectorAll('.color-option')).find(opt =>
+                        normalizeHexColor(window.getComputedStyle(opt).backgroundColor) === normalized
+                    );
+                    if (preferredMatch) return preferredMatch;
+                }
+            }
+            return Array.from(document.querySelectorAll('.color-option')).find(opt =>
+                normalizeHexColor(window.getComputedStyle(opt).backgroundColor) === normalized
+            ) || null;
+        }
+
+        function syncColorPickerState() {
+            const preset = PEN_COLOR_PRESETS[normalizeHexColor(currentPenColor && currentPenColor.hex)] || null;
+            const displayColor = {
+                ...(preset || {}),
+                ...(currentPenColor || DEFAULT_PEN_COLOR)
+            };
+
+            if (!displayColor.tab) {
+                displayColor.tab = (preset && preset.tab) || DEFAULT_PEN_COLOR.tab;
+            }
+
+            const matchedOption = findColorOption(displayColor.hex, displayColor.tab);
+
+            activateColorTab(displayColor.tab);
+            document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
+            if (matchedOption) matchedOption.classList.add('active');
+
+            updateColorInfo(
+                displayColor.name || DEFAULT_PEN_COLOR.name,
+                displayColor.rgb || DEFAULT_PEN_COLOR.rgb,
+                normalizeHexColor(displayColor.hex || DEFAULT_PEN_COLOR.hex)
+            );
+            currentPenColor = displayColor;
+        }
+
+        function resetPenColorState() {
+            currentPenColor = { ...DEFAULT_PEN_COLOR };
+            syncColorPickerState();
+        }
+
+        function toggleStatusBar(visible) {
+            const sb = document.getElementById('status-bar');
+            if (visible) {
+                sb.classList.add('visible');
+                sb.classList.add('interactive');
+            } else {
+                sb.classList.remove('visible');
+                sb.classList.remove('interactive');
+            }
+        }
+
+        function showInkPrompt() {
+            const prompt = document.getElementById('ink-prompt');
+            if (prompt) prompt.classList.add('visible');
+        }
+
+        function hideInkPrompt() {
+            const prompt = document.getElementById('ink-prompt');
+            if (prompt) prompt.classList.remove('visible');
+        }
+
+        function onInkPrompt(keep) {
+            hideInkPrompt();
+            if (bridge && typeof bridge.inkPromptResult === 'function') {
+                bridge.inkPromptResult(!!keep);
+            }
+        }
+
+        let opacityHelperDiv = null;
+
+        function applyOpacity() {
+            if (!currentConfig) return;
+            
+            const toolbarOpacity = currentConfig.toolbarOpacity !== undefined ? currentConfig.toolbarOpacity : 1.0;
+            const sidePageOpacity = currentConfig.sidePageOpacity !== undefined ? currentConfig.sidePageOpacity : 1.0;
+            
+            // Get base colors from CSS variables
+            const rootStyle = getComputedStyle(document.documentElement);
+            const toolbarBgVar = rootStyle.getPropertyValue('--overlay-toolbar-bg').trim();
+            const pageBgVar = rootStyle.getPropertyValue('--overlay-page-bg').trim();
+            
+            function resolveColor(colorStr, opacity) {
+                if (!colorStr) return '';
+                
+                if (!opacityHelperDiv) {
+                    opacityHelperDiv = document.createElement('div');
+                    opacityHelperDiv.style.visibility = 'hidden';
+                    opacityHelperDiv.style.position = 'absolute';
+                    opacityHelperDiv.style.pointerEvents = 'none';
+                    document.body.appendChild(opacityHelperDiv);
+                }
+                
+                opacityHelperDiv.style.color = colorStr;
+                const computed = getComputedStyle(opacityHelperDiv).color;
+                
+                const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+                if (match) {
+                    let a = match[4] !== undefined ? parseFloat(match[4]) : 1;
+                    a *= opacity;
+                    return `rgba(${match[1]}, ${match[2]}, ${match[3]}, ${a})`;
+                }
+                return colorStr;
+            }
+            
+            const toolbar = document.getElementById('toolbar');
+            if (toolbar) {
+                // Remove inline background-color if present (from previous version)
+                toolbar.style.removeProperty('background-color');
+                // Set the variable locally to override global value but respect CSS rules
+                const newColor = resolveColor(toolbarBgVar, toolbarOpacity);
+                toolbar.style.setProperty('--overlay-toolbar-bg', newColor);
+            }
+            
+            document.querySelectorAll('.flipper').forEach(el => {
+                el.style.removeProperty('background-color');
+                const newColor = resolveColor(pageBgVar, sidePageOpacity);
+                el.style.setProperty('--overlay-page-bg', newColor);
+            });
+        }
+
+        function updateConfig(config) {
+            currentConfig = config;
+            applyAnimationPreference();
+            
+            applyOpacity();
+            
+            toggleStatusBar(config.showStatusBar);
+
+            const toolbarContainer = document.getElementById('toolbar-container');
+            if (!toolbarContainer.dataset.maskBound) {
+                toolbarContainer.addEventListener('transitionend', () => scheduleMaskUpdate());
+                toolbarContainer.dataset.maskBound = '1';
+            }
+            
+            // Remove existing position classes
+            toolbarContainer.classList.remove('pos-top', 'pos-bottom', 'pos-left', 'pos-right');
+            
+            // Add new position class
+            const pos = config.toolbarPosition || 'bottom';
+            toolbarContainer.classList.add('pos-' + pos);
+
+            const flipperPos = config.flipperPosition || 'center';
+            const leftFlipper = document.getElementById('left-flipper');
+            const rightFlipper = document.getElementById('right-flipper');
+            
+            // Handle strict edge alignment
+            const strictEdgeAlignment = config.strictEdgeAlignment || false;
+            if (strictEdgeAlignment) {
+                toolbarContainer.classList.add('strict-edge-alignment');
+                [leftFlipper, rightFlipper].forEach(el => {
+                    if (el) el.classList.add('strict-edge-alignment');
+                });
+            } else {
+                toolbarContainer.classList.remove('strict-edge-alignment');
+                [leftFlipper, rightFlipper].forEach(el => {
+                    if (el) el.classList.remove('strict-edge-alignment');
+                });
+            }
+            
+            // Reset Flipper styles
+            [leftFlipper, rightFlipper].forEach(el => {
+                if (!el) return;
+                el.classList.remove('flipper-bottom');
+                // Don't reset transform here as it might be set by side toolbar logic later
+                // But we should ensure we start clean if we switch modes
+                if (flipperPos === 'center') {
+                     el.style.position = '';
+                     el.style.bottom = '';
+                     el.style.left = '';
+                     el.style.right = '';
+                }
+            });
+
+            const toolbar = document.getElementById('toolbar');
+
+            // Apply Scale and SafeArea
+            const scale = config.scale || 1.0;
+            const safeArea = strictEdgeAlignment ? 0 : (config.safeArea || 0);
+            
+            // Apply safe area to bottom flippers
+            if (flipperPos === 'bottom') {
+                 [leftFlipper, rightFlipper].forEach(el => {
+                    if (!el) return;
+                    el.classList.add('flipper-bottom');
+                    el.style.bottom = (strictEdgeAlignment ? 0 : 20 + safeArea) + 'px';
+                });
+                
+                if (leftFlipper) leftFlipper.style.left = (strictEdgeAlignment ? 0 : 20 + safeArea) + 'px';
+                if (rightFlipper) rightFlipper.style.right = (strictEdgeAlignment ? 0 : 20 + safeArea) + 'px';
+            }
+            
+            toolbar.style.transform = `scale(${scale})`;
+            toolbar.style.transformOrigin = {
+                'bottom': 'center bottom',
+                'top': 'center top',
+                'left': 'left center',
+                'right': 'right center'
+            }[pos] || 'center bottom';
+
+            // Reset margins/padding
+            toolbarContainer.style.paddingBottom = '';
+            toolbarContainer.style.paddingTop = '';
+            toolbarContainer.style.paddingLeft = '';
+            toolbarContainer.style.paddingRight = '';
+
+            if (pos === 'bottom') {
+                toolbarContainer.style.paddingBottom = (strictEdgeAlignment ? 0 : 20 + safeArea) + 'px';
+            } else if (pos === 'top') {
+                toolbarContainer.style.paddingTop = (strictEdgeAlignment ? 0 : 20 + safeArea) + 'px';
+            } else if (pos === 'left') {
+                toolbarContainer.style.paddingLeft = (strictEdgeAlignment ? 0 : 20 + safeArea) + 'px';
+            } else if (pos === 'right') {
+                toolbarContainer.style.paddingRight = (strictEdgeAlignment ? 0 : 20 + safeArea) + 'px';
+            }
+
+            // Adjust center-area padding to avoid overlap with side toolbar
+            const centerArea = document.getElementById('center-area');
+            if (centerArea) {
+                // Reset horizontal padding (previously added)
+                centerArea.style.paddingLeft = '';
+                centerArea.style.paddingRight = '';
+                
+                // Reset vertical padding
+                centerArea.style.paddingTop = '';
+                centerArea.style.paddingBottom = '';
+                
+                const leftFlipper = document.getElementById('left-flipper');
+                const rightFlipper = document.getElementById('right-flipper');
+                
+                // Reset transforms
+                if (leftFlipper) leftFlipper.style.transform = '';
+                if (rightFlipper) rightFlipper.style.transform = '';
+                
+                // Reset Toolbar Container overrides
+                toolbarContainer.style.justifyContent = '';
+                toolbarContainer.style.paddingTop = '';
+                toolbarContainer.style.paddingBottom = '';
+                
+                if (pos === 'left') {
+                    // Toolbar to Bottom-ish
+                    toolbarContainer.style.justifyContent = 'flex-end';
+                    toolbarContainer.style.paddingBottom = `calc(${strictEdgeAlignment ? 0 : 20}px + ${strictEdgeAlignment ? 0 : safeArea}px)`;
+                    
+                    // Flipper to Top-ish (via transform)
+                    // Only apply if NOT in bottom mode
+                    if (flipperPos !== 'bottom') {
+                        if (leftFlipper) {
+                            leftFlipper.style.transform = `translateY(-15vh)`;
+                        }
+                    }
+                } else if (pos === 'right') {
+                    // Toolbar to Bottom-ish
+                    toolbarContainer.style.justifyContent = 'flex-end';
+                    toolbarContainer.style.paddingBottom = `calc(${strictEdgeAlignment ? 0 : 20}px + ${strictEdgeAlignment ? 0 : safeArea}px)`;
+                    
+                    // Flipper to Top-ish
+                    // Only apply if NOT in bottom mode
+                    if (flipperPos !== 'bottom') {
+                        if (rightFlipper) {
+                            rightFlipper.style.transform = `translateY(-15vh)`;
+                        }
+                    }
+                }
+            }
+
+            // Apply PopWindowScale & Position
+            const popScale = config.popWindowScale || 1.0;
+            const colorPicker = document.getElementById('color-picker');
+            const eraserSettings = document.getElementById('eraser-settings');
+            
+            [colorPicker, eraserSettings].forEach(el => {
+                if(!el) return;
+                // Reset styles
+                el.style.top = '';
+                el.style.bottom = '';
+                el.style.left = '';
+                el.style.right = '';
+                el.style.transform = '';
+                el.style.transformOrigin = '';
+                
+                // Remove side-layout class by default (though now removed entirely)
+                if (el.id === 'color-picker') el.classList.remove('side-layout');
+                
+                if (pos === 'bottom') {
+                    el.style.top = 'auto';
+                    el.style.bottom = '90px';
+                    el.style.left = '50%';
+                    el.style.transform = `translateX(-50%) scale(${popScale})`;
+                    el.style.transformOrigin = 'center bottom';
+                } else if (pos === 'top') {
+                    // Toolbar at top (0px offset + 20px padding) + ~54px height = ~74px
+                    el.style.top = '90px'; 
+                    el.style.bottom = 'auto';
+                    el.style.left = '50%';
+                    el.style.transform = `translateX(-50%) scale(${popScale})`;
+                    el.style.transformOrigin = 'center top';
+                } else if (pos === 'left') {
+                    el.style.left = '90px';
+                    // Fixed height like bottom
+                    el.style.top = 'auto';
+                    el.style.bottom = '90px';
+                    el.style.transform = `scale(${popScale})`;
+                    el.style.transformOrigin = 'left bottom';
+                } else if (pos === 'right') {
+                    el.style.right = '90px';
+                    // Fixed height like bottom
+                    el.style.top = 'auto';
+                    el.style.bottom = '90px';
+                    el.style.transform = `scale(${popScale})`;
+                    el.style.transformOrigin = 'right bottom';
+                }
+            });
+            
+
+
+            const clearSlider = document.getElementById('clear-slider');
+            const clearBtn = document.getElementById('clear-btn');
+            
+            if (config.disabledTools && config.disabledTools.includes('clear')) {
+                if(clearSlider) clearSlider.classList.add('disabled');
+                if(clearBtn) clearBtn.classList.add('disabled');
+            } else {
+                if(clearSlider) clearSlider.classList.remove('disabled');
+                if(clearBtn) clearBtn.classList.remove('disabled');
+            }
+
+            if (config.clearMode === 'button') {
+                if(clearSlider) clearSlider.style.display = 'none';
+                if(clearBtn) clearBtn.style.display = 'flex';
+            } else {
+                if(clearSlider) clearSlider.style.display = 'flex';
+                if(clearBtn) clearBtn.style.display = 'none';
+            }
+
+            toolbar.innerHTML = '';
+            
+            // Compatibility Mode Label
+            if (config.compatibilityMode) {
+                let compatLabel = document.createElement('div');
+                compatLabel.className = 'compat-label';
+                compatLabel.innerText = "兼";
+                toolbar.appendChild(compatLabel);
+            }
+
+            const order = config.toolbarOrder || ["select", "pen", "eraser", "clear", "spotlight", "board_in_board", "timer", "apps"];
+            
+            order.forEach(item => {
+                if (item === 'clear') return;
+                
+                if (config.compatibilityMode && (item === 'pen' || item === 'eraser')) return;
+
+                if (item === 'spotlight' && !config.showSpotlight) return;
+                if (item === 'board_in_board' && !config.showBoardInBoard) return;
+                if (item === 'timer' && !config.showTimer) return;
+                
+                let btn = document.createElement('div');
+                btn.className = 'tool-btn';
+                btn.id = 'btn-' + item;
+                
+                if (config.disabledTools && config.disabledTools.includes(item)) {
+                    btn.classList.add('disabled');
+                }
+                
+                let iconClass = '';
+                let clickHandler = '';
+
+                
+                switch(item) {
+                    case 'select':
+                        iconClass = 'icon-mouse';
+                        clickHandler = "selectTool('select')";
+                        if (currentTool === 'select') btn.classList.add('active');
+                        break;
+                    case 'pen':
+                        iconClass = 'icon-pen';
+                        clickHandler = "selectTool('pen')";
+                        if (currentTool === 'pen') btn.classList.add('active');
+                        break;
+                    case 'eraser':
+                        iconClass = 'icon-eraser';
+                        clickHandler = "selectTool('eraser')";
+                        if (currentTool === 'eraser') btn.classList.add('active');
+                        break;
+                    case 'spotlight':
+                        iconClass = 'icon-spotlight';
+                        clickHandler = "bridge.toggleSpotlight()";
+                        break;
+                    case 'board_in_board':
+                        iconClass = 'icon-board';
+                        clickHandler = "bridge.toggleBoard()";
+                        break;
+                    case 'timer':
+                        iconClass = 'icon-timer';
+                        clickHandler = "bridge.toggleTimer()";
+                        break;
+                    case 'apps':
+                        if (config.apps && config.apps.length > 0) {
+                            config.apps.forEach(app => {
+                                let appBtn = document.createElement('div');
+                                appBtn.className = 'tool-btn';
+                                appBtn.onclick = function() { bridge.launchApp(app.path); };
+                                
+                                let appIconDiv;
+                                if (app.icon) {
+                                    appIconDiv = document.createElement('img');
+                                    appIconDiv.src = app.icon;
+                                    appIconDiv.className = 'icon-img';
+                                } else {
+                                    appIconDiv = document.createElement('div');
+                                    appIconDiv.className = 'icon-mask icon-app';
+                                }
+                                appBtn.appendChild(appIconDiv);
+                                
+
+                                
+                                toolbar.appendChild(appBtn);
+                            });
+                        }
+                        return; 
+                    default:
+                        return;
+                }
+                
+                btn.setAttribute('onclick', clickHandler);
+                
+                let iconDiv = document.createElement('div');
+                iconDiv.className = 'icon-mask ' + iconClass;
+                btn.appendChild(iconDiv);
+                
+
+                
+                toolbar.appendChild(btn);
+            });
+
+            let separator = document.createElement('div');
+            separator.className = 'separator';
+            separator.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                toggleToolbar(true);
+            });
+            toolbar.appendChild(separator);
+            
+            let endBtn = document.createElement('div');
+            endBtn.className = 'tool-btn tool-btn-danger';
+            endBtn.id = 'btn-end';
+            
+            if (config.disabledTools && (config.disabledTools.includes('endShow') || config.disabledTools.includes('minimize'))) {
+                endBtn.classList.add('disabled');
+            }
+            
+            endBtn.onclick = function() { bridge.endShow(); };
+            
+            let endIcon = document.createElement('div');
+            endIcon.className = 'icon-mask icon-minimize';
+            endBtn.appendChild(endIcon);
+            
+
+            
+            toolbar.appendChild(endBtn);
+            updatePageInfo(currentPage, totalPage);
+            scheduleMaskUpdate();
+        }
+
+        function closePopup() {
+            document.getElementById('color-picker').classList.remove('visible');
+            document.getElementById('eraser-settings').classList.remove('visible');
+            document.getElementById('page-selector').classList.remove('visible');
+            document.getElementById('left-flipper').classList.remove('hidden-flipper');
+            document.getElementById('right-flipper').classList.remove('hidden-flipper');
+            document.body.classList.remove('popup-active');
+            const ae = document.activeElement;
+            if (ae && typeof ae.blur === 'function') ae.blur();
+            if (typeof bridge !== 'undefined' && bridge && typeof bridge.releaseFocus === 'function') {
+                bridge.releaseFocus();
+            }
+            scheduleMaskUpdate();
+        }
+
+        function togglePageSelector(e) {
+            if (e && typeof e.stopPropagation === 'function') {
+                e.stopPropagation();
+            }
+            const selector = document.getElementById('page-selector');
+            if (selector.classList.contains('visible')) {
+                selector.classList.remove('visible');
+                document.getElementById('left-flipper').classList.remove('hidden-flipper');
+                document.getElementById('right-flipper').classList.remove('hidden-flipper');
+                document.body.classList.remove('popup-active');
+            } else {
+                closePopup();
+                
+                // Only render if empty or page count changed
+                const grid = document.getElementById('page-grid-content');
+                if (grid.children.length !== totalPage) {
+                    renderPageSelector();
+                } else {
+                    // Just update active state
+                    document.querySelectorAll('.page-item').forEach((item, index) => {
+                         if ((index + 1) === currentPage) item.classList.add('active');
+                         else item.classList.remove('active');
+                    });
+                }
+                
+                selector.classList.add('visible');
+                document.body.classList.add('popup-active');
+                
+                // Determine side based on click position
+                let isLeft = false;
+                if (e && e.clientX < window.innerWidth / 2) {
+                    isLeft = true;
+                }
+                
+                if (isLeft) {
+                    selector.classList.add('left-side');
+                    document.getElementById('left-flipper').classList.add('hidden-flipper');
+                } else {
+                    selector.classList.remove('left-side');
+                    document.getElementById('right-flipper').classList.add('hidden-flipper');
+                }
+                
+                // Force layout reset
+                selector.setAttribute('style', '');
+                selector.style.position = 'fixed';
+                selector.style.top = '24px';
+                selector.style.bottom = '24px';
+                selector.style.width = '260px';
+                selector.style.maxHeight = 'none';
+                selector.style.borderRadius = '16px';
+                selector.style.border = '1px solid var(--overlay-popup-border)';
+                
+                if (isLeft) {
+                    selector.style.left = '16px';
+                    selector.style.right = 'auto';
+                } else {
+                    selector.style.right = '16px';
+                    selector.style.left = 'auto';
+                }
+
+                // Important: clear transform to allow CSS class to handle it
+                // We need to do this slightly after adding the class to ensure transition works
+                requestAnimationFrame(() => {
+                    selector.style.transform = ''; 
+                });
+
+                // Notify backend about mask update to include the sidebar
+                // We do this after a small delay to ensure the DOM has updated and transition started
+                setTimeout(() => {
+                    if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
+                }, motionDelay(50));
+
+                if (typeof bridge !== 'undefined' && bridge && typeof bridge.resizeNudge === 'function') {
+                    bridge.resizeNudge();
+                }
+                
+                // Auto scroll to current page
+                setTimeout(() => {
+                    const activeItem = selector.querySelector('.page-item.active');
+                    if (activeItem) {
+                        activeItem.scrollIntoView({ block: 'center', behavior: motionBehavior() });
+                    }
+                }, motionDelay(300)); // Wait for transition
+            }
+        }
+
+        // Tracks which thumbnails have been requested or are cached
+        const thumbnailCache = new Set();
+        
+        function renderPageSelector() {
+            const grid = document.getElementById('page-grid-content');
+            grid.innerHTML = '';
+            
+            for (let i = 1; i <= totalPage; i++) {
+                const item = document.createElement('div');
+                item.className = 'page-item';
+                if (i === currentPage) item.classList.add('active');
+                
+                const img = document.createElement('img');
+                img.id = 'thumb-' + i;
+                img.alt = 'Slide ' + i;
+                
+                // Loading Spinner
+                const spinner = document.createElement('div');
+                spinner.className = 'loading-spinner';
+                spinner.id = 'spinner-' + i;
+                spinner.innerHTML = `
+                  <svg viewBox="0 0 27 27">
+                    <circle class="spinner-ring" cx="13.5" cy="13.5" r="10"></circle>
+                    <g class="spinner-orbit">
+                      <circle class="spinner-dot" cx="13.5" cy="8.0" r="2.5"></circle>
+                    </g>
+                  </svg>
+                `;
+                
+                const num = document.createElement('div');
+                num.className = 'page-num';
+                num.innerText = i;
+                
+                item.appendChild(spinner);
+                item.appendChild(img);
+                item.appendChild(num);
+                item.onclick = () => selectPage(i);
+                grid.appendChild(item);
+            }
+            
+            // Request thumbnails for current page ±5 pages first
+            requestThumbnailsForRange(
+                Math.max(1, currentPage - 5),
+                Math.min(totalPage, currentPage + 5)
+            );
+            
+            // Setup scroll listener for dynamic loading
+            const selector = document.getElementById('page-selector');
+            const grid_el = document.getElementById('page-grid-content');
+            if (selector && !selector._scrollListenerAttached) {
+                selector.addEventListener('scroll', onPageGridScroll);
+                selector._scrollListenerAttached = true;
+            }
+            
+            // Start background caching
+            startBackgroundThumbnailCaching();
+        }
+        
+        function requestThumbnailsForRange(start, end) {
+            for (let i = start; i <= end; i++) {
+                if (!thumbnailCache.has(i)) {
+                    thumbnailCache.add(i);
+                    if (bridge && typeof bridge.requestThumbnail === 'function') {
+                        bridge.requestThumbnail(i);
+                    }
+                }
+            }
+        }
+        
+        function onPageGridScroll() {
+            const selector = document.getElementById('page-selector');
+            if (!selector) return;
+            
+            const rect = selector.getBoundingClientRect();
+            const scrollTop = selector.scrollTop;
+            const itemHeight = 160; // Approximate height of page-item
+            
+            // Calculate visible range
+            const visibleStart = Math.max(1, Math.floor(scrollTop / itemHeight));
+            const visibleEnd = Math.min(totalPage, Math.ceil((scrollTop + selector.clientHeight) / itemHeight) + 2);
+            
+            // Request thumbnails for visible range ±3 pages
+            const rangeStart = Math.max(1, visibleStart - 3);
+            const rangeEnd = Math.min(totalPage, visibleEnd + 3);
+            
+            requestThumbnailsForRange(rangeStart, rangeEnd);
+        }
+        
+        function startBackgroundThumbnailCaching() {
+            // Start background caching if not already running
+            if (window._thumbnailCachingRunning) return;
+            window._thumbnailCachingRunning = true;
+            
+            if (bridge && typeof bridge.startBackgroundThumbnailCaching === 'function') {
+                bridge.startBackgroundThumbnailCaching(totalPage);
+            }
+        }
+
+        function updatePageThumbnail(index, url) {
+            const img = document.getElementById('thumb-' + index);
+            const spinner = document.getElementById('spinner-' + index);
+            if (img) {
+                img.src = url;
+                img.onload = () => {
+                    img.classList.add('loaded');
+                    if (spinner) spinner.classList.add('hidden');
+                };
+            }
+        }
+
+        function selectPage(page) {
+            if (bridge && typeof bridge.gotoSlide === 'function') {
+                bridge.gotoSlide(page);
+            }
+            closePopup();
+        }
+
+        function setActiveToolUI(tool) {
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            const btn = document.getElementById('btn-' + tool);
+            if (btn) btn.classList.add('active');
+            currentTool = tool;
+        }
+
+        function resetToolState(tool) {
+            closePopup();
+            setActiveToolUI(tool || 'select');
+        }
+
+        function selectTool(tool) {
+            const picker = document.getElementById('color-picker');
+            const eraserSettings = document.getElementById('eraser-settings');
+            
+            if (tool === 'pen' && currentTool === 'pen') {
+                if (picker.classList.contains('visible')) {
+                    closePopup();
+                } else {
+                    closePopup();
+                    syncColorPickerState();
+                    picker.classList.add('visible');
+                    document.body.classList.add('popup-active');
+                    if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
+                    if (typeof bridge !== 'undefined' && bridge && typeof bridge.resizeNudge === 'function') {
+                        bridge.resizeNudge();
+                    }
+                }
+                return;
+            } else if (tool === 'eraser' && currentTool === 'eraser') {
+                 if (eraserSettings.classList.contains('visible')) {
+                     closePopup();
+                 } else {
+                     closePopup();
+                     eraserSettings.classList.add('visible');
+                     document.body.classList.add('popup-active');
+                     if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
+                     if (typeof bridge !== 'undefined' && bridge && typeof bridge.resizeNudge === 'function') {
+                         bridge.resizeNudge();
+                     }
+                 }
+                 return;
+            } else {
+                closePopup();
+            }
+
+            setActiveToolUI(tool);
+            
+            if (bridge) {
+                if (tool === 'select') bridge.setTool('arrow');
+                else if (tool === 'pen') bridge.setTool('pen');
+                else if (tool === 'eraser') bridge.setTool('eraser');
+            }
+        }
+        
+        function selectColor(r, g, b, el) {
+            document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
+            if(el) el.classList.add('active');
+            const hex = rgbToHex(r, g, b);
+            const selectedTab = el && el.closest('.pivot-content')
+                ? el.closest('.pivot-content').id.replace('tab-', '')
+                : DEFAULT_PEN_COLOR.tab;
+            currentPenColor = PEN_COLOR_PRESETS[hex]
+                ? { ...PEN_COLOR_PRESETS[hex], tab: selectedTab }
+                : { tab: selectedTab, name: '当前颜色', rgb: `${r} ${g} ${b}`, hex };
+            syncColorPickerState();
+            
+            if (bridge) {
+                bridge.setPenColor(r, g, b);
+            }
+            closePopup();
+        }
+
+
+        function switchColorTab(tab, el) {
+            activateColorTab(tab);
+        }
+
+        function updateColorInfo(name, rgb, hex) {
+            document.getElementById('info-name').innerText = name;
+            document.getElementById('info-rgb').innerText = 'RGB (' + rgb + ')';
+            document.getElementById('info-hex').innerText = hex;
+        }
+
+        function updatePageInfo(current, total) {
+            currentPage = current;
+            totalPage = total;
+            
+            const isCompat = currentConfig && currentConfig.compatibilityMode;
+
+            if (isCompat) {
+                document.getElementById('curr-page-l').innerText = '-';
+                document.getElementById('total-page-l').innerText = '';
+                document.getElementById('curr-page-r').innerText = '-';
+                document.getElementById('total-page-r').innerText = '';
+            } else {
+                document.getElementById('curr-page-l').innerText = current;
+                document.getElementById('total-page-l').innerText = '/' + total;
+                document.getElementById('curr-page-r').innerText = current;
+                document.getElementById('total-page-r').innerText = '/' + total;
+            }
+            
+            // If selector is visible, update active state
+            // If page count changed, clear grid so next toggle rebuilds it
+            const grid = document.getElementById('page-grid-content');
+            if (!isCompat && grid.children.length > 0 && grid.children.length !== total) {
+                 grid.innerHTML = ''; // Force rebuild next time
+            } else if (grid.children.length > 0) {
+                 document.querySelectorAll('.page-item').forEach((item, index) => {
+                     if ((index + 1) === currentPage) item.classList.add('active');
+                     else item.classList.remove('active');
+                 });
+            }
+            
+            const disabledTools = (currentConfig && currentConfig.disabledTools) ? currentConfig.disabledTools : [];
+            
+            // Fix: Select only previous buttons (left arrow)
+            const allBtns = document.querySelectorAll('.flipper-btn');
+            
+            allBtns.forEach(btn => {
+                const isPrev = btn.querySelector('.icon-previous');
+                const isNext = btn.querySelector('.icon-next');
+                
+                if (isPrev) {
+                    if ((!isCompat && current <= 1) || disabledTools.includes('prev')) {
+                        btn.classList.add('disabled');
+                    } else {
+                        btn.classList.remove('disabled');
+                    }
+                } else if (isNext) {
+                    if ((!isCompat && current >= total) || disabledTools.includes('next')) {
+                        btn.classList.add('disabled');
+                    } else {
+                        btn.classList.remove('disabled');
+                    }
+                }
+            });
+        }
+
+        function setTheme(isDark, accentColor, themeId) {
+            const variant = isDark ? 'dark' : 'light';
+            
+            if (isDark) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+            }
+            
+            document.documentElement.setAttribute('data-theme-variant', variant);
+            
+            if (themeId) {
+                document.documentElement.setAttribute('data-theme-id', themeId);
+            } else {
+                document.documentElement.removeAttribute('data-theme-id');
+            }
+
+            if (accentColor && (!themeId || themeId === 'default')) {
+                document.documentElement.style.setProperty('--accent-color', accentColor);
+            } else {
+                document.documentElement.style.removeProperty('--accent-color');
+            }
+            
+            // Re-apply opacity as base colors might have changed
+            if (typeof applyOpacity === 'function') applyOpacity();
+        }
+
+
+
+        let lastTimeString = '';
+        let lastStatusValues = {
+            battery: '',
+            volume: '',
+            music: '',
+            musicBase: ''
+        };
+        let currentMusicState = {
+            visible: false,
+            status: '',
+            baseText: '',
+            positionMs: 0,
+            durationMs: 0,
+            syncedAtMs: 0
+        };
+
+        function getStatusDisplayChar(char) {
+            return char === ' ' ? '\u00A0' : char;
+        }
+
+        function getStatusLogicalChar(text) {
+            return String(text || '').replace(/\u00A0/g, ' ');
+        }
+
+        function updateStatusDisplay(element, newText, animateAll = false) {
+            if (!element) return;
+            const chars = newText.split('');
+            const wrappers = element.querySelectorAll('.status-digit-wrapper');
+            const charCount = chars.filter(c => c !== '|').length;
+
+            // If length mismatch, rebuild
+            if (wrappers.length !== charCount) {
+                element.innerHTML = '';
+                chars.forEach(char => {
+                    if (char === '|') {
+                        const sep = document.createElement('span');
+                        sep.className = 'status-separator';
+                        element.appendChild(sep);
+                    } else {
+                        const wrap = document.createElement('span');
+                        wrap.className = 'status-digit-wrapper';
+                        const span = document.createElement('span');
+                        span.textContent = getStatusDisplayChar(char);
+                        wrap.appendChild(span);
+                        element.appendChild(wrap);
+                    }
+                });
+                return;
+            }
+
+            // Update existing - map chars to wrappers, skipping '|'
+            let wrapperIndex = 0;
+            chars.forEach(char => {
+                if (char === '|') return;
+                
+                const wrap = wrappers[wrapperIndex++];
+                if (!wrap) return;
+                
+                const currentSpan = wrap.firstElementChild;
+                if (!currentSpan) return;
+                
+                // Check if value changed
+                if (getStatusLogicalChar(currentSpan.textContent) !== char) {
+                    // Only animate digits (0-9), not letters or symbols when animateAll is false
+                    const isDigit = /\d/.test(char);
+                    const shouldAnimate = !animationsDisabled() && (animateAll || isDigit);
+                    
+                    if (shouldAnimate && !currentSpan.classList.contains('status-digit-old')) {
+                        const newSpan = document.createElement('span');
+                        newSpan.textContent = getStatusDisplayChar(char);
+                        newSpan.className = 'status-digit-new';
+
+                        currentSpan.className = 'status-digit-old';
+                        wrap.appendChild(newSpan);
+
+                        setTimeout(() => {
+                            if (currentSpan.parentNode === wrap) {
+                                wrap.removeChild(currentSpan);
+                            }
+                            newSpan.className = '';
+                        }, motionDelay(350));
+                    } else {
+                        currentSpan.textContent = getStatusDisplayChar(char);
+                    }
+                }
+            });
+        }
+
+        function updateTime() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            const month = now.getMonth() + 1;
+            const date = now.getDate();
+            const dayMap = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            const day = dayMap[now.getDay()];
+            
+            let timeString = '';
+            
+            // Check if showTime config exists, default to true if not set
+            const showTime = currentConfig ? (currentConfig.statusBarShowTime !== false) : true;
+            const showSeconds = currentConfig ? currentConfig.statusBarShowSeconds : false;
+            
+            if (showTime) {
+                if (showSeconds) {
+                    timeString = `${hours}:${minutes}:${seconds}|${month}月${date}日${day}`;
+                } else {
+                    timeString = `${hours}:${minutes}|${month}月${date}日${day}`;
+                }
+            }
+            
+            const timeDisplay = document.getElementById('time-display');
+            if (timeDisplay) {
+                // Only update if text actually changes
+                if (timeString !== lastTimeString) {
+                    updateStatusDisplay(timeDisplay, timeString);
+                    lastTimeString = timeString;
+                }
+                timeDisplay.style.display = showTime ? 'inline' : 'none';
+            }
+        }
+        
+        // Update every 500ms to catch second changes faster
+        setInterval(updateTime, 500);
+        updateTime();
+
+        function formatMusicTime(totalSeconds) {
+            const wholeSeconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+            const minutes = Math.floor(wholeSeconds / 60);
+            const seconds = wholeSeconds % 60;
+            return `${minutes}分${String(seconds).padStart(2, '0')}秒`;
+        }
+
+        function buildMusicStatusText(data) {
+            const baseText = String(data.smtc_title || data.smtc_status || '').trim();
+            if (!baseText) return '';
+            const showMusicProgress = currentConfig ? (currentConfig.statusBarShowMusicProgress !== false) : true;
+            if (!showMusicProgress) {
+                return baseText;
+            }
+
+            const positionMs = Math.max(0, Number(data.smtc_position_ms) || 0);
+            const durationMs = Math.max(0, Number(data.smtc_duration_ms) || 0);
+            if (durationMs <= 0) {
+                return baseText;
+            }
+
+            const clampedPositionMs = Math.min(positionMs, durationMs);
+            const remainingMs = Math.max(durationMs - clampedPositionMs, 0);
+            return `${baseText} ${formatMusicTime(clampedPositionMs / 1000)}/-${formatMusicTime(remainingMs / 1000)}`;
+        }
+
+        function getCurrentMusicPositionMs() {
+            const durationMs = Math.max(0, Number(currentMusicState.durationMs) || 0);
+            const basePositionMs = Math.max(0, Number(currentMusicState.positionMs) || 0);
+            if (durationMs <= 0) {
+                return basePositionMs;
+            }
+            if (currentMusicState.status !== 'Playing' || !currentMusicState.syncedAtMs) {
+                return Math.min(basePositionMs, durationMs);
+            }
+
+            const elapsedMs = Math.max(0, Date.now() - currentMusicState.syncedAtMs);
+            return Math.min(durationMs, basePositionMs + elapsedMs);
+        }
+
+        function hideMusicStatus() {
+            const smtcItem = document.getElementById('status-smtc');
+            const smtcText = smtcItem ? smtcItem.querySelector('.status-text') : null;
+            if (smtcItem) smtcItem.style.display = 'none';
+            if (smtcText) smtcText.textContent = '';
+            lastStatusValues.music = '';
+            lastStatusValues.musicBase = '';
+        }
+
+        function renderMusicStatus(flipTitle = false) {
+            const showMusic = currentConfig ? (currentConfig.statusBarShowMusic !== false) : true;
+            const smtcItem = document.getElementById('status-smtc');
+            const smtcText = smtcItem ? smtcItem.querySelector('.status-text') : null;
+            if (!smtcItem || !smtcText) return;
+
+            if (!showMusic || !currentMusicState.visible) {
+                hideMusicStatus();
+                return;
+            }
+
+            smtcItem.style.display = 'flex';
+            const newMusicText = buildMusicStatusText({
+                smtc_title: currentMusicState.baseText,
+                smtc_status: currentMusicState.status,
+                smtc_position_ms: getCurrentMusicPositionMs(),
+                smtc_duration_ms: currentMusicState.durationMs
+            });
+            if (!newMusicText) {
+                hideMusicStatus();
+                return;
+            }
+            if (smtcText.textContent === newMusicText) {
+                return;
+            }
+
+            const updateMusicDigits = () => {
+                updateStatusDisplay(smtcText, newMusicText);
+                lastStatusValues.music = newMusicText;
+                lastStatusValues.musicBase = currentMusicState.baseText;
+            };
+
+            if (flipTitle && !animationsDisabled() && lastStatusValues.musicBase !== currentMusicState.baseText) {
+                smtcText.classList.remove('status-music-flip-in');
+                smtcText.classList.add('status-music-flip');
+
+                setTimeout(() => {
+                    smtcText.textContent = '';
+                    updateMusicDigits();
+                    smtcText.classList.remove('status-music-flip');
+                    smtcText.classList.add('status-music-flip-in');
+
+                    setTimeout(() => {
+                        smtcText.classList.remove('status-music-flip-in');
+                    }, motionDelay(300));
+                }, motionDelay(30));
+                return;
+            }
+
+            updateMusicDigits();
+        }
+
+        setInterval(() => {
+            renderMusicStatus(false);
+        }, 1000);
+
+        function updateSystemStatus(data) {
+            // Get display settings from config
+            const showBattery = currentConfig ? (currentConfig.statusBarShowBattery !== false) : true;
+            const showVolume = currentConfig ? (currentConfig.statusBarShowVolume !== false) : true;
+            const showNetwork = currentConfig ? (currentConfig.statusBarShowNetwork !== false) : true;
+            const showMusic = currentConfig ? (currentConfig.statusBarShowMusic !== false) : true;
+            
+            // Battery
+            const batteryItem = document.getElementById('status-battery');
+            const batteryText = document.getElementById('battery-text');
+            const batteryIcon = document.querySelector('#status-battery .icon-mask');
+            
+            if (showBattery) {
+                batteryItem.style.display = 'flex';
+                if (data.is_desktop) {
+                    const newBatteryText = "台式机";
+                    if (batteryText.innerText !== newBatteryText) {
+                        updateStatusDisplay(batteryText, newBatteryText);
+                        lastStatusValues.battery = newBatteryText;
+                    }
+                    batteryIcon.className = 'icon-mask icon-desktop';
+                } else {
+                    const newBatteryText = data.battery_percent + '%';
+                    if (batteryText.innerText !== newBatteryText) {
+                        updateStatusDisplay(batteryText, newBatteryText);
+                        lastStatusValues.battery = newBatteryText;
+                    }
+                    if (data.battery_charging) {
+                        batteryIcon.className = 'icon-mask icon-battery-charging';
+                    } else {
+                        batteryIcon.className = 'icon-mask icon-battery';
+                    }
+                }
+            } else {
+                batteryItem.style.display = 'none';
+            }
+            
+            // Network
+            const netItem = document.getElementById('status-network');
+            const netIcon = document.querySelector('#status-network .icon-mask');
+            if (showNetwork) {
+                netItem.style.display = 'flex';
+                if (data.network_online) {
+                    netIcon.className = 'icon-mask icon-wifi';
+                } else {
+                    netIcon.className = 'icon-mask icon-wifi-off';
+                }
+            } else {
+                netItem.style.display = 'none';
+            }
+            
+            // Volume
+            const volItem = document.getElementById('status-volume');
+            const volText = volItem.querySelector('.status-text');
+            if (showVolume && data.volume >= 0) {
+                 volItem.style.display = 'flex';
+                 const newVolText = data.volume + '%';
+                 if (volText.innerText !== newVolText) {
+                     updateStatusDisplay(volText, newVolText);
+                     lastStatusValues.volume = newVolText;
+                 }
+            } else {
+                 volItem.style.display = 'none';
+            }
+            
+            // SMTC
+            currentMusicState = {
+                visible: !!(showMusic && data.smtc_status && data.smtc_status !== 'Closed' && data.smtc_status !== 'Stopped'),
+                status: String(data.smtc_status || ''),
+                baseText: String(data.smtc_title || data.smtc_status || '').trim(),
+                positionMs: Math.max(0, Number(data.smtc_position_ms) || 0),
+                durationMs: Math.max(0, Number(data.smtc_duration_ms) || 0),
+                syncedAtMs: Date.now()
+            };
+            renderMusicStatus(true);
+        }
+
+        function initSlider() {
+            const thumb = document.getElementById('clear-thumb');
+            const container = document.getElementById('clear-slider');
+            const text = container.querySelector('.slider-text');
+            let isDragging = false;
+            let startX = 0;
+            let currentX = 0;
+            const maxDrag = 156;
+
+            function onStart(e) {
+                isDragging = true;
+                startX = (e.touches ? e.touches[0].clientX : e.clientX) - currentX;
+                thumb.style.transition = 'none';
+                text.style.opacity = 1;
+            }
+
+            function onMove(e) {
+                if (!isDragging) return;
+                let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                let newX = clientX - startX;
+                
+                if (newX < 0) newX = 0;
+                if (newX > maxDrag) newX = maxDrag;
+                
+                currentX = newX;
+                thumb.style.transform = `translateX(${currentX}px)`;
+                
+                text.style.opacity = 1 - (currentX / maxDrag);
+            }
+
+            function onEnd() {
+                if (!isDragging) return;
+                isDragging = false;
+                thumb.style.transition = animationsDisabled() ? 'none' : 'transform 0.3s ease';
+                
+                if (currentX > maxDrag * 0.8) {
+                    currentX = maxDrag;
+                    thumb.style.transform = `translateX(${currentX}px)`;
+                    if (bridge) bridge.clearScreen();
+                    
+                    setTimeout(() => {
+                        currentX = 0;
+                        thumb.style.transform = `translateX(0px)`;
+                        text.style.opacity = 1;
+                        document.getElementById('eraser-settings').classList.remove('visible');
+                    }, motionDelay(300));
+                } else {
+                    currentX = 0;
+                    thumb.style.transform = `translateX(0px)`;
+                    text.style.opacity = 1;
+                }
+            }
+
+            thumb.addEventListener('mousedown', onStart);
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onEnd);
+            
+            thumb.addEventListener('touchstart', onStart);
+            document.addEventListener('touchmove', onMove);
+            document.addEventListener('touchend', onEnd);
+        }
+        
+        window.addEventListener('load', initSlider);
+
+        const observer = new ResizeObserver(entries => {
+            sendMaskUpdate();
+        });
+
+        document.querySelectorAll('.interactive').forEach(el => observer.observe(el));
+
+        function scheduleMaskUpdate() {
+            if (typeof sendMaskUpdate !== 'function') return;
+            requestAnimationFrame(() => requestAnimationFrame(sendMaskUpdate));
+            setTimeout(sendMaskUpdate, motionDelay(360));
+        }
+
+
+        // Toolbar Collapse Logic
+        let isToolbarCollapsed = false;
+        let toolbarTouchStartY = 0;
+        let toolbarTouchStartX = 0;
+
+        function toggleToolbar(collapsed) {
+            if (typeof collapsed === 'undefined') collapsed = !isToolbarCollapsed;
+            isToolbarCollapsed = collapsed;
+            
+            const container = document.getElementById('toolbar-container');
+            if (collapsed) {
+                container.classList.add('collapsed');
+            } else {
+                container.classList.remove('collapsed');
+            }
+            
+            scheduleMaskUpdate();
+        }
+
+        // Gestures
+        const toolbarEl = document.getElementById('toolbar');
+        const handleEl = document.getElementById('toolbar-handle');
+        
+        // Handle Click
+        handleEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleToolbar(false);
+        });
+
+        // Toolbar Swipe Down (Collapse)
+        toolbarEl.addEventListener('mousedown', e => {
+            toolbarTouchStartY = e.clientY;
+            toolbarTouchStartX = e.clientX;
+        });
+        
+        toolbarEl.addEventListener('touchstart', e => {
+            if(e.touches.length > 0) {
+                toolbarTouchStartY = e.touches[0].clientY;
+                toolbarTouchStartX = e.touches[0].clientX;
+            }
+        }, {passive: true});
+
+        function handleToolbarSwipe(e, clientX, clientY) {
+            const diffY = clientY - toolbarTouchStartY;
+            const diffX = clientX - toolbarTouchStartX;
+            const config = currentConfig || {};
+            const pos = config.toolbarPosition || 'bottom';
+            const threshold = 40; // Pixel threshold
+
+            if (pos === 'bottom') {
+                if (diffY > threshold) toggleToolbar(true);
+            } else if (pos === 'top') {
+                if (diffY < -threshold) toggleToolbar(true);
+            } else if (pos === 'left') {
+                if (diffX < -threshold) toggleToolbar(true);
+            } else if (pos === 'right') {
+                if (diffX > threshold) toggleToolbar(true);
+            }
+        }
+
+        toolbarEl.addEventListener('mouseup', e => {
+            handleToolbarSwipe(e, e.clientX, e.clientY);
+        });
+        
+        toolbarEl.addEventListener('touchend', e => {
+            if (e.changedTouches.length > 0) {
+                handleToolbarSwipe(e, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+            }
+        });
+        
+        // Handle Swipe Up (Expand)
+        handleEl.addEventListener('mousedown', e => {
+            toolbarTouchStartY = e.clientY;
+            toolbarTouchStartX = e.clientX;
+        });
+        
+        handleEl.addEventListener('touchstart', e => {
+             if(e.touches.length > 0) {
+                toolbarTouchStartY = e.touches[0].clientY;
+                toolbarTouchStartX = e.touches[0].clientX;
+            }
+        }, {passive: true});
+        
+        function handleHandleSwipe(e, clientX, clientY) {
+            const diffY = clientY - toolbarTouchStartY;
+            const diffX = clientX - toolbarTouchStartX;
+            const config = currentConfig || {};
+            const pos = config.toolbarPosition || 'bottom';
+            const threshold = 30; 
+
+            if (pos === 'bottom') {
+                if (diffY < -threshold) toggleToolbar(false);
+            } else if (pos === 'top') {
+                if (diffY > threshold) toggleToolbar(false);
+            } else if (pos === 'left') {
+                if (diffX > threshold) toggleToolbar(false);
+            } else if (pos === 'right') {
+                if (diffX < -threshold) toggleToolbar(false);
+            }
+        }
+        
+        handleEl.addEventListener('mouseup', e => {
+            handleHandleSwipe(e, e.clientX, e.clientY);
+        });
+        
+        handleEl.addEventListener('touchend', e => {
+            if (e.changedTouches.length > 0) {
+                handleHandleSwipe(e, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+            }
+        });
+
+        // Override sendMaskUpdate to exclude collapsed toolbar
+        function sendMaskUpdate() {
+            if (!bridge) return;
+            requestAnimationFrame(() => {
+                const rects = [];
+                const isCollapsed = document.getElementById('toolbar-container').classList.contains('collapsed');
+                
+                document.querySelectorAll('.interactive').forEach(el => {
+                    // Special handling for page selector to ensure it's detected even if transition is running
+                    if (el.id === 'page-selector') {
+                        if (el.classList.contains('visible')) {
+                            // Force send full rect for sidebar
+                            const isLeft = el.classList.contains('left-side');
+                            rects.push({
+                                x: isLeft ? 0 : (window.innerWidth - 260 - 64), // Larger buffer for right side
+                                y: 0,
+                                width: 324, // Significantly wider interaction area (260 + 64)
+                                height: window.innerHeight
+                            });
+                        }
+                        return;
+                    }
+                    
+                    if (el.offsetParent === null) return;
+                    
+                    const style = window.getComputedStyle(el);
+                    if (style.opacity === '0' || style.pointerEvents === 'none' || style.visibility === 'hidden') return;
+                    
+                    // Skip toolbar if collapsed (redundant with pointerEvents check but explicit)
+                    if (isCollapsed && el.id === 'toolbar') return;
+                    
+                    // Skip handle if NOT collapsed (handle is only interactive when collapsed)
+                    if (!isCollapsed && el.id === 'toolbar-handle') return;
+
+                    const r = el.getBoundingClientRect();
+                    if (r.width === 0 || r.height === 0) return;
+                    
+                    rects.push({
+                        x: r.x,
+                        y: r.y,
+                        width: r.width,
+                        height: r.height
+                    });
+                });
+                bridge.updateMask(rects);
+            });
+        }
+    </script>
+</body>
+</html>
