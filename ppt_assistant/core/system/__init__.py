@@ -8,8 +8,10 @@ def get_system_api() -> SystemAPI:
     if _instance is None:
         if sys.platform == "win32":
             from .windows import WindowsSystemAPI
+
             _instance = WindowsSystemAPI()
         else:
             from .linux import LinuxSystemAPI
+
             _instance = LinuxSystemAPI()
     return _instance

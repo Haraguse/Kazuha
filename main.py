@@ -1,6 +1,11 @@
 import shutil
 import sys
 import os
+
+# Nuitka standalone detection and compatibility
+if hasattr(sys, "nuitka_binary"):
+    sys.frozen = True
+
 import traceback
 import tempfile
 import subprocess
@@ -83,7 +88,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from ppt_assistant.core.ppt_monitor import PPTMonitor
 from ppt_assistant.ui.overlay import create_overlay_window
 from ppt_assistant.ui.tray import SystemTray, is_system_tray_supported
-from ppt_assistant.core.config import cfg, SETTINGS_PATH, PLUGINS_DIR, reload_cfg, _apply_theme_and_color, Theme, qconfig, FIRST_RUN
+from ppt_assistant.core.config import cfg, SETTINGS_PATH, PLUGINS_DIR, reload_cfg, _apply_theme_and_color, Theme, qconfig, FIRST_RUN, ROOT_DIR
 from ppt_assistant.core.timer_manager import TimerManager
 from ppt_assistant.core.i18n import t
 from ppt_assistant.core.app_icon import load_app_icon
@@ -198,8 +203,6 @@ SPLASH_I18N = {
 
 
 def _is_windows7():
-    if sys.platform != "win32":
-        return False
     try:
         v = sys.getwindowsversion()
         return v.major == 6 and v.minor == 1
@@ -219,27 +222,37 @@ def _get_screen_refresh_rate():
         return 60
 
 
+def _env_flag_enabled(name: str, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _is_compatibility_mode_enabled() -> bool:
+    try:
+        data = _load_settings_json()
+        general = data.get("General", {}) if isinstance(data, dict) else {}
+        return bool(general.get("CompatibilityMode", False)) if isinstance(general, dict) else False
+    except Exception:
+        return False
+
+
 def _apply_graphics_settings():
     if sys.platform == "linux":
         qpa_platform = str(os.environ.get("QT_QPA_PLATFORM", "")).strip().lower()
-        # Force software rendering on Linux to avoid compatibility issues with Mesa/drivers
-        # os.environ["QT_OPENGL"] = "software"
-        # os.environ["QT_RHI_BACKEND"] = "software"
-        # os.environ["QT_VULKAN_DISABLE"] = "1"
-        # os.environ["QT_QUICK_BACKEND"] = "software"
+        has_x11_display = bool(os.environ.get("DISPLAY"))
         os.environ["QTWEBENGINE_DISABLE_SANDBOX"] = "1"
-        # if qpa_platform == "xcb" and _HAS_X11_DISPLAY:
-        #     os.environ["QT_XCB_FORCE_SOFTWARE_OPENGL"] = "1"
         flags = [
             "--disable-gpu",
             "--disable-gpu-compositing",
             "--enable-software-rasterizer",
             "--no-sandbox",
         ]
-        if qpa_platform == "xcb" and _HAS_X11_DISPLAY:
-            for flag in ("--disable-features=UseOzonePlatform",):
-                if flag not in flags:
-                    flags.append(flag)
+        if qpa_platform == "xcb" and has_x11_display:
+            flag = "--disable-features=UseOzonePlatform"
+            if flag not in flags:
+                flags.append(flag)
         current = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
         merged = current.split()
         for flag in flags:
@@ -249,26 +262,47 @@ def _apply_graphics_settings():
         print(
             "[Main] Linux graphics settings:"
             f" qpa={qpa_platform or 'unset'}"
-            f" flags={os.environ.get('QTWEBENGINE_CHROMIUM_FLAGS', '')}"
+            f" flags={os.environ.get('QTWEBENGINE_CHROMIUM_FLAGS', '')}",
+            flush=True,
         )
         return
 
-    # Base flags for high performance
-    flags = [
-        "--disable-frame-rate-limit",
-        "--disable-gpu-vsync",
-        "--ignore-gpu-blocklist",
-    ]
-    
-    # Try to set a target FPS if possible, but mostly just unlock it.
-    # User asked for 3x refresh rate.
-    rate = _get_screen_refresh_rate()
-    target_fps = rate * 3
-    # Chromium doesn't have a direct --limit-fps flag in stable, but we can try --frames-throttled
-    # or just rely on disabling the limit.
-    # We will just unlock it as that satisfies "solve 60fps cap".
-    # And we can set an env var that we might use elsewhere or just for reference.
-    os.environ["LUMINALIUM_TARGET_FPS"] = str(target_fps)
+    # Configure rendering backend for best performance
+    # Use native OpenGL for smooth rendering
+    os.environ["QT_OPENGL"] = "desktop"
+    os.environ["QT_VULKAN_DISABLE"] = "1"
+    # Let Qt automatically choose the best RHI backend
+    # Don't force QSG_RHI_BACKEND to allow fallback
+
+    use_software_webengine = _is_compatibility_mode_enabled() or _env_flag_enabled("LUMINALIUM_WEBENGINE_SOFTWARE", False)
+
+    if use_software_webengine:
+        os.environ["QSG_RHI_BACKEND"] = "software"
+        os.environ["QT_QUICK_BACKEND"] = "software"
+        os.environ["QT_OPENGL"] = "software"
+        os.environ["QTWEBENGINE_DISABLE_GPU"] = "1"
+        flags = [
+            "--disable-gpu",
+            "--disable-gpu-compositing",
+            "--disable-gpu-rasterization",
+            "--disable-software-rasterizer",
+        ]
+    else:
+        # Base flags tuned for smoother rendering
+        flags = [
+            "--disable-frame-rate-limit",
+            "--disable-gpu-vsync",
+            "--enable-gpu-rasterization",
+            "--enable-zero-copy",
+            "--enable-features=VaapiVideoDecoder,VaapiVideoEncoder",
+            "--ignore-gpu-blocklist",
+            "--enable-hardware-overlays",
+        ]
+
+        # Get refresh rate for target FPS
+        rate = _get_screen_refresh_rate()
+        target_fps = rate * 3
+        os.environ["LUMINALIUM_TARGET_FPS"] = str(target_fps)
 
     # Windows 7 Fallback
     if _is_windows7():
@@ -293,7 +327,7 @@ def _apply_graphics_settings():
         if flag not in merged:
             merged.append(flag)
     os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(merged)
-    
+
 
 
 
@@ -336,6 +370,40 @@ def _create_focus_watcher(parent):
 def _get_settings_reset_marker_path():
     return os.path.join(os.path.dirname(SETTINGS_PATH), "settings.reset")
 
+def _get_restart_marker_path():
+    return os.path.join(os.path.dirname(SETTINGS_PATH), "restart.marker")
+
+def _write_restart_marker():
+    try:
+        path = _get_restart_marker_path()
+        data = {"pid": os.getpid(), "ts": time.time()}
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+def _consume_restart_marker(max_age_seconds: float = 5.0) -> bool:
+    path = _get_restart_marker_path()
+    if not os.path.exists(path):
+        return False
+    data = {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        data = {}
+    finally:
+        try:
+            os.remove(path)
+        except Exception:
+            pass
+    try:
+        ts = float(data.get("ts", 0))
+    except Exception:
+        ts = 0.0
+    if ts <= 0:
+        return False
+    return (time.time() - ts) <= max_age_seconds
 
 def _get_current_language():
     data = _load_settings_json()
@@ -463,6 +531,8 @@ def _apply_global_font(app: QApplication):
             return
         font = QFont()
         font.setStyleHint(QFont.SansSerif)
+        if default_families:
+            font.setFamily(default_families[0])
         font.setFamilies(default_families)
     weight = _get_font_weight_from_settings(data, lang, "qt")
     if weight is not None:
@@ -520,10 +590,7 @@ def _is_dev_preview_version(version: str) -> bool:
 
 
 def _get_user_root_dir() -> str:
-    root_dir = os.path.dirname(os.path.abspath(__file__))
-    if getattr(sys, "frozen", False):
-        root_dir = os.path.dirname(sys.executable)
-    return root_dir
+    return ROOT_DIR
 
 
 def _ensure_user_dirs():
@@ -533,7 +600,7 @@ def _ensure_user_dirs():
         user_dir = os.path.join(root_dir, "user")
         if not os.path.exists(user_dir):
             os.makedirs(user_dir)
-            
+
         for sub in ["themes", "splash"]:
             path = os.path.join(user_dir, sub)
             if not os.path.exists(path):
@@ -582,7 +649,7 @@ class StartupSplash(QWidget):
         self._pixmap = None
         self._progress_value = 0
         self._status_text = ""
-        
+
         icon = load_app_icon()
         if not icon.isNull():
             self.setWindowIcon(icon)
@@ -593,7 +660,7 @@ class StartupSplash(QWidget):
         self._version_text = _format_version_display(self._version_raw)
         self._language = _get_current_language()
         self._is_first_run = FIRST_RUN
-        
+
         # 确定主题
         theme_val = cfg.themeMode.value
         if theme_val == Theme.AUTO:
@@ -629,10 +696,10 @@ class StartupSplash(QWidget):
             font.setPixelSize(11)
             self._dev_watermark.setFont(font)
             self._dev_watermark.setAlignment(Qt.AlignRight | Qt.AlignBottom)
-            
+
             watermark_color = "rgba(255, 255, 255, 100)" if self._is_dark else "rgba(0, 0, 0, 100)"
             self._dev_watermark.setStyleSheet(f"color: {watermark_color};")
-            
+
             self._dev_watermark.resize(320, 36)
             self._dev_watermark.move(self._container.width() - self._dev_watermark.width() - 16,
                                      self._container.height() - self._dev_watermark.height() - 12)
@@ -647,25 +714,25 @@ class StartupSplash(QWidget):
                 # For High DPI, we should NOT pre-scale the pixmap if possible, or scale it based on devicePixelRatio.
                 # However, QPainter.drawPixmap with SmoothPixmapTransform is usually better than pre-scaling if we want dynamic resizing.
                 # But here we are setting a fixed window size.
-                
+
                 # Let's keep the original high-res pixmap in memory and only resize the window logic.
                 self._pixmap = original_pixmap
-                
+
                 # Logic to determine window size:
                 # If image is very large, we define a "logical" size for the window (e.g. 860 width)
                 # and let the paintEvent draw the high-res image scaled down into that rect.
-                
+
                 target_width = 860
                 aspect_ratio = original_pixmap.height() / original_pixmap.width()
                 target_height = int(target_width * aspect_ratio)
-                
+
                 self.resize(target_width, target_height)
             else:
                 # Fallback
                 self.resize(860, 480)
         else:
             self.resize(860, 480)
-            
+
         # We don't use standard widgets, we paint in paintEvent
 
     def _apply_user_splash(self) -> bool:
@@ -694,97 +761,101 @@ class StartupSplash(QWidget):
             painter.setRenderHint(QPainter.Antialiasing)
             painter.setRenderHint(QPainter.TextAntialiasing)
             painter.setRenderHint(QPainter.SmoothPixmapTransform)
-            
+
             # Draw Background
             # Use drawPixmap with target rect to ensure it scales to window size
             painter.drawPixmap(self.rect(), self._pixmap)
-            
+
             # Constants
             margin_left = 40
             margin_bottom = 40
-            
+
             # Fonts
             splash_font_families = _get_default_font_family_stack(self._language, _load_bundled_font_families(_get_user_root_dir()))
             title_font = QFont()
             title_font.setStyleHint(QFont.SansSerif)
+            if splash_font_families:
+                title_font.setFamily(splash_font_families[0])
             title_font.setFamilies(splash_font_families)
             title_font.setPixelSize(36)
             title_font.setBold(True)
-            
+
             sub_font = QFont()
             sub_font.setStyleHint(QFont.SansSerif)
+            if splash_font_families:
+                sub_font.setFamily(splash_font_families[0])
             sub_font.setFamilies(splash_font_families)
             sub_font.setPixelSize(14)
-            
+
             # Calculate positions from bottom
             h = self.height()
             w = self.width()
-            
+
             # Reduce width to ~65% to avoid character more aggressively
             content_width = w * 0.65
-            
+
             progress_h = 6
             progress_y = h - margin_bottom - progress_h
-            
+
             # Title "Luminalium"
             painter.setPen(QColor("#000000"))
             painter.setFont(title_font)
             # Calculate exact height to position tighter
             fm_title = QFontMetrics(title_font)
             title_height = fm_title.capHeight()
-            
+
             # Subtitle
             painter.setFont(sub_font)
             fm_sub = QFontMetrics(sub_font)
             sub_height = fm_sub.capHeight()
-            
+
             # Position calculations
             # Gap between Title baseline and Subtitle top: e.g. 8px
             # Gap between Subtitle baseline and Progress bar: e.g. 15px
-            
+
             subtitle_baseline_y = progress_y - 15
             title_baseline_y = subtitle_baseline_y - sub_height - 16 # 20px gap
-            
+
             # Draw Title
             brand_name_map = {
-                "zh-CN": "Luminalium",
+                "zh-CN": "荧素万演",
                 "zh-TW": "Luminalium",
                 "yue-HK": "Luminalium",
                 "ja-JP": "ルマイナリウム",
                 "en-US": "Luminalium",
             }
             brand_name = brand_name_map.get(self._language, "Luminalium")
-            
+
             painter.setFont(title_font)
             painter.setPen(QColor("#000000"))
             painter.drawText(margin_left, title_baseline_y, brand_name)
-            
+
             # Draw Subtitle
             painter.setFont(sub_font)
             painter.setPen(QColor("#888888"))
             subtitle = f"{self._version_text} // {self._code_name_en}"
             painter.drawText(margin_left, subtitle_baseline_y, subtitle)
-            
+
             # Status Text (Right aligned relative to content width)
             status_text = f"{self._status_text}"
             status_rect = fm_sub.boundingRect(status_text)
-            
+
             # Align status text to the end of the progress bar
             status_x = margin_left + content_width - status_rect.width()
             painter.drawText(status_x, subtitle_baseline_y, status_text)
-            
+
             # Progress Bar Background
             painter.setPen(Qt.NoPen)
             painter.setBrush(QColor("#E0E0E0"))
             # Width is content_width
             painter.drawRoundedRect(margin_left, progress_y, content_width, progress_h, 3, 3)
-            
+
             # Progress Bar Value
             if self._progress_value > 0:
                 painter.setBrush(QColor("#404040"))
                 prog_width = content_width * (self._progress_value / 100.0)
                 painter.drawRoundedRect(margin_left, progress_y, prog_width, progress_h, 3, 3)
-                
+
             painter.end()
         else:
             super().paintEvent(event)
@@ -793,7 +864,7 @@ class StartupSplash(QWidget):
         if self._is_first_run:
             self._container.setFixedSize(960, 540)
             self._container.move(0, 0)
-            
+
             # Center Logo (120x120)
             self._icon_label = QLabel(self._container)
             self._icon_label.setFixedSize(120, 120)
@@ -802,7 +873,7 @@ class StartupSplash(QWidget):
                 icon = QIcon(icon_path)
                 pix = icon.pixmap(120, 120)
                 self._icon_label.setPixmap(pix)
-            
+
             # Center it
             cx = (960 - 120) // 2
             cy = (540 - 120) // 2
@@ -813,10 +884,10 @@ class StartupSplash(QWidget):
         # Width: 678, Height: 255
         self._container.setFixedSize(678, 255)
         self._container.move(24, 16) # Offset for shadow
-        
+
         # Logo (kZHTXT_2.png equivalent) - x: 38, y: 37
         self._icon_label = QLabel(self._container)
-        self._icon_label.setFixedSize(64, 64) 
+        self._icon_label.setFixedSize(64, 64)
         icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons", "logo.svg")
         if os.path.exists(icon_path):
             icon = QIcon(icon_path)
@@ -835,24 +906,26 @@ class StartupSplash(QWidget):
         self._brand_label = QLabel(brand_name, self._container)
         splash_font_families = _get_default_font_family_stack(self._language, _load_bundled_font_families(_get_user_root_dir()))
         brand_font = QFont()
+        if splash_font_families:
+            brand_font.setFamily(splash_font_families[0])
         brand_font.setFamilies(splash_font_families)
         brand_font.setPixelSize(32)
-        brand_font.setWeight(QFont.Black) 
+        brand_font.setWeight(QFont.Black)
         self._brand_label.setFont(brand_font)
         self._brand_label.setFixedWidth(328)
-        self._brand_label.setFixedHeight(32) 
+        self._brand_label.setFixedHeight(32)
         self._brand_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self._brand_label.move(38, 111)
 
         # Version Info Container - x: 38, y: 143
         self._version_info_label = QLabel(self._container)
-        
+
         ver_text = self._version_text or ""
         en_text = self._code_name_en or ""
-        
+
         ver_color = "#FFFFFF" if self._is_dark else "#000000"
         en_color = "rgba(255, 255, 255, 0.47)" if self._is_dark else "rgba(0, 0, 0, 0.47)"
-        
+
         version_font_css = _build_css_font_family_value(splash_font_families)
         html = f"""
         <div style="line-height: 20px;">
@@ -860,10 +933,10 @@ class StartupSplash(QWidget):
             <span style="font-family: {version_font_css}; font-size: 11px; font-weight: 300; color: {en_color}; margin-left: 2px;">{en_text}</span>
         </div>
         """
-        
+
         self._version_info_label.setText(html)
         self._version_info_label.adjustSize()
-        self._version_info_label.move(38, 143) 
+        self._version_info_label.move(38, 143)
 
         # Loading Spinner (Vector) - x: 38, y: 199
         spinner_color = QColor("#d9d9d9") if self._is_dark else QColor("#666666")
@@ -890,7 +963,7 @@ class StartupSplash(QWidget):
         self._progress.setValue(0)
         self._progress.setTextVisible(False)
         self._progress.setFixedHeight(8)
-        self._progress.setFixedWidth(678) 
+        self._progress.setFixedWidth(678)
         self._progress.move(0, 247)
 
         shadow = QGraphicsDropShadowEffect(self)
@@ -906,7 +979,7 @@ class StartupSplash(QWidget):
                 bg_color = "#121212"
             else:
                 bg_color = "#f2f3f5"
-            
+
             self._container.setStyleSheet(
                 f"QFrame#splashContainer {{"
                 f"background-color: {bg_color};"
@@ -921,8 +994,8 @@ class StartupSplash(QWidget):
             border_color = "rgba(255, 255, 255, 0.15)"
             brand_color = "#ffffff"
             percent_color = "#d9d9d9"
-            progress_bg = "#454545" 
-            chunk_color = "#E1EBFF" 
+            progress_bg = "#454545"
+            chunk_color = "#E1EBFF"
         else:
             bg_color = "rgba(255, 255, 255, 240)"
             border_color = "rgba(0, 0, 0, 0.08)"
@@ -932,7 +1005,7 @@ class StartupSplash(QWidget):
             chunk_color = "#3275F5"
 
         self.resize(678 + 48, 255 + 48) # Increased for shadow
-        
+
         self._container.setStyleSheet(
             f"QFrame#splashContainer {{"
             f"background-color: {bg_color};"
@@ -942,7 +1015,7 @@ class StartupSplash(QWidget):
         )
         self._brand_label.setStyleSheet(f"color: {brand_color};")
         self._percent_label.setStyleSheet(f"color: {percent_color};")
-        
+
         self._progress.setStyleSheet(
             "QProgressBar {"
             f"background-color: {progress_bg};"
@@ -970,7 +1043,7 @@ class StartupSplash(QWidget):
 
     def set_progress(self, value, text_key="initializing"):
         value = min(max(value, 0), 100)
-        
+
         # Check if detailed splash is enabled
         if cfg.showDetailedSplash.value:
             display_text = SPLASH_I18N.get(self._language, SPLASH_I18N["zh-CN"]).get(text_key, text_key)
@@ -996,7 +1069,7 @@ class StartupSplash(QWidget):
 
         self._progress.setValue(value)
         self._percent_label.setText(full_text)
-        
+
         # Update spinner if needed, or it spins automatically
         QApplication.processEvents()
 
@@ -1040,33 +1113,33 @@ class IndeterminateSpinner(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        
+
         rect = self.rect()
         cx, cy = rect.center().x(), rect.center().y()
-        
+
         # Outer ring (static)
         pen = QPen(self._color)
         pen.setWidth(3)
         painter.setPen(pen)
         painter.setBrush(Qt.NoBrush)
-        
+
         # Draw ring. Adjust rect to account for pen width
-        ring_radius = 10 
+        ring_radius = 10
         painter.drawEllipse(QPoint(cx, cy), ring_radius, ring_radius)
-        
+
         # Inner rotating dot
         painter.save()
         painter.translate(cx, cy)
         painter.rotate(self._angle)
-        
+
         # Draw small circle on the orbit
         dot_radius = 2.5
         orbit_radius = ring_radius - 3 - dot_radius + 1 # Fine tuned visual position
-        
+
         painter.setPen(Qt.NoPen)
         painter.setBrush(QBrush(self._color))
         painter.drawEllipse(QPoint(0, -orbit_radius), dot_radius, dot_radius)
-        
+
         painter.restore()
         painter.end()
 
@@ -1095,7 +1168,7 @@ class CrashHandler:
 
     def set_app_instance(self, instance):
         self.app_instance = instance
-    
+
     def _resolve_crash_action(self):
         mode = "ShowAnalyzer"
         enabled = False
@@ -1137,15 +1210,12 @@ class CrashHandler:
             main_path = os.path.join(root_dir, "main.py")
             env = os.environ.copy()
             env["CRASH_PARENT_PID"] = str(os.getpid())
-            
+
             with tempfile.NamedTemporaryFile(mode='w', suffix='.log', delete=False, encoding='utf-8') as f:
                 f.write(error_msg)
                 temp_path = f.name
-            
-            if sys.platform == "win32":
-                creationflags = 0x00000008 # DETACHED_PROCESS
-            else:
-                creationflags = 0
+
+            creationflags = 0x08000000 | 0x00000008 # CREATE_NO_WINDOW | DETACHED_PROCESS
 
             if getattr(sys, "frozen", False):
                 cmd = [sys.executable, "--webview-runner", "--crash-file", temp_path]
@@ -1187,18 +1257,18 @@ class CrashHandler:
             ]
             if "--silent" not in filtered_args:
                 filtered_args.append("--silent")
-            
+
             if getattr(sys, "frozen", False):
                 cmd = [sys.executable] + filtered_args
             else:
                 cmd = [sys.executable, main_path] + filtered_args
 
-            if sys.platform == "win32":
-                creationflags = 0x00000008 # DETACHED_PROCESS
-            else:
-                creationflags = 0
-
-            subprocess.Popen(cmd, creationflags=creationflags, close_fds=True)
+            creationflags = 0x08000000 | 0x00000008  # CREATE_NO_WINDOW | DETACHED_PROCESS
+            env = os.environ.copy()
+            env["LUMINALIUM_RESTART"] = "1"
+            env["LUMINALIUM_RESTART_PID"] = str(os.getpid())
+            _write_restart_marker()
+            subprocess.Popen(cmd, env=env, creationflags=creationflags, close_fds=True)
         except Exception as e:
             print(f"Failed to restart silently: {e}", file=sys.stderr)
 
@@ -1220,10 +1290,10 @@ class CrashHandler:
         if issubclass(exc_type, KeyboardInterrupt):
             sys.__excepthook__(exc_type, exc_value, exc_traceback)
             return
-        
+
         error_msg = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
         print(f"CRASH DETECTED:\n{error_msg}", file=sys.stderr)
-        
+
         action = self._resolve_crash_action()
         if action == "ShowAnalyzer":
             result = self._launch_crash_dialog(error_msg, wait_for_result=True)
@@ -1234,13 +1304,13 @@ class CrashHandler:
             self._restart_silent()
         elif action == "Toast":
             self._show_crash_toast()
-        
+
         try:
             if self.app_instance is not None:
                 self.app_instance.cleanup()
         except Exception as e:
             print(f"Error during crash cleanup: {e}", file=sys.stderr)
-        
+
         import time
         time.sleep(0.5)
         os._exit(1)
@@ -1253,6 +1323,9 @@ def _handle_multi_instance(app: QApplication):
     except ImportError:
         return
 
+    restart_flag = os.environ.pop("LUMINALIUM_RESTART", None)
+    restart_marker = _consume_restart_marker()
+
     current_pid = os.getpid()
     current_entry = os.path.abspath(sys.executable if getattr(sys, "frozen", False) else __file__)
     pids = []
@@ -1260,7 +1333,7 @@ def _handle_multi_instance(app: QApplication):
         if p.info.get("pid") == current_pid:
             continue
         cmd = p.info.get("cmdline") or []
-        
+
         if "--webview-runner" in cmd:
             continue
 
@@ -1286,17 +1359,36 @@ def _handle_multi_instance(app: QApplication):
                     break
             except Exception:
                 continue
-    
-    if not pids: 
+
+    if not pids:
         return
-    
+
+    if restart_flag or restart_marker:
+        try:
+            deadline = time.time() + 1.2
+            alive = list(pids)
+            while time.time() < deadline:
+                alive = [pid for pid in alive if psutil.pid_exists(pid)]
+                if not alive:
+                    return
+                time.sleep(0.05)
+            for pid in alive:
+                try:
+                    p_obj = psutil.Process(pid)
+                    p_obj.kill()
+                except Exception:
+                    pass
+            return
+        finally:
+            os.environ.pop("LUMINALIUM_RESTART_PID", None)
+
     proc = show_webview_dialog(
         title="",
         text="",
         code="multi_instance"
     )
     stdout, _ = proc.communicate()
-    
+
     if 'DIALOG_VALUE:"RESTART_OLD"' in stdout:
         for pid in pids:
             try:
@@ -1304,7 +1396,6 @@ def _handle_multi_instance(app: QApplication):
                 p_obj.kill()
             except Exception:
                 pass
-        import time
         time.sleep(0.5)
         return
     elif 'DIALOG_VALUE:"CONTINUE_NEW"' in stdout:
@@ -1336,7 +1427,7 @@ class PPTAssistantApp:
         self._reload_timer.timeout.connect(self._reload_overlay)
         self._onboarding_wait_timer = None
         self._onboarding_restart_started = False
-        
+
         # Start async initialization
         self._init_gen = self._init_steps()
         QTimer.singleShot(0, self._perform_init_step)
@@ -1345,7 +1436,7 @@ class PPTAssistantApp:
         # Step 1: Basic Config
         yield 10, "loading_config"
         _apply_theme_and_color(cfg.themeMode.value)
-        
+
         # Step 2: Fonts
         yield 20, "loading_fonts"
         _apply_global_font(self.app)
@@ -1372,17 +1463,17 @@ class PPTAssistantApp:
         # Step 3: Monitor (Non-UI logic)
         yield 30, "init_monitor"
         self.monitor = PPTMonitor()
-        
+
         # Step 4: Overlay (UI creation - expensive)
         yield 40, "init_ui"
         # Yield to event loop BEFORE creating heavy UI to prevent freeze
         # We can split Overlay creation if needed, but yielding before is key
-        pass 
+        pass
 
         print("[Main] Creating overlay window...", flush=True)
         self.overlay = create_overlay_window()
         print(f"[Main] Overlay window created: {type(self.overlay).__name__}", flush=True)
-        
+
         # Step 5: Plugins (IO/Process - expensive)
         yield 60, "loading_plugins"
         self._load_plugins()
@@ -1396,7 +1487,7 @@ class PPTAssistantApp:
                 return
         except Exception:
             pass
-        
+
         # Step 6: Tray (UI)
         yield 80, "init_tray"
         print("[Main] Initializing tray...", flush=True)
@@ -1405,7 +1496,7 @@ class PPTAssistantApp:
         else:
             print("[Main] System tray disabled or unavailable. Set LUMINALIUM_ENABLE_TRAY=1 to force-enable it.")
         print("[Main] Tray initialization finished.", flush=True)
-        
+
         # Step 7: Finalize connections
         yield 85, "finalizing"
         print("[Main] Binding overlay to monitor...", flush=True)
@@ -1420,9 +1511,13 @@ class PPTAssistantApp:
         yield 95, "finalizing"
         print("[Main] Starting PPT monitor...", flush=True)
         self.monitor.start_monitoring()
-        print("[Main] PPT monitor start requested.", flush=True)
+        print(
+            f"[Main] PPT monitor start requested. compatibilityMode={cfg.compatibilityMode.value}",
+            flush=True,
+        )
 
         if cfg.compatibilityMode.value:
+            print("[APP] Showing overlay in compatibility mode")
             self.overlay.show()
 
         if self._splash is not None:
@@ -1454,6 +1549,16 @@ class PPTAssistantApp:
     def _check_onboarding_closed(self):
         plugin = getattr(self, "onboarding_plugin", None)
         handle = getattr(plugin, "process", None) if plugin is not None else None
+
+        # Wait at least 3 seconds before checking to allow window to fully initialize
+        if not hasattr(self, '_onboarding_start_time'):
+            self._onboarding_start_time = time.time()
+            return
+
+        elapsed = time.time() - self._onboarding_start_time
+        if elapsed < 3.0:  # Minimum 3 seconds before checking
+            return
+
         try:
             finished = handle is None or handle.poll() is not None
         except Exception:
@@ -1473,7 +1578,7 @@ class PPTAssistantApp:
     def _load_plugins(self):
         """Dynamic plugin loading from builtins and external directory."""
         self.plugins = []
-        
+
         # 1. Load Builtin Plugins
         builtin_plugins = [
             "plugins.builtins.settings.plugin.SettingsPlugin",
@@ -1481,9 +1586,10 @@ class PPTAssistantApp:
             "plugins.builtins.board.plugin.BoardPlugin",
             "plugins.builtins.timer.plugin.TimerPlugin",
             "plugins.builtins.spotlight.plugin.SpotlightPlugin",
-            "plugins.builtins.app_launcher.plugin.AppLauncherPlugin"
+            "plugins.builtins.app_launcher.plugin.AppLauncherPlugin",
+            "plugins.builtins.logs.plugin.LogsPlugin"
         ]
-        
+
         for p_path in builtin_plugins:
             try:
                 mod_name, cls_name = p_path.rsplit(".", 1)
@@ -1492,7 +1598,7 @@ class PPTAssistantApp:
                 plugin = cls()
                 plugin.set_context(self)
                 self.plugins.append(plugin)
-                
+
                 # Maintain compatibility with existing code
                 if cls_name == "SettingsPlugin":
                     self.settings_plugin = plugin
@@ -1502,6 +1608,8 @@ class PPTAssistantApp:
                     self.board_plugin = plugin
                 elif cls_name == "TimerPlugin":
                     self.timer_plugin = plugin
+                elif cls_name == "LogsPlugin":
+                    self.logs_plugin = plugin
             except Exception as e:
                 print(f"Failed to load builtin plugin {p_path}: {e}")
 
@@ -1511,33 +1619,33 @@ class PPTAssistantApp:
                 p_dir = os.path.join(PLUGINS_DIR, item)
                 if not os.path.isdir(p_dir):
                     continue
-                
+
                 # Check for manifest.json
                 manifest_path = os.path.join(p_dir, "manifest.json")
                 if not os.path.exists(manifest_path):
                     continue
-                
+
                 try:
                     with open(manifest_path, "r", encoding="utf-8") as f:
                         manifest = json.load(f)
-                    
+
                     entry_point = manifest.get("entry")
                     if not entry_point:
                         continue
-                    
+
                     # Add plugins dir to sys.path if not present
                     if PLUGINS_DIR not in sys.path:
                         sys.path.insert(0, PLUGINS_DIR)
-                    
+
                     # Import from the specific plugin directory
                     mod_name, cls_name = entry_point.rsplit(".", 1)
                     spec = importlib.util.spec_from_file_location(
-                        f"external_plugin_{item}", 
+                        f"external_plugin_{item}",
                         os.path.join(p_dir, mod_name + ".py")
                     )
                     mod = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(mod)
-                    
+
                     # Instantiate the plugin class
                     cls = getattr(mod, cls_name)
                     plugin = cls()
@@ -1578,9 +1686,10 @@ class PPTAssistantApp:
             self.tray.show_settings.connect(self.settings_plugin.execute)
             self.tray.show_board.connect(self.board_plugin.execute)
             self.tray.show_timer.connect(self.timer_plugin.execute)
+            self.tray.show_logs.connect(self.logs_plugin.execute)
             self.tray.toggle_overlay.connect(self.toggle_overlay_visibility)
-            self.tray.restart_app.connect(self.restart)
-            self.tray.exit_app.connect(self.app.quit)
+            self.tray.restart_app.connect(self._restart_from_tray)
+            self.tray.exit_app.connect(self._exit_from_tray)
 
         self.timer_plugin.background_mode_entered.connect(self._on_timer_background_mode)
 
@@ -1600,8 +1709,35 @@ class PPTAssistantApp:
                 self.overlay.hide()
             else:
                 self.overlay.show()
-                self.overlay.raise_()
-                # self.overlay.activateWindow()
+
+    def _prepare_shutdown(self, restarting=False):
+        try:
+            if hasattr(self, "tray") and self.tray:
+                self.tray.prepare_shutdown()
+        except Exception:
+            pass
+        if restarting:
+            try:
+                os.environ["LUMINALIUM_RESTART"] = "1"
+                os.environ["LUMINALIUM_RESTART_PID"] = str(os.getpid())
+                _write_restart_marker()
+            except Exception:
+                pass
+        try:
+            self.app.processEvents()
+        except Exception:
+            pass
+
+    @Slot()
+    def _exit_from_tray(self):
+        self._prepare_shutdown(restarting=False)
+        self.app.quit()
+
+    @Slot()
+    def _restart_from_tray(self):
+        self._prepare_shutdown(restarting=True)
+        self._launch_new_instance()
+        self.app.quit()
 
     @Slot()
     def _on_timer_finished(self):
@@ -1629,10 +1765,11 @@ class PPTAssistantApp:
         except Exception:
             pass
         self._slideshow_running = True
+        print("[APP] Slideshow started")
         try:
             self.overlay.on_slideshow_start_cleanup()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[APP] Error in on_slideshow_start_cleanup: {e}")
         # Cleanup slide thumbnails from previous session
         temp_dir = os.path.join(tempfile.gettempdir(), "luminalium_ppt_thumbs")
         if os.path.exists(temp_dir):
@@ -1646,18 +1783,25 @@ class PPTAssistantApp:
             pass
         try:
             active_kind = getattr(self.monitor, "_active_kind", None)
+            print(f"[APP] autoShowOverlay={cfg.autoShowOverlay.value}, compatibilityMode={cfg.compatibilityMode.value}, active_kind={active_kind}")
             if cfg.autoShowOverlay.value and not cfg.compatibilityMode.value:
+                print("[APP] Calling set_active_on_slideshow(True) - autoShowOverlay path")
                 if self._last_slideshow_rect is not None:
                     try:
                         self.overlay.update_geometry(self._last_slideshow_rect, self._last_slideshow_screen)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        print(f"[APP] Error updating geometry: {e}")
                 self.overlay.set_active_on_slideshow(True, animate=False)
             elif active_kind == "yozo" and not cfg.compatibilityMode.value:
+                print("[APP] Calling set_active_on_slideshow(True) - yozo path")
                 self.overlay.set_active_on_slideshow(True, animate=False)
-        except Exception:
-            pass
-    
+            else:
+                print("[APP] Not showing overlay - conditions not met")
+        except Exception as e:
+            print(f"[APP] Error in on_slideshow_start: {e}")
+            import traceback
+            traceback.print_exc()
+
     @Slot()
     def on_slideshow_end(self):
         try:
@@ -1752,7 +1896,7 @@ class PPTAssistantApp:
         mtime = os.path.getmtime(SETTINGS_PATH)
         if mtime != self._settings_mtime:
             self._settings_mtime = mtime
-            
+
             # Check for restart flag
             try:
                 with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
@@ -1765,7 +1909,7 @@ class PPTAssistantApp:
                     return
             except Exception:
                 pass
-            
+
             old_theme = cfg.themeMode.value
             old_theme_id = cfg.themeId.value if hasattr(cfg, "themeId") else "default"
             old_lang = getattr(self, "_current_language", "zh-CN")
@@ -1818,7 +1962,7 @@ class PPTAssistantApp:
 
             if new_qt_font != old_qt_font or new_qt_weight != old_qt_weight:
                 _apply_global_font(self.app)
-            
+
             should_reload = (
                 new_lang != old_lang
                 or new_overlay_font != old_overlay_font
@@ -1833,7 +1977,7 @@ class PPTAssistantApp:
                 or cfg.safeArea.value != old_safe_area
                 or cfg.scale.value != old_scale
             )
-            
+
             if should_reload:
                 if not self._reloading_overlay:
                     self._reload_timer.start()
@@ -1842,7 +1986,7 @@ class PPTAssistantApp:
                     if new_rebuild_at and new_rebuild_at != old_rebuild_at:
                         if not self._reloading_overlay:
                             self._reload_timer.start()
-                    
+
                     # Check for any status bar config changes
                     status_bar_changed = (
                         cfg.showStatusBar.value != old_status_bar or
@@ -1854,7 +1998,7 @@ class PPTAssistantApp:
                         cfg.statusBarShowMusic.value != old_status_bar_show_music or
                         cfg.statusBarShowMusicProgress.value != old_status_bar_show_music_progress
                     )
-                    
+
                     if status_bar_changed:
                         self.overlay.update_config()
 
@@ -1864,9 +2008,9 @@ class PPTAssistantApp:
                             self.overlay.show()
                         elif not self._slideshow_running:
                             self.overlay.hide()
-            
+
             # Layout mode change is now handled by auto-reload above, no restart prompt needed
-            
+
             if cfg.themeMode.value != old_theme:
                 if self.tray is not None:
                     self.tray._update_icon()
@@ -1874,7 +2018,7 @@ class PPTAssistantApp:
             if new_lang != old_lang or cfg.compatibilityMode.value != old_compat:
                 if self.tray is not None:
                     self.tray.refresh_menu()
-            
+
             if new_rebuild_at is not None:
                 self._overlay_rebuild_at = new_rebuild_at
 
@@ -1884,17 +2028,17 @@ class PPTAssistantApp:
             return
         self._reloading_overlay = True
         was_visible = self.overlay.isVisible()
-        
+
         try:
             # Import overlay again to refresh module-level LANGUAGE
             import ppt_assistant.ui.overlay as overlay_mod
             importlib.reload(overlay_mod)
             from ppt_assistant.ui.overlay import create_overlay_window
-            
+
             # Create new overlay first (prevent crash if creation fails)
             new_overlay = create_overlay_window()
             new_overlay.set_monitor(self.monitor)
-            
+
             # Re-connect signals
             new_overlay.request_next.connect(self.monitor.go_next)
             new_overlay.request_prev.connect(self.monitor.go_previous)
@@ -1906,7 +2050,7 @@ class PPTAssistantApp:
             new_overlay.request_ptr_eraser.connect(lambda: self.monitor.set_pointer_type(5))
             new_overlay.request_pen_color.connect(self.monitor.set_pen_color)
             new_overlay.request_thumbnail.connect(lambda idx: self.monitor.export_slide_thumbnail(idx, os.path.join(tempfile.gettempdir(), "luminalium_ppt_thumbs", f"thumb_{idx}.png")))
-            
+
             # Disconnect old overlay slots before connecting new ones
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", RuntimeWarning)
@@ -1930,28 +2074,28 @@ class PPTAssistantApp:
             self.monitor.window_geometry_changed.connect(new_overlay.update_geometry)
             self.monitor.slideshow_hwnd_changed.connect(new_overlay.set_slideshow_hwnd)
             self.monitor.thumbnail_generated.connect(new_overlay.on_thumbnail_ready)
-            
+
             # Swap overlay
             old_overlay = self.overlay
             self.overlay = new_overlay
-            
+
             # Cleanup old overlay
             old_overlay.cleanup() # Stop threads safely
             old_overlay.hide()
             old_overlay.deleteLater()
-            
+
             if was_visible and self._should_keep_overlay_visible():
                 self.overlay.show()
                 self.overlay.raise_()
             else:
                 self.overlay.hide()
-            
+
             # Update current page info immediately
             if self.monitor:
                 curr, total = self.monitor.get_page_info()
                 self.overlay.update_page_info(curr, total)
                 self.monitor.force_update_geometry()
-                
+
         except Exception as e:
             print(f"Error reloading overlay: {e}")
             # If failed, keep using the old overlay if it's still alive
@@ -1960,9 +2104,32 @@ class PPTAssistantApp:
         finally:
             self._reloading_overlay = False
 
+    def _launch_new_instance(self):
+        """Start a fresh copy of the application as a detached child process."""
+        try:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            main_path = os.path.join(base_dir, "main.py")
+            filtered_args = [
+                a for a in sys.argv[1:]
+                if a not in ("--silent", "--webview-runner", "--dialog", "--crash-file")
+            ]
+            if getattr(sys, "frozen", False):
+                cmd = [sys.executable] + filtered_args
+            else:
+                cmd = [sys.executable, main_path] + filtered_args
+            env = os.environ.copy()
+            env["LUMINALIUM_RESTART"] = "1"
+            env["LUMINALIUM_RESTART_PID"] = str(os.getpid())
+            creationflags = 0x08000000 | 0x00000008  # CREATE_NO_WINDOW | DETACHED_PROCESS
+            subprocess.Popen(cmd, env=env, creationflags=creationflags, close_fds=True)
+        except Exception as e:
+            print(f"Failed to launch new instance: {e}", file=sys.stderr)
+
     def restart(self):
-        self.cleanup()
-        os.execl(sys.executable, sys.executable, *sys.argv)
+        """Restart for internal callers (settings reset, onboarding, etc.)."""
+        self._prepare_shutdown(restarting=True)
+        self._launch_new_instance()
+        self.app.quit()
 
     def cleanup(self):
         """Cleanup app resources and terminate subprocesses."""
@@ -1985,11 +2152,11 @@ class PPTAssistantApp:
 
 if __name__ == "__main__":
     # Platform settings moved to top of file to ensure they apply before any Qt import
-    
+
     _ensure_user_dirs()
     _apply_graphics_settings()
-    if sys.platform == "linux" and not _HAS_DISPLAY:
-        QCoreApplication.setAttribute(Qt.AA_UseSoftwareOpenGL)
+    # Use Desktop OpenGL for better compatibility with Qt6
+    QCoreApplication.setAttribute(Qt.AA_UseDesktopOpenGL)
     QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     app = QApplication(sys.argv)
     app_icon = load_app_icon()
@@ -1999,7 +2166,20 @@ if __name__ == "__main__":
         app.installEventFilter(app._window_icon_filter)
     _apply_global_font(app)
     crash_handler = CrashHandler(app)
-    # _handle_multi_instance(app)
+    _handle_multi_instance(app)
+
+    # Initialize log manager to capture application logs
+    from ppt_assistant.core.log_manager import init_log_manager, get_log_manager
+    init_log_manager()
+    # Load log level settings from config
+    log_manager = get_log_manager()
+    log_filters = {
+        "debug": cfg.showDebug.value if hasattr(cfg, 'showDebug') else True,
+        "info": cfg.showInfo.value if hasattr(cfg, 'showInfo') else True,
+        "warn": cfg.showWarn.value if hasattr(cfg, 'showWarn') else True,
+        "error": cfg.showError.value if hasattr(cfg, 'showError') else True,
+    }
+    log_manager.set_filters(log_filters)
 
     show_splash = True
     try:
@@ -2017,7 +2197,7 @@ if __name__ == "__main__":
             start_t = QTime.fromString(start_str, "HH:mm")
             end_t = QTime.fromString(end_str, "HH:mm")
             now = QTime.currentTime()
-            
+
             if start_t.isValid() and end_t.isValid():
                 if start_t <= end_t:
                     if not (start_t <= now <= end_t):

@@ -14,7 +14,8 @@ from PySide6.QtGui import QColor, QRegion, QGuiApplication, QIcon
 from PySide6.QtQuick import QQuickView
 from PySide6.QtQml import QQmlComponent
 from PySide6.QtWidgets import QWidget
-from ppt_assistant.core.config import cfg
+from ppt_assistant.core.config import cfg, ROOT_DIR
+from qfluentwidgets import Theme, isDarkTheme, MessageBox, themeColor
 from ppt_assistant.core.i18n import t
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.icon_helper import get_file_icon_base64
@@ -25,7 +26,7 @@ import asyncio
 import threading
 import subprocess
 
-PLUGIN_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "plugins", "builtins")
+PLUGIN_DIR = os.path.join(ROOT_DIR, "plugins", "builtins")
 
 
 def _qt_platform_name() -> str:
@@ -160,14 +161,14 @@ class OverlayBridge(QObject):
     @Slot('QVariantList')
     def updateMask(self, rects):
         self._overlay.update_mask(rects)
-    
+
     @Slot()
     def releaseFocus(self):
         try:
             self._overlay.clearFocus()
         except Exception:
             pass
-    
+
     @Slot()
     def resizeNudge(self):
         try:
@@ -178,21 +179,57 @@ class OverlayBridge(QObject):
     @Slot(int)
     def requestThumbnail(self, index):
         self._overlay.request_thumbnail.emit(index)
-    
+
     @Slot(int)
     def startBackgroundThumbnailCaching(self, total_pages):
         self._overlay.start_background_caching.emit(total_pages)
 
-class InkPromptBridge(QObject):
+class InkPromptWindow(QWidget):
     result = Signal(bool)
 
-    @Slot()
-    def keep(self):
-        self.result.emit(True)
+    def __init__(self, texts, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
 
-    @Slot()
-    def discard(self):
-        self.result.emit(False)
+        # Make it full screen
+        screen = QGuiApplication.primaryScreen()
+        if screen:
+            self.setGeometry(screen.geometry())
+
+        # Semi-transparent black background
+        self.bg_color = QColor(0, 0, 0, 140)
+
+        self._dialog = MessageBox(texts["title"], texts["text"], self)
+        self._dialog.yesButton.setText(texts["keep"])
+        self._dialog.cancelButton.setText(texts["discard"])
+
+        # Message dialog's own mask is redundant here, so we can disable it or let it be.
+        # But we want the whole window to be dimmed.
+        if hasattr(self._dialog, 'maskWidget'):
+            self._dialog.maskWidget.hide()
+
+        self._dialog.yesSignal.connect(lambda: self._on_result(True))
+        self._dialog.cancelSignal.connect(lambda: self._on_result(False))
+
+        # Center the dialog manually when shown
+        self._dialog.finished.connect(self.close)
+
+    def paintEvent(self, event):
+        from PySide6.QtGui import QPainter
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), self.bg_color)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        # Center the dialog
+        self._dialog.show()
+        # MessageBox from qfluentwidgets will center itself to parent automatically if it's a child.
+        # If not, we might need to call w.exec_() or w.show()
+
+    def _on_result(self, keep):
+        self.result.emit(keep)
+        self.close()
 
 
 class WaylandFallbackOverlayWindow(QWidget):
@@ -348,10 +385,10 @@ class OverlayWindow(QWebEngineView):
     start_background_caching = Signal(int)  # total_pages
     ink_prompt_result = Signal(bool)
     thumbnail_ready = Signal(int, str)
-    
+
     def __init__(self):
         super().__init__()
-        
+
         self._page_ready = False
         self._pending_scripts = []
         self._runtime_initialized = False
@@ -364,7 +401,7 @@ class OverlayWindow(QWebEngineView):
         self._background_thumbnail_timer = None
         self._pending_thumbnails = []
         self._cached_thumbnails = set()
-        
+
         if self._wayland_compatible_mode:
             self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
             self.setAttribute(Qt.WA_TranslucentBackground, False)
@@ -387,22 +424,21 @@ class OverlayWindow(QWebEngineView):
         self._protected_view = False
         self._presentation_readonly = False
         self._active_on_slideshow = False
-        self._ink_prompt_view = None
-        self._ink_prompt_bridge = None
-        
+        self._current_ink_dialog = None
+
         self._smtc_info = {"status": "", "title": "", "position_ms": 0, "duration_ms": 0}
         self._smtc_thread = None
         self._stop_smtc = False
         self.status_timer = None
-        
+
         screen = QGuiApplication.primaryScreen()
         if screen:
             self.setGeometry(screen.geometry())
-            
+
         icon = load_app_icon()
         if not icon.isNull():
             self.setWindowIcon(icon)
-        
+
         # Crash recovery tracking
         self._render_crash_count = 0
         self._max_reload_attempts = 3
@@ -410,10 +446,7 @@ class OverlayWindow(QWebEngineView):
 
     def _resolve_theme_path(self) -> str:
         theme_name = cfg.overlayTheme.value
-        root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        if getattr(sys, "frozen", False):
-            root_dir = os.path.dirname(sys.executable)
-
+        root_dir = ROOT_DIR
         def resolve_user_theme_path(name: str) -> Optional[str]:
             theme_dir = os.path.join(root_dir, "user", "themes", name)
             if not os.path.isdir(theme_dir):
@@ -621,20 +654,24 @@ class OverlayWindow(QWebEngineView):
 
     def _ensure_topmost(self):
         if sys.platform != "win32":
+            print("[Overlay] Not on Windows, skipping topmost")
             return
         try:
             user32 = ctypes.windll.user32
             hwnd = int(self.winId())
+            print(f"[Overlay] _ensure_topmost: hwnd={hwnd}")
             if not hwnd:
+                print("[Overlay] No hwnd, cannot set topmost")
                 return
             HWND_TOPMOST = -1
             SWP_NOMOVE = 0x0002
             SWP_NOSIZE = 0x0001
             SWP_NOACTIVATE = 0x0010
             SWP_SHOWWINDOW = 0x0040
-            user32.SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW)
-        except Exception:
-            pass
+            result = user32.SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW)
+            print(f"[Overlay] SetWindowPos result: {result}")
+        except Exception as e:
+            print(f"[Overlay] Error in _ensure_topmost: {e}")
 
     def _on_render_process_terminated(self, status, exit_code):
         self._restore_linux_webengine_env_override()
@@ -649,16 +686,16 @@ class OverlayWindow(QWebEngineView):
             return
         self._render_crash_count += 1
         print(f"[Overlay] Crash #{self._render_crash_count}/{self._max_reload_attempts}")
-        
+
         # If too many crashes, disable GPU and retry once, then give up
         if self._render_crash_count > self._max_reload_attempts:
             print(f"[Overlay] Too many crashes ({self._render_crash_count}). Giving up on recovery.")
             return
-        
+
         # Use exponential backoff: 100ms, 500ms, 1500ms
         delay = min(100 * (2 ** (self._render_crash_count - 1)), 2000)
         print(f"[Overlay] Scheduling reload in {delay}ms")
-        
+
         # If this is the second crash, try disabling GPU acceleration
         if self._render_crash_count == 2:
             try:
@@ -669,7 +706,7 @@ class OverlayWindow(QWebEngineView):
                 settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, False)
             except Exception as e:
                 print(f"[Overlay] Error disabling GPU: {e}")
-        
+
         # Cancel any pending reload timer
         if self._crash_recovery_timer is not None:
             try:
@@ -677,13 +714,13 @@ class OverlayWindow(QWebEngineView):
             except Exception:
                 pass
             self._crash_recovery_timer = None
-        
+
         # Schedule reload with delay
         self._crash_recovery_timer = QTimer(self)
         self._crash_recovery_timer.setSingleShot(True)
         self._crash_recovery_timer.timeout.connect(self.reload)
         self._crash_recovery_timer.start(delay)
-    
+
     def nudge_size(self):
         try:
             w = self.width()
@@ -704,32 +741,32 @@ class OverlayWindow(QWebEngineView):
     def on_thumbnail_ready(self, index, path):
         # Mark as cached
         self._cached_thumbnails.add(index)
-        
+
         # Path needs to be converted to file URL
         url = QUrl.fromLocalFile(path).toString()
         script = f"if (typeof updatePageThumbnail === 'function') updatePageThumbnail({index}, '{url}');"
         self._run_javascript(script)
-        
+
         # Start next background caching task if available
         self._process_next_background_thumbnail()
-    
+
     def on_start_background_caching(self, total_pages):
         """Start background caching of thumbnails"""
         if self._background_thumbnail_timer is not None:
             return  # Already running
-        
+
         # Build list of pages to cache (excluding already cached ones)
         self._pending_thumbnails = [
-            i for i in range(1, total_pages + 1) 
+            i for i in range(1, total_pages + 1)
             if i not in self._cached_thumbnails
         ]
-        
+
         # Start timer for background caching
         self._background_thumbnail_timer = QTimer(self)
         self._background_thumbnail_timer.setSingleShot(False)
         self._background_thumbnail_timer.timeout.connect(self._process_next_background_thumbnail)
         self._background_thumbnail_timer.start(500)  # 500ms interval between generations
-    
+
     def _process_next_background_thumbnail(self):
         """Process the next thumbnail in the background queue"""
         # Stop if queue is empty
@@ -738,17 +775,17 @@ class OverlayWindow(QWebEngineView):
                 self._background_thumbnail_timer.stop()
                 self._background_thumbnail_timer = None
             return
-        
+
         # Get next page to process
         next_page = self._pending_thumbnails.pop(0)
-        
+
         # Skip if already cached (might have been requested by user)
         if next_page in self._cached_thumbnails:
             return
-        
+
         # Request this thumbnail
         self.request_thumbnail.emit(next_page)
-        
+
     def on_slide_changed(self, current, total):
         script = f"if (typeof updatePageInfo === 'function') updatePageInfo({current}, {total});"
         self._run_javascript(script)
@@ -764,39 +801,39 @@ class OverlayWindow(QWebEngineView):
 
     def update_mask(self, rects_data):
         region = QRegion()
-        
+
         # Always include page selector area if it's visible (detected by rect)
         # We need to detect if any rect corresponds to the page selector sidebar
         # The page selector is 360px wide, full height, on the right
-        
+
         has_sidebar = False
         sidebar_rect = None
-        
+
         w_win = self.width()
         h_win = self.height()
-        
+
         for r in rects_data:
             x = math.floor(r['x'])
             y = math.floor(r['y'])
             w = math.ceil(r['x'] + r['width']) - x
             h = math.ceil(r['y'] + r['height']) - y
-            
+
             # Heuristic to detect the sidebar (now island style)
             # It should be roughly 260px wide and occupy most of the height
             # and positioned near the right edge OR left edge
             is_near_right = (x >= (w_win - w - 50))
             is_near_left = (x <= 50)
-            
+
             if w >= 250 and h >= (h_win * 0.8) and (is_near_right or is_near_left):
                  has_sidebar = True
                  sidebar_rect = QRect(x, 0, w, h_win) # Force full height for interaction safety
-            
+
             rect = QRect(x - 1, y - 1, w + 2, h + 2)
             region += rect
-            
+
         if has_sidebar and sidebar_rect:
             region += sidebar_rect
-            
+
         if not region.isEmpty():
             self.setMask(region)
         else:
@@ -807,9 +844,9 @@ class OverlayWindow(QWebEngineView):
     def update_theme(self):
         mode = cfg.themeMode.value
         is_light = False
-        
+
         from qfluentwidgets import Theme, isDarkTheme
-        
+
         if isinstance(mode, Theme):
             if mode == Theme.AUTO:
                 is_light = not isDarkTheme()
@@ -823,18 +860,16 @@ class OverlayWindow(QWebEngineView):
                 is_light = False
             else:
                 is_light = not isDarkTheme()
-            
+
         self._is_light = is_light
-        
+
         from qfluentwidgets import themeColor
         t_color = themeColor()
         color_str = t_color.name()
-        
+
         theme_id = cfg.themeId.value
         js = f"if (typeof setTheme === 'function') setTheme({'false' if is_light else 'true'}, '{color_str}', '{theme_id}');"
         self._run_javascript(js)
-        if self._ink_prompt_view:
-            self._apply_ink_prompt_context(self._ink_prompt_view.rootContext())
 
     def _start_smtc_thread(self):
         def smtc_loop():
@@ -861,13 +896,13 @@ class OverlayWindow(QWebEngineView):
             is_desktop = False
             battery_percent = 100
             battery_charging = False
-            
+
             if battery:
                 battery_percent = int(battery.percent)
                 battery_charging = battery.power_plugged
             else:
                 is_desktop = True
-                
+
             # Network
             net_stats = psutil.net_if_stats()
             network_online = False
@@ -876,16 +911,16 @@ class OverlayWindow(QWebEngineView):
                 if stats.isup and 'loopback' not in iface.lower():
                     network_online = True
                     break
-            
+
             # Volume (Placeholder for now as pycaw/comtypes might not be present)
             volume = -1
-            
+
             # SMTC
             smtc_status = self._smtc_info.get("status", "")
             smtc_title = self._smtc_info.get("title", "")
             smtc_position_ms = int(self._smtc_info.get("position_ms", 0) or 0)
             smtc_duration_ms = int(self._smtc_info.get("duration_ms", 0) or 0)
-            
+
             data = {
                 "is_desktop": is_desktop,
                 "battery_percent": battery_percent,
@@ -897,7 +932,7 @@ class OverlayWindow(QWebEngineView):
                 "smtc_position_ms": max(0, smtc_position_ms),
                 "smtc_duration_ms": max(0, smtc_duration_ms),
             }
-            
+
             js = f"if(window.updateSystemStatus) window.updateSystemStatus({json.dumps(data)});"
             self._run_javascript(js)
         except Exception as e:
@@ -934,7 +969,7 @@ class OverlayWindow(QWebEngineView):
             "apps": "更多",
             "compatibility": t("overlay.compatibility")
         }
-        
+
         apps_list = []
         if hasattr(cfg, 'quickLaunchApps'):
             # quickLaunchApps.value is a string (JSON), need to parse if not list
@@ -947,7 +982,7 @@ class OverlayWindow(QWebEngineView):
                     apps_data = []
             elif isinstance(raw_val, list):
                 apps_data = raw_val
-            
+
             for app in apps_data:
                 if isinstance(app, str): # Handle list of strings (paths) if any
                     path = app
@@ -959,10 +994,10 @@ class OverlayWindow(QWebEngineView):
                     name = app.get("name", "")
                 else:
                     continue
-                
+
                 if not path:
                     continue
-                    
+
                 # Get icon (cached)
                 icon_data = None
                 if path in self._icon_cache:
@@ -971,9 +1006,9 @@ class OverlayWindow(QWebEngineView):
                     icon_data = get_file_icon_base64(path)
                     if icon_data:
                         self._icon_cache[path] = icon_data
-                        
+
                 apps_list.append({
-                    "name": name, 
+                    "name": name,
                     "path": path,
                     "icon": icon_data
                 })
@@ -1014,7 +1049,7 @@ class OverlayWindow(QWebEngineView):
             "apps": apps_list,
             "disabledTools": cfg.disabledTools.value
         }
-        
+
         js = f"if(window.updateConfig) window.updateConfig({json.dumps(config_data)});"
         try:
             self._run_javascript(js)
@@ -1037,174 +1072,22 @@ class OverlayWindow(QWebEngineView):
 
     def show_ink_prompt(self):
         try:
-            self._ensure_ink_prompt_view()
-            if self._ink_prompt_view:
-                self._ink_prompt_view.show()
-                self._ink_prompt_view.raise_()
-        except Exception:
-            pass
+            texts = self._get_ink_prompt_texts()
 
-    def _ensure_ink_prompt_view(self):
-        if not self._ink_prompt_view:
-            view = QQuickView()
-            view.setColor(Qt.transparent)
-            view.setFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
-            view.setResizeMode(QQuickView.SizeRootObjectToView)
-            view.setModality(Qt.ApplicationModal)
+            # Create a standalone full-screen window for the prompt
+            win = InkPromptWindow(texts)
+            self._current_ink_dialog = win # Keep reference
 
-            bridge = InkPromptBridge()
-            bridge.result.connect(self._on_ink_prompt_result)
+            win.result.connect(self.ink_prompt_result)
 
-            ctx = view.rootContext()
-            ctx.setContextProperty("inkBridge", bridge)
-            self._ink_prompt_view = view
-            self._ink_prompt_bridge = bridge
-            self._apply_ink_prompt_context(ctx)
+            # Clear reference when closed
+            win.destroyed.connect(lambda: setattr(self, '_current_ink_dialog', None))
 
-            qml = """
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-
-Item {
-    id: root
-    width: screenWidth
-    height: screenHeight
-
-    Rectangle {
-        anchors.fill: parent
-        color: maskColor
-    }
-
-    MouseArea {
-        anchors.fill: parent
-    }
-
-    Rectangle {
-        id: card
-        width: Math.min(parent.width * 0.6, 460)
-        height: content.height + 48
-        color: dialogBg
-        radius: 12
-        border.color: dialogBorder
-        border.width: 1
-        anchors.centerIn: parent
-
-        Column {
-            id: content
-            spacing: 20
-            width: parent.width - 48
-            anchors.centerIn: parent
-
-            Text {
-                text: inkTitle
-                font.pixelSize: 17
-                font.bold: true
-                color: titleColor
-                width: parent.width
-                wrapMode: Text.Wrap
-            }
-
-            Text {
-                text: inkText
-                font.pixelSize: 15
-                font.weight: Font.Normal
-                color: bodyColor
-                width: parent.width
-                wrapMode: Text.Wrap
-                lineHeight: 1.4
-            }
-
-            Item {
-                width: parent.width
-                height: 4
-            }
-
-            Row {
-                spacing: 12
-                layoutDirection: Qt.RightToLeft
-                width: parent.width
-
-                Rectangle {
-                    width: 88
-                    height: 34
-                    radius: 17
-                    color: primaryBg
-                    border.color: primaryBorder
-                    border.width: 1
-                    
-                    Text {
-                        anchors.centerIn: parent
-                        text: inkKeep
-                        font.pixelSize: 14
-                        font.bold: true
-                        color: primaryText
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: inkBridge.keep()
-                    }
-                }
-
-                Rectangle {
-                    width: 88
-                    height: 34
-                    radius: 17
-                    color: btnBg
-                    border.color: btnBorder
-                    border.width: 1
-                    
-                    Text {
-                        anchors.centerIn: parent
-                        text: inkDiscard
-                        font.pixelSize: 14
-                        font.bold: true
-                        color: btnText
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: inkBridge.discard()
-                    }
-                }
-            }
-        }
-    }
-}
-"""
-
-            component = QQmlComponent(view.engine())
-            component.setData(QByteArray(qml.encode("utf-8")), QUrl())
-            root = component.create()
-            view.setContent(QUrl(), component, root)
-
-        screen = self.screen() or QGuiApplication.primaryScreen()
-        if screen:
-            self._ink_prompt_view.setGeometry(screen.geometry())
-            self._apply_ink_prompt_context(self._ink_prompt_view.rootContext())
-
-    def _apply_ink_prompt_context(self, ctx):
-        texts = self._get_ink_prompt_texts()
-        palette = self._get_ink_prompt_palette()
-        ctx.setContextProperty("inkTitle", texts["title"])
-        ctx.setContextProperty("inkText", texts["text"])
-        ctx.setContextProperty("inkKeep", texts["keep"])
-        ctx.setContextProperty("inkDiscard", texts["discard"])
-        ctx.setContextProperty("maskColor", palette["mask"])
-        ctx.setContextProperty("dialogBg", palette["bg"])
-        ctx.setContextProperty("dialogBorder", palette["border"])
-        ctx.setContextProperty("titleColor", palette["title"])
-        ctx.setContextProperty("bodyColor", palette["body"])
-        ctx.setContextProperty("btnBg", palette["btn_bg"])
-        ctx.setContextProperty("btnBorder", palette["btn_border"])
-        ctx.setContextProperty("btnText", palette["btn_text"])
-        ctx.setContextProperty("primaryBg", palette["primary_bg"])
-        ctx.setContextProperty("primaryBorder", palette["primary_border"])
-        ctx.setContextProperty("primaryText", palette["primary_text"])
-        if self._ink_prompt_view:
-            size = self._ink_prompt_view.size()
-            ctx.setContextProperty("screenWidth", size.width())
-            ctx.setContextProperty("screenHeight", size.height())
+            win.show()
+            win.activateWindow()
+            win.raise_()
+        except Exception as e:
+            print(f"Error showing ink prompt: {e}")
 
     def _get_ink_prompt_texts(self):
         return {
@@ -1213,45 +1096,6 @@ Item {
             "keep": "保留",
             "discard": "不保留"
         }
-
-    def _get_ink_prompt_palette(self):
-        from qfluentwidgets import themeColor
-        accent = themeColor().name()
-        if self._is_light:
-            return {
-                "mask": "rgba(0, 0, 0, 1.0)",
-                "bg": "#ffffff",
-                "border": "rgba(0, 0, 0, 0.05)",
-                "title": "#191919",
-                "body": "#191919",
-                "btn_bg": "transparent",
-                "btn_border": "rgba(0, 0, 0, 0.05)",
-                "btn_text": "#666666",
-                "primary_bg": "transparent",
-                "primary_border": accent,
-                "primary_text": accent
-            }
-        return {
-            "mask": "rgba(0, 0, 0, 1.0)",
-            "bg": "#2b2b2b",
-            "border": "rgba(255, 255, 255, 0.08)",
-            "title": "#E5E5E5",
-            "body": "#E5E5E5",
-            "btn_bg": "transparent",
-            "btn_border": "rgba(255, 255, 255, 0.08)",
-            "btn_text": "#909090",
-            "primary_bg": "transparent",
-            "primary_border": accent,
-            "primary_text": accent
-        }
-
-    def _on_ink_prompt_result(self, keep):
-        if self._ink_prompt_view:
-            try:
-                self._ink_prompt_view.hide()
-            except Exception:
-                pass
-        self.ink_prompt_result.emit(bool(keep))
 
     def load_plugins(self):
         if not os.path.exists(PLUGIN_DIR):
@@ -1316,13 +1160,15 @@ Item {
 
     def showEvent(self, event):
         self._ensure_runtime_initialized()
+        print(f"[Overlay] showEvent called, window visible: {self.isVisible()}")
         super().showEvent(event)
         if self._wayland_compatible_mode:
             self.page().setBackgroundColor(QColor("#101010"))
         else:
             self.page().setBackgroundColor(Qt.transparent)
         self.update_theme()
-    
+        print(f"[Overlay] After showEvent, window visible: {self.isVisible()}")
+
     def closeEvent(self, event):
         """Clean up resources when overlay window closes"""
         self._stop_smtc = True
@@ -1340,20 +1186,29 @@ Item {
         super().closeEvent(event)
 
     def set_active_on_slideshow(self, active: bool, animate: bool = True):
+        print(f"[Overlay] set_active_on_slideshow({active}, animate={animate})")
+        import traceback
+        traceback.print_stack(limit=5)
         self._active_on_slideshow = bool(active)
         if self._active_on_slideshow:
             try:
                 self._ensure_runtime_initialized()
+                print(f"[Overlay] Calling show(), isVisible before: {self.isVisible()}")
                 self.show()
+                print(f"[Overlay] After show(), isVisible: {self.isVisible()}")
                 self.raise_()
                 self._ensure_topmost()
-            except Exception:
-                pass
+                print(f"[Overlay] After raise/topmost, isVisible: {self.isVisible()}")
+            except Exception as e:
+                print(f"[Overlay] Error in set_active_on_slideshow(True): {e}")
+                import traceback
+                traceback.print_exc()
         else:
             try:
+                print(f"[Overlay] Calling hide()")
                 self.hide()
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[Overlay] Error in set_active_on_slideshow(False): {e}")
 
     def on_slideshow_start_cleanup(self):
         self.reset_pen_color_ui()
@@ -1361,16 +1216,16 @@ Item {
 
     def on_slideshow_end_cleanup(self):
         pass
-        
+
     def _mark_ui_alive(self):
         pass
-        
+
     def bind_monitor_signals(self):
         pass
 
     def show_reload_mask(self, text=""):
         pass
-    
+
     def hide_reload_mask(self):
         pass
 
@@ -1388,7 +1243,7 @@ Item {
         self._stop_smtc = True
         if self._smtc_thread:
             self._smtc_thread.join(timeout=1.0)
-        
+
     def update_geometry(self, rect, screen):
         if screen:
             self.setGeometry(screen.geometry())

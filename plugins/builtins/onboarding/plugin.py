@@ -65,7 +65,11 @@ class OnboardingPlugin(AssistantPlugin):
             cmd = [sys.executable, "--webview-runner", html_path, title, width, height, "true"]
         else:
             cmd = [sys.executable, main_path, "--webview-runner", html_path, title, width, height, "true"]
-        self.process = subprocess.Popen(cmd, env=env)
+        # Use InProcessWindowHandle for external process to prevent immediate detection of "closed"
+        # The external webview runner will create its own process group
+        import subprocess
+        creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) | getattr(subprocess, "DETACHED_PROCESS", 0)
+        self.process = subprocess.Popen(cmd, env=env, creationflags=creationflags)
         self._window = None
         self._api = None
 

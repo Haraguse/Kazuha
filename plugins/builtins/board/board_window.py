@@ -1,9 +1,10 @@
 
 import os
 import json
-from PySide6.QtQuick import QQuickView
-from PySide6.QtCore import QUrl, Qt, Slot, QObject, QPoint, QTimer, Signal, Property, QEventLoop, QSize
-from PySide6.QtGui import QColor, QIcon, QAction
+from PySide6.QtQuick import QQuickView, QQuickPaintedItem
+from PySide6.QtQml import qmlRegisterType
+from PySide6.QtCore import QUrl, Qt, Slot, QObject, QPoint, QPointF, QTimer, Signal, Property, QEventLoop, QSize, QRect, QRectF
+from PySide6.QtGui import QColor, QIcon, QAction, QGuiApplication, QPainter, QImage, QPen
 from ppt_assistant.core.config import cfg, SETTINGS_PATH, qconfig
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.theme_data import THEMES
@@ -52,6 +53,15 @@ def _load_language():
     except Exception:
         return "zh-CN"
     return "zh-CN"
+
+def _color_to_rgba(color) -> tuple[int, int, int, int]:
+    if isinstance(color, QColor):
+        c = color
+    else:
+        c = QColor(color)
+    if not c.isValid():
+        c = QColor("#000000")
+    return c.red(), c.green(), c.blue(), c.alpha()
 
 def _load_settings_data():
     try:
@@ -172,7 +182,7 @@ def _resolve_save_dialog_palette():
         popup_bg = theme_palette.get("popup_bg", "")
         palette.update({
             "windowBg": popup_bg if popup_bg else palette["windowBg"],
-            "dialogBg": theme_palette.get("popup_border", palette["dialogBg"]),  # use a subtle tint
+            "dialogBg": theme_palette.get("popup_bg", palette["dialogBg"]),
             "dialogBorder": theme_palette.get("popup_border", palette["dialogBorder"]),
             "dialogTitle": theme_palette.get("popup_fg", palette["dialogTitle"]),
             "dialogText": theme_palette.get("popup_fg", palette["dialogText"]),
@@ -180,6 +190,22 @@ def _resolve_save_dialog_palette():
         })
 
     return palette
+
+
+def _resolve_dialog_font_family():
+    settings_data = _load_settings_data()
+    lang = settings_data.get("General", {}).get("Language", "zh-CN")
+    profiles = (settings_data.get("Fonts", {}) or {}).get("Profiles", {}) or {}
+    selected = (profiles.get(lang, {}) or {}).get("qt", "")
+    if isinstance(selected, str) and selected.strip():
+        return selected.strip()
+    try:
+        app_font = QGuiApplication.font()
+        if app_font:
+            return app_font.family()
+    except Exception:
+        pass
+    return ""
 
 
 def _apply_dialog_window_theme(hwnd, is_dark):
@@ -443,6 +469,204 @@ class BoardBackend(QObject):
     def isFullscreen(self):
         return bool(self._window.windowState() & Qt.WindowFullScreen)
 
+
+class NativeBoardItem(QQuickPaintedItem):
+    backgroundColorChanged = Signal()
+    minSegmentPxChanged = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setRenderTarget(QQuickPaintedItem.Image)
+        self.setPerformanceHint(QQuickPaintedItem.FastFBOResizing)
+        self.setOpaquePainting(False)
+        self._buffer = None
+        self._allLines = []
+        self._pendingLines = []
+        self._background_color = QColor("#202020")
+        self._min_segment_px = 1.5
+        self._dirty_full = True
+
+    @Property(QColor, notify=backgroundColorChanged)
+    def backgroundColor(self):
+        return self._background_color
+
+    @backgroundColor.setter
+    def backgroundColor(self, value):
+        color = value if isinstance(value, QColor) else QColor(value)
+        if not color.isValid():
+            color = QColor("#202020")
+        if color == self._background_color:
+            return
+        self._background_color = color
+        self._dirty_full = True
+        self.backgroundColorChanged.emit()
+        self.update()
+
+    def _set_min_segment_px(self, value):
+        try:
+            val = float(value)
+        except Exception:
+            return
+        if val <= 0:
+            return
+        self._min_segment_px = val
+        self._dirty_full = True
+        self.minSegmentPxChanged.emit()
+        self.update()
+
+    @Property(float, notify=minSegmentPxChanged)
+    def minSegmentPx(self):
+        return float(self._min_segment_px)
+
+    @minSegmentPx.setter
+    def minSegmentPx(self, value):
+        self._set_min_segment_px(value)
+
+    def _ensure_buffer(self):
+        w = self.width()
+        h = self.height()
+        if w <= 0 or h <= 0:
+            return False
+        scale = self.window().devicePixelRatio() if self.window() else 1.0
+        bw = int(w * scale)
+        bh = int(h * scale)
+        if bw <= 0 or bh <= 0:
+            return False
+        if self._buffer and self._buffer.width() == bw and self._buffer.height() == bh:
+            return True
+        new_buf = QImage(bw, bh, QImage.Format_ARGB32_Premultiplied)
+        new_buf.setDevicePixelRatio(scale)
+        new_buf.fill(Qt.transparent)
+        if self._buffer:
+            painter = QPainter(new_buf)
+            painter.drawImage(0, 0, self._buffer)
+            painter.end()
+        else:
+            self._pendingLines = list(self._allLines)
+        self._buffer = new_buf
+        return True
+
+    @Slot(float, float, float, float, float, str, bool, float, int)
+    def addLine(self, x1, y1, x2, y2, width, colorHex, isEraser, eraserPx, strokeId):
+        line = {
+            "x1": x1, "y1": y1, "x2": x2, "y2": y2,
+            "width": width, "color": colorHex,
+            "isEraser": isEraser, "eraserPx": eraserPx,
+            "strokeId": strokeId
+        }
+        self._allLines.append(line)
+        if self._buffer is not None:
+            self._pendingLines.append(line)
+        else:
+            self._dirty_full = True
+        self.update()
+
+    @Slot()
+    def requestRepaintAll(self):
+        self._dirty_full = True
+        self.update()
+
+    @Slot()
+    def clearLines(self):
+        self._allLines.clear()
+        self._pendingLines.clear()
+        if self._buffer:
+            self._buffer.fill(Qt.transparent)
+        self._dirty_full = True
+        self.update()
+
+    @Slot(list)
+    def setAllLines(self, lines):
+        self._allLines = []
+        for l in lines:
+            if isinstance(l, dict):
+                l["x1"] = float(l.get("x1", 0))
+                l["y1"] = float(l.get("y1", 0))
+                l["x2"] = float(l.get("x2", 0))
+                l["y2"] = float(l.get("y2", 0))
+                self._allLines.append(l)
+        self._dirty_full = True
+        self.update()
+
+    @Slot(result="QVariant")
+    def getAllLines(self):
+        return self._allLines
+
+    @Slot(int)
+    def removeStrokeAndRepaint(self, strokeId):
+        if not self._allLines:
+            return
+        self._allLines = [l for l in self._allLines if l.get("strokeId") != strokeId]
+        self._dirty_full = True
+        self.update()
+        
+    @Slot(list)
+    def removeStrokesAndRepaint(self, strokeIds):
+        if not self._allLines:
+            return
+        st_ids = set(strokeIds)
+        self._allLines = [l for l in self._allLines if l.get("strokeId") not in st_ids]
+        self._dirty_full = True
+        self.update()
+
+    def geometryChanged(self, newGeometry, oldGeometry):
+        super().geometryChanged(newGeometry, oldGeometry)
+        self._dirty_full = True
+        self.update()
+
+    def paint(self, painter: QPainter):
+        if not self._ensure_buffer():
+            return
+        if self._dirty_full:
+            self._buffer.fill(Qt.transparent)
+            self._pendingLines = list(self._allLines)
+            self._dirty_full = False
+
+        if self._pendingLines:
+            buf_painter = QPainter(self._buffer)
+            buf_painter.setRenderHint(QPainter.Antialiasing)
+            for line in self._pendingLines:
+                self._drawLine(buf_painter, line)
+            buf_painter.end()
+            self._pendingLines.clear()
+
+        painter.drawImage(0, 0, self._buffer)
+
+    def _drawLine(self, painter, line):
+        isEraser = line.get("isEraser", False)
+        width = float(line.get("width", 3))
+        if isEraser:
+            painter.setCompositionMode(QPainter.CompositionMode_DestinationOut)
+            pen = QPen(Qt.black)
+            pen.setWidthF(max(1.0, float(line.get("eraserPx", 20))) + 8.0)
+            pen.setCapStyle(Qt.RoundCap)
+            pen.setJoinStyle(Qt.RoundJoin)
+            painter.setPen(pen)
+        else:
+            painter.setCompositionMode(QPainter.CompositionMode_SourceOver)
+            pen = QPen(QColor(line.get("color", "#000000")))
+            pen.setWidthF(max(0.5, width))
+            pen.setCapStyle(Qt.RoundCap)
+            pen.setJoinStyle(Qt.RoundJoin)
+            painter.setPen(pen)
+
+        w = self.width()
+        h = self.height()
+        x1 = float(line.get("x1", 0.0)) * w
+        y1 = float(line.get("y1", 0.0)) * h
+        x2 = float(line.get("x2", 0.0)) * w
+        y2 = float(line.get("y2", 0.0)) * h
+
+        dx = x2 - x1
+        dy = y2 - y1
+        if (dx * dx + dy * dy) < (self._min_segment_px * self._min_segment_px):
+            painter.drawPoint(QPointF(x1, y1))
+            return
+        painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+
+# Register the native board item as a QML type
+qmlRegisterType(NativeBoardItem, "KazuhaBoard", 1, 0, "NativeBoardItem")
+
 class SaveStrokesDialogBridge(QObject):
     saveRequested = Signal()
     discardRequested = Signal()
@@ -515,6 +739,9 @@ class SaveStrokesDialog(QQuickView):
         context.setContextProperty("dialogButtonActive", palette["buttonActive"])
         context.setContextProperty("dialogCardShadow", palette["cardShadow"])
         context.setContextProperty("dialogDarkMode", palette["darkMode"])
+        font_family = _resolve_dialog_font_family()
+        if font_family:
+            context.setContextProperty("dialogFontFamily", font_family)
 
         qml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SaveStrokesDialog.qml")
         self.setSource(QUrl.fromLocalFile(qml_path))
@@ -580,6 +807,9 @@ class SaveStrokesDialog(QQuickView):
 class BoardWindow(QQuickView):
     def __init__(self):
         super().__init__()
+        # Ensure the native board item is registered specifically for this window's engine
+        qmlRegisterType(NativeBoardItem, "KazuhaBoard", 1, 0, "NativeBoardItem")
+        
         self.setTitle("小黑板 - Luminalium")
         self.setResizeMode(QQuickView.SizeRootObjectToView)
         

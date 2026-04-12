@@ -24,6 +24,7 @@ Rectangle {
     property string buttonActive: typeof dialogButtonActive !== "undefined" ? dialogButtonActive : "rgba(0, 0, 0, 0.12)"
     property string cardShadow: typeof dialogCardShadow !== "undefined" ? dialogCardShadow : "rgba(0, 0, 0, 0.03)"
     property bool darkMode: typeof dialogDarkMode !== "undefined" ? dialogDarkMode : false
+    property string fontFamily: typeof dialogFontFamily !== "undefined" ? dialogFontFamily : ""
 
     Keys.onEscapePressed: {
         if (typeof dialogBridge !== "undefined" && dialogBridge) {
@@ -61,15 +62,16 @@ Rectangle {
             ColorAnimation { duration: 150 }
         }
 
-        Text {
-            id: buttonLabel
-            anchors.centerIn: parent
-            text: buttonRoot.label
-            color: buttonRoot.accent
+            Text {
+                id: buttonLabel
+                anchors.centerIn: parent
+                text: buttonRoot.label
+                color: buttonRoot.accent
                    ? (buttonRoot.hovered ? "#FFFFFF" : accentBlue)
                    : (buttonRoot.hovered || buttonRoot.pressed ? textPrimary : textSecondary)
-            font.pixelSize: 13
-            font.weight: Font.Medium
+                font.family: root.fontFamily
+                font.pixelSize: 13
+                font.weight: Font.Medium
 
             Behavior on color {
                 ColorAnimation { duration: 150 }
@@ -112,6 +114,7 @@ Rectangle {
                 anchors.rightMargin: 4
                 text: root.titleText
                 color: root.textPrimary
+                font.family: root.fontFamily
                 font.pixelSize: 17
                 font.weight: Font.DemiBold
                 wrapMode: Text.Wrap
@@ -149,6 +152,7 @@ Rectangle {
                     text: root.messageText
                     // HTML version uses text-primary (not secondary) for .text-content
                     color: root.textPrimary
+                    font.family: root.fontFamily
                     font.pixelSize: 14
                     lineHeight: 1.6
                     lineHeightMode: Text.ProportionalHeight

@@ -796,7 +796,7 @@ class PPTWorker(QObject):
                 "Linux X11 tools: " + describe_linux_tool_capabilities(),
                 min_interval=30.0,
             )
-            
+
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._check_ppt_state)
         self._timer.start(200)
@@ -956,6 +956,7 @@ class PPTWorker(QObject):
                             except Exception:
                                 pass
                             self._slideshow_started_at = time.monotonic()
+                            print("[Monitor] PPT slideshow_started signal emitted (COM mode)")
                             self.slideshow_started.emit()
 
                         self._update_slide_info_from_ss_win(ss_win, self.ppt_app, "ppt")
@@ -979,6 +980,7 @@ class PPTWorker(QObject):
                             self._slideshow_hwnd = int(hwnd)
                             self.slideshow_hwnd_changed.emit(int(hwnd))
                         self._slideshow_started_at = time.monotonic()
+                        print("[Monitor] PPT slideshow_started signal emitted (Win32 mode)")
                         self.slideshow_started.emit()
                         self._init_degraded_page_info()
                     self._update_window_rect_hwnd(hwnd)
@@ -988,7 +990,7 @@ class PPTWorker(QObject):
 
         except Exception:
             pass
-            
+
         # If not running PPT, check WPS
         if not self._running:
             self._check_wps_state()
@@ -1127,6 +1129,7 @@ class PPTWorker(QObject):
                     except Exception:
                         pass
                     self._slideshow_started_at = time.monotonic()
+                    print("[Monitor] WPS slideshow_started signal emitted")
                     self.slideshow_started.emit()
 
                 if ss_win is not None:
@@ -1176,6 +1179,7 @@ class PPTWorker(QObject):
                     except Exception:
                         pass
                     self._slideshow_started_at = time.monotonic()
+                    print("[Monitor] YOZO slideshow_started signal emitted")
                     self.slideshow_started.emit()
 
                 if ss_win is not None:
@@ -1226,7 +1230,7 @@ class PPTWorker(QObject):
             success = False
             raw_is_physical = None
             dpi = 0
-            
+
             # 1. Try Win32 API
             if win32gui:
                 try:
@@ -1235,23 +1239,23 @@ class PPTWorker(QObject):
                         left, top, right, bottom = win32gui.GetWindowRect(hwnd)
                         w, h = right - left, bottom - top
                         cx, cy = left + w // 2, top + h // 2
-                        
+
                         # Note: QGuiApplication calls are not thread-safe if they access GUI
                         # But screenAt/primaryScreen are generally okay.
                         # However, strictly we should calculate rect here and let Main Thread determine Screen.
                         # To be safe, we just emit the Rect and let Main Thread handle Screen resolution if possible.
                         # OR: We trust QGuiApplication read-only methods.
-                        
+
                         # Optimization: Just send raw rect, let UI thread figure out DPI/Screen
-                        # But existing logic does DPI scaling here. 
+                        # But existing logic does DPI scaling here.
                         # We will assume DPI unawareness in worker and let Main Thread handle scaling if needed?
                         # Actually, raw pixels are better.
-                        
+
                         # REVERTING to existing logic but being careful.
                         # Accessing QGuiApplication in thread is risky for some operations.
                         # Let's try to get screen in main thread.
                         # But wait, we need screen for DPI.
-                        
+
                         # Let's emit raw global coords and let main thread map it.
                         final_rect = (left, top, w, h)
                         success = True
@@ -1298,7 +1302,7 @@ class PPTWorker(QObject):
                     # We send RAW rect (x, y, w, h). Main thread converts to QRect and finds Screen.
                     self.window_geometry_changed.emit(QRect(*final_rect), {"raw_is_physical": raw_is_physical, "dpi": dpi})
                 self._update_overlay_visibility(ss_win, final_rect)
-                    
+
         except Exception:
             pass
 
@@ -1364,10 +1368,10 @@ class PPTWorker(QObject):
                     shape = shapes.Item(i)
                     media = getattr(shape, "MediaFormat", None)
                     if media is None: continue
-                    
+
                     length = getattr(media, "Length", 0)
                     position = getattr(media, "Position", 0)
-                    
+
                     if length and float(length) > 0:
                         l = float(length)
                         p = float(position or 0.0)
@@ -1375,7 +1379,7 @@ class PPTWorker(QObject):
                         self.video_state_changed.emit(ratio, p, l)
                         found_video = True
                         break
-                
+
                 if not found_video:
                     self.video_state_changed.emit(0.0, 0.0, 0.0)
             except Exception:
@@ -1393,18 +1397,19 @@ class PPTWorker(QObject):
                 if self._send_linux_shortcut_to_slideshow("Next"):
                     self._control_mode = "win32"
                     return
-                hwnd = int(self._slideshow_hwnd or 0) or self._find_ppt_slideshow_hwnd()
-                if hwnd and win32gui:
-                    try:
-                        win32gui.SetForegroundWindow(int(hwnd))
-                    except Exception:
-                        pass
-                if win32api and win32con:
-                    win32api.keybd_event(win32con.VK_DOWN, 0, 0, 0)
-                    win32api.keybd_event(win32con.VK_DOWN, 0, win32con.KEYEVENTF_KEYUP, 0)
+                if self._send_vk_to_slideshow(win32con.VK_DOWN if win32con else 0x28):
+                    self._control_mode = "win32"
             except Exception:
                 pass
             return
+
+        try:
+            # Prefer keyboard behavior (skip COM-specific differences).
+            if self._send_vk_to_slideshow(win32con.VK_DOWN if win32con else 0x28):
+                self._control_mode = "win32"
+                return
+        except Exception:
+            pass
 
         try:
             ss_win = self._get_active_slideshow_window()
@@ -1422,7 +1427,8 @@ class PPTWorker(QObject):
             else:
                 self._control_mode = "win32"
                 ok = self._send_vk_to_slideshow(win32con.VK_NEXT if win32con else 0x22)
-            self._control_mode = "win32"
+                if not ok:
+                    ok = self._send_vk_to_slideshow(win32con.VK_DOWN if win32con else 0x28)
             if ok and self._degraded_total > 0:
                 if self._degraded_current <= 0:
                     self._degraded_current = 1
@@ -1501,7 +1507,7 @@ class PPTWorker(QObject):
                         win32gui.SetForegroundWindow(hwnd)
                     except Exception:
                         pass
-                
+
                 # Send 'E' key via keyboard event as fallback/primary if no COM method exists for "Erase All"
                 # View.EraseDrawing() exists?
                 try:
@@ -1613,7 +1619,9 @@ class PPTWorker(QObject):
                 except Exception:
                     original_alerts = None
                 try:
-                    app.DisplayAlerts = 2
+                    # ppAlertsNone = 1, ppAlertsAll = 2.
+                    # Set to 1 to suppress PowerPoint's native ink prompt since we already asked.
+                    app.DisplayAlerts = 1
                 except Exception:
                     pass
                 if keep:
@@ -1625,7 +1633,8 @@ class PPTWorker(QObject):
                     if original_alerts is not None:
                         app.DisplayAlerts = original_alerts
                     else:
-                        app.DisplayAlerts = -1
+                        # Default to all alerts if we can't restore
+                        app.DisplayAlerts = 2
                 except Exception:
                     pass
                 self._control_mode = "com"
@@ -1710,7 +1719,7 @@ class PPTWorker(QObject):
                     self.slide_changed.emit(self._degraded_current, self._degraded_total)
         except Exception:
             pass
-            
+
     @Slot(int, str)
     def export_slide_thumbnail(self, index, path):
         try:
@@ -1718,7 +1727,7 @@ class PPTWorker(QObject):
             directory = os.path.dirname(path)
             if directory and not os.path.exists(directory):
                 os.makedirs(directory, exist_ok=True)
-                
+
             app = self._get_active_app()
             ss_win = self._get_active_slideshow_window()
             pres = self._get_presentation_from_ss_win(ss_win, app) if ss_win is not None else self._get_primary_presentation(app)
@@ -1743,7 +1752,7 @@ class PPTMonitor(QObject):
     video_state_changed = Signal(float, float, float)
     thumbnail_generated = Signal(int, str)
     restrictions_changed = Signal(bool, bool)
-    
+
     # Internal signals to worker
     _req_start = Signal()
     _req_stop = Signal()
@@ -1792,7 +1801,7 @@ class PPTMonitor(QObject):
         self._req_pen_color.connect(self._worker.set_pen_color)
         self._req_goto.connect(self._worker.go_to_slide)
         self._req_export.connect(self._worker.export_slide_thumbnail)
-        
+
         # Local state cache (for synchronous getters if needed)
         self._current = 0
         self._total = 0
@@ -1804,7 +1813,7 @@ class PPTMonitor(QObject):
         self._overlay = None
         self._active_kind = None
         self._pending_ink_prompt = False
-        
+
         self._thread.start()
 
     def __del__(self):
@@ -1860,7 +1869,7 @@ class PPTMonitor(QObject):
 
     def export_slide_thumbnail(self, index, path):
         self._req_export.emit(index, path)
-        
+
     def force_update_geometry(self):
         rect = self._last_rect_raw
         if rect is None or rect.isEmpty():
@@ -1986,6 +1995,6 @@ class PPTMonitor(QObject):
 
     def get_total_slides(self):
         return self._total
-        
+
     def get_video_progress(self):
         return self._video_ratio, self._video_pos, self._video_len

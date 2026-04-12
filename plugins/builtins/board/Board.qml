@@ -3,6 +3,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQml 2.15
 import QtQuick.Window 2.15
+import KazuhaBoard 1.0
 
 Rectangle {
     id: root
@@ -15,6 +16,7 @@ Rectangle {
     property int eraserMode: typeof boardEraserMode !== "undefined" ? boardEraserMode : 0
     property bool penStrokeEnabled: typeof boardPenStrokeEnabled !== "undefined" ? boardPenStrokeEnabled : false
     property bool darkBackground: isDarkColor(backgroundColor)
+    property real performanceScale: Math.max(1.0, Math.max(width, height) / 1600.0)
     property var boardPages: []
     property int currentBoardPage: 1
     Keys.onEscapePressed: backend.closeWindow()
@@ -109,12 +111,12 @@ Rectangle {
         color: backgroundColor
         clip: true
         
-        Canvas {
+        NativeBoardItem {
             id: canvas
             objectName: "canvas"
             anchors.fill: parent
-            renderTarget: Canvas.Image
-            renderStrategy: Canvas.Cooperative
+            backgroundColor: root.backgroundColor
+            minSegmentPx: minSegmentPixels
             
             property color drawColor: darkBackground ? "white" : "black"
             property int lineWidth: 3
@@ -124,7 +126,7 @@ Rectangle {
             property int currentStrokeId: 0
             property bool penStrokeEnabled: root.penStrokeEnabled
             property real lastWidth: lineWidth
-            property real minSegmentPixels: 1.2
+            property real minSegmentPixels: 0.6 * root.performanceScale
             property real minSegmentPixelsSquared: minSegmentPixels * minSegmentPixels
             property var undoStack: []
             property var redoStack: []
@@ -146,24 +148,14 @@ Rectangle {
             property var allLines: [] // Store all strokes history
             property bool needsFullRepaint: false
             property bool paintScheduled: false
-            property real smoothingFactorPen: 0.58
-            property real smoothingFactorEraser: 0.72
-            property real inputFlushIntervalMs: 8
-            property real lowSamplePixels: 2.4
+            property real smoothingFactorPen: 0.12
+            property real smoothingFactorEraser: 0.20
+            property real inputFlushIntervalMs: 2 + (root.performanceScale - 1) * 1.5
+            property real lowSamplePixels: 1.2 * root.performanceScale
             property real lowSamplePixelsSquared: lowSamplePixels * lowSamplePixels
-            property real maxSegmentPixels: 9.0
+            property real maxSegmentPixels: 4.5 * root.performanceScale
             readonly property bool canUndo: undoStack.length > 0
             readonly property bool canRedo: redoStack.length > 0
-
-            Timer {
-                id: paintFlushTimer
-                interval: 0
-                repeat: false
-                onTriggered: {
-                    canvas.paintScheduled = false;
-                    canvas.requestPaint();
-                }
-            }
 
             Timer {
                 id: inputFlushTimer
@@ -175,58 +167,17 @@ Rectangle {
             }
 
             onWidthChanged: {
-                needsFullRepaint = true;
-                schedulePaint();
+                requestRepaintAll();
             }
             onHeightChanged: {
-                needsFullRepaint = true;
-                schedulePaint();
+                requestRepaintAll();
             }
             
-            onPaint: {
-                var ctx = getContext("2d");
-                ctx.lineJoin = "round";
-                ctx.lineCap = "round";
-                
-                var w = width;
-                var h = height;
-
-                if (needsFullRepaint) {
-                    ctx.clearRect(0, 0, w, h);
-                    for (var i = 0; i < allLines.length; i++) {
-                        drawLine(ctx, allLines[i], w, h);
-                    }
-                    needsFullRepaint = false;
-                }
-
-                if (pendingLines.length > 0) {
-                    var queue = pendingLines;
-                    pendingLines = [];
-                    for (var j = 0; j < queue.length; j++) {
-                        drawLine(ctx, queue[j], w, h);
-                    }
-                }
-            }
-
             function drawLine(ctx, line, w, h) {
-                ctx.beginPath();
-                if (line.isEraser) {
-                     ctx.globalCompositeOperation = "destination-out";
-                     ctx.lineWidth = line.width || canvas.eraserWidth;
-                } else {
-                    ctx.globalCompositeOperation = "source-over";
-                    ctx.strokeStyle = line.color;
-                    ctx.lineWidth = line.width;
-                }
-                
-                var x1 = line.x1 * w;
-                var y1 = line.y1 * h;
-                var x2 = line.x2 * w;
-                var y2 = line.y2 * h;
-
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
-                ctx.stroke();
+                // Compatibility for scripts that call drawLine on canvas.
+                // Now we just add it to the native item's queue.
+                addLine(line.x1, line.y1, line.x2, line.y2, line.width, 
+                        line.color.toString(), !!line.isEraser, line.width || 20, line.strokeId);
             }
 
             function cloneLines(lines) {
@@ -261,23 +212,15 @@ Rectangle {
 
             function applyLines(lines) {
                 allLines = cloneLines(lines);
-                pendingLines = [];
-                needsFullRepaint = true;
-                paintScheduled = false;
-                schedulePaint();
-            }
-
-            function schedulePaint() {
-                if (paintScheduled) return;
-                paintScheduled = true;
-                paintFlushTimer.start();
+                canvas.setAllLines(allLines);
             }
 
             function enqueueLine(line) {
-                pendingLines.push(line);
                 allLines.push(line);
                 gestureAddedLines.push(line);
-                schedulePaint();
+                canvas.addLine(line.x1, line.y1, line.x2, line.y2, line.width, 
+                               line.color || canvas.drawColor.toString(), !!line.isEraser, 
+                               line.eraserPx || canvas.eraserWidth, line.strokeId);
             }
 
             function calcDynamicWidth(currentX, currentY) {
@@ -384,7 +327,7 @@ Rectangle {
                 }
                 var steps = Math.ceil(Math.sqrt(movePxSquared) / canvas.maxSegmentPixels);
                 if (steps < 1) steps = 1;
-                if (steps > 4) steps = 4;
+                if (steps > 3) steps = 3;
                 for (var i = 1; i <= steps; i++) {
                     var t = i / steps;
                     var x = startX + (targetX - startX) * t;
@@ -449,8 +392,7 @@ Rectangle {
                 redoStack = nextRedo;
                 if (action.type === "add") {
                     allLines = allLines.concat(cloneLines(action.lines));
-                    pendingLines = pendingLines.concat(cloneLines(action.lines));
-                    schedulePaint();
+                    canvas.setAllLines(allLines);
                 } else if (action.type === "remove") {
                     for (var i = 0; i < action.strokes.length; i++) {
                         removeStroke(action.strokes[i].strokeId);
@@ -542,9 +484,7 @@ Rectangle {
                 
                 if (changed) {
                     allLines = newLines;
-                    needsFullRepaint = true;
-                    paintScheduled = false;
-                    schedulePaint();
+                    canvas.removeStrokeAndRepaint(strokeId);
                     return {
                         strokeId: strokeId,
                         startIndex: startIndex,
@@ -688,8 +628,7 @@ Rectangle {
                     }
                 }
                 canvas.currentStrokeId = maxStrokeId;
-                canvas.needsFullRepaint = true;
-                canvas.requestPaint();
+                canvas.setAllLines(newStrokes);
             }
         }
     }

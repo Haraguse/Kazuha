@@ -2227,23 +2227,27 @@
       appearance: none;
       width: 140px;
       height: 24px;
-      background: linear-gradient(90deg, var(--accent-blue) var(--slider-percent, 0%), var(--divider) var(--slider-percent, 0%));
+      --slider-thumb-size: 16px;
+      --slider-fill-x: 0px;
+      background:
+        radial-gradient(circle at var(--slider-fill-x) 50%, var(--accent-blue) 12px, transparent 12.5px),
+        linear-gradient(90deg, var(--accent-blue) 0 var(--slider-fill-x), var(--divider) var(--slider-fill-x));
       border-radius: 12px;
       outline: none;
       box-sizing: border-box;
-      border: 1px solid var(--divider);
+      border: none;
     }
 
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 22px;
-      height: 22px;
+      width: 16px;
+      height: 16px;
       background: #ffffff;
       border-radius: 50%;
       cursor: pointer;
       transition: transform 0.1s;
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      border: none;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
     }
 
     input[type="range"]::-webkit-slider-thumb:hover {
@@ -3645,6 +3649,9 @@
         outline: none;
         margin: 0;
         padding: 0;
+        --slider-thumb-size: 18px;
+        --slider-fill-extend: 2px;
+        --slider-fill-x: 0px;
         z-index: 4;
         position: relative;
     }
@@ -3653,7 +3660,9 @@
     input[type=range]::-webkit-slider-runnable-track {
         width: 100%;
         height: 24px;
-        background: var(--divider);
+        background:
+          radial-gradient(circle at var(--slider-fill-x) 50%, var(--accent-blue) 12px, transparent 12.5px),
+          linear-gradient(90deg, var(--accent-blue) 0 var(--slider-fill-x), var(--divider) var(--slider-fill-x));
         border-radius: 12px;
         cursor: pointer;
         border: none;
@@ -3669,12 +3678,8 @@
         background: #ffffff;
         cursor: pointer;
         margin-top: 3px; /* (24 - 18) / 2 */
-        /* 
-           1. Drop shadow for the thumb
-           2. Blue rim (3px) to create the rounded cap (18+6=24px height)
-           3. Long blue shadow to fill the left side
-        */
-        box-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 0 0 3px var(--accent-blue), -400px 0 0 400px var(--accent-blue);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        border: 1px solid rgba(0, 0, 0, 0.08);
         transition: transform 0.1s;
         position: relative;
         z-index: 5;
@@ -6579,6 +6584,17 @@
             </div>
             <div class="switch" id="sw-Debug-ShowLog"></div>
           </div>
+          <div class="settings-item" onclick="openLogsWindow()">
+            <div class="item-info">
+              <span class="item-label" data-i18n="debug.openLogsWindow.label">打开日志窗口</span>
+              <span class="item-desc" data-i18n="debug.openLogsWindow.desc">打开独立日志窗口查看完整日志</span>
+            </div>
+            <div class="item-state">
+              <svg class="chevron" viewBox="0 0 24 24">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </div>
+          </div>
           <div class="settings-item" onclick="toggleSwitch('Debug', 'RtlTest')">
             <div class="item-info">
               <span class="item-label" data-i18n="debug.rtlTest.label">RTL 布局测试</span>
@@ -7235,6 +7251,8 @@
       "debug.triggerCrash.desc": "手动触发一个 RuntimeError 以测试崩溃处理器的表现",
       "debug.showLogs.label": "显示日志",
       "debug.showLogs.desc": "实时显示设置页运行日志",
+      "debug.openLogsWindow.label": "打开日志窗口",
+      "debug.openLogsWindow.desc": "打开独立日志窗口查看完整日志",
       "debug.showLogs.panelTitle": "日志输出",
       "debug.showLogs.clear": "清空日志",
       "debug.rtlTest.label": "RTL 布局测试",
@@ -7534,6 +7552,8 @@
       "debug.triggerCrash.desc": "手動觸發一個 RuntimeError 以測試當機處理器的表現",
       "debug.showLogs.label": "顯示日誌",
       "debug.showLogs.desc": "即時顯示設定頁執行日誌",
+      "debug.openLogsWindow.label": "開啟日誌視窗",
+      "debug.openLogsWindow.desc": "開啟獨立日誌視窗查看完整日誌",
       "debug.showLogs.panelTitle": "日誌輸出",
       "debug.showLogs.clear": "清空日誌",
       "debug.rtlTest.label": "RTL 版面測試",
@@ -7830,6 +7850,8 @@
       "debug.triggerCrash.desc": "手動觸發 RuntimeError 測試崩潰處理",
       "debug.showLogs.label": "顯示日誌",
       "debug.showLogs.desc": "即時顯示設定頁日誌",
+      "debug.openLogsWindow.label": "打開日誌視窗",
+      "debug.openLogsWindow.desc": "打開獨立日誌視窗睇完整日誌",
       "debug.showLogs.panelTitle": "日誌輸出",
       "debug.showLogs.clear": "清空日誌",
       "debug.rtlTest.label": "RTL 版面測試",
@@ -8130,6 +8152,8 @@
       "debug.triggerCrash.desc": "RuntimeError を発生させてクラッシュハンドラをテストします",
       "debug.showLogs.label": "ログを表示",
       "debug.showLogs.desc": "設定ページのログをリアルタイム表示",
+      "debug.openLogsWindow.label": "ログウィンドウを開く",
+      "debug.openLogsWindow.desc": "独立したログウィンドウで完全なログを表示",
       "debug.showLogs.panelTitle": "ログ出力",
       "debug.showLogs.clear": "ログをクリア",
       "debug.rtlTest.label": "RTL レイアウトテスト",
@@ -8633,6 +8657,8 @@
       "debug.triggerCrash.desc": "Manually trigger a RuntimeError to test the crash handler",
       "debug.showLogs.label": "Show Logs",
       "debug.showLogs.desc": "Show settings page logs in real time",
+      "debug.openLogsWindow.label": "Open Logs Window",
+      "debug.openLogsWindow.desc": "Open standalone logs window for full logs",
       "debug.showLogs.panelTitle": "Log Output",
       "debug.showLogs.clear": "Clear Logs",
       "debug.rtlTest.label": "RTL Layout Test",
@@ -8679,6 +8705,8 @@
       "language.ug-CN": "ئۇيغۇرچە",
       "debug.showLogs.label": "ژۇرنال كۆرسىتىش",
       "debug.showLogs.desc": "تەڭشەك بېتىنىڭ ژۇرنىلىنى دەرھال كۆرسىتىش",
+      "debug.openLogsWindow.label": "ژۇرنال كۆزنەكىنى ئېچىش",
+      "debug.openLogsWindow.desc": "مۇكەممەل ژۇرنالنى مۇستەقىل كۆزنەكتە كۆرۈش",
       "debug.showLogs.panelTitle": "ژۇرنال چىقىرىش",
       "debug.showLogs.clear": "ژۇرنالنى تازىلاش",
       "debug.rtlTest.label": "RTL تەرتىپ سىناق",
@@ -10758,7 +10786,6 @@
   initNav();
   initLockScreen();
   convertNativeSelectsToCustom();
-  window.addEventListener("resize", updateAllSelectSliders);
 
   let isUnlocked = false;
   let settingsLoaded = false;
@@ -11753,17 +11780,38 @@
      }
    }
 
+  function updateRangeVisuals(rangeEl, v) {
+    if (!rangeEl) return;
+    const min = parseFloat(rangeEl.min) || 0;
+    const max = parseFloat(rangeEl.max) || 100;
+    const ratio = (Number(v) - min) / (max - min || 1);
+    const styles = getComputedStyle(rangeEl);
+    const rect = rangeEl.getBoundingClientRect();
+    const borderLeft = parseFloat(styles.borderLeftWidth) || 0;
+    const borderRight = parseFloat(styles.borderRightWidth) || 0;
+    const boxWidth = rect && rect.width ? rect.width : (parseFloat(styles.width) || 0);
+    const track = Math.max(0, boxWidth - borderLeft - borderRight);
+    const thumbSizeRaw = styles.getPropertyValue("--slider-thumb-size");
+    const thumbSize = Math.max(0, parseFloat(thumbSizeRaw) || 16);
+    let percent = ratio * 100;
+    if (track > 0 && thumbSize > 0 && track > thumbSize) {
+      const pos = ratio * (track - thumbSize) + thumbSize / 2;
+      const clampedEdge = Math.max(0, Math.min(track, pos));
+      const fillX = clampedEdge + borderLeft;
+      percent = (fillX / Math.max(1, boxWidth)) * 100;
+      rangeEl.style.setProperty("--slider-fill-x", `${fillX}px`);
+    }
+    percent = Math.max(0, Math.min(100, percent));
+    rangeEl.style.setProperty("--slider-percent", `${percent}%`);
+  }
+
   function initRange(cat, key, defaultVal, unit, decimals = 0) {
     const val = settings[cat]?.[key] ?? defaultVal;
     const rangeEl = document.getElementById(`range-${cat}-${key}`);
     const valEl = document.getElementById(`val-${cat}-${key}`);
 
     const updateVisuals = (v) => {
-        // Update track fill via CSS variable
-        const min = parseFloat(rangeEl.min) || 0;
-        const max = parseFloat(rangeEl.max) || 100;
-        const percent = ((v - min) / (max - min)) * 100;
-        rangeEl.style.setProperty('--slider-percent', `${percent}%`);
+        updateRangeVisuals(rangeEl, v);
     };
     
     const updateLabel = (v) => {
@@ -11810,10 +11858,7 @@
     // Update visuals for this slider
     const rangeEl = document.getElementById(`range-${cat}-${key}`);
     if (rangeEl) {
-        const min = parseFloat(rangeEl.min) || 0;
-        const max = parseFloat(rangeEl.max) || 100;
-        const percent = ((val - min) / (max - min)) * 100;
-        rangeEl.style.setProperty('--slider-percent', `${percent}%`);
+        updateRangeVisuals(rangeEl, val);
     }
     
     // Update settings object
@@ -12038,7 +12083,16 @@
       document.querySelectorAll(".theme-select").forEach(updateSelectSlider);
   }
 
-  window.addEventListener('resize', updateAllSelectSliders);
+  function updateAllRangeVisuals() {
+      document.querySelectorAll('input[type="range"]').forEach((el) => {
+          updateRangeVisuals(el, el.value);
+      });
+  }
+
+  window.addEventListener('resize', () => {
+      updateAllSelectSliders();
+      updateAllRangeVisuals();
+  });
 
   function loadToolbarApps() {
     const fallback = () => {
@@ -12542,6 +12596,12 @@
   function openOnboardingPreview() {
     if (window.pywebview && window.pywebview.api.open_onboarding_preview) {
       window.pywebview.api.open_onboarding_preview();
+    }
+  }
+
+  function openLogsWindow() {
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.open_logs_window) {
+      window.pywebview.api.open_logs_window();
     }
   }
 
