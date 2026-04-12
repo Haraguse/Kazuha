@@ -3,7 +3,7 @@ import os
 import json
 from PySide6.QtQuick import QQuickView, QQuickPaintedItem
 from PySide6.QtQml import qmlRegisterType
-from PySide6.QtCore import QUrl, Qt, Slot, QObject, QPoint, QPointF, QTimer, Signal, Property, QEventLoop, QSize, QRect, QRectF
+from PySide6.QtCore import QUrl, Qt, Slot, QObject, QPoint, QPointF, QTimer, Signal, Property, QEventLoop, QSize, QRect, QRectF, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QColor, QIcon, QAction, QGuiApplication, QPainter, QImage, QPen
 from ppt_assistant.core.config import cfg, SETTINGS_PATH, qconfig
 from ppt_assistant.core.app_icon import load_app_icon
@@ -807,6 +807,9 @@ class SaveStrokesDialog(QQuickView):
 class BoardWindow(QQuickView):
     def __init__(self):
         super().__init__()
+        self._is_closing = False
+        self._animation = None
+        
         # Ensure the native board item is registered specifically for this window's engine
         qmlRegisterType(NativeBoardItem, "KazuhaBoard", 1, 0, "NativeBoardItem")
         
@@ -879,6 +882,9 @@ class BoardWindow(QQuickView):
             x = geometry.x() + (geometry.width() - 800) // 2
             y = geometry.y() + (geometry.height() - 600) // 2
             self.setPosition(x, y)
+
+        # Slide-in animation setup
+        self._setup_slide_animation()
 
         # Watermark
         version = _get_app_version()
@@ -973,11 +979,51 @@ class BoardWindow(QQuickView):
         self.backend.windowStateChanged.emit()
         self._last_state = state
 
-    def closeEvent(self, event):
-        if getattr(self, "_force_close", False):
-            super().closeEvent(event)
+    def _setup_slide_animation(self):
+        self._animation = QPropertyAnimation(self, b"y")
+        self._animation.setDuration(450)
+        # Use OutQuint for a more distinct non-linear feel
+        self._animation.setEasingCurve(QEasingCurve.OutQuint)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        # Reset closing flags for reuse
+        self._is_closing = False
+        self._force_close = False
+        
+        if self._animation and self._animation.state() != QPropertyAnimation.Running:
+            geom = self.geometry()
+            
+            # If we were previously closed (moved up), we need to restore 
+            # the target position first. We'll center it if it's off-screen.
+            screen_geom = self.screen().availableGeometry()
+            target_y = geom.y()
+            
+            # Check if current y is likely the "closed" position (off-screen)
+            if target_y < screen_geom.y():
+                # Re-center vertically
+                target_y = screen_geom.y() + (screen_geom.height() - geom.height()) // 2
+            
+            start_y = target_y - geom.height()
+            
+            self._animation.stop()
+            self._animation.setStartValue(start_y)
+            self._animation.setEndValue(target_y)
+            self._animation.start()
+
+    def close(self):
+        """Override close to trigger slide-out animation."""
+        if self._is_closing or getattr(self, "_force_close", False):
+            super().close()
             return
 
+        self._trigger_close_animation()
+
+    def _trigger_close_animation(self):
+        if self._is_closing:
+            return
+            
+        # Check for content first
         try:
             root = self.rootObject()
             document = {"currentPage": 1, "pages": [{"strokes": []}]}
@@ -1006,14 +1052,48 @@ class BoardWindow(QQuickView):
                     if os.path.exists(self.strokes_path):
                         os.remove(self.strokes_path)
                 else:
-                    event.ignore()
+                    # Cancelled, don't close
                     return
-
             else:
                 if os.path.exists(self.strokes_path):
                     os.remove(self.strokes_path)
-                    
         except Exception as e:
-            print(f"Error in closeEvent: {e}")
-            
-        super().closeEvent(event)
+            print(f"Error in _trigger_close_animation check: {e}")
+
+        # If the window is fullscreen or maximized, animations might look weird or not work well with y property
+        if self.windowState() & (Qt.WindowFullScreen | Qt.WindowMaximized):
+            self._force_close = True
+            super().close()
+            return
+
+        if self._animation:
+            self._is_closing = True
+            geom = self.geometry()
+            self._animation.setStartValue(geom.y())
+            self._animation.setEndValue(geom.y() - geom.height())
+            try:
+                # Disconnect any old connections first to prevent multiple closes
+                self._animation.finished.disconnect(self._on_animation_finished)
+            except Exception:
+                pass
+            self._animation.finished.connect(self._on_animation_finished)
+            self._animation.start()
+        else:
+            self._force_close = True
+            super().close()
+
+    def _on_animation_finished(self):
+        if self._is_closing:
+            self._force_close = True
+            super().close()
+            # Reset for next time if the object is reused
+            self._is_closing = False
+
+    def closeEvent(self, event):
+        if getattr(self, "_force_close", False):
+            super().closeEvent(event)
+            return
+
+        # Intercept manual close (X button) to play animation
+        event.ignore()
+        self._trigger_close_animation()

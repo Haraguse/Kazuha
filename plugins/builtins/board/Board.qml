@@ -1391,7 +1391,7 @@ Rectangle {
         z: 91
 
         Image {
-            source: iconsDir + (backend.isFullscreen ? "exitfullscr.svg" : "fullscr.svg")
+            source: iconsDir + ((backend && backend.isFullscreen) ? "exitfullscr.svg" : "fullscr.svg")
             width: 20
             height: 20
             anchors.centerIn: parent
@@ -1402,7 +1402,7 @@ Rectangle {
         MouseArea {
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
-            onClicked: backend.toggleFullscreen()
+            onClicked: if (backend) backend.toggleFullscreen()
         }
     }
 

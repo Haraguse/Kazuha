@@ -174,7 +174,11 @@ def _get_user_root_dir() -> str:
 
 def _list_user_themes() -> list[dict]:
     root_dir = _get_user_root_dir()
+    # Support both "user" and "users" folder names
     themes_dir = os.path.join(root_dir, "user", "themes")
+    if not os.path.isdir(themes_dir):
+        themes_dir = os.path.join(root_dir, "users", "themes")
+        
     results: list[dict] = []
     if not os.path.isdir(themes_dir):
         return results
@@ -193,10 +197,11 @@ def _list_user_themes() -> list[dict]:
         if not (os.path.exists(preview_png) or os.path.exists(preview_jpg)):
             continue
         try:
-            with open(manifest_path, "r", encoding="utf-8") as f:
+            with open(manifest_path, "r", encoding="utf-8-sig") as f:
                 data = json.load(f)
-            if data.get("name") != name:
-                continue
+            # Remove strict name check to allow more flexible theme naming
+            # if data.get("name") != name:
+            #     continue
         except Exception:
             continue
         results.append({"id": name, "name": data.get("name", name)})

@@ -252,7 +252,11 @@ class OverlayWindow(QWebEngineView):
         root_dir = ROOT_DIR
             
         def resolve_user_theme_path(name: str) -> Optional[str]:
+            # Support both "user" and "users" folder names
             theme_dir = os.path.join(root_dir, "user", "themes", name)
+            if not os.path.isdir(theme_dir):
+                theme_dir = os.path.join(root_dir, "users", "themes", name)
+                
             if not os.path.isdir(theme_dir):
                 return None
             manifest_path = os.path.join(theme_dir, "manifest.json")
@@ -266,10 +270,11 @@ class OverlayWindow(QWebEngineView):
             if not (os.path.exists(preview_png) or os.path.exists(preview_jpg)):
                 return None
             try:
-                with open(manifest_path, "r", encoding="utf-8") as f:
+                with open(manifest_path, "r", encoding="utf-8-sig") as f:
                     data = json.load(f)
-                if data.get("name") != name:
-                    return None
+                # Remove strict name check to allow more flexible theme naming
+                # if data.get("name") != name:
+                #     return None
             except Exception:
                 return None
             return html_path
@@ -781,7 +786,7 @@ class OverlayWindow(QWebEngineView):
             if not os.path.exists(manifest_path):
                 continue
             try:
-                with open(manifest_path, "r", encoding="utf-8") as f:
+                with open(manifest_path, "r", encoding="utf-8-sig") as f:
                     manifest = json.load(f)
                 entry_point = manifest.get("entry")
                 if not entry_point:
