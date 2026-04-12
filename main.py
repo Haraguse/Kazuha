@@ -1122,7 +1122,7 @@ class CrashHandler:
                 f.write(error_msg)
                 temp_path = f.name
             
-            creationflags = 0x00000008 # DETACHED_PROCESS
+            creationflags = 0x08000000 | 0x00000008 # CREATE_NO_WINDOW | DETACHED_PROCESS
 
             if getattr(sys, "frozen", False):
                 cmd = [sys.executable, "--webview-runner", "--crash-file", temp_path]
@@ -1170,7 +1170,7 @@ class CrashHandler:
             else:
                 cmd = [sys.executable, main_path] + filtered_args
 
-            creationflags = 0x00000008  # DETACHED_PROCESS
+            creationflags = 0x08000000 | 0x00000008  # CREATE_NO_WINDOW | DETACHED_PROCESS
             env = os.environ.copy()
             env["LUMINALIUM_RESTART"] = "1"
             env["LUMINALIUM_RESTART_PID"] = str(os.getpid())
@@ -1978,7 +1978,7 @@ class PPTAssistantApp:
             env = os.environ.copy()
             env["LUMINALIUM_RESTART"] = "1"
             env["LUMINALIUM_RESTART_PID"] = str(os.getpid())
-            creationflags = 0x00000008  # DETACHED_PROCESS
+            creationflags = 0x08000000 | 0x00000008  # CREATE_NO_WINDOW | DETACHED_PROCESS
             subprocess.Popen(cmd, env=env, creationflags=creationflags, close_fds=True)
         except Exception as e:
             print(f"Failed to launch new instance: {e}", file=sys.stderr)

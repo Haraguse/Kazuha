@@ -1277,7 +1277,9 @@ class PPTWorker(QObject):
                 except Exception:
                     original_alerts = None
                 try:
-                    app.DisplayAlerts = 2
+                    # ppAlertsNone = 1, ppAlertsAll = 2. 
+                    # Set to 1 to suppress PowerPoint's native ink prompt since we already asked.
+                    app.DisplayAlerts = 1 
                 except Exception:
                     pass
                 if keep:
@@ -1289,7 +1291,8 @@ class PPTWorker(QObject):
                     if original_alerts is not None:
                         app.DisplayAlerts = original_alerts
                     else:
-                        app.DisplayAlerts = -1
+                        # Default to all alerts if we can't restore
+                        app.DisplayAlerts = 2 
                 except Exception:
                     pass
                 self._control_mode = "com"

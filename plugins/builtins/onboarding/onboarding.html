@@ -4157,11 +4157,27 @@ html, body {
       gap: 0;
     }
     
-    .finish-icon {
+    .finish-icon-wrapper {
       width: 120px;
       height: 120px;
       margin-bottom: 24px;
-      animation: fadeIn 0.8s ease-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--logo-glow);
+      border-radius: 50%;
+      color: var(--accent-blue);
+      animation: fadeIn 0.8s ease-out, scaleUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .finish-icon-wrapper svg {
+      width: 64px;
+      height: 64px;
+    }
+
+    @keyframes scaleUp {
+      from { transform: scale(0.8); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
     }
 
     .finish-title {
@@ -4332,7 +4348,11 @@ html, body {
     <div id="screen-finish" class="hero-screen fade-out" style="z-index: 20;">
       <div class="card">
         <div class="finish-container">
-          <img src="../../../icons/finishedemoji.png" class="finish-icon" alt="Finished">
+          <div class="finish-icon-wrapper">
+             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+             </svg>
+          </div>
           <div class="finish-title" id="finish-title"></div>
           <div class="finish-desc" id="finish-desc"></div>
           <div class="finish-subtitle" id="finish-subtitle"></div>
@@ -5417,31 +5437,16 @@ html, body {
         if (state.importedConfig) {
             // Apply imported config to state
             Object.assign(state.config, state.importedConfig);
-            // Skip to finish screen
-            if (window.pywebview?.api?.save_setting) {
-                try {
-                    const crashMode = state.config.crashAutoHandleEnabled ? state.config.crashAutoHandleMode : "ShowAnalyzer";
-                    await window.pywebview.api.save_setting("General", "Language", state.config.language);
-                    await window.pywebview.api.save_setting("Appearance", "ThemeMode", state.config.theme);
-                    await window.pywebview.api.save_setting("Appearance", "ThemeId", state.config.themeId);
-                    await window.pywebview.api.save_setting("General", "RunAtStartup", state.config.runAtStartup);
-                    await window.pywebview.api.save_setting("General", "DisableAnimations", state.config.disableAnimations);
-                    await window.pywebview.api.save_setting("General", "CrashAutoHandleEnabled", state.config.crashAutoHandleEnabled);
-                    await window.pywebview.api.save_setting("General", "CrashAutoHandleMode", crashMode);
-                    await window.pywebview.api.save_setting("General", "AutoShowOverlay", state.config.autoShowOverlay);
-                    await window.pywebview.api.save_setting("Overlay", "Scale", state.config.scale);
-                    await window.pywebview.api.save_setting("Overlay", "PopWindowScale", state.config.popWindowScale);
-                    await window.pywebview.api.save_setting("Overlay", "SafeArea", state.config.safeArea);
-                    await window.pywebview.api.save_setting("Overlay", "ShowStatusBar", state.config.showStatusBar);
-                } catch (e) {
-                    console.error("Error saving imported config:", e);
-                }
-            }
-            if (window.pywebview?.api?.on_confirm) {
-                await window.pywebview.api.on_confirm();
-            } else {
-                window.close();
-            }
+            
+            // Update UI to reflect imported settings
+            updateGlobalTexts();
+            applyTheme();
+            applyAnimationPreference();
+            renderLangMenu();
+            
+            // Jump to the final finish screen
+            state.step = steps.length - 1;
+            updateStep("next");
         }
     };
 
@@ -5631,7 +5636,7 @@ makes it unnecessary.
 
   (Full text available at https://www.gnu.org/licenses/gpl-3.0.txt)
 `;
-    els.linkImport.addEventListener("click", () => {
+    els.linkImport.addEventListener("click", async () => {
       console.log("=== Import Link Clicked ===");
       console.log("pywebview available:", !!window.pywebview);
       console.log("api available:", !!window.pywebview?.api);
@@ -5645,7 +5650,7 @@ makes it unnecessary.
       
       try {
         console.log("Calling import_settings()...");
-        const resultStr = window.pywebview.api.import_settings();
+        const resultStr = await window.pywebview.api.import_settings();
         console.log("=== Import Result (from API) ===");
         console.log("Result type:", typeof resultStr);
         console.log("Result is null:", resultStr === null);

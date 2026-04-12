@@ -13,6 +13,8 @@ from PySide6.QtCore import QObject, Slot, Signal, Qt, QUrl, QTimer, QRect, QPoin
 from PySide6.QtGui import QColor, QRegion, QGuiApplication, QIcon
 from PySide6.QtQuick import QQuickView
 from PySide6.QtQml import QQmlComponent
+from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
+from qfluentwidgets import Theme, isDarkTheme, MessageBox, MessageDialog, themeColor
 from ppt_assistant.core.config import cfg
 from ppt_assistant.core.i18n import t
 from ppt_assistant.core.app_icon import load_app_icon
@@ -124,16 +126,52 @@ class OverlayBridge(QObject):
     def startBackgroundThumbnailCaching(self, total_pages):
         self._overlay.start_background_caching.emit(total_pages)
 
-class InkPromptBridge(QObject):
+class InkPromptWindow(QWidget):
     result = Signal(bool)
 
-    @Slot()
-    def keep(self):
-        self.result.emit(True)
+    def __init__(self, texts, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        
+        # Make it full screen
+        screen = QGuiApplication.primaryScreen()
+        if screen:
+            self.setGeometry(screen.geometry())
+        
+        # Semi-transparent black background
+        self.bg_color = QColor(0, 0, 0, 140)
+        
+        self._dialog = MessageBox(texts["title"], texts["text"], self)
+        self._dialog.yesButton.setText(texts["keep"])
+        self._dialog.cancelButton.setText(texts["discard"])
+        
+        # Message dialog's own mask is redundant here, so we can disable it or let it be.
+        # But we want the whole window to be dimmed.
+        if hasattr(self._dialog, 'maskWidget'):
+            self._dialog.maskWidget.hide()
+            
+        self._dialog.yesSignal.connect(lambda: self._on_result(True))
+        self._dialog.cancelSignal.connect(lambda: self._on_result(False))
+        
+        # Center the dialog manually when shown
+        self._dialog.finished.connect(self.close)
 
-    @Slot()
-    def discard(self):
-        self.result.emit(False)
+    def paintEvent(self, event):
+        from PySide6.QtGui import QPainter
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), self.bg_color)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        # Center the dialog
+        self._dialog.show()
+        # MessageBox from qfluentwidgets will center itself to parent automatically if it's a child.
+        # If not, we might need to call w.exec_() or w.show()
+
+    def _on_result(self, keep):
+        self.result.emit(keep)
+        self.close()
 
 class OverlayWindow(QWebEngineView):
     request_next = Signal()
@@ -261,8 +299,7 @@ class OverlayWindow(QWebEngineView):
         self._protected_view = False
         self._presentation_readonly = False
         self._active_on_slideshow = False
-        self._ink_prompt_view = None
-        self._ink_prompt_bridge = None
+        self._current_ink_dialog = None
         
         self._smtc_info = {"status": "", "title": "", "position_ms": 0, "duration_ms": 0}
         self._smtc_thread = None
@@ -508,8 +545,6 @@ class OverlayWindow(QWebEngineView):
         theme_id = cfg.themeId.value
         js = f"if (typeof setTheme === 'function') setTheme({'false' if is_light else 'true'}, '{color_str}', '{theme_id}');"
         self.page().runJavaScript(js)
-        if self._ink_prompt_view:
-            self._apply_ink_prompt_context(self._ink_prompt_view.rootContext())
 
     def _start_smtc_thread(self):
         def smtc_loop():
@@ -712,174 +747,22 @@ class OverlayWindow(QWebEngineView):
 
     def show_ink_prompt(self):
         try:
-            self._ensure_ink_prompt_view()
-            if self._ink_prompt_view:
-                self._ink_prompt_view.show()
-                self._ink_prompt_view.raise_()
-        except Exception:
-            pass
-
-    def _ensure_ink_prompt_view(self):
-        if not self._ink_prompt_view:
-            view = QQuickView()
-            view.setColor(Qt.transparent)
-            view.setFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
-            view.setResizeMode(QQuickView.SizeRootObjectToView)
-            view.setModality(Qt.ApplicationModal)
-
-            bridge = InkPromptBridge()
-            bridge.result.connect(self._on_ink_prompt_result)
-
-            ctx = view.rootContext()
-            ctx.setContextProperty("inkBridge", bridge)
-            self._ink_prompt_view = view
-            self._ink_prompt_bridge = bridge
-            self._apply_ink_prompt_context(ctx)
-
-            qml = """
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-
-Item {
-    id: root
-    width: screenWidth
-    height: screenHeight
-
-    Rectangle {
-        anchors.fill: parent
-        color: maskColor
-    }
-
-    MouseArea {
-        anchors.fill: parent
-    }
-
-    Rectangle {
-        id: card
-        width: Math.min(parent.width * 0.6, 460)
-        height: content.height + 48
-        color: dialogBg
-        radius: 12
-        border.color: dialogBorder
-        border.width: 1
-        anchors.centerIn: parent
-
-        Column {
-            id: content
-            spacing: 20
-            width: parent.width - 48
-            anchors.centerIn: parent
-
-            Text {
-                text: inkTitle
-                font.pixelSize: 17
-                font.bold: true
-                color: titleColor
-                width: parent.width
-                wrapMode: Text.Wrap
-            }
-
-            Text {
-                text: inkText
-                font.pixelSize: 15
-                font.weight: Font.Normal
-                color: bodyColor
-                width: parent.width
-                wrapMode: Text.Wrap
-                lineHeight: 1.4
-            }
-
-            Item {
-                width: parent.width
-                height: 4
-            }
-
-            Row {
-                spacing: 12
-                layoutDirection: Qt.RightToLeft
-                width: parent.width
-
-                Rectangle {
-                    width: 88
-                    height: 34
-                    radius: 17
-                    color: primaryBg
-                    border.color: primaryBorder
-                    border.width: 1
-                    
-                    Text {
-                        anchors.centerIn: parent
-                        text: inkKeep
-                        font.pixelSize: 14
-                        font.bold: true
-                        color: primaryText
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: inkBridge.keep()
-                    }
-                }
-
-                Rectangle {
-                    width: 88
-                    height: 34
-                    radius: 17
-                    color: btnBg
-                    border.color: btnBorder
-                    border.width: 1
-                    
-                    Text {
-                        anchors.centerIn: parent
-                        text: inkDiscard
-                        font.pixelSize: 14
-                        font.bold: true
-                        color: btnText
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: inkBridge.discard()
-                    }
-                }
-            }
-        }
-    }
-}
-"""
-
-            component = QQmlComponent(view.engine())
-            component.setData(QByteArray(qml.encode("utf-8")), QUrl())
-            root = component.create()
-            view.setContent(QUrl(), component, root)
-
-        screen = self.screen() or QGuiApplication.primaryScreen()
-        if screen:
-            self._ink_prompt_view.setGeometry(screen.geometry())
-            self._apply_ink_prompt_context(self._ink_prompt_view.rootContext())
-
-    def _apply_ink_prompt_context(self, ctx):
-        texts = self._get_ink_prompt_texts()
-        palette = self._get_ink_prompt_palette()
-        ctx.setContextProperty("inkTitle", texts["title"])
-        ctx.setContextProperty("inkText", texts["text"])
-        ctx.setContextProperty("inkKeep", texts["keep"])
-        ctx.setContextProperty("inkDiscard", texts["discard"])
-        ctx.setContextProperty("maskColor", palette["mask"])
-        ctx.setContextProperty("dialogBg", palette["bg"])
-        ctx.setContextProperty("dialogBorder", palette["border"])
-        ctx.setContextProperty("titleColor", palette["title"])
-        ctx.setContextProperty("bodyColor", palette["body"])
-        ctx.setContextProperty("btnBg", palette["btn_bg"])
-        ctx.setContextProperty("btnBorder", palette["btn_border"])
-        ctx.setContextProperty("btnText", palette["btn_text"])
-        ctx.setContextProperty("primaryBg", palette["primary_bg"])
-        ctx.setContextProperty("primaryBorder", palette["primary_border"])
-        ctx.setContextProperty("primaryText", palette["primary_text"])
-        if self._ink_prompt_view:
-            size = self._ink_prompt_view.size()
-            ctx.setContextProperty("screenWidth", size.width())
-            ctx.setContextProperty("screenHeight", size.height())
+            texts = self._get_ink_prompt_texts()
+            
+            # Create a standalone full-screen window for the prompt
+            win = InkPromptWindow(texts)
+            self._current_ink_dialog = win # Keep reference
+            
+            win.result.connect(self.ink_prompt_result)
+            
+            # Clear reference when closed
+            win.destroyed.connect(lambda: setattr(self, '_current_ink_dialog', None))
+            
+            win.show()
+            win.activateWindow()
+            win.raise_()
+        except Exception as e:
+            print(f"Error showing ink prompt: {e}")
 
     def _get_ink_prompt_texts(self):
         return {
@@ -888,45 +771,6 @@ Item {
             "keep": "保留",
             "discard": "不保留"
         }
-
-    def _get_ink_prompt_palette(self):
-        from qfluentwidgets import themeColor
-        accent = themeColor().name()
-        if self._is_light:
-            return {
-                "mask": "rgba(0, 0, 0, 1.0)",
-                "bg": "#ffffff",
-                "border": "rgba(0, 0, 0, 0.05)",
-                "title": "#191919",
-                "body": "#191919",
-                "btn_bg": "transparent",
-                "btn_border": "rgba(0, 0, 0, 0.05)",
-                "btn_text": "#666666",
-                "primary_bg": "transparent",
-                "primary_border": accent,
-                "primary_text": accent
-            }
-        return {
-            "mask": "rgba(0, 0, 0, 1.0)",
-            "bg": "#2b2b2b",
-            "border": "rgba(255, 255, 255, 0.08)",
-            "title": "#E5E5E5",
-            "body": "#E5E5E5",
-            "btn_bg": "transparent",
-            "btn_border": "rgba(255, 255, 255, 0.08)",
-            "btn_text": "#909090",
-            "primary_bg": "transparent",
-            "primary_border": accent,
-            "primary_text": accent
-        }
-
-    def _on_ink_prompt_result(self, keep):
-        if self._ink_prompt_view:
-            try:
-                self._ink_prompt_view.hide()
-            except Exception:
-                pass
-        self.ink_prompt_result.emit(bool(keep))
 
     def load_plugins(self):
         if not os.path.exists(PLUGIN_DIR):

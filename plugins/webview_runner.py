@@ -1507,7 +1507,7 @@ class Api(QObject):
                 cmd = [sys.executable, "--silent"]
             else:
                 cmd = [sys.executable, main_path, "--silent"]
-            creationflags = 0x00000008  # DETACHED_PROCESS
+            creationflags = 0x08000000 | 0x00000008  # CREATE_NO_WINDOW | DETACHED_PROCESS
             env = os.environ.copy()
             env["LUMINALIUM_RESTART"] = "1"
             env["LUMINALIUM_RESTART_PID"] = str(os.getpid())
@@ -1577,7 +1577,7 @@ class Api(QObject):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
             json.dump(dialog_data, f)
             temp_path = f.name
-        subprocess.Popen([sys.executable, __file__, "--dialog", temp_path])
+        subprocess.Popen([sys.executable, __file__, "--dialog", temp_path], creationflags=0x08000000)
 
     @Slot(str, str)
     def show_font_warning(self, font_name=None, font_lang=None):
@@ -1614,7 +1614,7 @@ class Api(QObject):
             dialog_data["overrideSettings"] = temp_settings
             with open(temp_path, "w", encoding="utf-8") as f:
                 json.dump(dialog_data, f)
-        subprocess.Popen([sys.executable, __file__, "--dialog", temp_path])
+        subprocess.Popen([sys.executable, __file__, "--dialog", temp_path], creationflags=0x08000000)
 
     @Slot(result="QVariant")
     def get_dialog_data(self):
@@ -1681,6 +1681,7 @@ class Api(QObject):
                     check=False,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
+                    creationflags=0x08000000,
                 )
             except Exception:
                 pass
@@ -1703,9 +1704,9 @@ class Api(QObject):
         width = "960"
         height = "640"
         if getattr(sys, "frozen", False):
-            subprocess.Popen([sys.executable, "--webview-runner", onboarding_html, "Onboarding Preview", width, height, "true"], env=env)
+            subprocess.Popen([sys.executable, "--webview-runner", onboarding_html, "Onboarding Preview", width, height, "true"], env=env, creationflags=0x08000000)
         else:
-            subprocess.Popen([sys.executable, main_path, "--webview-runner", onboarding_html, "Onboarding Preview", width, height, "true"], env=env)
+            subprocess.Popen([sys.executable, main_path, "--webview-runner", onboarding_html, "Onboarding Preview", width, height, "true"], env=env, creationflags=0x08000000)
 
     @Slot()
     def open_logs_window(self):
