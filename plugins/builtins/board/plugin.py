@@ -14,28 +14,24 @@ class BoardPlugin(AssistantPlugin):
         return "board-in-board.svg"
 
     def execute(self):
-        if self.window and self.window.isVisible():
-            self.window.requestActivate()
-            self.window.raise_()
-            return
-
-        # Re-create window if closed, or create for the first time
+        # Re-create window if closed or create for the first time
         if not self.window:
             self.window = BoardWindow()
-            # Handle window closing to cleanup reference? 
-            # QQuickView doesn't emit close signal easily compatible with cleanup, 
-            # but we can check isVisible in execute.
-            # Actually, if the user closes the window, the object might still exist.
-            # We can connect to closing signal if we subclass properly or just check isVisible.
-            
-            # To properly handle cleanup when window is closed by user (via UI):
-            # We can expose a signal from backend or just rely on re-show.
-        
-        self.window.show()
-        self.window.raise_()
-        self.window.requestActivate()
+            # If the window is closed, we might want to clear the reference
+            # but QQuickView close() just hides it. 
+            # We'll rely on our showEvent to handle the slide-in.
+
+        if self.window.isVisible():
+            self.window.requestActivate()
+            self.window.raise_()
+        else:
+            self.window.show()
+            self.window.raise_()
+            self.window.requestActivate()
 
     def terminate(self):
         if self.window:
+            # Force immediate close without animation for cleanup
+            self.window._force_close = True
             self.window.close()
             self.window = None

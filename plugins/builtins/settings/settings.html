@@ -1595,6 +1595,10 @@
       color: var(--text-secondary);
       text-align: center;
       line-height: 1.2;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     
     .theme-gallery-item.active .theme-gallery-name {
@@ -1687,6 +1691,10 @@
       color: var(--text-secondary);
       text-align: center;
       line-height: 1.2;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .media-gallery-item.active .media-gallery-name {
@@ -11219,6 +11227,12 @@
                 if (img.dataset.retry !== "1") {
                     img.dataset.retry = "1";
                     img.src = `../../../user/themes/${theme.id}/preview.jpg`;
+                } else if (img.dataset.retry !== "2") {
+                    img.dataset.retry = "2";
+                    img.src = `../../../users/themes/${theme.id}/preview.png`;
+                } else if (img.dataset.retry !== "3") {
+                    img.dataset.retry = "3";
+                    img.src = `../../../users/themes/${theme.id}/preview.jpg`;
                 } else {
                     img.style.display = "none";
                     fallback.style.display = "flex";

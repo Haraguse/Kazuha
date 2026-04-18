@@ -159,10 +159,10 @@ Rectangle {
 
             Timer {
                 id: inputFlushTimer
-                interval: Math.max(4, Math.round(canvas.inputFlushIntervalMs))
+                interval: canvas ? Math.max(4, Math.round(canvas.inputFlushIntervalMs)) : 10
                 repeat: true
                 onTriggered: {
-                    canvas.flushPendingInput(false);
+                    if (canvas) canvas.flushPendingInput(false);
                 }
             }
 
@@ -810,8 +810,10 @@ Rectangle {
                                     colorPopup.clearInfo()
                                 }
                                 onClicked: {
-                                    canvas.drawColor = modelData
-                                    canvas.isEraser = false
+                                    if (canvas) {
+                                        canvas.drawColor = modelData
+                                        canvas.isEraser = false
+                                    }
                                     colorPopup.close()
                                 }
                             }
@@ -882,13 +884,13 @@ Rectangle {
                         from: 1
                         to: 18
                         stepSize: 1
-                        value: canvas.lineWidth
+                        value: canvas ? canvas.lineWidth : 3
                         width: 140
-                        onValueChanged: canvas.lineWidth = Math.round(value)
+                        onValueChanged: if (canvas) canvas.lineWidth = Math.round(value)
                     }
 
                     Text {
-                        text: Math.round(canvas.lineWidth)
+                        text: canvas ? Math.round(canvas.lineWidth) : 3
                         color: darkBackground ? "#AAA" : "#666"
                         font.pixelSize: 11
                     }
@@ -920,7 +922,7 @@ Rectangle {
                         width: 16
                         height: 16
                         radius: 4
-                        color: colorPopup.hoveredColorHex !== "" ? colorPopup.hoveredColorHex : canvas.drawColor
+                        color: colorPopup.hoveredColorHex !== "" ? colorPopup.hoveredColorHex : (canvas ? canvas.drawColor : "transparent")
                         border.width: 1
                         border.color: darkBackground ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.2)
                         anchors.verticalCenter: parent.verticalCenter
@@ -931,7 +933,7 @@ Rectangle {
                         spacing: 2
                         
                         Text {
-                            text: colorPopup.hoveredColorName !== "" ? colorPopup.hoveredColorName : (colorPopup.hoveredColorHex !== "" ? colorPopup.hoveredColorHex : canvas.drawColor.toString())
+                            text: colorPopup.hoveredColorName !== "" ? colorPopup.hoveredColorName : (colorPopup.hoveredColorHex !== "" ? colorPopup.hoveredColorHex : (canvas ? canvas.drawColor.toString() : ""))
                             color: darkBackground ? "white" : "black"
                             font.pixelSize: 12
                             font.bold: true
@@ -1283,7 +1285,7 @@ Rectangle {
             Item {
                 width: showToolText ? Math.max(36, textUndo.contentWidth) : 36
                 height: showToolText ? 56 : 36
-                opacity: canvas.canUndo ? 1.0 : 0.38
+                opacity: (canvas && canvas.canUndo) ? 1.0 : 0.38
 
                 Column {
                     anchors.centerIn: parent
@@ -1316,12 +1318,12 @@ Rectangle {
 
                 MouseArea {
                     anchors.fill: parent
-                    cursorShape: canvas.canUndo ? Qt.PointingHandCursor : Qt.ArrowCursor
-                    enabled: canvas.canUndo
+                    cursorShape: (canvas && canvas.canUndo) ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    enabled: canvas ? canvas.canUndo : false
                     onClicked: {
                         if (colorPopup.opened) colorPopup.close();
                         if (eraserPopup.opened) eraserPopup.close();
-                        canvas.undo();
+                        if (canvas) canvas.undo();
                     }
                 }
             }
@@ -1330,7 +1332,7 @@ Rectangle {
             Item {
                 width: showToolText ? Math.max(36, textRedo.contentWidth) : 36
                 height: showToolText ? 56 : 36
-                opacity: canvas.canRedo ? 1.0 : 0.38
+                opacity: (canvas && canvas.canRedo) ? 1.0 : 0.38
 
                 Column {
                     anchors.centerIn: parent
@@ -1363,12 +1365,12 @@ Rectangle {
 
                 MouseArea {
                     anchors.fill: parent
-                    cursorShape: canvas.canRedo ? Qt.PointingHandCursor : Qt.ArrowCursor
-                    enabled: canvas.canRedo
+                    cursorShape: (canvas && canvas.canRedo) ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    enabled: canvas ? canvas.canRedo : false
                     onClicked: {
                         if (colorPopup.opened) colorPopup.close();
                         if (eraserPopup.opened) eraserPopup.close();
-                        canvas.redo();
+                        if (canvas) canvas.redo();
                     }
                 }
             }
@@ -1391,7 +1393,7 @@ Rectangle {
         z: 91
 
         Image {
-            source: iconsDir + (backend.isFullscreen ? "exitfullscr.svg" : "fullscr.svg")
+            source: iconsDir + ((backend && backend.isFullscreen) ? "exitfullscr.svg" : "fullscr.svg")
             width: 20
             height: 20
             anchors.centerIn: parent
@@ -1402,7 +1404,7 @@ Rectangle {
         MouseArea {
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
-            onClicked: backend.toggleFullscreen()
+            onClicked: if (backend) backend.toggleFullscreen()
         }
     }
 

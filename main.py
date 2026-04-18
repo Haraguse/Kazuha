@@ -597,7 +597,11 @@ def _ensure_user_dirs():
     """Ensure user directories exist for themes and splash screens."""
     try:
         root_dir = _get_user_root_dir()
+        # Prefer "user" but check for "users"
         user_dir = os.path.join(root_dir, "user")
+        if not os.path.exists(user_dir) and os.path.exists(os.path.join(root_dir, "users")):
+            user_dir = os.path.join(root_dir, "users")
+            
         if not os.path.exists(user_dir):
             os.makedirs(user_dir)
 
@@ -613,7 +617,11 @@ def _resolve_user_splash_dir(splash_style: str) -> Optional[str]:
     if not splash_style:
         return None
     root_dir = _get_user_root_dir()
+    # Support both "user" and "users" folder names
     splash_dir = os.path.join(root_dir, "user", "splash", splash_style)
+    if not os.path.exists(splash_dir):
+        splash_dir = os.path.join(root_dir, "users", "splash", splash_style)
+        
     if os.path.exists(splash_dir):
         return splash_dir
     return None
@@ -633,10 +641,11 @@ def _is_valid_splash_package(splash_dir: str, splash_style: str) -> bool:
     if not (os.path.exists(preview_png) or os.path.exists(preview_jpg)):
         return False
     try:
-        with open(manifest_path, "r", encoding="utf-8") as f:
+        with open(manifest_path, "r", encoding="utf-8-sig") as f:
             data = json.load(f)
-        if data.get("name") != splash_style:
-            return False
+        # Remove strict name check to allow more flexible splash naming
+        # if data.get("name") != splash_style:
+        #     return False
     except Exception:
         return False
     return True
@@ -1626,7 +1635,7 @@ class PPTAssistantApp:
                     continue
 
                 try:
-                    with open(manifest_path, "r", encoding="utf-8") as f:
+                    with open(manifest_path, "r", encoding="utf-8-sig") as f:
                         manifest = json.load(f)
 
                     entry_point = manifest.get("entry")
