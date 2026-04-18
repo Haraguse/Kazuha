@@ -45,7 +45,9 @@ def _get_theme_palette(theme_id: str, theme_mode: str) -> dict:
     palette = theme_variants.get(theme_mode)
     if palette is None:
         fallback_variants = THEMES.get("default", {})
-        palette = fallback_variants.get(theme_mode) or fallback_variants.get("light", {})
+        palette = fallback_variants.get(theme_mode) or fallback_variants.get(
+            "light", {}
+        )
     return dict(palette)
 
 
@@ -53,10 +55,16 @@ def _dialog_palette(theme_id: str, theme_mode: str, accent: str) -> dict:
     is_dark = theme_mode == "dark"
     palette = {
         "dialogMask": "rgba(0, 0, 0, 0.2)" if not is_dark else "rgba(0, 0, 0, 0.35)",
-        "dialogBg": "rgba(255, 255, 255, 0.98)" if not is_dark else "rgba(24, 24, 24, 0.96)",
-        "dialogBorder": "rgba(0, 0, 0, 0.08)" if not is_dark else "rgba(255, 255, 255, 0.12)",
+        "dialogBg": "rgba(255, 255, 255, 0.98)"
+        if not is_dark
+        else "rgba(24, 24, 24, 0.96)",
+        "dialogBorder": "rgba(0, 0, 0, 0.08)"
+        if not is_dark
+        else "rgba(255, 255, 255, 0.12)",
         "dialogTitle": "#1a1c1e" if not is_dark else "#FFFFFF",
-        "dialogText": "rgba(0, 0, 0, 0.65)" if not is_dark else "rgba(255, 255, 255, 0.68)",
+        "dialogText": "rgba(0, 0, 0, 0.65)"
+        if not is_dark
+        else "rgba(255, 255, 255, 0.68)",
         "dialogPrimary": accent,
         "dialogButtonText": "#666666" if not is_dark else "#909090",
     }
@@ -271,7 +279,12 @@ class LinuxQmlOverlayWindow(QWidget):
         self._background_thumbnail_timer = None
         self._pending_thumbnails = []
         self._cached_thumbnails = set()
-        self._smtc_info = {"status": "", "title": "", "position_ms": 0, "duration_ms": 0}
+        self._smtc_info = {
+            "status": "",
+            "title": "",
+            "position_ms": 0,
+            "duration_ms": 0,
+        }
         self._smtc_thread = None
         self._stop_smtc = False
         self._config_bound = False
@@ -322,12 +335,16 @@ class LinuxQmlOverlayWindow(QWidget):
             self._view.rootContext().setContextProperty("overlayBridge", self._bridge)
             self._view.setGeometry(self.rect())
 
-            qml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LinuxOverlay.qml")
+            qml_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "LinuxOverlay.qml"
+            )
             print(f"[Overlay] Loading Linux QML overlay: {qml_path}", flush=True)
             self._view.setSource(QUrl.fromLocalFile(qml_path))
             if self._view.status() == QQuickWidget.Error:
                 errors = [str(err.toString()) for err in self._view.errors()]
-                raise RuntimeError("Failed to load LinuxOverlay.qml: " + " | ".join(errors))
+                raise RuntimeError(
+                    "Failed to load LinuxOverlay.qml: " + " | ".join(errors)
+                )
 
             self._qml_ready = True
 
@@ -431,15 +448,25 @@ class LinuxQmlOverlayWindow(QWidget):
             "statusFg": palette.get("status_fg", "#FFFFFF"),
             "statusSep": palette.get("status_sep", "rgba(255, 255, 255, 0.3)"),
             "pageBg": palette.get("pageflip_bg", palette.get("toolbar_bg", "#FFFFFF")),
-            "pageBorder": palette.get("pageflip_border", palette.get("toolbar_border", "rgba(0, 0, 0, 0.08)")),
+            "pageBorder": palette.get(
+                "pageflip_border", palette.get("toolbar_border", "rgba(0, 0, 0, 0.08)")
+            ),
             "pageFg": palette.get("pageflip_fg", palette.get("toolbar_fg", "#191919")),
             "pageHint": palette.get("pageflip_hint", "rgba(0, 0, 0, 0.5)"),
-            "pageHover": palette.get("pageflip_hover", palette.get("item_hover", "rgba(0, 0, 0, 0.05)")),
-            "pageShadow": palette.get("pageflip_shadow", palette.get("toolbar_shadow", "rgba(0, 0, 0, 0.15)")),
+            "pageHover": palette.get(
+                "pageflip_hover", palette.get("item_hover", "rgba(0, 0, 0, 0.05)")
+            ),
+            "pageShadow": palette.get(
+                "pageflip_shadow", palette.get("toolbar_shadow", "rgba(0, 0, 0, 0.15)")
+            ),
             "popupBg": palette.get("popup_bg", palette.get("toolbar_bg", "#FFFFFF")),
-            "popupBorder": palette.get("popup_border", palette.get("toolbar_border", "rgba(0, 0, 0, 0.12)")),
+            "popupBorder": palette.get(
+                "popup_border", palette.get("toolbar_border", "rgba(0, 0, 0, 0.12)")
+            ),
             "popupFg": palette.get("popup_fg", palette.get("toolbar_fg", "#191919")),
-            "buttonHover": palette.get("btn_hover_bg", palette.get("item_hover", "rgba(0, 0, 0, 0.05)")),
+            "buttonHover": palette.get(
+                "btn_hover_bg", palette.get("item_hover", "rgba(0, 0, 0, 0.05)")
+            ),
             "buttonActive": palette.get("btn_active_bg", "rgba(0, 0, 0, 0.12)"),
             "cardBg": palette.get("card_bg", "rgba(0, 0, 0, 0.03)"),
             "cardBorder": palette.get("card_border", "rgba(0, 0, 0, 0.02)"),
@@ -498,7 +525,9 @@ class LinuxQmlOverlayWindow(QWidget):
         self._emit_system_status()
         self.reset_pen_color_ui()
         self.reset_tool_state_ui("select")
-        self._bridge.restrictionsChanged.emit(self._protected_view, self._presentation_readonly)
+        self._bridge.restrictionsChanged.emit(
+            self._protected_view, self._presentation_readonly
+        )
 
     def nudge_size(self):
         if self._view is not None:
@@ -522,11 +551,15 @@ class LinuxQmlOverlayWindow(QWidget):
         if self._background_thumbnail_timer is not None:
             return
         self._pending_thumbnails = [
-            i for i in range(1, int(total_pages) + 1) if i not in self._cached_thumbnails
+            i
+            for i in range(1, int(total_pages) + 1)
+            if i not in self._cached_thumbnails
         ]
         self._background_thumbnail_timer = QTimer(self)
         self._background_thumbnail_timer.setSingleShot(False)
-        self._background_thumbnail_timer.timeout.connect(self._process_next_background_thumbnail)
+        self._background_thumbnail_timer.timeout.connect(
+            self._process_next_background_thumbnail
+        )
         self._background_thumbnail_timer.start(500)
 
     def _process_next_background_thumbnail(self):
@@ -608,7 +641,10 @@ class LinuxQmlOverlayWindow(QWidget):
             }
             spec = plugin_map.get(name)
             if spec is None:
-                print(f"[Overlay] Unsupported plugin in Linux QML overlay: {name}", flush=True)
+                print(
+                    f"[Overlay] Unsupported plugin in Linux QML overlay: {name}",
+                    flush=True,
+                )
                 return
             try:
                 module = importlib.import_module(spec[0])
@@ -659,7 +695,9 @@ class LinuxQmlOverlayWindow(QWidget):
         cfg.statusBarShowVolume.valueChanged.connect(lambda *_: self.update_config())
         cfg.statusBarShowNetwork.valueChanged.connect(lambda *_: self.update_config())
         cfg.statusBarShowMusic.valueChanged.connect(lambda *_: self.update_config())
-        cfg.statusBarShowMusicProgress.valueChanged.connect(lambda *_: self.update_config())
+        cfg.statusBarShowMusicProgress.valueChanged.connect(
+            lambda *_: self.update_config()
+        )
 
     def set_active_on_slideshow(self, active: bool, animate: bool = True):
         self._active_on_slideshow = bool(active)
@@ -701,7 +739,9 @@ class LinuxQmlOverlayWindow(QWidget):
     def set_ppt_restrictions(self, protected_view: bool, presentation_readonly: bool):
         self._protected_view = bool(protected_view)
         self._presentation_readonly = bool(presentation_readonly)
-        self._bridge.restrictionsChanged.emit(self._protected_view, self._presentation_readonly)
+        self._bridge.restrictionsChanged.emit(
+            self._protected_view, self._presentation_readonly
+        )
 
     def cleanup(self):
         self._stop_smtc = True

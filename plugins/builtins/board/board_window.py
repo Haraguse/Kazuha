@@ -1,18 +1,34 @@
-
 import os
 import json
 from PySide6.QtQuick import QQuickView, QQuickPaintedItem
 from PySide6.QtQml import qmlRegisterType
-from PySide6.QtCore import QUrl, Qt, Slot, QObject, QPoint, QPointF, QTimer, Signal, Property, QEventLoop, QSize, QRect, QRectF, QPropertyAnimation, QEasingCurve
-from PySide6.QtGui import QColor, QIcon, QAction, QGuiApplication, QPainter, QImage, QPen
+from PySide6.QtCore import (
+    QUrl,
+    Qt,
+    Slot,
+    QObject,
+    QPoint,
+    QPointF,
+    QTimer,
+    Signal,
+    Property,
+    QEventLoop,
+    QSize,
+    QPropertyAnimation,
+    QEasingCurve,
+)
+from PySide6.QtGui import QColor, QGuiApplication, QPainter, QImage, QPen
 from ppt_assistant.core.config import cfg, SETTINGS_PATH, qconfig
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.theme_data import THEMES
 from qfluentwidgets import Theme
 
+
 def _get_app_version():
     try:
-        root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        root_dir = os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        )
         version_path = os.path.join(root_dir, "version.json")
         if not os.path.exists(version_path):
             return ""
@@ -21,6 +37,7 @@ def _get_app_version():
         return str(data.get("version", "")).strip()
     except Exception:
         return ""
+
 
 def _format_version_display(version: str) -> str:
     if not version:
@@ -35,6 +52,7 @@ def _format_version_display(version: str) -> str:
         return f"{base} Patch {patch_num}"
     return str(version).strip()
 
+
 def _is_dev_preview_version(version: str) -> bool:
     if not version:
         return False
@@ -43,6 +61,7 @@ def _is_dev_preview_version(version: str) -> bool:
         return False
     suffix = parts[-1]
     return suffix in ["1", "2", "3", "4"]
+
 
 def _load_language():
     try:
@@ -54,6 +73,7 @@ def _load_language():
         return "zh-CN"
     return "zh-CN"
 
+
 def _color_to_rgba(color) -> tuple[int, int, int, int]:
     if isinstance(color, QColor):
         c = color
@@ -62,6 +82,7 @@ def _color_to_rgba(color) -> tuple[int, int, int, int]:
     if not c.isValid():
         c = QColor("#000000")
     return c.red(), c.green(), c.blue(), c.alpha()
+
 
 def _load_settings_data():
     try:
@@ -73,23 +94,26 @@ def _load_settings_data():
         pass
     return {}
 
+
 def _read_board_settings():
     position = "bottom"
     background_color = "#202020"
     popup_bg = ""
     popup_border = ""
-    eraser_mode = 0 # 0: Point, 1: Stroke
+    eraser_mode = 0  # 0: Point, 1: Stroke
     pen_stroke_enabled = False
-    
+
     # Read settings file once
     settings_data = _load_settings_data()
-        
+
     # Get ThemeId from settings or fallback to cfg
     theme_id = settings_data.get("Appearance", {}).get("ThemeId", cfg.themeId.value)
-    theme_mode = settings_data.get("Appearance", {}).get("ThemeMode", cfg.themeMode.value)
-    
+    theme_mode = settings_data.get("Appearance", {}).get(
+        "ThemeMode", cfg.themeMode.value
+    )
+
     board = settings_data.get("BoardInBoard", {}) or {}
-    
+
     # Read eraser mode
     mode_str = board.get("EraserMode", "point")
     if mode_str == "stroke":
@@ -109,11 +133,18 @@ def _read_board_settings():
             background_color = "#FFF0F0"
             popup_bg = "#FFF0F0"
             popup_border = "rgba(230, 0, 0, 0.15)"
-        
+
         pos = board.get("ToolbarPosition", position)
         if pos in ("top", "bottom", "left", "right"):
             position = pos
-        return position, background_color, popup_bg, popup_border, eraser_mode, pen_stroke_enabled
+        return (
+            position,
+            background_color,
+            popup_bg,
+            popup_border,
+            eraser_mode,
+            pen_stroke_enabled,
+        )
 
     pos = board.get("ToolbarPosition", position)
     if pos in ("top", "bottom", "left", "right"):
@@ -125,7 +156,15 @@ def _read_board_settings():
             background_color = color
         except Exception:
             background_color = "#202020"
-    return position, background_color, popup_bg, popup_border, eraser_mode, pen_stroke_enabled
+    return (
+        position,
+        background_color,
+        popup_bg,
+        popup_border,
+        eraser_mode,
+        pen_stroke_enabled,
+    )
+
 
 def _normalize_theme_mode(raw_theme) -> str:
     if isinstance(raw_theme, Theme):
@@ -144,50 +183,81 @@ def _normalize_theme_mode(raw_theme) -> str:
         pass
     return "light"
 
+
 def _resolve_save_dialog_palette():
     settings_data = _load_settings_data()
     appearance = settings_data.get("Appearance", {}) or {}
     theme_id = appearance.get("ThemeId", cfg.themeId.value)
     theme_mode = _normalize_theme_mode(appearance.get("ThemeMode", cfg.themeMode.value))
-    theme_palette = THEMES.get(theme_id, THEMES["default"]).get(theme_mode, THEMES["default"][theme_mode])
+    theme_palette = THEMES.get(theme_id, THEMES["default"]).get(
+        theme_mode, THEMES["default"][theme_mode]
+    )
     is_dark = theme_mode == "dark"
 
     palette = {
         "darkMode": is_dark,
         "windowBg": "#181818" if is_dark else "#FFFFFF",
-        "dialogBg": "#991E1E1E" if is_dark else "#99FFFFFF",  # 0.6 opacity -> 0.6 * 255 = 153 ≈ 0x99
-        "dialogBorder": "#0AFFFFFF" if is_dark else "#0A000000", # 0.04 opacity -> 10 ≈ 0x0A (视觉减弱描边粗度)
+        "dialogBg": "#991E1E1E"
+        if is_dark
+        else "#99FFFFFF",  # 0.6 opacity -> 0.6 * 255 = 153 ≈ 0x99
+        "dialogBorder": "#0AFFFFFF"
+        if is_dark
+        else "#0A000000",  # 0.04 opacity -> 10 ≈ 0x0A (视觉减弱描边粗度)
         "dialogTitle": "#E5E5E5" if is_dark else "#191919",
         "dialogText": "#E5E5E5" if is_dark else "#191919",
         "textSecondary": "#909090" if is_dark else "#666666",
         "accent": theme_palette.get("accent", "#4A85F6" if is_dark else "#3275F5"),
-        "buttonHover": theme_palette.get("item_hover", "#0FFFFFFF" if is_dark else "#0A000000"), # 0.06 -> 0x0F, 0.04 -> 0x0A
-        "buttonActive": theme_palette.get("btn_active_bg", "#1EFFFFFF" if is_dark else "#1E000000"), # 0.12 -> 0x1E
-        "cardShadow": "#26000000" if is_dark else "#08000000", # 0.15 -> 0x26, 0.03 -> 0x08
+        "buttonHover": theme_palette.get(
+            "item_hover", "#0FFFFFFF" if is_dark else "#0A000000"
+        ),  # 0.06 -> 0x0F, 0.04 -> 0x0A
+        "buttonActive": theme_palette.get(
+            "btn_active_bg", "#1EFFFFFF" if is_dark else "#1E000000"
+        ),  # 0.12 -> 0x1E
+        "cardShadow": "#26000000"
+        if is_dark
+        else "#08000000",  # 0.15 -> 0x26, 0.03 -> 0x08
     }
 
     if theme_id == "year-of-horse":
-        palette.update({
-            "windowBg": "#3A0E0E" if is_dark else "#FFF0F0",
-            "dialogBg": "rgba(255, 69, 0, 0.10)" if is_dark else "rgba(255, 235, 238, 0.95)",
-            "dialogBorder": "rgba(255, 69, 0, 0.30)" if is_dark else "rgba(211, 47, 47, 0.25)",
-            "dialogTitle": "#FFD700" if is_dark else "#B71C1C",
-            "dialogText": "#FFB347" if is_dark else "#B71C1C",
-            "accent": "#FF4500" if is_dark else "#D32F2F",
-            "buttonHover": "rgba(255, 69, 0, 0.22)" if is_dark else "rgba(255, 0, 0, 0.12)",
-            "buttonActive": "rgba(255, 69, 0, 0.30)" if is_dark else "rgba(211, 47, 47, 0.25)",
-            "cardShadow": "rgba(0, 0, 0, 0.40)" if is_dark else "rgba(180, 0, 0, 0.08)",
-        })
+        palette.update(
+            {
+                "windowBg": "#3A0E0E" if is_dark else "#FFF0F0",
+                "dialogBg": "rgba(255, 69, 0, 0.10)"
+                if is_dark
+                else "rgba(255, 235, 238, 0.95)",
+                "dialogBorder": "rgba(255, 69, 0, 0.30)"
+                if is_dark
+                else "rgba(211, 47, 47, 0.25)",
+                "dialogTitle": "#FFD700" if is_dark else "#B71C1C",
+                "dialogText": "#FFB347" if is_dark else "#B71C1C",
+                "accent": "#FF4500" if is_dark else "#D32F2F",
+                "buttonHover": "rgba(255, 69, 0, 0.22)"
+                if is_dark
+                else "rgba(255, 0, 0, 0.12)",
+                "buttonActive": "rgba(255, 69, 0, 0.30)"
+                if is_dark
+                else "rgba(211, 47, 47, 0.25)",
+                "cardShadow": "rgba(0, 0, 0, 0.40)"
+                if is_dark
+                else "rgba(180, 0, 0, 0.08)",
+            }
+        )
     elif theme_id != "default":
         popup_bg = theme_palette.get("popup_bg", "")
-        palette.update({
-            "windowBg": popup_bg if popup_bg else palette["windowBg"],
-            "dialogBg": theme_palette.get("popup_bg", palette["dialogBg"]),
-            "dialogBorder": theme_palette.get("popup_border", palette["dialogBorder"]),
-            "dialogTitle": theme_palette.get("popup_fg", palette["dialogTitle"]),
-            "dialogText": theme_palette.get("popup_fg", palette["dialogText"]),
-            "cardShadow": theme_palette.get("toolbar_shadow", palette["cardShadow"]),
-        })
+        palette.update(
+            {
+                "windowBg": popup_bg if popup_bg else palette["windowBg"],
+                "dialogBg": theme_palette.get("popup_bg", palette["dialogBg"]),
+                "dialogBorder": theme_palette.get(
+                    "popup_border", palette["dialogBorder"]
+                ),
+                "dialogTitle": theme_palette.get("popup_fg", palette["dialogTitle"]),
+                "dialogText": theme_palette.get("popup_fg", palette["dialogText"]),
+                "cardShadow": theme_palette.get(
+                    "toolbar_shadow", palette["cardShadow"]
+                ),
+            }
+        )
 
     return palette
 
@@ -211,10 +281,12 @@ def _resolve_dialog_font_family():
 def _apply_dialog_window_theme(hwnd, is_dark):
     """Apply DWM dark/light mode to give the dialog window the correct title bar colour."""
     import sys
+
     if sys.platform != "win32" or not hwnd:
         return
     try:
         import ctypes
+
         dwmapi = ctypes.windll.dwmapi
         uxtheme = ctypes.windll.uxtheme
         user32 = ctypes.windll.user32
@@ -225,8 +297,15 @@ def _apply_dialog_window_theme(hwnd, is_dark):
         DWMWA_BORDER_COLOR = 34
         _DWM_COLOR_DEFAULT = 0xFFFFFFFF
         val = ctypes.c_int(1 if is_dark else 0)
-        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ctypes.byref(val), ctypes.sizeof(val))
-        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, ctypes.byref(val), ctypes.sizeof(val))
+        dwmapi.DwmSetWindowAttribute(
+            hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ctypes.byref(val), ctypes.sizeof(val)
+        )
+        dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
+            ctypes.byref(val),
+            ctypes.sizeof(val),
+        )
         if is_dark:
             caption = ctypes.c_int(0x00181818)
             text_col = ctypes.c_int(0x00FFFFFF)
@@ -235,9 +314,15 @@ def _apply_dialog_window_theme(hwnd, is_dark):
             caption = ctypes.c_int(_DWM_COLOR_DEFAULT)
             text_col = ctypes.c_int(_DWM_COLOR_DEFAULT)
             border = ctypes.c_int(_DWM_COLOR_DEFAULT)
-        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, ctypes.byref(caption), ctypes.sizeof(caption))
-        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_TEXT_COLOR, ctypes.byref(text_col), ctypes.sizeof(text_col))
-        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ctypes.byref(border), ctypes.sizeof(border))
+        dwmapi.DwmSetWindowAttribute(
+            hwnd, DWMWA_CAPTION_COLOR, ctypes.byref(caption), ctypes.sizeof(caption)
+        )
+        dwmapi.DwmSetWindowAttribute(
+            hwnd, DWMWA_TEXT_COLOR, ctypes.byref(text_col), ctypes.sizeof(text_col)
+        )
+        dwmapi.DwmSetWindowAttribute(
+            hwnd, DWMWA_BORDER_COLOR, ctypes.byref(border), ctypes.sizeof(border)
+        )
         theme = "DarkMode_Explorer" if is_dark else "Explorer"
         uxtheme.SetWindowTheme(hwnd, ctypes.c_wchar_p(theme), None)
         flags = 0x0001 | 0x0002 | 0x0004 | 0x0020
@@ -245,9 +330,11 @@ def _apply_dialog_window_theme(hwnd, is_dark):
     except Exception:
         pass
 
+
 def _load_board_toolbar_position():
     position, _, _, _, _, _ = _read_board_settings()
     return position
+
 
 _TRANSLATIONS = {
     "zh-CN": {
@@ -339,17 +426,23 @@ _TRANSLATIONS = {
         "dialog.save_strokes_yes": "保存する",
         "dialog.save_strokes_no": "保存しない",
         "dialog.cancel": "キャンセル",
-    }
+    },
 }
+
 
 def _t(key: str) -> str:
     lang = _load_language()
     fallback_lang = "zh-TW" if lang == "yue-HK" else "zh-CN"
-    table = _TRANSLATIONS.get(lang) or _TRANSLATIONS.get(fallback_lang) or _TRANSLATIONS["zh-CN"]
+    table = (
+        _TRANSLATIONS.get(lang)
+        or _TRANSLATIONS.get(fallback_lang)
+        or _TRANSLATIONS["zh-CN"]
+    )
     if key in table:
         return table[key]
     default = _TRANSLATIONS.get(fallback_lang) or _TRANSLATIONS["zh-CN"]
     return default.get(key, key)
+
 
 class ColorEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -414,9 +507,14 @@ def _normalize_board_document(raw):
 def _board_document_has_content(document):
     pages = document.get("pages", []) if isinstance(document, dict) else []
     for page in pages:
-        if isinstance(page, dict) and isinstance(page.get("strokes"), list) and page["strokes"]:
+        if (
+            isinstance(page, dict)
+            and isinstance(page.get("strokes"), list)
+            and page["strokes"]
+        ):
             return True
     return False
+
 
 class BoardBackend(QObject):
     windowStateChanged = Signal()
@@ -433,7 +531,7 @@ class BoardBackend(QObject):
     @Slot()
     def closeWindow(self):
         self._window.close()
-        
+
     @Slot()
     def startDrag(self):
         self._window.startSystemMove()
@@ -549,10 +647,15 @@ class NativeBoardItem(QQuickPaintedItem):
     @Slot(float, float, float, float, float, str, bool, float, int)
     def addLine(self, x1, y1, x2, y2, width, colorHex, isEraser, eraserPx, strokeId):
         line = {
-            "x1": x1, "y1": y1, "x2": x2, "y2": y2,
-            "width": width, "color": colorHex,
-            "isEraser": isEraser, "eraserPx": eraserPx,
-            "strokeId": strokeId
+            "x1": x1,
+            "y1": y1,
+            "x2": x2,
+            "y2": y2,
+            "width": width,
+            "color": colorHex,
+            "isEraser": isEraser,
+            "eraserPx": eraserPx,
+            "strokeId": strokeId,
         }
         self._allLines.append(line)
         if self._buffer is not None:
@@ -599,7 +702,7 @@ class NativeBoardItem(QQuickPaintedItem):
         self._allLines = [l for l in self._allLines if l.get("strokeId") != strokeId]
         self._dirty_full = True
         self.update()
-        
+
     @Slot(list)
     def removeStrokesAndRepaint(self, strokeIds):
         if not self._allLines:
@@ -664,8 +767,10 @@ class NativeBoardItem(QQuickPaintedItem):
             return
         painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
+
 # Register the native board item as a QML type
 qmlRegisterType(NativeBoardItem, "KazuhaBoard", 1, 0, "NativeBoardItem")
+
 
 class SaveStrokesDialogBridge(QObject):
     saveRequested = Signal()
@@ -683,6 +788,7 @@ class SaveStrokesDialogBridge(QObject):
     @Slot()
     def chooseCancel(self):
         self.cancelRequested.emit()
+
 
 class SaveStrokesDialog(QQuickView):
     ResultCancel = 0
@@ -732,7 +838,9 @@ class SaveStrokesDialog(QQuickView):
         context.setContextProperty("dialogWindowBg", palette["windowBg"])
         context.setContextProperty("dialogBgApp", palette["dialogBg"])
         context.setContextProperty("dialogTextPrimary", palette["dialogTitle"])
-        context.setContextProperty("dialogTextSecondary", palette.get("textSecondary", palette["dialogText"]))
+        context.setContextProperty(
+            "dialogTextSecondary", palette.get("textSecondary", palette["dialogText"])
+        )
         context.setContextProperty("dialogAccent", palette["accent"])
         context.setContextProperty("dialogDivider", palette["dialogBorder"])
         context.setContextProperty("dialogItemHover", palette["buttonHover"])
@@ -743,11 +851,21 @@ class SaveStrokesDialog(QQuickView):
         if font_family:
             context.setContextProperty("dialogFontFamily", font_family)
 
-        qml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SaveStrokesDialog.qml")
+        qml_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "SaveStrokesDialog.qml"
+        )
         self.setSource(QUrl.fromLocalFile(qml_path))
         root = self.rootObject()
-        width = int(root.property("implicitWidth")) if root and root.property("implicitWidth") else 452
-        height = int(root.property("implicitHeight")) if root and root.property("implicitHeight") else 214
+        width = (
+            int(root.property("implicitWidth"))
+            if root and root.property("implicitWidth")
+            else 452
+        )
+        height = (
+            int(root.property("implicitHeight"))
+            if root and root.property("implicitHeight")
+            else 214
+        )
         self.setColor(QColor(palette["windowBg"]))
         self.resize(width, height)
         self.setMinimumSize(QSize(width, height))
@@ -804,76 +922,131 @@ class SaveStrokesDialog(QQuickView):
         dialog._loop.exec()
         return dialog._result
 
+
 class BoardWindow(QQuickView):
     def __init__(self):
         super().__init__()
         self._is_closing = False
         self._animation = None
-        
+
         # Ensure the native board item is registered specifically for this window's engine
         qmlRegisterType(NativeBoardItem, "KazuhaBoard", 1, 0, "NativeBoardItem")
-        
+
         self.setTitle("小黑板 - Luminalium")
         self.setResizeMode(QQuickView.SizeRootObjectToView)
-        
+
         # Native window with restricted flags
         # Allow Close and Maximize. Disallow Minimize.
         # Note: Qt.CustomizeWindowHint hides the title bar unless Qt.WindowTitleHint is present.
-        self.setFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint | Qt.WindowSystemMenuHint | Qt.WindowCloseButtonHint | Qt.WindowMaximizeButtonHint)
+        self.setFlags(
+            Qt.Window
+            | Qt.CustomizeWindowHint
+            | Qt.WindowTitleHint
+            | Qt.WindowSystemMenuHint
+            | Qt.WindowCloseButtonHint
+            | Qt.WindowMaximizeButtonHint
+        )
 
         icon = load_app_icon()
         if not icon.isNull():
             self.setIcon(icon)
-        
+
         self.backend = BoardBackend(self)
         self.rootContext().setContextProperty("backend", self.backend)
-        
+
         # Icons directory
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        base_dir = os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        )
         icons_dir = os.path.join(base_dir, "icons")
         icons_url = QUrl.fromLocalFile(icons_dir).toString() + "/"
         self._settings_path = SETTINGS_PATH
         self._settings_mtime = None
         self._restore_maximized_after_fullscreen = False
-        self._board_toolbar_position, self._board_background_color, self._board_popup_bg, self._board_popup_border, self._board_eraser_mode, self._board_pen_stroke_enabled = _read_board_settings()
+        (
+            self._board_toolbar_position,
+            self._board_background_color,
+            self._board_popup_bg,
+            self._board_popup_border,
+            self._board_eraser_mode,
+            self._board_pen_stroke_enabled,
+        ) = _read_board_settings()
 
         self.rootContext().setContextProperty("iconsDir", icons_url)
         self.rootContext().setContextProperty("showToolText", cfg.showToolbarText.value)
-        self.rootContext().setContextProperty("boardToolbarPosition", self._board_toolbar_position)
-        self.rootContext().setContextProperty("boardBackgroundColor", self._board_background_color)
-        self.rootContext().setContextProperty("boardPopupBackgroundColor", self._board_popup_bg)
-        self.rootContext().setContextProperty("boardPopupBorderColor", self._board_popup_border)
-        self.rootContext().setContextProperty("boardEraserMode", self._board_eraser_mode)
-        self.rootContext().setContextProperty("boardPenStrokeEnabled", self._board_pen_stroke_enabled)
+        self.rootContext().setContextProperty(
+            "boardToolbarPosition", self._board_toolbar_position
+        )
+        self.rootContext().setContextProperty(
+            "boardBackgroundColor", self._board_background_color
+        )
+        self.rootContext().setContextProperty(
+            "boardPopupBackgroundColor", self._board_popup_bg
+        )
+        self.rootContext().setContextProperty(
+            "boardPopupBorderColor", self._board_popup_border
+        )
+        self.rootContext().setContextProperty(
+            "boardEraserMode", self._board_eraser_mode
+        )
+        self.rootContext().setContextProperty(
+            "boardPenStrokeEnabled", self._board_pen_stroke_enabled
+        )
         self.rootContext().setContextProperty("penText", _t("toolbar.pen"))
         self.rootContext().setContextProperty("eraserText", _t("toolbar.eraser"))
         self.rootContext().setContextProperty("clearText", _t("toolbar.clear"))
         self.rootContext().setContextProperty("undoText", "撤销")
         self.rootContext().setContextProperty("redoText", "重做")
-        self.rootContext().setContextProperty("themeColorsText", _t("toolbar.theme_colors"))
-        self.rootContext().setContextProperty("standardColorsText", _t("toolbar.standard_colors"))
-        self.rootContext().setContextProperty("eraserPointText", _t("toolbar.eraser_point"))
-        self.rootContext().setContextProperty("eraserStrokeText", _t("toolbar.eraser_stroke"))
+        self.rootContext().setContextProperty(
+            "themeColorsText", _t("toolbar.theme_colors")
+        )
+        self.rootContext().setContextProperty(
+            "standardColorsText", _t("toolbar.standard_colors")
+        )
+        self.rootContext().setContextProperty(
+            "eraserPointText", _t("toolbar.eraser_point")
+        )
+        self.rootContext().setContextProperty(
+            "eraserStrokeText", _t("toolbar.eraser_stroke")
+        )
         self.rootContext().setContextProperty("penSizeText", _t("toolbar.pen_size"))
-        self.rootContext().setContextProperty("eraserSizeText", _t("toolbar.eraser_size"))
-        
+        self.rootContext().setContextProperty(
+            "eraserSizeText", _t("toolbar.eraser_size")
+        )
+
         # Colors
         theme_bases = [
-            "#FFFFFF", "#000000", "#E7E6E6", "#44546A", "#4472C4",
-            "#ED7D31", "#A5A5A5", "#FFC000", "#5B9BD5", "#70AD47"
+            "#FFFFFF",
+            "#000000",
+            "#E7E6E6",
+            "#44546A",
+            "#4472C4",
+            "#ED7D31",
+            "#A5A5A5",
+            "#FFC000",
+            "#5B9BD5",
+            "#70AD47",
         ]
         standard_colors = [
-            "#C00000", "#FF0000", "#FFC000", "#FFFF00", "#92D050",
-            "#00B050", "#00B0F0", "#0070C0", "#002060", "#7030A0"
+            "#C00000",
+            "#FF0000",
+            "#FFC000",
+            "#FFFF00",
+            "#92D050",
+            "#00B050",
+            "#00B0F0",
+            "#0070C0",
+            "#002060",
+            "#7030A0",
         ]
         self.rootContext().setContextProperty("themeColors", theme_bases)
         self.rootContext().setContextProperty("standardColors", standard_colors)
 
         cfg.showToolbarText.valueChanged.connect(self._on_show_tool_text_changed)
-        
+
         qml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Board.qml")
         self.setSource(QUrl.fromLocalFile(qml_path))
-        
+
         # Set initial size
         self.resize(800, 600)
         # Center on screen
@@ -894,18 +1067,22 @@ class BoardWindow(QQuickView):
             suffix = version.split(".")[-1]
             w_type = _t(f"watermark.{suffix}")
             display_version = _format_version_display(version)
-            watermark_text = _t("overlay.dev_watermark").format(type=w_type, version=display_version)
+            watermark_text = _t("overlay.dev_watermark").format(
+                type=w_type, version=display_version
+            )
             show_watermark = True
-        
+
         self.rootContext().setContextProperty("watermarkText", watermark_text)
         self.rootContext().setContextProperty("showWatermark", show_watermark)
 
         # Track window state
         self._last_state = self.windowState()
         self.windowStateChanged.connect(self._on_state_changed)
-        
+
         # Strokes path
-        self.strokes_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "board_strokes.json")
+        self.strokes_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "board_strokes.json"
+        )
         self.statusChanged.connect(self._on_status_changed)
         self._settings_watch_timer = QTimer(self)
         self._settings_watch_timer.setInterval(400)
@@ -920,7 +1097,14 @@ class BoardWindow(QQuickView):
         if self._settings_mtime == mtime:
             return
         self._settings_mtime = mtime
-        position, background_color, popup_bg, popup_border, eraser_mode, pen_stroke_enabled = _read_board_settings()
+        (
+            position,
+            background_color,
+            popup_bg,
+            popup_border,
+            eraser_mode,
+            pen_stroke_enabled,
+        ) = _read_board_settings()
         root = self.rootObject()
         if position != self._board_toolbar_position:
             self._board_toolbar_position = position
@@ -970,7 +1154,9 @@ class BoardWindow(QQuickView):
                 self.showNormal()
             return
 
-        self._restore_maximized_after_fullscreen = bool(self.windowState() & Qt.WindowMaximized)
+        self._restore_maximized_after_fullscreen = bool(
+            self.windowState() & Qt.WindowMaximized
+        )
         self.showFullScreen()
 
     def _on_state_changed(self, state):
@@ -990,22 +1176,22 @@ class BoardWindow(QQuickView):
         # Reset closing flags for reuse
         self._is_closing = False
         self._force_close = False
-        
+
         if self._animation and self._animation.state() != QPropertyAnimation.Running:
             geom = self.geometry()
-            
-            # If we were previously closed (moved up), we need to restore 
+
+            # If we were previously closed (moved up), we need to restore
             # the target position first. We'll center it if it's off-screen.
             screen_geom = self.screen().availableGeometry()
             target_y = geom.y()
-            
+
             # Check if current y is likely the "closed" position (off-screen)
             if target_y < screen_geom.y():
                 # Re-center vertically
                 target_y = screen_geom.y() + (screen_geom.height() - geom.height()) // 2
-            
+
             start_y = target_y - geom.height()
-            
+
             self._animation.stop()
             self._animation.setStartValue(start_y)
             self._animation.setEndValue(target_y)
@@ -1022,7 +1208,7 @@ class BoardWindow(QQuickView):
     def _trigger_close_animation(self):
         if self._is_closing:
             return
-            
+
         # Check for content first
         try:
             root = self.rootObject()

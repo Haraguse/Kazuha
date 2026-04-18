@@ -3,6 +3,7 @@ from .base import SystemAPI
 
 _instance = None
 
+
 def get_system_api() -> SystemAPI:
     global _instance
     if _instance is None:

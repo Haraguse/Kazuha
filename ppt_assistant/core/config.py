@@ -9,7 +9,6 @@ from qfluentwidgets import (
     Theme,
     qconfig,
     setThemeColor,
-    themeColor
 )
 from qfluentwidgets.common.config import EnumSerializer
 import os
@@ -19,6 +18,7 @@ import sys
 # Nuitka standalone detection and compatibility
 if hasattr(sys, "nuitka_binary"):
     sys.frozen = True
+
 
 def get_root_dir():
     """Get the root directory of the application, supporting both dev and packaged modes."""
@@ -32,17 +32,23 @@ def get_root_dir():
         # In Nuitka onefile, __file__ points to the temp directory
         # For our structure, the root is 3 levels up from ppt_assistant/core/config.py
         try:
-            return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            return os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            )
         except:
             return os.path.dirname(sys.executable)
-            
+
     # Dev mode: root is 3 levels up from ppt_assistant/core/config.py
     return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-_root_dir = get_root_dir()
-ROOT_DIR = _root_dir # For convenience
 
-from ppt_assistant.core.platform_integration import set_run_at_startup as platform_set_run_at_startup
+_root_dir = get_root_dir()
+ROOT_DIR = _root_dir  # For convenience
+
+from ppt_assistant.core.platform_integration import (
+    set_run_at_startup as platform_set_run_at_startup,
+)
+
 try:
     import winreg
 except ImportError:
@@ -63,8 +69,12 @@ class Config(QConfig):
 
     runAtStartup = ConfigItem("General", "RunAtStartup", False, BoolValidator())
     autoShowOverlay = ConfigItem("General", "AutoShowOverlay", True, BoolValidator())
-    disableAnimations = ConfigItem("General", "DisableAnimations", False, BoolValidator(), restart=True)
-    crashAutoHandleEnabled = ConfigItem("General", "CrashAutoHandleEnabled", False, BoolValidator())
+    disableAnimations = ConfigItem(
+        "General", "DisableAnimations", False, BoolValidator(), restart=True
+    )
+    crashAutoHandleEnabled = ConfigItem(
+        "General", "CrashAutoHandleEnabled", False, BoolValidator()
+    )
     crashAutoHandleMode = OptionsConfigItem(
         "General",
         "CrashAutoHandleMode",
@@ -72,7 +82,9 @@ class Config(QConfig):
         OptionsValidator(["ShowAnalyzer", "Exit", "RestartSilent", "Toast"]),
         restart=False,
     )
-    systemBackdropEnabled = ConfigItem("General", "SystemBackdropEnabled", False, BoolValidator())
+    systemBackdropEnabled = ConfigItem(
+        "General", "SystemBackdropEnabled", False, BoolValidator()
+    )
     systemBackdropType = OptionsConfigItem(
         "General",
         "SystemBackdropType",
@@ -88,27 +100,80 @@ class Config(QConfig):
     showToolbarText = ConfigItem("Toolbar", "ShowToolbarText", False, BoolValidator())
 
     showStatusBar = ConfigItem("Overlay", "ShowStatusBar", False, BoolValidator())
-    statusBarShowTime = ConfigItem("Overlay", "StatusBarShowTime", True, BoolValidator())
-    statusBarShowSeconds = ConfigItem("Overlay", "StatusBarShowSeconds", False, BoolValidator())
-    statusBarShowBattery = ConfigItem("Overlay", "StatusBarShowBattery", True, BoolValidator())
-    statusBarShowVolume = ConfigItem("Overlay", "StatusBarShowVolume", True, BoolValidator())
-    statusBarShowNetwork = ConfigItem("Overlay", "StatusBarShowNetwork", True, BoolValidator())
-    statusBarShowMusic = ConfigItem("Overlay", "StatusBarShowMusic", True, BoolValidator())
-    statusBarShowMusicProgress = ConfigItem("Overlay", "StatusBarShowMusicProgress", True, BoolValidator())
-    clearMode = OptionsConfigItem("Overlay", "ClearMode", "slide", OptionsValidator(["slide", "button"]), restart=False)
-    toolbarPosition = OptionsConfigItem("Overlay", "ToolbarPosition", "bottom", OptionsValidator(["top", "bottom", "left", "right"]), restart=False)
-    flipperPosition = OptionsConfigItem("Overlay", "FlipperPosition", "center", OptionsValidator(["center", "bottom"]), restart=False)
-    safeArea = RangeConfigItem("Overlay", "SafeArea", 0, RangeValidator(0, 100), restart=False)
-    scale = RangeConfigItem("Overlay", "Scale", 1.0, RangeValidator(0.5, 2.0), restart=False)
-    popWindowScale = RangeConfigItem("Overlay", "PopWindowScale", 1.0, RangeValidator(0.5, 3.0), restart=False)
-    toolbarOpacity = RangeConfigItem("Overlay", "ToolbarOpacity", 1.0, RangeValidator(0.1, 1.0), restart=False)
-    sidePageOpacity = RangeConfigItem("Overlay", "SidePageOpacity", 1.0, RangeValidator(0.1, 1.0), restart=False)
-    syncOpacity = ConfigItem("Overlay", "SyncOpacity", False, BoolValidator(), restart=False)
-    strictEdgeAlignment = ConfigItem("Overlay", "StrictEdgeAlignment", False, BoolValidator(), restart=False)
+    statusBarShowTime = ConfigItem(
+        "Overlay", "StatusBarShowTime", True, BoolValidator()
+    )
+    statusBarShowSeconds = ConfigItem(
+        "Overlay", "StatusBarShowSeconds", False, BoolValidator()
+    )
+    statusBarShowBattery = ConfigItem(
+        "Overlay", "StatusBarShowBattery", True, BoolValidator()
+    )
+    statusBarShowVolume = ConfigItem(
+        "Overlay", "StatusBarShowVolume", True, BoolValidator()
+    )
+    statusBarShowNetwork = ConfigItem(
+        "Overlay", "StatusBarShowNetwork", True, BoolValidator()
+    )
+    statusBarShowMusic = ConfigItem(
+        "Overlay", "StatusBarShowMusic", True, BoolValidator()
+    )
+    statusBarShowMusicProgress = ConfigItem(
+        "Overlay", "StatusBarShowMusicProgress", True, BoolValidator()
+    )
+    clearMode = OptionsConfigItem(
+        "Overlay",
+        "ClearMode",
+        "slide",
+        OptionsValidator(["slide", "button"]),
+        restart=False,
+    )
+    toolbarPosition = OptionsConfigItem(
+        "Overlay",
+        "ToolbarPosition",
+        "bottom",
+        OptionsValidator(["top", "bottom", "left", "right"]),
+        restart=False,
+    )
+    flipperPosition = OptionsConfigItem(
+        "Overlay",
+        "FlipperPosition",
+        "center",
+        OptionsValidator(["center", "bottom"]),
+        restart=False,
+    )
+    safeArea = RangeConfigItem(
+        "Overlay", "SafeArea", 0, RangeValidator(0, 100), restart=False
+    )
+    scale = RangeConfigItem(
+        "Overlay", "Scale", 1.0, RangeValidator(0.5, 2.0), restart=False
+    )
+    popWindowScale = RangeConfigItem(
+        "Overlay", "PopWindowScale", 1.0, RangeValidator(0.5, 3.0), restart=False
+    )
+    toolbarOpacity = RangeConfigItem(
+        "Overlay", "ToolbarOpacity", 1.0, RangeValidator(0.1, 1.0), restart=False
+    )
+    sidePageOpacity = RangeConfigItem(
+        "Overlay", "SidePageOpacity", 1.0, RangeValidator(0.1, 1.0), restart=False
+    )
+    syncOpacity = ConfigItem(
+        "Overlay", "SyncOpacity", False, BoolValidator(), restart=False
+    )
+    strictEdgeAlignment = ConfigItem(
+        "Overlay", "StrictEdgeAlignment", False, BoolValidator(), restart=False
+    )
 
     autoHandleInk = ConfigItem("PPT", "AutoHandleInk", True, BoolValidator())
-    pageTurnRateLimit = RangeConfigItem("PPT", "PageTurnRateLimit", 2, RangeValidator(1, 6), restart=False)
-    compatibilityMode = ConfigItem("General", "CompatibilityMode", True if sys.platform != "win32" else False, BoolValidator())
+    pageTurnRateLimit = RangeConfigItem(
+        "PPT", "PageTurnRateLimit", 2, RangeValidator(1, 6), restart=False
+    )
+    compatibilityMode = ConfigItem(
+        "General",
+        "CompatibilityMode",
+        True if sys.platform != "win32" else False,
+        BoolValidator(),
+    )
 
     overlayScreen = ConfigItem("Overlay", "OverlayScreen", "Auto", restart=False)
 
@@ -126,12 +191,28 @@ class Config(QConfig):
         OptionsValidator(["default", "nina_iseri_1_2"]),
         restart=False,
     )
-    showDetailedSplash = ConfigItem("General", "ShowDetailedSplash", False, BoolValidator())
+    showDetailedSplash = ConfigItem(
+        "General", "ShowDetailedSplash", False, BoolValidator()
+    )
     splashStartTime = ConfigItem("General", "SplashStartTime", "08:00", restart=False)
     splashEndTime = ConfigItem("General", "SplashEndTime", "20:00", restart=False)
 
     quickLaunchApps = ConfigItem("Toolbar", "QuickLaunchApps", [], restart=False)
-    toolbarOrder = ConfigItem("Toolbar", "ToolbarOrder", ["select", "pen", "eraser", "spotlight", "board_in_board", "timer", "clear", "apps"], restart=False)
+    toolbarOrder = ConfigItem(
+        "Toolbar",
+        "ToolbarOrder",
+        [
+            "select",
+            "pen",
+            "eraser",
+            "spotlight",
+            "board_in_board",
+            "timer",
+            "clear",
+            "apps",
+        ],
+        restart=False,
+    )
     disabledTools = ConfigItem("Toolbar", "DisabledTools", [], restart=False)
 
 
@@ -185,22 +266,24 @@ def _set_run_at_startup(enabled: bool):
     """设置或取消开机自启 (Windows 注册表)"""
     if sys.platform != "win32":
         return
-        
+
     app_name = "Luminalium"
     try:
         with winreg.OpenKey(
             winreg.HKEY_CURRENT_USER,
             r"Software\Microsoft\Windows\CurrentVersion\Run",
             0,
-            winreg.KEY_SET_VALUE | winreg.KEY_QUERY_VALUE
+            winreg.KEY_SET_VALUE | winreg.KEY_QUERY_VALUE,
         ) as key:
             if enabled:
                 if getattr(sys, "frozen", False):
                     app_path = sys.executable
                 else:
                     return
-                
-                winreg.SetValueEx(key, app_name, 0, winreg.REG_SZ, f'"{app_path}" --autostart')
+
+                winreg.SetValueEx(
+                    key, app_name, 0, winreg.REG_SZ, f'"{app_path}" --autostart'
+                )
             else:
                 return
     except Exception as e:

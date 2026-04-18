@@ -223,7 +223,9 @@ def show_webview_dialog_in_process(
         placeholder=placeholder,
     )
 
-    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    root_dir = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
     html_path = os.path.join(root_dir, "ppt_assistant", "ui", "dialog.html")
 
     webview_runner._warmup_webengine()

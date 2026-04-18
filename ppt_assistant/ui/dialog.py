@@ -3,7 +3,15 @@ import json
 from ppt_assistant.ui.dialog_runtime import show_webview_dialog_in_process
 
 
-def show_webview_dialog(title, text, confirm_text="确认", cancel_text="取消", is_error=False, hide_cancel=False, code=None):
+def show_webview_dialog(
+    title,
+    text,
+    confirm_text="确认",
+    cancel_text="取消",
+    is_error=False,
+    hide_cancel=False,
+    code=None,
+):
     return show_webview_dialog_in_process(
         title=title,
         text=text,
@@ -15,7 +23,15 @@ def show_webview_dialog(title, text, confirm_text="确认", cancel_text="取消"
     )
 
 
-def show_webview_input_dialog(title, text, confirm_text="确认", cancel_text="取消", input_type="password", placeholder="", hide_cancel=False):
+def show_webview_input_dialog(
+    title,
+    text,
+    confirm_text="确认",
+    cancel_text="取消",
+    input_type="password",
+    placeholder="",
+    hide_cancel=False,
+):
     proc = show_webview_dialog_in_process(
         title=title,
         text=text,

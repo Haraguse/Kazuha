@@ -154,7 +154,11 @@ def get_language() -> str:
 def t(key: str) -> str:
     lang = get_language()
     fallback_lang = "zh-TW" if lang == "yue-HK" else "zh-CN"
-    table = _TRANSLATIONS.get(lang) or _TRANSLATIONS.get(fallback_lang) or _TRANSLATIONS["zh-CN"]
+    table = (
+        _TRANSLATIONS.get(lang)
+        or _TRANSLATIONS.get(fallback_lang)
+        or _TRANSLATIONS["zh-CN"]
+    )
     if key in table:
         return table[key]
     default = _TRANSLATIONS.get(fallback_lang) or _TRANSLATIONS["zh-CN"]

@@ -113,7 +113,9 @@ def _run_command(args: list[str], timeout: float = 1.5) -> tuple[bool, str]:
 
 def _combine_output(result: dict) -> str:
     return "\n".join(
-        part for part in (str(result["stdout"] or ""), str(result["stderr"] or "")) if part
+        part
+        for part in (str(result["stdout"] or ""), str(result["stderr"] or ""))
+        if part
     ).strip()
 
 
@@ -170,7 +172,9 @@ def _title_looks_like_slideshow(title: str, *, strict: bool = False) -> bool:
     text = str(title or "").strip().lower()
     if not text:
         return False
-    hints = STRICT_SLIDESHOW_WINDOW_TITLE_HINTS if strict else SLIDESHOW_WINDOW_TITLE_HINTS
+    hints = (
+        STRICT_SLIDESHOW_WINDOW_TITLE_HINTS if strict else SLIDESHOW_WINDOW_TITLE_HINTS
+    )
     return any(hint in text for hint in hints)
 
 
@@ -345,10 +349,9 @@ def get_window_snapshot(window_id: int) -> dict:
     if ok:
         snapshot["title"] = output
     if not snapshot["title"]:
-        snapshot["title"] = (
-            _parse_xprop_string(_read_xprop(window_id, "_NET_WM_NAME"))
-            or _parse_xprop_string(_read_xprop(window_id, "WM_NAME"))
-        )
+        snapshot["title"] = _parse_xprop_string(
+            _read_xprop(window_id, "_NET_WM_NAME")
+        ) or _parse_xprop_string(_read_xprop(window_id, "WM_NAME"))
 
     if caps["getwindowclassname"]:
         ok, output = run_xdotool_command("getwindowclassname", str(window_id))
@@ -366,10 +369,13 @@ def get_window_snapshot(window_id: int) -> dict:
     if not snapshot["pid"]:
         snapshot["pid"] = _parse_xprop_pid(_read_xprop(window_id, "_NET_WM_PID"))
 
-    snapshot["kind"] = infer_linux_presentation_kind(
-        str(snapshot["title"] or ""),
-        str(snapshot["class"] or ""),
-    ) or ""
+    snapshot["kind"] = (
+        infer_linux_presentation_kind(
+            str(snapshot["title"] or ""),
+            str(snapshot["class"] or ""),
+        )
+        or ""
+    )
     snapshot["is_editor"] = window_looks_like_editor(
         title=str(snapshot["title"] or ""),
         class_name=str(snapshot["class"] or ""),
@@ -406,7 +412,9 @@ def get_active_window_snapshot() -> dict:
             continue
         snapshot = get_window_snapshot(window_ids[0])
         snapshot["source"] = command
-        if snapshot["window_id"] and (not snapshot_is_transient(snapshot) or command == commands[-1]):
+        if snapshot["window_id"] and (
+            not snapshot_is_transient(snapshot) or command == commands[-1]
+        ):
             return snapshot
     return get_window_snapshot(0)
 
@@ -439,7 +447,9 @@ def _search_visible_windows(pattern: str) -> list[int]:
 def _search_visible_windows_by_pid(pid: int) -> list[int]:
     if not pid or not get_linux_tool_capabilities().get("search_pid"):
         return []
-    ok, output = run_xdotool_command("search", "--onlyvisible", "--pid", str(int(pid)), ".*")
+    ok, output = run_xdotool_command(
+        "search", "--onlyvisible", "--pid", str(int(pid)), ".*"
+    )
     if not ok:
         return []
     return _parse_window_ids(output)
@@ -457,7 +467,11 @@ def find_linux_slideshow_window(cached_window_id: int = 0) -> dict:
 
     active_snapshot = get_active_window_snapshot()
     active_window_id = int(active_snapshot.get("window_id", 0) or 0)
-    cached_snapshot = get_window_snapshot(cached_window_id) if cached_window_id else get_window_snapshot(0)
+    cached_snapshot = (
+        get_window_snapshot(cached_window_id)
+        if cached_window_id
+        else get_window_snapshot(0)
+    )
 
     if active_window_id and window_looks_like_slideshow(
         title=str(active_snapshot.get("title", "") or ""),
@@ -546,7 +560,7 @@ def extract_filename_from_title(title: str) -> str | None:
         return None
 
     # 匹配 [文件名] 格式，支持中英文、空格、特殊字符
-    match = re.search(r'\[([^\]]+)\]', str(title))
+    match = re.search(r"\[([^\]]+)\]", str(title))
     if match:
         filename = match.group(1).strip()
         return filename if filename else None
@@ -587,7 +601,7 @@ def find_ppt_path_by_pid(pid: int, filename: str) -> str | None:
 
         for line in result.stdout.splitlines():
             # 解析形如: lr-x------ 1 user user 64 Apr 11 18:03 66 -> /home/user/坚持.pptx
-            match = re.search(r'->\s*(.+)$', line)
+            match = re.search(r"->\s*(.+)$", line)
             if not match:
                 continue
 
@@ -598,7 +612,9 @@ def find_ppt_path_by_pid(pid: int, filename: str) -> str | None:
             # 检查文件名是否匹配（支持部分匹配）
             if filename_lower in basename_lower:
                 # 检查是否是 PPT 文件
-                if basename_lower.endswith(('.ppt', '.pptx', '.pps', '.ppsx', '.dps', '.dpt')):
+                if basename_lower.endswith(
+                    (".ppt", ".pptx", ".pps", ".ppsx", ".dps", ".dpt")
+                ):
                     candidates.append(file_path)
 
         if not candidates:
@@ -607,7 +623,7 @@ def find_ppt_path_by_pid(pid: int, filename: str) -> str | None:
         # 优先返回非临时文件路径（不包含 .~ 前缀的路径）
         for path in candidates:
             basename = os.path.basename(path)
-            if not basename.startswith('.~'):
+            if not basename.startswith(".~"):
                 return path
 
         # 如果没有非临时文件，返回第一个候选
@@ -649,7 +665,9 @@ def get_ppt_path_from_slideshow_window(window_id: int) -> str | None:
 
 def has_libreoffice() -> bool:
     """检查系统是否安装了 LibreOffice。"""
-    return shutil.which("libreoffice") is not None or shutil.which("soffice") is not None
+    return (
+        shutil.which("libreoffice") is not None or shutil.which("soffice") is not None
+    )
 
 
 def get_libreoffice_command() -> str:
@@ -706,8 +724,10 @@ def generate_thumbnail_with_libreoffice(
             cmd = [
                 libreoffice,
                 "--headless",
-                "--convert-to", "png",
-                "--outdir", tmpdir,
+                "--convert-to",
+                "png",
+                "--outdir",
+                tmpdir,
                 ppt_path,
             ]
 
@@ -731,8 +751,9 @@ def generate_thumbnail_with_libreoffice(
             if not os.path.exists(generated_path):
                 # 查找所有生成的 png 文件
                 png_files = [
-                    f for f in os.listdir(tmpdir)
-                    if f.endswith('.png') and f.startswith(base_name)
+                    f
+                    for f in os.listdir(tmpdir)
+                    if f.endswith(".png") and f.startswith(base_name)
                 ]
                 if not png_files:
                     return False
@@ -746,7 +767,7 @@ def generate_thumbnail_with_libreoffice(
             with Image.open(generated_path) as img:
                 # 保持宽高比，缩放到指定尺寸
                 img.thumbnail((width, height), Image.Resampling.LANCZOS)
-                img.save(output_path, format='PNG')
+                img.save(output_path, format="PNG")
 
             return True
 
@@ -761,9 +782,15 @@ class LinuxSystemAPI(SystemAPI):
     def get_media_info(self):
         if shutil.which("playerctl"):
             try:
-                status = subprocess.check_output(["playerctl", "status"], text=True).strip()
-                title = subprocess.check_output(["playerctl", "metadata", "title"], text=True).strip()
-                artist = subprocess.check_output(["playerctl", "metadata", "artist"], text=True).strip()
+                status = subprocess.check_output(
+                    ["playerctl", "status"], text=True
+                ).strip()
+                title = subprocess.check_output(
+                    ["playerctl", "metadata", "title"], text=True
+                ).strip()
+                artist = subprocess.check_output(
+                    ["playerctl", "metadata", "artist"], text=True
+                ).strip()
                 return {
                     "title": title,
                     "artist": artist,

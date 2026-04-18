@@ -30,7 +30,5 @@ packages = ["ppt_assistant", "plugins"]
 target-version = "py311"
 line-length = 88
 
-[tool.pyright]
-pythonVersion = "3.11"
-pythonPlatform = "Windows"
-reportMissingImports = false
+[tool.ty.environment]
+root=["."]

@@ -1,25 +1,23 @@
-import sys
 from PySide6.QtWidgets import (
-    QWidget, QApplication, QVBoxLayout, QHBoxLayout, 
-    QFrame, QLabel, QToolButton, QSlider, QGraphicsDropShadowEffect,
-    QStyleOption, QStyle, QFileDialog
+    QWidget,
+    QApplication,
+    QHBoxLayout,
+    QFrame,
+    QLabel,
+    QGraphicsDropShadowEffect,
+    QStyleOption,
+    QStyle,
+    QFileDialog,
 )
-from PySide6.QtCore import (
-    Qt, QRect, QPoint, QSize, Signal, Property, QStandardPaths,
-    QEasingCurve, QPropertyAnimation
-)
-from PySide6.QtGui import (
-    QPainter, QColor, QPen, QBrush, QScreen, 
-    QPixmap, QCursor, QPainterPath, QRegion
-)
-from qfluentwidgets import (
-    Slider, setTheme, Theme, qconfig, FluentIcon as FIF
-)
+from PySide6.QtCore import Qt, QRect, QPoint, QSize, Signal, QStandardPaths
+from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QPixmap, QCursor, QPainterPath
+from qfluentwidgets import Slider, Theme, FluentIcon as FIF
 import os
 import time
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.config import cfg
 from ppt_assistant.core.theme_data import THEMES
+
 
 def _get_theme_color(key, default):
     theme_id = cfg.themeId.value
@@ -27,6 +25,7 @@ def _get_theme_color(key, default):
     if theme_id in THEMES:
         return THEMES[theme_id].get(mode, {}).get(key, default)
     return default
+
 
 class SpotlightToolButton(QFrame):
     clicked = Signal()
@@ -36,33 +35,33 @@ class SpotlightToolButton(QFrame):
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.icon = icon
         self.is_active = is_active
-        
+
         self.setCursor(Qt.PointingHandCursor)
         self.setToolTip(tooltip)
         self.setFixedSize(38, 38)
-        
+
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setAlignment(Qt.AlignCenter)
-        
+
         self.icon_label = QLabel(self)
         self.icon_label.setFixedSize(20, 20)
         self.icon_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.icon_label)
-        
+
         self._update_icon()
         self.update_style()
 
     def _update_icon(self):
         accent_color = "#3275F5"
         inactive_color = "#FFFFFF"
-        
+
         # Check if year-of-horse theme is active
         if cfg.themeId.value == "year-of-horse":
             accent_color = _get_theme_color("accent", "#E60000")
             # For light mode, we need a darker color for inactive icons
             inactive_color = _get_theme_color("toolbar_fg", "#FFFFFF")
-            
+
         color = QColor(accent_color) if self.is_active else QColor(inactive_color)
         # 使用 FluentIcon 的 icon() 方法生成带颜色的图标并转为 pixmap
         pixmap = self.icon.icon(color=color).pixmap(20, 20)
@@ -77,10 +76,10 @@ class SpotlightToolButton(QFrame):
     def update_style(self):
         active_bg = "rgba(255, 255, 255, 0.1)"
         hover_bg = "rgba(255, 255, 255, 0.15)"
-        
+
         if cfg.themeId.value == "year-of-horse":
-             active_bg = _get_theme_color("btn_active_bg", "rgba(255, 255, 255, 0.1)")
-             hover_bg = _get_theme_color("btn_hover_bg", "rgba(255, 255, 255, 0.15)")
+            active_bg = _get_theme_color("btn_active_bg", "rgba(255, 255, 255, 0.1)")
+            hover_bg = _get_theme_color("btn_hover_bg", "rgba(255, 255, 255, 0.15)")
 
         bg = active_bg if self.is_active else "transparent"
         self.setStyleSheet(f"""
@@ -97,8 +96,10 @@ class SpotlightToolButton(QFrame):
         if event.button() == Qt.LeftButton:
             self.clicked.emit()
 
+
 class SpotlightControlPanel(QFrame):
     """聚光灯控制面板 - 像素级还原顶层工具栏风格"""
+
     mode_changed = Signal(str)
     lights_off_toggled = Signal(bool)
     opacity_changed = Signal(int)
@@ -115,13 +116,13 @@ class SpotlightControlPanel(QFrame):
         icon = load_app_icon()
         if not icon.isNull():
             self.setWindowIcon(icon)
-        
+
         # 布局
         self.layout = QHBoxLayout(self)
         self.layout.setContentsMargins(12, 8, 12, 8)
         self.layout.setSpacing(4)
         self.layout.setSizeConstraint(QHBoxLayout.SetFixedSize)
-        
+
         # 模式切换
         # 只保留放大镜按钮，点击切换 放大/高亮
         self.btn_magnify = SpotlightToolButton(FIF.ZOOM_IN, "放大镜模式", self)
@@ -133,7 +134,9 @@ class SpotlightControlPanel(QFrame):
         self.line1.setFrameShape(QFrame.VLine)
         self.line1.setFixedWidth(1)
         self.line1.setFixedHeight(24)
-        self.line1.setStyleSheet("background-color: rgba(255, 255, 255, 0.15); border: none; margin: 0 4px;")
+        self.line1.setStyleSheet(
+            "background-color: rgba(255, 255, 255, 0.15); border: none; margin: 0 4px;"
+        )
         self.layout.addWidget(self.line1)
 
         # 关灯模式
@@ -160,7 +163,7 @@ class SpotlightControlPanel(QFrame):
         # 整体样式
         bg_color = "#202020"
         border_color = "rgba(255, 255, 255, 0.08)"
-        
+
         if cfg.themeId.value == "year-of-horse":
             # Use theme toolbar background
             bg_color = _get_theme_color("toolbar_bg", "#2A0505")
@@ -173,7 +176,7 @@ class SpotlightControlPanel(QFrame):
                 border-radius: 27px;
             }}
         """)
-        
+
         shadow = QGraphicsDropShadowEffect(self)
         shadow.setBlurRadius(40)
         shadow.setColor(QColor(0, 0, 0, 120))
@@ -192,7 +195,7 @@ class SpotlightControlPanel(QFrame):
         # 切换放大镜状态
         is_magnify = not self.btn_magnify.is_active
         self.btn_magnify.set_active(is_magnify)
-        self.mode_changed.emit('magnify' if is_magnify else 'highlight')
+        self.mode_changed.emit("magnify" if is_magnify else "highlight")
 
     def _toggle_lights(self):
         active = not self.btn_lights.is_active
@@ -201,33 +204,30 @@ class SpotlightControlPanel(QFrame):
         self.opacity_slider.setEnabled(not active)
         self.lights_off_toggled.emit(active)
 
+
 class SpotlightWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowFlags(
-            Qt.FramelessWindowHint | 
-            Qt.WindowStaysOnTopHint | 
-            Qt.Tool
-        )
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
 
         icon = load_app_icon()
         if not icon.isNull():
             self.setWindowIcon(icon)
-        
+
         # 初始化状态
         self.selection_rect = QRect()
         self.start_point = QPoint()
         self.is_selecting = False
-        self.mode = 'highlight' # 'highlight', 'magnify'
+        self.mode = "highlight"  # 'highlight', 'magnify'
         self.lights_off = False
         self.dim_opacity = 180
         self.magnification = 2.0
         self.original_selection_rect = None
-        
+
         # 屏幕截图（用于放大镜）
         self.full_screen_pixmap = None
-        
+
         # 控制面板
         self.control_panel = SpotlightControlPanel()
         self.control_panel.mode_changed.connect(self.set_mode)
@@ -235,7 +235,7 @@ class SpotlightWindow(QWidget):
         self.control_panel.opacity_changed.connect(self.set_opacity)
         self.control_panel.save_requested.connect(self.save_selection)
         self.control_panel.close_requested.connect(self.close)
-        
+
         # 全屏覆盖
         self.update_geometry()
         self.capture_screen()
@@ -254,40 +254,50 @@ class SpotlightWindow(QWidget):
         # 抓取所有屏幕的组合
         desktop = QApplication.primaryScreen()
         screens = QApplication.screens()
-        
+
         # 计算总范围
         total_rect = QRect()
         for s in screens:
             total_rect = total_rect.united(s.geometry())
-        
+
         self.setGeometry(total_rect)
-        
+
         # 抓取整个桌面
         self.full_screen_pixmap = QPixmap(total_rect.size())
         painter = QPainter(self.full_screen_pixmap)
         for s in screens:
-            painter.drawPixmap(s.geometry().topLeft() - total_rect.topLeft(), s.grabWindow(0))
+            painter.drawPixmap(
+                s.geometry().topLeft() - total_rect.topLeft(), s.grabWindow(0)
+            )
         painter.end()
 
     def set_mode(self, mode):
-        if mode == 'magnify' and self.mode == 'highlight' and not self.selection_rect.isEmpty():
+        if (
+            mode == "magnify"
+            and self.mode == "highlight"
+            and not self.selection_rect.isEmpty()
+        ):
             # 记录原始选区，并按比例放大选区本身
             self.original_selection_rect = QRect(self.selection_rect)
-            
+
             center = self.selection_rect.center()
             new_w = self.selection_rect.width() * self.magnification
             new_h = self.selection_rect.height() * self.magnification
-            
+
             self.selection_rect = QRect(
                 int(center.x() - new_w / 2),
                 int(center.y() - new_h / 2),
                 int(new_w),
-                int(new_h)
+                int(new_h),
             )
             # 边界检查
             self.selection_rect = self.selection_rect.intersected(self.rect())
             self._update_panel_position()
-        elif mode == 'highlight' and self.mode == 'magnify' and self.original_selection_rect:
+        elif (
+            mode == "highlight"
+            and self.mode == "magnify"
+            and self.original_selection_rect
+        ):
             # 恢复原始选区
             self.selection_rect = QRect(self.original_selection_rect)
             self.original_selection_rect = None
@@ -303,24 +313,24 @@ class SpotlightWindow(QWidget):
             self.control_panel.adjustSize()
             panel_width = self.control_panel.width()
             panel_height = self.control_panel.height()
-            
+
             # 计算选区在全局屏幕中的位置
             selection_global_rect = QRect(
                 self.mapToGlobal(self.selection_rect.topLeft()),
-                self.selection_rect.size()
+                self.selection_rect.size(),
             )
-            
+
             panel_x = selection_global_rect.center().x() - panel_width / 2
-            panel_y = selection_global_rect.bottom() + 12 # 距离选区底部 12px
-            
+            panel_y = selection_global_rect.bottom() + 12  # 距离选区底部 12px
+
             panel_pos = QPoint(int(panel_x), int(panel_y))
-            
+
             # 获取当前鼠标所在的屏幕
             current_screen = QApplication.screenAt(QCursor.pos())
             if not current_screen:
                 current_screen = QApplication.primaryScreen()
             screen_geo = current_screen.geometry()
-            
+
             # 边界检查（预留阴影空间）
             shadow_margin = 24
             if panel_pos.x() < screen_geo.left() + shadow_margin:
@@ -329,13 +339,13 @@ class SpotlightWindow(QWidget):
                 panel_pos.setX(screen_geo.right() - panel_width - shadow_margin)
             if panel_pos.y() < screen_geo.top() + shadow_margin:
                 panel_pos.setY(screen_geo.top() + shadow_margin)
-            
+
             # 如果下方放不下，或者超出了当前屏幕底部
             if panel_pos.y() + panel_height > screen_geo.bottom() - shadow_margin:
                 panel_pos.setY(selection_global_rect.top() - panel_height - 12)
             if panel_pos.y() < screen_geo.top() + shadow_margin:
                 panel_pos.setY(screen_geo.top() + shadow_margin)
-            
+
             self.control_panel.move(panel_pos)
             self.control_panel.show()
             # 确保在顶层
@@ -374,7 +384,9 @@ class SpotlightWindow(QWidget):
             return
         default_path = self._default_save_path()
         self.close()
-        file_path, _ = QFileDialog.getSaveFileName(None, "保存截图", default_path, "PNG 图片 (*.png)")
+        file_path, _ = QFileDialog.getSaveFileName(
+            None, "保存截图", default_path, "PNG 图片 (*.png)"
+        )
         if not file_path:
             return
         if not os.path.splitext(file_path)[1]:
@@ -406,20 +418,24 @@ class SpotlightWindow(QWidget):
 
         # 1. 绘制背景阴影
         overlay_color = QColor(0, 0, 0, 255 if self.lights_off else self.dim_opacity)
-        
+
         path = QPainterPath()
         path.addRect(self.rect())
-        
+
         if not self.selection_rect.isEmpty():
             # 镂空选区
             selection_path = QPainterPath()
             selection_path.addRoundedRect(self.selection_rect, 4, 4)
             path = path.subtracted(selection_path)
-            
+
         painter.fillPath(path, QBrush(overlay_color))
 
         # 2. 如果是放大模式且有选区，绘制放大内容
-        if self.mode == 'magnify' and not self.selection_rect.isEmpty() and self.full_screen_pixmap:
+        if (
+            self.mode == "magnify"
+            and not self.selection_rect.isEmpty()
+            and self.full_screen_pixmap
+        ):
             if self.original_selection_rect:
                 # 如果有记录原始选区，则将原始选区内容拉伸绘制到当前选区
                 source_rect = self.original_selection_rect
@@ -429,20 +445,19 @@ class SpotlightWindow(QWidget):
                 h = self.selection_rect.height() / self.magnification
                 center = self.selection_rect.center()
                 source_rect = QRect(
-                    int(center.x() - w/2), 
-                    int(center.y() - h/2), 
-                    int(w), 
-                    int(h)
+                    int(center.x() - w / 2), int(center.y() - h / 2), int(w), int(h)
                 )
-            
-            painter.drawPixmap(self.selection_rect, self.full_screen_pixmap, source_rect)
+
+            painter.drawPixmap(
+                self.selection_rect, self.full_screen_pixmap, source_rect
+            )
 
         # 3. 绘制边框
         if not self.selection_rect.isEmpty():
             accent_color = "#3275F5"
             if cfg.themeId.value == "year-of-horse":
                 accent_color = _get_theme_color("accent", "#E60000")
-                
+
             pen = QPen(QColor(accent_color), 2)
             painter.setPen(pen)
             painter.drawRoundedRect(self.selection_rect, 4, 4)

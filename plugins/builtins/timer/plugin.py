@@ -164,6 +164,7 @@ class TimerPlugin(AssistantPlugin):
     def _ensure_webview_module(self):
         if self._wv is None:
             import plugins.webview_runner as webview_runner
+
             self._wv = webview_runner
         return self._wv
 
@@ -245,9 +246,13 @@ class TimerPlugin(AssistantPlugin):
         env = _build_linux_webview_env(
             {
                 "ASSETS_PATH": assets_path,
-                "TIMER_REMAINING": str(int(max(0, self._timer_manager.remaining_seconds))),
+                "TIMER_REMAINING": str(
+                    int(max(0, self._timer_manager.remaining_seconds))
+                ),
                 "TIMER_TOTAL": str(int(max(0, self._timer_manager.total_seconds))),
-                "TIMER_IS_RUNNING": "true" if self._timer_manager.is_running else "false",
+                "TIMER_IS_RUNNING": "true"
+                if self._timer_manager.is_running
+                else "false",
             }
         )
         cmd = _build_webview_runner_command(
@@ -289,8 +294,12 @@ class TimerPlugin(AssistantPlugin):
 
         screen = QApplication.primaryScreen()
         screen_geo = screen.geometry() if screen else QWidget().screen().geometry()
-        width_val = int(min(max(600, screen_geo.width() * 0.35), screen_geo.width() * 0.5))
-        height_val = int(min(max(500, screen_geo.height() * 0.45), screen_geo.height() * 0.6))
+        width_val = int(
+            min(max(600, screen_geo.width() * 0.35), screen_geo.width() * 0.5)
+        )
+        height_val = int(
+            min(max(500, screen_geo.height() * 0.45), screen_geo.height() * 0.6)
+        )
         width = int(min(width_val + 350, screen_geo.width()))
         height = int(min(height_val + 150, screen_geo.height()))
 
@@ -309,8 +318,19 @@ class TimerPlugin(AssistantPlugin):
         api.version = self._load_json_file(version_path)
 
         theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
-        defer_load = wv._should_defer_initial_load(html_path, "Luminalium Timer Plugin", True)
-        window = wv.MainWindow("Luminalium Timer Plugin", html_path, api, width, height, theme_mode, True, defer_load)
+        defer_load = wv._should_defer_initial_load(
+            html_path, "Luminalium Timer Plugin", True
+        )
+        window = wv.MainWindow(
+            "Luminalium Timer Plugin",
+            html_path,
+            api,
+            width,
+            height,
+            theme_mode,
+            True,
+            defer_load,
+        )
         window.destroyed.connect(self._on_window_destroyed)
 
         self._api = api

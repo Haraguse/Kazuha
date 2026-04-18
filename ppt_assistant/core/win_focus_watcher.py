@@ -1,5 +1,6 @@
 import sys
 import ctypes
+
 try:
     from ctypes import wintypes
 except ImportError:
@@ -105,11 +106,22 @@ class _WinEventHookThread(QThread):
             WINEVENT_OUTOFCONTEXT = 0x0000
             WINEVENT_SKIPOWNPROCESS = 0x0002
 
-            def _cb(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsEventTime):
+            def _cb(
+                hWinEventHook,
+                event,
+                hwnd,
+                idObject,
+                idChild,
+                dwEventThread,
+                dwmsEventTime,
+            ):
                 try:
                     if event == EVENT_SYSTEM_FOREGROUND and hwnd:
                         self.foreground_changed.emit(int(hwnd))
-                    elif event in (EVENT_SYSTEM_MINIMIZESTART, EVENT_SYSTEM_MINIMIZEEND):
+                    elif event in (
+                        EVENT_SYSTEM_MINIMIZESTART,
+                        EVENT_SYSTEM_MINIMIZEEND,
+                    ):
                         self.foreground_changed.emit(0)
                 except Exception:
                     pass
@@ -330,13 +342,17 @@ class WindowsFocusWatcher(QObject):
         try:
             kernel32 = ctypes.windll.kernel32
             PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-            handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
+            handle = kernel32.OpenProcess(
+                PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid)
+            )
             if not handle:
                 return ""
             try:
                 size = wintypes.DWORD(512)
                 buf = ctypes.create_unicode_buffer(512)
-                if ctypes.windll.kernel32.QueryFullProcessImageNameW(handle, 0, buf, ctypes.byref(size)):
+                if ctypes.windll.kernel32.QueryFullProcessImageNameW(
+                    handle, 0, buf, ctypes.byref(size)
+                ):
                     path = (buf.value or "").strip().lower()
                     if path:
                         return path.rsplit("\\", 1)[-1]
@@ -368,10 +384,15 @@ class WindowsFocusWatcher(QObject):
                     focus_on_slideshow = bool(root and root == hwnd)
                     if not focus_on_slideshow and cls in PRESENTATION_SLIDESHOW_CLASSES:
                         focus_on_slideshow = True
-                    if not focus_on_slideshow and self._title_looks_like_slideshow(title):
+                    if not focus_on_slideshow and self._title_looks_like_slideshow(
+                        title
+                    ):
                         focus_on_slideshow = True
             else:
-                focus_on_slideshow = cls in PRESENTATION_SLIDESHOW_CLASSES or self._title_looks_like_slideshow(title)
+                focus_on_slideshow = (
+                    cls in PRESENTATION_SLIDESHOW_CLASSES
+                    or self._title_looks_like_slideshow(title)
+                )
 
         if focus_on_slideshow != self._last_focus_on_slideshow:
             self._last_focus_on_slideshow = focus_on_slideshow

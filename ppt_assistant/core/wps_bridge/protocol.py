@@ -31,9 +31,13 @@ def default_protocol_dir() -> Path:
         meipass = getattr(sys, "_MEIPASS", None)
         if meipass:
             candidates.append(Path(meipass) / "Luminalium2WPS" / "protocol")
-        candidates.append(Path(sys.executable).resolve().parent / "Luminalium2WPS" / "protocol")
+        candidates.append(
+            Path(sys.executable).resolve().parent / "Luminalium2WPS" / "protocol"
+        )
 
-    candidates.append(Path(__file__).resolve().parents[3] / "Luminalium2WPS" / "protocol")
+    candidates.append(
+        Path(__file__).resolve().parents[3] / "Luminalium2WPS" / "protocol"
+    )
     for candidate in candidates:
         if candidate.is_dir():
             return candidate
@@ -44,7 +48,9 @@ class WpsBridgeProtocol:
     """Schema-backed JSON codec for the Luminalium2WPS WebSocket protocol."""
 
     def __init__(self, protocol_dir: str | Path | None = None):
-        self.protocol_dir = Path(protocol_dir) if protocol_dir is not None else default_protocol_dir()
+        self.protocol_dir = (
+            Path(protocol_dir) if protocol_dir is not None else default_protocol_dir()
+        )
         self._schemas = self._load_schemas(self.protocol_dir)
         self._registry = self._build_registry(self._schemas)
         self._message_schemas = self._build_message_schemas()
@@ -124,7 +130,9 @@ class WpsBridgeProtocol:
 
     def _load_schemas(self, protocol_dir: Path) -> dict[str, dict[str, Any]]:
         if not protocol_dir.is_dir():
-            raise ProtocolError(f"WPS bridge protocol directory not found: {protocol_dir}")
+            raise ProtocolError(
+                f"WPS bridge protocol directory not found: {protocol_dir}"
+            )
 
         schemas: dict[str, dict[str, Any]] = {}
         for path in sorted(protocol_dir.glob("*.schema.json")):

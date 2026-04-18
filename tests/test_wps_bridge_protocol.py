@@ -78,7 +78,9 @@ class WpsBridgeProtocolTests(unittest.TestCase):
         for message_type, payload in commands.items():
             with self.subTest(message_type=message_type):
                 raw = self.protocol.encode(message_type, payload)
-                self.assertEqual(self.protocol.decode(raw)["message_type"], message_type)
+                self.assertEqual(
+                    self.protocol.decode(raw)["message_type"], message_type
+                )
 
     def test_command_result_round_trip(self):
         raw = self.protocol.encode(

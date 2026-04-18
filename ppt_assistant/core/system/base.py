@@ -2,6 +2,7 @@ class SystemAPI:
     """
     Abstract base class for system-level operations.
     """
+
     def get_media_info(self):
         """
         Get current media playing info (title, artist, status, timeline).
@@ -26,13 +27,13 @@ class SystemAPI:
         Get the HWND of the PowerPoint slideshow window.
         """
         return 0
-    
+
     def start_focus_watcher(self, callback):
         """
         Start watching for window focus changes.
         """
         pass
-    
+
     def stop_focus_watcher(self):
         """
         Stop watching for window focus changes.

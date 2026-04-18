@@ -1,16 +1,28 @@
 import json
 import os
 import sys
-import time
 
-from PySide6.QtCore import QObject, QEvent, QTimer, Qt, Signal, Slot
-from PySide6.QtGui import QColor, QCursor, QGuiApplication, QIcon, QPainter, QPixmap
+from PySide6.QtCore import QObject, QTimer, Qt, Signal
+from PySide6.QtGui import QColor, QCursor, QIcon, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QHBoxLayout, QMenu, QSystemTrayIcon, QVBoxLayout, QWidget
-from qfluentwidgets import Action, BodyLabel, FluentIcon as FIF, Flyout, FlyoutViewBase, PrimaryPushButton, PushButton, RoundMenu, SubtitleLabel, isDarkTheme, themeColor
+from qfluentwidgets import (
+    Action,
+    BodyLabel,
+    FluentIcon as FIF,
+    Flyout,
+    FlyoutViewBase,
+    PrimaryPushButton,
+    PushButton,
+    RoundMenu,
+    SubtitleLabel,
+    isDarkTheme,
+    themeColor,
+)
 
 from ppt_assistant.core.config import SETTINGS_PATH, cfg, ROOT_DIR
 from ppt_assistant.core.i18n import get_language, t
+
 ICON_DIR = os.path.join(ROOT_DIR, "icons")
 VERSION_PATH = os.path.join(ROOT_DIR, "version.json")
 
@@ -170,7 +182,9 @@ def _load_version_text():
     build = str(data.get("build", "") or "").strip()
     code_name = str(data.get("code_name", "") or "").strip()
 
-    parts = [part for part in [version, f"Build {build}" if build else "", code_name] if part]
+    parts = [
+        part for part in [version, f"Build {build}" if build else "", code_name] if part
+    ]
     return "  ".join(parts)
 
 
@@ -342,7 +356,9 @@ def _theme_variant_name() -> str:
 
 
 def _monet_tokens(palette: dict, is_dark: bool):
-    accent = str(palette.get("primary") or palette.get("accent") or QColor(themeColor()).name())
+    accent = str(
+        palette.get("primary") or palette.get("accent") or QColor(themeColor()).name()
+    )
     background = str(palette.get("background") or "#f2f3f5")
     surface = str(palette.get("surface") or "#ffffff")
     preferred_text = str(palette.get("text") or "#000000")
@@ -363,13 +379,17 @@ def _monet_tokens(palette: dict, is_dark: bool):
         "card_border": _rgba(accent, 0.28 if is_dark else 0.20),
         "item_hover": _rgba(accent, 0.22 if is_dark else 0.14),
         "shadow_color": shadow_color,
-        "shadow_main": "0 12px 34px var(--shadow-color)" if is_dark else "0 6px 22px var(--shadow-color)",
+        "shadow_main": "0 12px 34px var(--shadow-color)"
+        if is_dark
+        else "0 6px 22px var(--shadow-color)",
     }
 
 
 def _resolve_theme_base(theme_id: str, variant: str):
     theme_key = theme_id if theme_id in PRESET_THEME_BASES else "default"
-    base = PRESET_THEME_BASES.get(theme_key, PRESET_THEME_BASES["default"]).get(variant, {})
+    base = PRESET_THEME_BASES.get(theme_key, PRESET_THEME_BASES["default"]).get(
+        variant, {}
+    )
     if base:
         return dict(base)
 
@@ -380,8 +400,16 @@ def _resolve_theme_base(theme_id: str, variant: str):
 def _build_theme_tokens(theme_id: str, variant: str):
     is_dark = variant == "dark"
     settings_data = _load_settings_json()
-    appearance = settings_data.get("Appearance") if isinstance(settings_data.get("Appearance"), dict) else {}
-    palette = appearance.get("MonetPalette") if isinstance(appearance.get("MonetPalette"), dict) else None
+    appearance = (
+        settings_data.get("Appearance")
+        if isinstance(settings_data.get("Appearance"), dict)
+        else {}
+    )
+    palette = (
+        appearance.get("MonetPalette")
+        if isinstance(appearance.get("MonetPalette"), dict)
+        else None
+    )
 
     if theme_id in ("monet", "custom") and palette:
         base = _monet_tokens(palette, is_dark)
@@ -396,28 +424,60 @@ def _build_theme_tokens(theme_id: str, variant: str):
     return {
         "bg-app": bg_app,
         "bg-surface": bg_surface,
-        "text-primary": str(base.get("text_primary") or ("#f5f5f5" if is_dark else "#1a1c1e")),
-        "text-secondary": str(base.get("text_secondary") or _rgba("#f5f5f5" if is_dark else "#1a1c1e", 0.70 if is_dark else 0.68)),
+        "text-primary": str(
+            base.get("text_primary") or ("#f5f5f5" if is_dark else "#1a1c1e")
+        ),
+        "text-secondary": str(
+            base.get("text_secondary")
+            or _rgba("#f5f5f5" if is_dark else "#1a1c1e", 0.70 if is_dark else 0.68)
+        ),
         "accent-blue": accent,
-        "divider": str(base.get("divider") or ("rgba(255, 255, 255, 0.12)" if is_dark else "rgba(0, 0, 0, 0.08)")),
+        "divider": str(
+            base.get("divider")
+            or ("rgba(255, 255, 255, 0.12)" if is_dark else "rgba(0, 0, 0, 0.08)")
+        ),
         "card-bg": str(base.get("card_bg") or _rgba(accent, 0.18 if is_dark else 0.10)),
-        "card-border": str(base.get("card_border") or _rgba(accent, 0.28 if is_dark else 0.20)),
-        "item-hover": str(base.get("item_hover") or _rgba(accent, 0.22 if is_dark else 0.14)),
-        "shadow-color": str(base.get("shadow_color") or ("rgba(0, 0, 0, 0.50)" if is_dark else _rgba(accent, 0.18))),
-        "shadow-main": str(base.get("shadow_main") or ("0 12px 34px var(--shadow-color)" if is_dark else "0 6px 22px var(--shadow-color)")),
+        "card-border": str(
+            base.get("card_border") or _rgba(accent, 0.28 if is_dark else 0.20)
+        ),
+        "item-hover": str(
+            base.get("item_hover") or _rgba(accent, 0.22 if is_dark else 0.14)
+        ),
+        "shadow-color": str(
+            base.get("shadow_color")
+            or ("rgba(0, 0, 0, 0.50)" if is_dark else _rgba(accent, 0.18))
+        ),
+        "shadow-main": str(
+            base.get("shadow_main")
+            or (
+                "0 12px 34px var(--shadow-color)"
+                if is_dark
+                else "0 6px 22px var(--shadow-color)"
+            )
+        ),
         "tray-panel-bg": f"linear-gradient(180deg, {_rgba(bg_surface, 0.98)}, {_rgba(bg_app, 0.98)})",
         "tray-header-bg": _rgba(bg_surface, 0.82 if is_dark else 0.90),
-        "tray-header-border": str(base.get("divider") or ("rgba(255, 255, 255, 0.12)" if is_dark else "rgba(0, 0, 0, 0.08)")),
+        "tray-header-border": str(
+            base.get("divider")
+            or ("rgba(255, 255, 255, 0.12)" if is_dark else "rgba(0, 0, 0, 0.08)")
+        ),
         "tray-icon-soft": _rgba(accent, 0.16 if is_dark else 0.10),
         "tray-icon-border": _rgba(accent, 0.28 if is_dark else 0.20),
         "tray-danger": danger,
         "tray-danger-soft": _rgba(danger, 0.16 if is_dark else 0.10),
         "tray-close-hover": _rgba(accent, 0.12 if is_dark else 0.08),
         "tray-bg": _mix_color(bg_app, "#ffffff", 0.55 if is_dark else 0.18),
-        "tray-content-bg": "#ffffff" if not is_dark else _mix_color(bg_surface, "#ffffff", 0.06),
-        "tray-content-border": "rgba(255, 255, 255, 0.08)" if is_dark else "rgba(0, 0, 0, 0.04)",
+        "tray-content-bg": "#ffffff"
+        if not is_dark
+        else _mix_color(bg_surface, "#ffffff", 0.06),
+        "tray-content-border": "rgba(255, 255, 255, 0.08)"
+        if is_dark
+        else "rgba(0, 0, 0, 0.04)",
         "tray-footer-bg": _rgba(bg_surface, 0.72 if is_dark else 0.50),
-        "tray-footer-border": str(base.get("divider") or ("rgba(255, 255, 255, 0.12)" if is_dark else "rgba(0, 0, 0, 0.08)")),
+        "tray-footer-border": str(
+            base.get("divider")
+            or ("rgba(255, 255, 255, 0.12)" if is_dark else "rgba(0, 0, 0, 0.08)")
+        ),
         "tray-action-hover": _rgba(accent, 0.10 if is_dark else 0.08),
     }
 
@@ -425,7 +485,12 @@ def _build_theme_tokens(theme_id: str, variant: str):
 class TrayFlyoutAnchor(QWidget):
     def __init__(self, anchor_pos):
         super().__init__(None)
-        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint | Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(
+            Qt.Tool
+            | Qt.FramelessWindowHint
+            | Qt.NoDropShadowWindowHint
+            | Qt.WindowStaysOnTopHint
+        )
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
@@ -442,7 +507,9 @@ class ActionConfirmFlyoutView(FlyoutViewBase):
         self.setObjectName("trayActionConfirmFlyoutView")
         self.setFixedWidth(332)
 
-        text_secondary = "rgba(255, 255, 255, 0.70)" if isDarkTheme() else "rgba(0, 0, 0, 0.60)"
+        text_secondary = (
+            "rgba(255, 255, 255, 0.70)" if isDarkTheme() else "rgba(0, 0, 0, 0.60)"
+        )
 
         root_layout = QVBoxLayout(self)
         root_layout.setContentsMargins(20, 18, 20, 18)
@@ -495,7 +562,7 @@ class SystemTray(QObject):
         self._native_menu = None
         self._confirm_flyout = None
         self._confirm_anchor = None
-        self._use_native_menu = (sys.platform == "linux")
+        self._use_native_menu = sys.platform == "linux"
 
         self._update_icon()
         self.refresh_menu()
@@ -597,15 +664,21 @@ class SystemTray(QObject):
         return icon
 
     def _update_timer_text(self):
-        if not hasattr(self, '_act_timer') or not self._act_timer: return
+        if not hasattr(self, "_act_timer") or not self._act_timer:
+            return
         timer_text = t("tray.timer")
         try:
             from ppt_assistant.core.timer_manager import TimerManager
+
             tm = TimerManager()
             if tm.remaining_seconds > 0:
                 mins, secs = divmod(int(tm.remaining_seconds), 60)
                 hrs, mins = divmod(mins, 60)
-                time_str = f"{hrs:02d}:{mins:02d}:{secs:02d}" if hrs > 0 else f"{mins:02d}:{secs:02d}"
+                time_str = (
+                    f"{hrs:02d}:{mins:02d}:{secs:02d}"
+                    if hrs > 0
+                    else f"{mins:02d}:{secs:02d}"
+                )
                 timer_text += f" ({time_str})"
         except Exception:
             pass
@@ -628,7 +701,9 @@ class SystemTray(QObject):
         act_settings.triggered.connect(self.show_settings.emit)
         self._fallback_menu.addAction(act_settings)
 
-        board_icon = self._render_menu_icon(os.path.join(ICON_DIR, "board-in-board.svg"))
+        board_icon = self._render_menu_icon(
+            os.path.join(ICON_DIR, "board-in-board.svg")
+        )
         act_board = Action(board_icon, t("tray.board"), self._fallback_menu)
         act_board.triggered.connect(self.show_board.emit)
         self._fallback_menu.addAction(act_board)
@@ -667,7 +742,11 @@ class SystemTray(QObject):
 
         self.tray_icon.setToolTip(t("tray.tooltip"))
 
-        header = Action(QIcon(os.path.join(ICON_DIR, "logo.svg")), t("tray.title"), self._native_menu)
+        header = Action(
+            QIcon(os.path.join(ICON_DIR, "logo.svg")),
+            t("tray.title"),
+            self._native_menu,
+        )
         header.setEnabled(False)
         self._native_menu.addAction(header)
         self._native_menu.addSeparator()
@@ -676,7 +755,9 @@ class SystemTray(QObject):
         act_settings.triggered.connect(self.show_settings.emit)
         self._native_menu.addAction(act_settings)
 
-        board_icon = self._render_menu_icon(os.path.join(ICON_DIR, "board-in-board.svg"))
+        board_icon = self._render_menu_icon(
+            os.path.join(ICON_DIR, "board-in-board.svg")
+        )
         act_board = Action(board_icon, t("tray.board"), self._native_menu)
         act_board.triggered.connect(self.show_board.emit)
         self._native_menu.addAction(act_board)
@@ -750,7 +831,9 @@ class SystemTray(QObject):
         self._close_confirm_flyout()
         QTimer.singleShot(0, self.exit_app.emit)
 
-    def _show_confirm_flyout(self, title: str, body: str, confirm_text: str, confirmed_slot):
+    def _show_confirm_flyout(
+        self, title: str, body: str, confirm_text: str, confirmed_slot
+    ):
         flyout = self._confirm_flyout
         if flyout is not None:
             try:

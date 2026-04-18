@@ -1,4 +1,3 @@
-
 import os
 import sys
 import math
@@ -8,10 +7,8 @@ import tempfile
 import importlib.util
 from typing import Optional
 from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtCore import QObject, Slot, Signal, Qt, QUrl, QTimer, QRect, QPoint, QEvent, QByteArray
-from PySide6.QtGui import QColor, QRegion, QGuiApplication, QIcon
-from PySide6.QtQuick import QQuickView
-from PySide6.QtQml import QQmlComponent
+from PySide6.QtCore import QObject, Slot, Signal, Qt, QUrl, QTimer, QRect
+from PySide6.QtGui import QColor, QRegion, QGuiApplication
 from PySide6.QtWidgets import QWidget
 from ppt_assistant.core.config import cfg, ROOT_DIR
 from qfluentwidgets import Theme, isDarkTheme, MessageBox, themeColor
@@ -21,9 +18,7 @@ from ppt_assistant.core.icon_helper import get_file_icon_base64
 from ppt_assistant.core.platform_integration import open_path
 from ppt_assistant.core.system import get_system_api
 import psutil
-import asyncio
 import threading
-import subprocess
 
 PLUGIN_DIR = os.path.join(ROOT_DIR, "plugins", "builtins")
 
@@ -31,7 +26,9 @@ PLUGIN_DIR = os.path.join(ROOT_DIR, "plugins", "builtins")
 def _skip_webengine_import_at_startup() -> bool:
     if sys.platform != "linux":
         return False
-    force_webengine = str(os.environ.get("LUMINALIUM_ENABLE_WEBENGINE_OVERLAY", "")).strip().lower()
+    force_webengine = (
+        str(os.environ.get("LUMINALIUM_ENABLE_WEBENGINE_OVERLAY", "")).strip().lower()
+    )
     if force_webengine in ("1", "true", "yes", "on"):
         return False
     if not os.environ.get("DISPLAY"):
@@ -96,7 +93,9 @@ def _is_wayland_compositor_session() -> bool:
 def _should_use_webengine_overlay() -> bool:
     if not _is_wayland_backend():
         return True
-    value = str(os.environ.get("LUMINALIUM_ENABLE_WEBENGINE_OVERLAY", "")).strip().lower()
+    value = (
+        str(os.environ.get("LUMINALIUM_ENABLE_WEBENGINE_OVERLAY", "")).strip().lower()
+    )
     return value in ("1", "true", "yes", "on")
 
 
@@ -105,7 +104,9 @@ def _should_use_linux_compat_overlay_page() -> bool:
         return False
     if not _is_wayland_compositor_session():
         return False
-    value = str(os.environ.get("LUMINALIUM_FORCE_FULL_OVERLAY_HTML", "")).strip().lower()
+    value = (
+        str(os.environ.get("LUMINALIUM_FORCE_FULL_OVERLAY_HTML", "")).strip().lower()
+    )
     return value not in ("1", "true", "yes", "on")
 
 
@@ -116,7 +117,9 @@ def _should_use_linux_widget_overlay() -> bool:
         return False
     if not _is_wayland_compositor_session():
         return False
-    force_webengine = str(os.environ.get("LUMINALIUM_ENABLE_WEBENGINE_OVERLAY", "")).strip().lower()
+    force_webengine = (
+        str(os.environ.get("LUMINALIUM_ENABLE_WEBENGINE_OVERLAY", "")).strip().lower()
+    )
     return force_webengine not in ("1", "true", "yes", "on")
 
 
@@ -142,11 +145,11 @@ class OverlayBridge(QObject):
 
     @Slot(str)
     def setTool(self, tool_name):
-        if tool_name == 'select' or tool_name == 'arrow':
+        if tool_name == "select" or tool_name == "arrow":
             self._overlay.request_ptr_arrow.emit()
-        elif tool_name == 'pen':
+        elif tool_name == "pen":
             self._overlay.request_ptr_pen.emit()
-        elif tool_name == 'eraser':
+        elif tool_name == "eraser":
             self._overlay.request_ptr_eraser.emit()
 
     @Slot()
@@ -194,7 +197,7 @@ class OverlayBridge(QObject):
         except Exception as e:
             print(f"Failed to launch app {path}: {e}")
 
-    @Slot('QVariantList')
+    @Slot("QVariantList")
     def updateMask(self, rects):
         self._overlay.update_mask(rects)
 
@@ -220,6 +223,7 @@ class OverlayBridge(QObject):
     def startBackgroundThumbnailCaching(self, total_pages):
         self._overlay.start_background_caching.emit(total_pages)
 
+
 class InkPromptWindow(QWidget):
     result = Signal(bool)
 
@@ -242,7 +246,7 @@ class InkPromptWindow(QWidget):
 
         # Message dialog's own mask is redundant here, so we can disable it or let it be.
         # But we want the whole window to be dimmed.
-        if hasattr(self._dialog, 'maskWidget'):
+        if hasattr(self._dialog, "maskWidget"):
             self._dialog.maskWidget.hide()
 
         self._dialog.yesSignal.connect(lambda: self._on_result(True))
@@ -253,6 +257,7 @@ class InkPromptWindow(QWidget):
 
     def paintEvent(self, event):
         from PySide6.QtGui import QPainter
+
         painter = QPainter(self)
         painter.fillRect(self.rect(), self.bg_color)
 
@@ -301,13 +306,17 @@ class WaylandFallbackOverlayWindow(QWidget):
         icon = load_app_icon()
         if not icon.isNull():
             self.setWindowIcon(icon)
-        print("[Overlay] WebEngine overlay disabled on Wayland. Set LUMINALIUM_ENABLE_WEBENGINE_OVERLAY=1 to force-enable it.")
+        print(
+            "[Overlay] WebEngine overlay disabled on Wayland. Set LUMINALIUM_ENABLE_WEBENGINE_OVERLAY=1 to force-enable it."
+        )
 
     def _log_visibility_skip(self):
         if self._warned_visibility:
             return
         self._warned_visibility = True
-        print("[Overlay] Wayland fallback overlay is active; overlay window rendering is disabled to avoid native crashes.")
+        print(
+            "[Overlay] Wayland fallback overlay is active; overlay window rendering is disabled to avoid native crashes."
+        )
 
     def apply_initial_state(self):
         pass
@@ -407,6 +416,7 @@ class WaylandFallbackOverlayWindow(QWidget):
     def update_geometry(self, rect, screen):
         pass
 
+
 class OverlayWindow(QWebEngineView):
     request_next = Signal()
     request_prev = Signal()
@@ -448,7 +458,12 @@ class OverlayWindow(QWebEngineView):
                 "using conservative window flags and opaque background."
             )
         else:
-            self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus | Qt.Tool | Qt.WindowStaysOnTopHint)
+            self.setWindowFlags(
+                Qt.FramelessWindowHint
+                | Qt.WindowDoesNotAcceptFocus
+                | Qt.Tool
+                | Qt.WindowStaysOnTopHint
+            )
             self.setAttribute(Qt.WA_TranslucentBackground)
             self.setAttribute(Qt.WA_NoSystemBackground)
 
@@ -462,7 +477,12 @@ class OverlayWindow(QWebEngineView):
         self._active_on_slideshow = False
         self._current_ink_dialog = None
 
-        self._smtc_info = {"status": "", "title": "", "position_ms": 0, "duration_ms": 0}
+        self._smtc_info = {
+            "status": "",
+            "title": "",
+            "position_ms": 0,
+            "duration_ms": 0,
+        }
         self._smtc_thread = None
         self._stop_smtc = False
         self.status_timer = None
@@ -483,12 +503,13 @@ class OverlayWindow(QWebEngineView):
     def _resolve_theme_path(self) -> str:
         theme_name = cfg.overlayTheme.value
         root_dir = ROOT_DIR
+
         def resolve_user_theme_path(name: str) -> Optional[str]:
             # Support both "user" and "users" folder names
             theme_dir = os.path.join(root_dir, "user", "themes", name)
             if not os.path.isdir(theme_dir):
                 theme_dir = os.path.join(root_dir, "users", "themes", name)
-                
+
             if not os.path.isdir(theme_dir):
                 return None
             manifest_path = os.path.join(theme_dir, "manifest.json")
@@ -519,12 +540,16 @@ class OverlayWindow(QWebEngineView):
         if not os.path.exists(theme_path):
             theme_path = os.path.join(root_dir, "themes", "default", "index.html")
         if not os.path.exists(theme_path):
-            theme_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "overlay.html")
+            theme_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "overlay.html"
+            )
         return theme_path
 
     def _resolve_runtime_page_path(self) -> str:
         if self._linux_compat_page_mode:
-            compat_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "overlay_linux_compat.html")
+            compat_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "overlay_linux_compat.html"
+            )
             if os.path.exists(compat_path):
                 return compat_path
         return self._resolve_theme_path()
@@ -541,6 +566,7 @@ class OverlayWindow(QWebEngineView):
             if os.path.exists(cache_path):
                 try:
                     import shutil
+
                     cache_size = sum(
                         os.path.getsize(os.path.join(dirpath, filename))
                         for dirpath, dirnames, filenames in os.walk(cache_path)
@@ -562,6 +588,7 @@ class OverlayWindow(QWebEngineView):
 
             settings = self.page().settings()
             from PySide6.QtWebEngineCore import QWebEngineSettings
+
             for attr_name, enabled in [
                 ("LocalStorageEnabled", False),
                 ("SessionStorageEnabled", False),
@@ -709,7 +736,15 @@ class OverlayWindow(QWebEngineView):
             SWP_NOSIZE = 0x0001
             SWP_NOACTIVATE = 0x0010
             SWP_SHOWWINDOW = 0x0040
-            result = user32.SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW)
+            result = user32.SetWindowPos(
+                hwnd,
+                HWND_TOPMOST,
+                0,
+                0,
+                0,
+                0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW,
+            )
             print(f"[Overlay] SetWindowPos result: {result}")
         except Exception as e:
             print(f"[Overlay] Error in _ensure_topmost: {e}")
@@ -721,16 +756,22 @@ class OverlayWindow(QWebEngineView):
             status_name = str(getattr(status, "name", status))
         except Exception:
             status_name = str(status)
-        print(f"[Overlay] Render process terminated: status={status}, exit_code={exit_code}")
+        print(
+            f"[Overlay] Render process terminated: status={status}, exit_code={exit_code}"
+        )
         if "NormalTerminationStatus" in status_name and int(exit_code or 0) == 0:
             print("[Overlay] Renderer ended normally; skipping crash recovery.")
             return
         self._render_crash_count += 1
-        print(f"[Overlay] Crash #{self._render_crash_count}/{self._max_reload_attempts}")
+        print(
+            f"[Overlay] Crash #{self._render_crash_count}/{self._max_reload_attempts}"
+        )
 
         # If too many crashes, disable GPU and retry once, then give up
         if self._render_crash_count > self._max_reload_attempts:
-            print(f"[Overlay] Too many crashes ({self._render_crash_count}). Giving up on recovery.")
+            print(
+                f"[Overlay] Too many crashes ({self._render_crash_count}). Giving up on recovery."
+            )
             return
 
         # Use exponential backoff: 100ms, 500ms, 1500ms
@@ -740,11 +781,16 @@ class OverlayWindow(QWebEngineView):
         # If this is the second crash, try disabling GPU acceleration
         if self._render_crash_count == 2:
             try:
-                print(f"[Overlay] Disabling GPU acceleration due to repeated crashes")
+                print("[Overlay] Disabling GPU acceleration due to repeated crashes")
                 settings = self.page().settings()
                 from PySide6.QtWebEngineCore import QWebEngineSettings
-                settings.setAttribute(QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, False)
-                settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, False)
+
+                settings.setAttribute(
+                    QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, False
+                )
+                settings.setAttribute(
+                    QWebEngineSettings.WebAttribute.WebGLEnabled, False
+                )
             except Exception as e:
                 print(f"[Overlay] Error disabling GPU: {e}")
 
@@ -800,15 +846,18 @@ class OverlayWindow(QWebEngineView):
 
         # Build list of pages to cache (excluding already cached ones)
         self._pending_thumbnails = [
-            i for i in range(1, total_pages + 1)
-            if i not in self._cached_thumbnails
+            i for i in range(1, total_pages + 1) if i not in self._cached_thumbnails
         ]
 
         # Start timer for background caching
         self._background_thumbnail_timer = QTimer(self)
         self._background_thumbnail_timer.setSingleShot(False)
-        self._background_thumbnail_timer.timeout.connect(self._process_next_background_thumbnail)
-        self._background_thumbnail_timer.start(500)  # 500ms interval between generations
+        self._background_thumbnail_timer.timeout.connect(
+            self._process_next_background_thumbnail
+        )
+        self._background_thumbnail_timer.start(
+            500
+        )  # 500ms interval between generations
 
     def _process_next_background_thumbnail(self):
         """Process the next thumbnail in the background queue"""
@@ -856,20 +905,22 @@ class OverlayWindow(QWebEngineView):
         h_win = self.height()
 
         for r in rects_data:
-            x = math.floor(r['x'])
-            y = math.floor(r['y'])
-            w = math.ceil(r['x'] + r['width']) - x
-            h = math.ceil(r['y'] + r['height']) - y
+            x = math.floor(r["x"])
+            y = math.floor(r["y"])
+            w = math.ceil(r["x"] + r["width"]) - x
+            h = math.ceil(r["y"] + r["height"]) - y
 
             # Heuristic to detect the sidebar (now island style)
             # It should be roughly 260px wide and occupy most of the height
             # and positioned near the right edge OR left edge
-            is_near_right = (x >= (w_win - w - 50))
-            is_near_left = (x <= 50)
+            is_near_right = x >= (w_win - w - 50)
+            is_near_left = x <= 50
 
             if w >= 250 and h >= (h_win * 0.8) and (is_near_right or is_near_left):
-                 has_sidebar = True
-                 sidebar_rect = QRect(x, 0, w, h_win) # Force full height for interaction safety
+                has_sidebar = True
+                sidebar_rect = QRect(
+                    x, 0, w, h_win
+                )  # Force full height for interaction safety
 
             rect = QRect(x - 1, y - 1, w + 2, h + 2)
             region += rect
@@ -881,20 +932,18 @@ class OverlayWindow(QWebEngineView):
             self.setMask(region)
         else:
             if self.isVisible():
-                 pass
+                pass
             pass
 
     def update_theme(self):
         mode = cfg.themeMode.value
         is_light = False
 
-        from qfluentwidgets import Theme, isDarkTheme
-
         if isinstance(mode, Theme):
             if mode == Theme.AUTO:
                 is_light = not isDarkTheme()
             else:
-                is_light = (mode == Theme.LIGHT)
+                is_light = mode == Theme.LIGHT
         else:
             mode_str = str(mode).lower()
             if mode_str == "light":
@@ -906,7 +955,6 @@ class OverlayWindow(QWebEngineView):
 
         self._is_light = is_light
 
-        from qfluentwidgets import themeColor
         t_color = themeColor()
         color_str = t_color.name()
 
@@ -927,6 +975,7 @@ class OverlayWindow(QWebEngineView):
                     if self._stop_smtc:
                         break
                     import time
+
                     time.sleep(0.1)
 
         self._smtc_thread = threading.Thread(target=smtc_loop, daemon=True)
@@ -951,7 +1000,7 @@ class OverlayWindow(QWebEngineView):
             network_online = False
             # Check for any active interface (excluding loopback)
             for iface, stats in net_stats.items():
-                if stats.isup and 'loopback' not in iface.lower():
+                if stats.isup and "loopback" not in iface.lower():
                     network_online = True
                     break
 
@@ -994,9 +1043,14 @@ class OverlayWindow(QWebEngineView):
             return
         try:
             from PySide6.QtWebEngineCore import QWebEngineSettings
-            attr = getattr(QWebEngineSettings.WebAttribute, "ScrollAnimatorEnabled", None)
+
+            attr = getattr(
+                QWebEngineSettings.WebAttribute, "ScrollAnimatorEnabled", None
+            )
             if attr is not None:
-                self.page().settings().setAttribute(attr, not cfg.disableAnimations.value)
+                self.page().settings().setAttribute(
+                    attr, not cfg.disableAnimations.value
+                )
         except Exception:
             pass
 
@@ -1010,11 +1064,11 @@ class OverlayWindow(QWebEngineView):
             "timer": "计时器",
             "end": "结束放映",
             "apps": "更多",
-            "compatibility": t("overlay.compatibility")
+            "compatibility": t("overlay.compatibility"),
         }
 
         apps_list = []
-        if hasattr(cfg, 'quickLaunchApps'):
+        if hasattr(cfg, "quickLaunchApps"):
             # quickLaunchApps.value is a string (JSON), need to parse if not list
             raw_val = cfg.quickLaunchApps.value
             apps_data = []
@@ -1027,10 +1081,10 @@ class OverlayWindow(QWebEngineView):
                 apps_data = raw_val
 
             for app in apps_data:
-                if isinstance(app, str): # Handle list of strings (paths) if any
+                if isinstance(app, str):  # Handle list of strings (paths) if any
                     path = app
                     name = os.path.basename(app)
-                    if name.lower().endswith('.exe'):
+                    if name.lower().endswith(".exe"):
                         name = name[:-4]
                 elif isinstance(app, dict):
                     path = app.get("path", "")
@@ -1050,11 +1104,7 @@ class OverlayWindow(QWebEngineView):
                     if icon_data:
                         self._icon_cache[path] = icon_data
 
-                apps_list.append({
-                    "name": name,
-                    "path": path,
-                    "icon": icon_data
-                })
+                apps_list.append({"name": name, "path": path, "icon": icon_data})
 
         toolbar_order = cfg.toolbarOrder.value
         if not isinstance(toolbar_order, list):
@@ -1090,7 +1140,7 @@ class OverlayWindow(QWebEngineView):
             "strictEdgeAlignment": cfg.strictEdgeAlignment.value,
             "texts": trans_map,
             "apps": apps_list,
-            "disabledTools": cfg.disabledTools.value
+            "disabledTools": cfg.disabledTools.value,
         }
 
         js = f"if(window.updateConfig) window.updateConfig({json.dumps(config_data)});"
@@ -1119,12 +1169,12 @@ class OverlayWindow(QWebEngineView):
 
             # Create a standalone full-screen window for the prompt
             win = InkPromptWindow(texts)
-            self._current_ink_dialog = win # Keep reference
+            self._current_ink_dialog = win  # Keep reference
 
             win.result.connect(self.ink_prompt_result)
 
             # Clear reference when closed
-            win.destroyed.connect(lambda: setattr(self, '_current_ink_dialog', None))
+            win.destroyed.connect(lambda: setattr(self, "_current_ink_dialog", None))
 
             win.show()
             win.activateWindow()
@@ -1137,7 +1187,7 @@ class OverlayWindow(QWebEngineView):
             "title": "是否保留墨迹注释？",
             "text": "检测到放映期间添加了墨迹注释，是否保留到幻灯片中？",
             "keep": "保留",
-            "discard": "不保留"
+            "discard": "不保留",
         }
 
     def load_plugins(self):
@@ -1160,7 +1210,9 @@ class OverlayWindow(QWebEngineView):
                 module_path = os.path.join(plugin_dir, module_name + ".py")
                 if not os.path.exists(module_path):
                     continue
-                spec = importlib.util.spec_from_file_location(f"plugins.builtins.{entry}.{module_name}", module_path)
+                spec = importlib.util.spec_from_file_location(
+                    f"plugins.builtins.{entry}.{module_name}", module_path
+                )
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
                 plugin_cls = getattr(module, class_name, None)
@@ -1231,6 +1283,7 @@ class OverlayWindow(QWebEngineView):
     def set_active_on_slideshow(self, active: bool, animate: bool = True):
         print(f"[Overlay] set_active_on_slideshow({active}, animate={animate})")
         import traceback
+
         traceback.print_stack(limit=5)
         self._active_on_slideshow = bool(active)
         if self._active_on_slideshow:
@@ -1245,10 +1298,11 @@ class OverlayWindow(QWebEngineView):
             except Exception as e:
                 print(f"[Overlay] Error in set_active_on_slideshow(True): {e}")
                 import traceback
+
                 traceback.print_exc()
         else:
             try:
-                print(f"[Overlay] Calling hide()")
+                print("[Overlay] Calling hide()")
                 self.hide()
             except Exception as e:
                 print(f"[Overlay] Error in set_active_on_slideshow(False): {e}")

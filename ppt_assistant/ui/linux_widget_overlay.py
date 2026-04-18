@@ -1,10 +1,9 @@
 import importlib
 import json
 import os
-from typing import Optional
 
 import psutil
-from PySide6.QtCore import QRect, QTimer, Qt, Signal
+from PySide6.QtCore import QTimer, Qt, Signal
 from PySide6.QtGui import QGuiApplication, QIcon, QRegion
 from PySide6.QtWidgets import (
     QBoxLayout,
@@ -125,7 +124,9 @@ class LinuxCompatOverlayWindow(QWidget):
         compat_layout = QHBoxLayout(self._compat_frame)
         compat_layout.setContentsMargins(12, 8, 12, 8)
         compat_layout.setSpacing(8)
-        self._compat_label = QLabel("Luminalium Compatibility Overlay", self._compat_frame)
+        self._compat_label = QLabel(
+            "Luminalium Compatibility Overlay", self._compat_frame
+        )
         compat_layout.addWidget(self._compat_label)
 
         self._nav_frame = self._create_panel()
@@ -224,7 +225,9 @@ class LinuxCompatOverlayWindow(QWidget):
             parsed.append({"path": path, "name": name})
         return parsed
 
-    def _set_button_style(self, button: QPushButton, *, active: bool = False, accent: bool = False):
+    def _set_button_style(
+        self, button: QPushButton, *, active: bool = False, accent: bool = False
+    ):
         palette = self._palette()
         bg = palette["accent_bg"] if accent or active else palette["button_bg"]
         fg = palette["accent_fg"] if accent or active else palette["text"]
@@ -241,12 +244,14 @@ class LinuxCompatOverlayWindow(QWidget):
                 font-weight: 600;
             }}
             QPushButton:hover {{
-                border-color: {palette['accent']};
+                border-color: {palette["accent"]};
             }}
             """
         )
 
-    def _set_color_button_style(self, button: QPushButton, color_hex: str, active: bool):
+    def _set_color_button_style(
+        self, button: QPushButton, color_hex: str, active: bool
+    ):
         palette = self._palette()
         border = palette["accent"] if active else palette["border"]
         shadow = palette["accent"] if active else "transparent"
@@ -262,7 +267,7 @@ class LinuxCompatOverlayWindow(QWidget):
                 background: {color_hex};
             }}
             QPushButton:hover {{
-                border-color: {palette['accent']};
+                border-color: {palette["accent"]};
             }}
             """
         )
@@ -343,16 +348,21 @@ class LinuxCompatOverlayWindow(QWidget):
             self._compat_label,
         ):
             label.setStyleSheet(f"color: {palette['muted']};")
-        self._time_label.setStyleSheet(f"color: {palette['text']}; font-size: 18px; font-weight: 700;")
+        self._time_label.setStyleSheet(
+            f"color: {palette['text']}; font-size: 18px; font-weight: 700;"
+        )
 
     def _refresh_button_styles(self):
         for name, button in self._toolbar_buttons.items():
-            self._set_button_style(button, active=name == self._current_tool, accent=name == "end")
+            self._set_button_style(
+                button, active=name == self._current_tool, accent=name == "end"
+            )
         for color_hex, button in self._color_buttons:
             self._set_color_button_style(
                 button,
                 color_hex,
-                active=color_hex.lower() == self._rgb_to_hex(self._current_pen_color).lower(),
+                active=color_hex.lower()
+                == self._rgb_to_hex(self._current_pen_color).lower(),
             )
         for index, button in self._page_buttons:
             self._set_page_button_style(button, active=index == self._current_page)
@@ -379,11 +389,22 @@ class LinuxCompatOverlayWindow(QWidget):
 
         order = cfg.toolbarOrder.value
         if not isinstance(order, list) or not order:
-            order = ["select", "pen", "eraser", "clear", "spotlight", "board_in_board", "timer", "end"]
+            order = [
+                "select",
+                "pen",
+                "eraser",
+                "clear",
+                "spotlight",
+                "board_in_board",
+                "timer",
+                "end",
+            ]
         if "end" not in order:
             order = list(order) + ["end"]
 
-        disabled_tools = cfg.disabledTools.value if isinstance(cfg.disabledTools.value, list) else []
+        disabled_tools = (
+            cfg.disabledTools.value if isinstance(cfg.disabledTools.value, list) else []
+        )
         disabled = {str(item) for item in disabled_tools}
 
         for tool in order:
@@ -401,7 +422,9 @@ class LinuxCompatOverlayWindow(QWidget):
                 continue
 
             button = QPushButton(self._tool_text(tool), self._toolbar_frame)
-            button.clicked.connect(lambda _checked=False, key=tool: self._handle_tool_action(key))
+            button.clicked.connect(
+                lambda _checked=False, key=tool: self._handle_tool_action(key)
+            )
             self._toolbar_layout.addWidget(button)
             self._toolbar_buttons[tool] = button
 
@@ -429,7 +452,9 @@ class LinuxCompatOverlayWindow(QWidget):
         ):
             button = QPushButton("", color_container)
             button.clicked.connect(
-                lambda _checked=False, hex_value=color_hex: self._set_pen_color_from_hex(hex_value)
+                lambda _checked=False, hex_value=color_hex: (
+                    self._set_pen_color_from_hex(hex_value)
+                )
             )
             color_layout.addWidget(button)
             self._color_buttons.append((color_hex, button))
@@ -442,7 +467,9 @@ class LinuxCompatOverlayWindow(QWidget):
         columns = 4
         for index in range(1, max(1, self._total_page) + 1):
             button = QPushButton(str(index), self._page_selector_content)
-            button.clicked.connect(lambda _checked=False, value=index: self._goto_slide(value))
+            button.clicked.connect(
+                lambda _checked=False, value=index: self._goto_slide(value)
+            )
             row = (index - 1) // columns
             col = (index - 1) % columns
             self._page_selector_grid.addWidget(button, row, col)
@@ -508,11 +535,18 @@ class LinuxCompatOverlayWindow(QWidget):
             return
         margin = 16
 
-        for frame in (self._status_frame, self._compat_frame, self._nav_frame, self._toolbar_frame):
+        for frame in (
+            self._status_frame,
+            self._compat_frame,
+            self._nav_frame,
+            self._toolbar_frame,
+        ):
             frame.adjustSize()
 
         compat_size = self._compat_frame.sizeHint()
-        self._compat_frame.setGeometry(margin, margin, compat_size.width(), compat_size.height())
+        self._compat_frame.setGeometry(
+            margin, margin, compat_size.width(), compat_size.height()
+        )
 
         if cfg.showStatusBar.value:
             status_size = self._status_frame.sizeHint()
@@ -548,14 +582,25 @@ class LinuxCompatOverlayWindow(QWidget):
         else:
             x = max(margin, (self.width() - toolbar_size.width()) // 2)
             y = max(margin, self.height() - margin - toolbar_size.height())
-        self._toolbar_frame.setGeometry(x, y, toolbar_size.width(), toolbar_size.height())
+        self._toolbar_frame.setGeometry(
+            x, y, toolbar_size.width(), toolbar_size.height()
+        )
 
         if self._selector_open:
             selector_width = 240
             selector_height = min(max(220, self.height() - 120), 420)
-            selector_x = margin if position == "right" else self.width() - margin - selector_width
-            selector_y = max(margin + compat_size.height() + 12, (self.height() - selector_height) // 2)
-            self._page_selector_frame.setGeometry(selector_x, selector_y, selector_width, selector_height)
+            selector_x = (
+                margin
+                if position == "right"
+                else self.width() - margin - selector_width
+            )
+            selector_y = max(
+                margin + compat_size.height() + 12,
+                (self.height() - selector_height) // 2,
+            )
+            self._page_selector_frame.setGeometry(
+                selector_x, selector_y, selector_width, selector_height
+            )
             self._page_selector_frame.show()
         else:
             self._page_selector_frame.hide()
@@ -716,7 +761,10 @@ class LinuxCompatOverlayWindow(QWidget):
             }
             spec = plugin_map.get(name)
             if spec is None:
-                print(f"[Overlay] Unsupported plugin in Linux compatibility overlay: {name}", flush=True)
+                print(
+                    f"[Overlay] Unsupported plugin in Linux compatibility overlay: {name}",
+                    flush=True,
+                )
                 return
             try:
                 module = importlib.import_module(spec[0])
@@ -752,10 +800,18 @@ class LinuxCompatOverlayWindow(QWidget):
         cfg.showStatusBar.valueChanged.connect(lambda *_: self.update_config())
         cfg.statusBarShowTime.valueChanged.connect(lambda *_: self._update_clock())
         cfg.statusBarShowSeconds.valueChanged.connect(lambda *_: self._update_clock())
-        cfg.statusBarShowBattery.valueChanged.connect(lambda *_: self._update_system_status())
-        cfg.statusBarShowVolume.valueChanged.connect(lambda *_: self._update_system_status())
-        cfg.statusBarShowNetwork.valueChanged.connect(lambda *_: self._update_system_status())
-        cfg.statusBarShowMusic.valueChanged.connect(lambda *_: self._update_system_status())
+        cfg.statusBarShowBattery.valueChanged.connect(
+            lambda *_: self._update_system_status()
+        )
+        cfg.statusBarShowVolume.valueChanged.connect(
+            lambda *_: self._update_system_status()
+        )
+        cfg.statusBarShowNetwork.valueChanged.connect(
+            lambda *_: self._update_system_status()
+        )
+        cfg.statusBarShowMusic.valueChanged.connect(
+            lambda *_: self._update_system_status()
+        )
 
     def set_active_on_slideshow(self, active: bool, animate: bool = True):
         self._active_on_slideshow = bool(active)

@@ -25,6 +25,7 @@ from ppt_assistant.core.system.linux import (
     window_looks_like_editor,
     window_looks_like_slideshow as linux_window_looks_like_slideshow,
 )
+
 WpsBridgeHost = None
 
 
@@ -38,6 +39,7 @@ def _load_wps_bridge_host():
         return None
     WpsBridgeHost = host_cls
     return WpsBridgeHost
+
 
 try:
     import win32gui
@@ -82,7 +84,9 @@ SLIDESHOW_WINDOW_TITLE_HINTS = {
 PPT_PROCESS_NAMES = {"powerpnt.exe"}
 WPS_PROCESS_NAMES = {"wpp.exe", "kwpp.exe"}
 YOZO_PROCESS_NAMES = {"yozo_impress.exe", "yozopg.exe", "yozo_office.exe"}
-ALL_PRESENTATION_PROCESS_NAMES = PPT_PROCESS_NAMES | WPS_PROCESS_NAMES | YOZO_PROCESS_NAMES
+ALL_PRESENTATION_PROCESS_NAMES = (
+    PPT_PROCESS_NAMES | WPS_PROCESS_NAMES | YOZO_PROCESS_NAMES
+)
 YOZO_COM_PROG_IDS = ("YozoPG.Application", "YozoPG.Application.1")
 STRICT_SLIDESHOW_WINDOW_TITLE_HINTS = {
     "slide show",
@@ -105,21 +109,23 @@ STRICT_SLIDESHOW_WINDOW_TITLE_HINTS = {
     "apresentação de slides",
 }
 
+
 class PPTWorker(QObject):
     """
     Worker thread for PPT COM operations to prevent blocking the main UI.
     """
+
     # Signals to Main Thread
     slideshow_started = Signal()
     slideshow_ended = Signal()
-    slide_changed = Signal(int, int) # current, total
-    window_geometry_changed = Signal(object, object) # QRect, QScreen
+    slide_changed = Signal(int, int)  # current, total
+    window_geometry_changed = Signal(object, object)  # QRect, QScreen
     overlay_visibility_changed = Signal(bool)
-    video_state_changed = Signal(float, float, float) # ratio, pos, length
-    thumbnail_generated = Signal(int, str) # index, path
+    video_state_changed = Signal(float, float, float)  # ratio, pos, length
+    thumbnail_generated = Signal(int, str)  # index, path
     finished = Signal()
     slideshow_hwnd_changed = Signal(int)
-    restrictions_changed = Signal(bool, bool) # protected_view, presentation_readonly
+    restrictions_changed = Signal(bool, bool)  # protected_view, presentation_readonly
     active_kind_changed = Signal(str)
     ink_prompt_requested = Signal()
 
@@ -193,7 +199,10 @@ class PPTWorker(QObject):
     def _update_restrictions(self, protected_view: bool, presentation_readonly: bool):
         protected_view = bool(protected_view)
         presentation_readonly = bool(presentation_readonly)
-        if protected_view == self._protected_view and presentation_readonly == self._presentation_readonly:
+        if (
+            protected_view == self._protected_view
+            and presentation_readonly == self._presentation_readonly
+        ):
             return
         self._protected_view = protected_view
         self._presentation_readonly = presentation_readonly
@@ -333,7 +342,13 @@ class PPTWorker(QObject):
         if len(windows) == 1:
             return windows[0]
 
-        preferred_classes = PPT_SLIDESHOW_WINDOW_CLASSES if kind == "ppt" else WPS_SLIDESHOW_WINDOW_CLASSES if kind == "wps" else ALL_SLIDESHOW_WINDOW_CLASSES
+        preferred_classes = (
+            PPT_SLIDESHOW_WINDOW_CLASSES
+            if kind == "ppt"
+            else WPS_SLIDESHOW_WINDOW_CLASSES
+            if kind == "wps"
+            else ALL_SLIDESHOW_WINDOW_CLASSES
+        )
 
         for ss_win in windows:
             hwnd = self._safe_hwnd_from_ss_win(ss_win)
@@ -360,7 +375,9 @@ class PPTWorker(QObject):
             pass
         try:
             view = getattr(ss_win, "View", None)
-            candidates.append(getattr(view, "Presentation", None) if view is not None else None)
+            candidates.append(
+                getattr(view, "Presentation", None) if view is not None else None
+            )
         except Exception:
             pass
         if app is not None:
@@ -459,12 +476,16 @@ class PPTWorker(QObject):
                         user32 = ctypes.windll.user32
                         user32.GetDpiForWindow.argtypes = [ctypes.c_void_p]
                         user32.GetDpiForWindow.restype = ctypes.c_uint
-                        dpi = int(user32.GetDpiForWindow(ctypes.c_void_p(int(hwnd))) or 0)
+                        dpi = int(
+                            user32.GetDpiForWindow(ctypes.c_void_p(int(hwnd))) or 0
+                        )
                     except Exception:
                         dpi = 0
             if final_rect != self._last_win_rect:
                 self._last_win_rect = final_rect
-                self.window_geometry_changed.emit(QRect(*final_rect), {"raw_is_physical": True, "dpi": dpi})
+                self.window_geometry_changed.emit(
+                    QRect(*final_rect), {"raw_is_physical": True, "dpi": dpi}
+                )
             if self._overlay_visible is not True:
                 self._overlay_visible = True
                 self.overlay_visibility_changed.emit(True)
@@ -531,7 +552,8 @@ class PPTWorker(QObject):
         if not self._can_use_linux_xdotool():
             self._note_info(
                 "linux_xdotool_unavailable",
-                "Linux xdotool probe unavailable: " + describe_linux_tool_capabilities(),
+                "Linux xdotool probe unavailable: "
+                + describe_linux_tool_capabilities(),
                 min_interval=5.0,
             )
             return False, ""
@@ -572,7 +594,9 @@ class PPTWorker(QObject):
             "match_source": str(snapshot.get("match_source", "") or ""),
         }
 
-    def _format_linux_window_snapshot(self, window_id: int, title: str = "", class_name: str = "") -> str:
+    def _format_linux_window_snapshot(
+        self, window_id: int, title: str = "", class_name: str = ""
+    ) -> str:
         return format_linux_window_snapshot(
             {
                 "window_id": int(window_id or 0),
@@ -608,7 +632,9 @@ class PPTWorker(QObject):
         except Exception:
             cached_window_id = 0
         if cached_window_id:
-            ok, _ = self._run_xdotool("windowactivate", "--sync", str(int(cached_window_id)))
+            ok, _ = self._run_xdotool(
+                "windowactivate", "--sync", str(int(cached_window_id))
+            )
             if ok:
                 return int(cached_window_id)
         if not window_id:
@@ -623,7 +649,9 @@ class PPTWorker(QObject):
         ok, _ = self._run_xdotool("windowactivate", "--sync", str(int(window_id)))
         return int(window_id) if ok else 0
 
-    def _send_linux_shortcut_to_slideshow(self, shortcut: str, *, hwnd: int = 0) -> bool:
+    def _send_linux_shortcut_to_slideshow(
+        self, shortcut: str, *, hwnd: int = 0
+    ) -> bool:
         if not self._can_use_linux_xdotool():
             return False
         window_id = self._focus_linux_slideshow_window(hwnd)
@@ -640,7 +668,9 @@ class PPTWorker(QObject):
         ok, _ = self._run_xdotool("key", "--clearmodifiers", str(shortcut))
         return bool(ok)
 
-    def _try_apply_pointer_type(self, pointer_type: int, force_arrow_reset: bool = False) -> bool:
+    def _try_apply_pointer_type(
+        self, pointer_type: int, force_arrow_reset: bool = False
+    ) -> bool:
         ss_win = self._get_active_slideshow_window()
         view = getattr(ss_win, "View", None) if ss_win is not None else None
         if view is None:
@@ -759,11 +789,15 @@ class PPTWorker(QObject):
 
     def _wps_bridge_connected(self) -> bool:
         try:
-            return bool(self._wps_bridge is not None and self._wps_bridge.is_connected())
+            return bool(
+                self._wps_bridge is not None and self._wps_bridge.is_connected()
+            )
         except Exception:
             return False
 
-    def _send_wps_bridge_command(self, message_type: str, payload: dict | None = None) -> str:
+    def _send_wps_bridge_command(
+        self, message_type: str, payload: dict | None = None
+    ) -> str:
         if not self._wps_bridge_connected():
             return ""
         try:
@@ -790,7 +824,11 @@ class PPTWorker(QObject):
         )
         self._wps_bridge_capabilities = {}
         self._wps_bridge_thumbnail_command_id = ""
-        if self._running and self._active_kind == "wps" and self._control_mode == "wps_bridge":
+        if (
+            self._running
+            and self._active_kind == "wps"
+            and self._control_mode == "wps_bridge"
+        ):
             self._handle_stop("wps")
 
     @Slot(dict)
@@ -823,7 +861,9 @@ class PPTWorker(QObject):
 
     def _handle_wps_bridge_hello(self, payload: dict):
         capabilities = payload.get("capabilities")
-        self._wps_bridge_capabilities = capabilities if isinstance(capabilities, dict) else {}
+        self._wps_bridge_capabilities = (
+            capabilities if isinstance(capabilities, dict) else {}
+        )
         version = str(payload.get("plugin_version", "") or "")
         self._note_info(
             "wps_bridge_hello",
@@ -833,7 +873,9 @@ class PPTWorker(QObject):
         self._send_wps_bridge_command("presentation_state_get", {})
 
     def _handle_wps_bridge_presentation_state(self, payload: dict):
-        document = payload.get("document") if isinstance(payload.get("document"), dict) else {}
+        document = (
+            payload.get("document") if isinstance(payload.get("document"), dict) else {}
+        )
         presentation = (
             payload.get("presentation")
             if isinstance(payload.get("presentation"), dict)
@@ -975,11 +1017,16 @@ class PPTWorker(QObject):
         if not total:
             try:
                 pv_windows = getattr(app, "ProtectedViewWindows", None)
-                if pv_windows is not None and int(getattr(pv_windows, "Count", 0) or 0) > 0:
+                if (
+                    pv_windows is not None
+                    and int(getattr(pv_windows, "Count", 0) or 0) > 0
+                ):
                     pv = pv_windows(1)
                     pres = getattr(pv, "Presentation", None)
                     if pres is not None:
-                        total = int(getattr(getattr(pres, "Slides", None), "Count", 0) or 0)
+                        total = int(
+                            getattr(getattr(pres, "Slides", None), "Count", 0) or 0
+                        )
             except Exception:
                 pass
 
@@ -1023,7 +1070,10 @@ class PPTWorker(QObject):
             total = self._extract_slide_total(pres)
             if not total:
                 pv_windows = getattr(app, "ProtectedViewWindows", None)
-                if pv_windows is not None and int(getattr(pv_windows, "Count", 0) or 0) > 0:
+                if (
+                    pv_windows is not None
+                    and int(getattr(pv_windows, "Count", 0) or 0) > 0
+                ):
                     pv = pv_windows(1)
                     pres = getattr(pv, "Presentation", None)
                     total = self._extract_slide_total(pres)
@@ -1034,7 +1084,10 @@ class PPTWorker(QObject):
             self._degraded_total = total
             if self._degraded_current <= 0:
                 self._degraded_current = 1
-            if self._degraded_current != self._current_slide or total != self._total_slides:
+            if (
+                self._degraded_current != self._current_slide
+                or total != self._total_slides
+            ):
                 self._current_slide = self._degraded_current
                 self._total_slides = total
                 self.slide_changed.emit(self._degraded_current, total)
@@ -1052,7 +1105,9 @@ class PPTWorker(QObject):
         if pythoncom and not self._com_initialized:
             pythoncom.CoInitialize()
             self._com_initialized = True
-            self._note_info("com_initialized", "COM initialized for PPT monitor.", min_interval=30.0)
+            self._note_info(
+                "com_initialized", "COM initialized for PPT monitor.", min_interval=30.0
+            )
         elif sys.platform.startswith("linux"):
             self._note_info(
                 "linux_timer_start",
@@ -1069,7 +1124,11 @@ class PPTWorker(QObject):
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._check_ppt_state)
         self._timer.start(200)
-        self._note_info("timer_started", "PPT monitor timer started (interval=200ms).", min_interval=30.0)
+        self._note_info(
+            "timer_started",
+            "PPT monitor timer started (interval=200ms).",
+            min_interval=30.0,
+        )
 
     @Slot()
     def stop(self):
@@ -1089,13 +1148,19 @@ class PPTWorker(QObject):
 
     def _get_active_app(self):
         # Helper to get the currently tracked app
-        if self._active_kind == "ppt" and self.ppt_app: return self.ppt_app
-        if self._active_kind == "wps" and self.wps_app: return self.wps_app
-        if self._active_kind == "yozo" and self.yozo_app: return self.yozo_app
+        if self._active_kind == "ppt" and self.ppt_app:
+            return self.ppt_app
+        if self._active_kind == "wps" and self.wps_app:
+            return self.wps_app
+        if self._active_kind == "yozo" and self.yozo_app:
+            return self.yozo_app
         # Fallback
-        if self.ppt_app: return self.ppt_app
-        if self.wps_app: return self.wps_app
-        if self.yozo_app: return self.yozo_app
+        if self.ppt_app:
+            return self.ppt_app
+        if self.wps_app:
+            return self.wps_app
+        if self.yozo_app:
+            return self.yozo_app
         return None
 
     def _safe_get_active_object(self, prog_id: str):
@@ -1134,11 +1199,17 @@ class PPTWorker(QObject):
             except Exception:
                 pres_readonly = False
 
-        self._update_restrictions(False if kind in {"wps", "yozo"} else self._protected_view, pres_readonly)
+        self._update_restrictions(
+            False if kind in {"wps", "yozo"} else self._protected_view, pres_readonly
+        )
 
         if not total:
             total = int(self._total_slides or 0)
-        if current > 0 and total > 0 and (current != self._current_slide or total != self._total_slides):
+        if (
+            current > 0
+            and total > 0
+            and (current != self._current_slide or total != self._total_slides)
+        ):
             self._current_slide = current
             self._total_slides = total
             self.slide_changed.emit(current, total)
@@ -1233,7 +1304,9 @@ class PPTWorker(QObject):
                             except Exception:
                                 pass
                             self._slideshow_started_at = time.monotonic()
-                            print("[Monitor] PPT slideshow_started signal emitted (COM mode)")
+                            print(
+                                "[Monitor] PPT slideshow_started signal emitted (COM mode)"
+                            )
                             self.slideshow_started.emit()
 
                         self._update_slide_info_from_ss_win(ss_win, self.ppt_app, "ppt")
@@ -1257,7 +1330,9 @@ class PPTWorker(QObject):
                             self._slideshow_hwnd = int(hwnd)
                             self.slideshow_hwnd_changed.emit(int(hwnd))
                         self._slideshow_started_at = time.monotonic()
-                        print("[Monitor] PPT slideshow_started signal emitted (Win32 mode)")
+                        print(
+                            "[Monitor] PPT slideshow_started signal emitted (Win32 mode)"
+                        )
                         self.slideshow_started.emit()
                         self._init_degraded_page_info()
                     self._update_window_rect_hwnd(hwnd)
@@ -1284,7 +1359,8 @@ class PPTWorker(QObject):
         if not self._can_use_linux_xdotool():
             self._note_info(
                 "linux_probe_unavailable",
-                "Linux slideshow probe unavailable: " + describe_linux_tool_capabilities(),
+                "Linux slideshow probe unavailable: "
+                + describe_linux_tool_capabilities(),
                 min_interval=5.0,
             )
             if self._running:
@@ -1340,7 +1416,9 @@ class PPTWorker(QObject):
                 self._handle_stop(self._active_kind or "wps")
             return
 
-        kind = str(slideshow_snapshot.get("kind", "") or "") or self._active_kind or "wps"
+        kind = (
+            str(slideshow_snapshot.get("kind", "") or "") or self._active_kind or "wps"
+        )
         match_source = str(slideshow_snapshot.get("match_source", "") or "unknown")
         match_summary = format_linux_window_snapshot(slideshow_snapshot)
         self._note_state(
@@ -1547,7 +1625,12 @@ class PPTWorker(QObject):
                                     user32 = ctypes.windll.user32
                                     user32.GetDpiForWindow.argtypes = [ctypes.c_void_p]
                                     user32.GetDpiForWindow.restype = ctypes.c_uint
-                                    dpi = int(user32.GetDpiForWindow(ctypes.c_void_p(int(hwnd))) or 0)
+                                    dpi = int(
+                                        user32.GetDpiForWindow(
+                                            ctypes.c_void_p(int(hwnd))
+                                        )
+                                        or 0
+                                    )
                                 except Exception:
                                     dpi = 0
                 except Exception:
@@ -1577,7 +1660,10 @@ class PPTWorker(QObject):
                 if final_rect != self._last_win_rect:
                     self._last_win_rect = final_rect
                     # We send RAW rect (x, y, w, h). Main thread converts to QRect and finds Screen.
-                    self.window_geometry_changed.emit(QRect(*final_rect), {"raw_is_physical": raw_is_physical, "dpi": dpi})
+                    self.window_geometry_changed.emit(
+                        QRect(*final_rect),
+                        {"raw_is_physical": raw_is_physical, "dpi": dpi},
+                    )
                 self._update_overlay_visibility(ss_win, final_rect)
 
         except Exception:
@@ -1604,7 +1690,14 @@ class PPTWorker(QObject):
                         exe_lower = exe.lower()
                         if any(
                             exe_lower.endswith(name)
-                            for name in ("powerpnt.exe", "wpp.exe", "kwpp.exe", "yozo_impress.exe", "yozopg.exe", "yozo_office.exe")
+                            for name in (
+                                "powerpnt.exe",
+                                "wpp.exe",
+                                "kwpp.exe",
+                                "yozo_impress.exe",
+                                "yozopg.exe",
+                                "yozo_office.exe",
+                            )
                         ) and self._title_looks_like_slideshow(title):
                             return True
                 except Exception:
@@ -1644,7 +1737,8 @@ class PPTWorker(QObject):
                 for i in range(1, count + 1):
                     shape = shapes.Item(i)
                     media = getattr(shape, "MediaFormat", None)
-                    if media is None: continue
+                    if media is None:
+                        continue
 
                     length = getattr(media, "Length", 0)
                     position = getattr(media, "Position", 0)
@@ -1708,16 +1802,23 @@ class PPTWorker(QObject):
                 self._control_mode = "win32"
                 ok = self._send_vk_to_slideshow(win32con.VK_NEXT if win32con else 0x22)
                 if not ok:
-                    ok = self._send_vk_to_slideshow(win32con.VK_DOWN if win32con else 0x28)
+                    ok = self._send_vk_to_slideshow(
+                        win32con.VK_DOWN if win32con else 0x28
+                    )
             if ok and self._degraded_total > 0:
                 if self._degraded_current <= 0:
                     self._degraded_current = 1
                 if self._degraded_current < self._degraded_total:
                     self._degraded_current += 1
-                if self._degraded_current != self._current_slide or self._degraded_total != self._total_slides:
+                if (
+                    self._degraded_current != self._current_slide
+                    or self._degraded_total != self._total_slides
+                ):
                     self._current_slide = self._degraded_current
                     self._total_slides = self._degraded_total
-                    self.slide_changed.emit(self._degraded_current, self._degraded_total)
+                    self.slide_changed.emit(
+                        self._degraded_current, self._degraded_total
+                    )
         except Exception:
             pass
 
@@ -1768,10 +1869,15 @@ class PPTWorker(QObject):
                     self._degraded_current = 1
                 if self._degraded_current > 1:
                     self._degraded_current -= 1
-                if self._degraded_current != self._current_slide or self._degraded_total != self._total_slides:
+                if (
+                    self._degraded_current != self._current_slide
+                    or self._degraded_total != self._total_slides
+                ):
                     self._current_slide = self._degraded_current
                     self._total_slides = self._degraded_total
-                    self.slide_changed.emit(self._degraded_current, self._degraded_total)
+                    self.slide_changed.emit(
+                        self._degraded_current, self._degraded_total
+                    )
         except Exception:
             pass
 
@@ -1804,7 +1910,7 @@ class PPTWorker(QObject):
                             win32api.keybd_event(vk, 0, 0, 0)
                             win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)
                 except Exception:
-                     # Fallback to key
+                    # Fallback to key
                     if win32api and win32con:
                         vk = ord("E")
                         win32api.keybd_event(vk, 0, 0, 0)
@@ -1859,7 +1965,9 @@ class PPTWorker(QObject):
         try:
             annotations = getattr(view, "InkAnnotations", None)
             if annotations is not None:
-                clear_method = getattr(annotations, "Clear", None) or getattr(annotations, "Delete", None)
+                clear_method = getattr(annotations, "Clear", None) or getattr(
+                    annotations, "Delete", None
+                )
                 if callable(clear_method):
                     clear_method()
         except Exception:
@@ -1871,7 +1979,11 @@ class PPTWorker(QObject):
             ss_win = self._get_active_slideshow_window()
             view = getattr(ss_win, "View", None) if ss_win is not None else None
             if view is not None:
-                if cfg.autoHandleInk.value and self._active_kind in {"ppt", "wps", "yozo"}:
+                if cfg.autoHandleInk.value and self._active_kind in {
+                    "ppt",
+                    "wps",
+                    "yozo",
+                }:
                     if not self._pending_ink_prompt:
                         self._pending_ink_prompt = True
                         self.ink_prompt_requested.emit()
@@ -1942,7 +2054,9 @@ class PPTWorker(QObject):
                 time.sleep(delay)
             try:
                 force_arrow_reset = attempt > 0 or pointer_type == 2
-                if self._try_apply_pointer_type(pointer_type, force_arrow_reset=force_arrow_reset):
+                if self._try_apply_pointer_type(
+                    pointer_type, force_arrow_reset=force_arrow_reset
+                ):
                     self._control_mode = "com"
                     return
             except Exception as e:
@@ -2016,12 +2130,21 @@ class PPTWorker(QObject):
             self._note_error("go_to_slide", e)
         try:
             index = int(index)
-            if self._control_mode == "win32" and self._degraded_total > 0 and 1 <= index <= self._degraded_total:
+            if (
+                self._control_mode == "win32"
+                and self._degraded_total > 0
+                and 1 <= index <= self._degraded_total
+            ):
                 self._degraded_current = index
-                if self._degraded_current != self._current_slide or self._degraded_total != self._total_slides:
+                if (
+                    self._degraded_current != self._current_slide
+                    or self._degraded_total != self._total_slides
+                ):
                     self._current_slide = self._degraded_current
                     self._total_slides = self._degraded_total
-                    self.slide_changed.emit(self._degraded_current, self._degraded_total)
+                    self.slide_changed.emit(
+                        self._degraded_current, self._degraded_total
+                    )
         except Exception:
             pass
 
@@ -2037,7 +2160,11 @@ class PPTWorker(QObject):
 
             app = self._get_active_app()
             ss_win = self._get_active_slideshow_window()
-            pres = self._get_presentation_from_ss_win(ss_win, app) if ss_win is not None else self._get_primary_presentation(app)
+            pres = (
+                self._get_presentation_from_ss_win(ss_win, app)
+                if ss_win is not None
+                else self._get_primary_presentation(app)
+            )
             total = self._extract_slide_total(pres)
             if pres is not None and 1 <= index <= total:
                 pres.Slides(index).Export(path, "PNG", 320, 180)
@@ -2050,6 +2177,7 @@ class PPTMonitor(QObject):
     """
     Facade for PPTWorker. Runs worker in a separate thread.
     """
+
     slideshow_started = Signal()
     slideshow_ended = Signal()
     slide_changed = Signal(int, int)
@@ -2132,7 +2260,7 @@ class PPTMonitor(QObject):
     def stop_monitoring(self):
         if self._thread.isRunning():
             self._req_stop.emit()
-            self._thread.wait(2000) # Wait for worker to stop and thread to quit
+            self._thread.wait(2000)  # Wait for worker to stop and thread to quit
             if self._thread.isRunning():
                 self._thread.terminate()
                 self._thread.wait()
@@ -2237,17 +2365,19 @@ class PPTMonitor(QObject):
 
         ppt_screen = None
         try:
-            hmonitor = win32api.MonitorFromPoint((cx, cy), win32con.MONITOR_DEFAULTTONEAREST)
+            hmonitor = win32api.MonitorFromPoint(
+                (cx, cy), win32con.MONITOR_DEFAULTTONEAREST
+            )
             m_info = win32api.GetMonitorInfo(hmonitor)
-            m_name = m_info['Device']
+            m_name = m_info["Device"]
             for s in screens:
                 if s.name() == m_name:
                     ppt_screen = s
                     break
             if not ppt_screen:
                 for s in screens:
-                    s_name = s.name().replace('\x00', '').strip()
-                    m_name_clean = m_name.replace('\x00', '').strip()
+                    s_name = s.name().replace("\x00", "").strip()
+                    m_name_clean = m_name.replace("\x00", "").strip()
                     if s_name == m_name_clean:
                         ppt_screen = s
                         break
@@ -2260,7 +2390,12 @@ class PPTMonitor(QObject):
         display_screen = None
         if target_mode == "Primary":
             display_screen = QGuiApplication.primaryScreen()
-        elif isinstance(target_mode, str) and target_mode and not target_mode.startswith("Screen ") and target_mode != "Auto":
+        elif (
+            isinstance(target_mode, str)
+            and target_mode
+            and not target_mode.startswith("Screen ")
+            and target_mode != "Auto"
+        ):
             try:
                 for s in screens:
                     if s.name() == target_mode:

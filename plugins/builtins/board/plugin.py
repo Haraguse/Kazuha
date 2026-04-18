@@ -1,6 +1,6 @@
-
 from plugins.interface import AssistantPlugin
 from .board_window import BoardWindow
+
 
 class BoardPlugin(AssistantPlugin):
     def __init__(self, parent=None):
@@ -18,7 +18,7 @@ class BoardPlugin(AssistantPlugin):
         if not self.window:
             self.window = BoardWindow()
             # If the window is closed, we might want to clear the reference
-            # but QQuickView close() just hides it. 
+            # but QQuickView close() just hides it.
             # We'll rely on our showEvent to handle the slide-in.
 
         if self.window.isVisible():
