@@ -82,8 +82,6 @@ if __name__ == "__main__":
 from PySide6.QtWidgets import QApplication, QDialog, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFrame, QGraphicsDropShadowEffect, QProgressBar
 from PySide6.QtCore import Qt, QTimer, Slot, QSize, QPoint, QCoreApplication, QEvent, QObject, QUrl, QRect
 from PySide6.QtGui import QFontDatabase, QFont, QColor, QIcon, QRegion, QPainter, QPen, QBrush, QFontMetrics
-from PySide6.QtWebEngineWidgets import QWebEngineView
-
 
 from ppt_assistant.core.ppt_monitor import PPTMonitor
 from ppt_assistant.ui.overlay import create_overlay_window
@@ -1327,6 +1325,10 @@ class CrashHandler:
 
 
 def _handle_multi_instance(app: QApplication):
+    if str(os.environ.get("LUMINALIUM_DISABLE_MULTI_INSTANCE", "")).strip().lower() in ("1", "true", "yes", "on"):
+        print("[Main] Multi-instance check disabled by LUMINALIUM_DISABLE_MULTI_INSTANCE.", flush=True)
+        return
+
     try:
         import psutil
     except ImportError:
@@ -1336,15 +1338,21 @@ def _handle_multi_instance(app: QApplication):
     restart_marker = _consume_restart_marker()
 
     current_pid = os.getpid()
+    parent_pid = os.getppid()
     current_entry = os.path.abspath(sys.executable if getattr(sys, "frozen", False) else __file__)
     pids = []
     for p in psutil.process_iter(["pid", "cmdline"]):
-        if p.info.get("pid") == current_pid:
+        pid = p.info.get("pid")
+        if pid in (current_pid, parent_pid):
             continue
         cmd = p.info.get("cmdline") or []
 
         if "--webview-runner" in cmd:
             continue
+        if cmd:
+            launcher = os.path.basename(str(cmd[0])).lower()
+            if launcher in ("uv", "uv.exe") and "run" in cmd:
+                continue
 
         try:
             proc_cwd = p.cwd()
@@ -1372,6 +1380,8 @@ def _handle_multi_instance(app: QApplication):
     if not pids:
         return
 
+    print(f"[Main] Existing Luminalium instance candidates: {pids}", flush=True)
+
     if restart_flag or restart_marker:
         try:
             deadline = time.time() + 1.2
@@ -1390,6 +1400,13 @@ def _handle_multi_instance(app: QApplication):
             return
         finally:
             os.environ.pop("LUMINALIUM_RESTART_PID", None)
+
+    if sys.platform.startswith("linux"):
+        print(
+            "[Main] Existing instance detected on Linux; continuing without WebView multi-instance dialog.",
+            flush=True,
+        )
+        return
 
     proc = show_webview_dialog(
         title="",
@@ -2167,15 +2184,20 @@ if __name__ == "__main__":
     # Use Desktop OpenGL for better compatibility with Qt6
     QCoreApplication.setAttribute(Qt.AA_UseDesktopOpenGL)
     QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
+    print("[Main] Creating QApplication...", flush=True)
     app = QApplication(sys.argv)
+    print("[Main] QApplication created.", flush=True)
     app_icon = load_app_icon()
     if not app_icon.isNull():
         app.setWindowIcon(app_icon)
         app._window_icon_filter = WindowIconEventFilter(app_icon)
         app.installEventFilter(app._window_icon_filter)
     _apply_global_font(app)
+    print("[Main] Global font applied.", flush=True)
     crash_handler = CrashHandler(app)
+    print("[Main] Checking multi-instance state...", flush=True)
     _handle_multi_instance(app)
+    print("[Main] Multi-instance check finished.", flush=True)
 
     # Initialize log manager to capture application logs
     from ppt_assistant.core.log_manager import init_log_manager, get_log_manager
@@ -2220,10 +2242,14 @@ if __name__ == "__main__":
 
     splash = None
     if show_splash:
+        print("[Main] Creating startup splash...", flush=True)
         splash = StartupSplash()
         splash.show()
         app.processEvents()
+        print("[Main] Startup splash shown.", flush=True)
 
+    print("[Main] Creating PPTAssistantApp...", flush=True)
     app_instance = PPTAssistantApp(app, splash)
+    print("[Main] PPTAssistantApp created.", flush=True)
     crash_handler.set_app_instance(app_instance)
     sys.exit(app.exec())

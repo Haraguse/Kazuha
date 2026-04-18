@@ -25,6 +25,19 @@ from ppt_assistant.core.system.linux import (
     window_looks_like_editor,
     window_looks_like_slideshow as linux_window_looks_like_slideshow,
 )
+WpsBridgeHost = None
+
+
+def _load_wps_bridge_host():
+    global WpsBridgeHost
+    if WpsBridgeHost is not None:
+        return WpsBridgeHost
+    try:
+        from ppt_assistant.core.wps_bridge.host import WpsBridgeHost as host_cls
+    except Exception:
+        return None
+    WpsBridgeHost = host_cls
+    return WpsBridgeHost
 
 try:
     import win32gui
@@ -139,6 +152,12 @@ class PPTWorker(QObject):
         self._page_turn_window_seconds = 1.0
         self._last_linux_probe_at = 0.0
         self._last_linux_slideshow_seen_at = 0.0
+        self._wps_bridge = None
+        self._wps_bridge_capabilities = {}
+        self._wps_bridge_last_state_at = 0.0
+        self._wps_bridge_thumbnail_cache = {}
+        self._wps_bridge_pending_thumbnails = set()
+        self._wps_bridge_thumbnail_command_id = ""
 
     def _consume_page_turn_token(self) -> bool:
         now = time.monotonic()
@@ -693,6 +712,255 @@ class PPTWorker(QObject):
         except Exception:
             pass
 
+    def _start_wps_bridge(self):
+        if not sys.platform.startswith("linux"):
+            return
+        if self._wps_bridge is not None:
+            return
+        try:
+            host_cls = _load_wps_bridge_host()
+            if host_cls is None:
+                return
+            bridge = host_cls(parent=self)
+            bridge.connected.connect(self._on_wps_bridge_connected)
+            bridge.disconnected.connect(self._on_wps_bridge_disconnected)
+            bridge.message_received.connect(self._on_wps_bridge_message)
+            bridge.log_message.connect(
+                lambda msg: self._note_info("wps_bridge_log", msg, min_interval=0.0)
+            )
+            bridge.protocol_error.connect(
+                lambda msg: self._note_info(
+                    "wps_bridge_protocol_error",
+                    f"WPS bridge protocol error: {msg}",
+                    min_interval=1.0,
+                )
+            )
+            if bridge.start():
+                self._wps_bridge = bridge
+            else:
+                bridge.deleteLater()
+        except Exception as exc:
+            self._note_error("start_wps_bridge", exc)
+
+    def _stop_wps_bridge(self):
+        bridge = self._wps_bridge
+        self._wps_bridge = None
+        self._wps_bridge_capabilities = {}
+        self._wps_bridge_thumbnail_cache = {}
+        self._wps_bridge_pending_thumbnails = set()
+        self._wps_bridge_thumbnail_command_id = ""
+        if bridge is None:
+            return
+        try:
+            bridge.stop()
+            bridge.deleteLater()
+        except Exception as exc:
+            self._note_error("stop_wps_bridge", exc)
+
+    def _wps_bridge_connected(self) -> bool:
+        try:
+            return bool(self._wps_bridge is not None and self._wps_bridge.is_connected())
+        except Exception:
+            return False
+
+    def _send_wps_bridge_command(self, message_type: str, payload: dict | None = None) -> str:
+        if not self._wps_bridge_connected():
+            return ""
+        try:
+            return str(self._wps_bridge.send(message_type, payload or {}) or "")
+        except Exception as exc:
+            self._note_error(f"wps_bridge_send_{message_type}", exc)
+            return ""
+
+    @Slot()
+    def _on_wps_bridge_connected(self):
+        self._note_info(
+            "wps_bridge_connected",
+            "WPS bridge client connected; requesting presentation state.",
+            min_interval=0.0,
+        )
+        self._send_wps_bridge_command("presentation_state_get", {})
+
+    @Slot()
+    def _on_wps_bridge_disconnected(self):
+        self._note_info(
+            "wps_bridge_disconnected",
+            "WPS bridge client disconnected; Linux xdotool fallback can resume.",
+            min_interval=0.0,
+        )
+        self._wps_bridge_capabilities = {}
+        self._wps_bridge_thumbnail_command_id = ""
+        if self._running and self._active_kind == "wps" and self._control_mode == "wps_bridge":
+            self._handle_stop("wps")
+
+    @Slot(dict)
+    def _on_wps_bridge_message(self, message: dict):
+        try:
+            message_type = str(message.get("message_type", "") or "")
+            payload = message.get("payload") if isinstance(message, dict) else {}
+            if not isinstance(payload, dict):
+                payload = {}
+            if message_type == "hello":
+                self._handle_wps_bridge_hello(payload)
+            elif message_type == "presentation_state":
+                self._handle_wps_bridge_presentation_state(payload)
+            elif message_type == "presentation_thumbnails":
+                self._handle_wps_bridge_thumbnails(payload)
+            elif message_type == "command_result":
+                self._handle_wps_bridge_command_result(payload)
+            elif message_type == "error":
+                self._handle_wps_bridge_error(payload)
+            elif message_type == "log":
+                self._handle_wps_bridge_log(payload)
+            else:
+                self._note_info(
+                    "wps_bridge_unhandled",
+                    f"Unhandled WPS bridge message: {message_type}",
+                    min_interval=2.0,
+                )
+        except Exception as exc:
+            self._note_error("handle_wps_bridge_message", exc)
+
+    def _handle_wps_bridge_hello(self, payload: dict):
+        capabilities = payload.get("capabilities")
+        self._wps_bridge_capabilities = capabilities if isinstance(capabilities, dict) else {}
+        version = str(payload.get("plugin_version", "") or "")
+        self._note_info(
+            "wps_bridge_hello",
+            f"WPS bridge hello received version={version or 'unknown'}",
+            min_interval=0.0,
+        )
+        self._send_wps_bridge_command("presentation_state_get", {})
+
+    def _handle_wps_bridge_presentation_state(self, payload: dict):
+        document = payload.get("document") if isinstance(payload.get("document"), dict) else {}
+        presentation = (
+            payload.get("presentation")
+            if isinstance(payload.get("presentation"), dict)
+            else {}
+        )
+        try:
+            current = int(presentation.get("current_slide") or 0)
+        except Exception:
+            current = 0
+        try:
+            total = int(document.get("slide_count") or 0)
+        except Exception:
+            total = 0
+        is_slide_show = bool(presentation.get("is_slide_show"))
+
+        now = time.monotonic()
+        self._wps_bridge_last_state_at = now
+        self._last_linux_slideshow_seen_at = now
+
+        if total <= 0:
+            total = int(self._total_slides or self._degraded_total or 0)
+        if current <= 0 and total > 0:
+            current = int(self._current_slide or self._degraded_current or 1)
+
+        self._control_mode = "wps_bridge"
+        if is_slide_show:
+            if self._active_kind != "wps":
+                self._set_active_kind("wps")
+            if not self._running:
+                self._running = True
+                self._slideshow_started_at = now
+                self._note_info(
+                    "wps_bridge_slideshow_started",
+                    "WPS bridge slideshow started.",
+                    min_interval=0.0,
+                )
+                self.slideshow_started.emit()
+            self._update_restrictions(False, False)
+            if current > 0 and total > 0:
+                self._degraded_current = current
+                self._degraded_total = total
+                if current != self._current_slide or total != self._total_slides:
+                    self._current_slide = current
+                    self._total_slides = total
+                    self.slide_changed.emit(current, total)
+            return
+
+        if self._running and self._active_kind == "wps":
+            self._handle_stop("wps")
+        elif current > 0 and total > 0:
+            self._degraded_current = current
+            self._degraded_total = total
+
+    def _handle_wps_bridge_thumbnails(self, payload: dict):
+        items = payload.get("items")
+        if not isinstance(items, list):
+            return
+        self._wps_bridge_thumbnail_command_id = ""
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            try:
+                index = int(item.get("slide_index") or 0)
+            except Exception:
+                index = 0
+            image_url = str(item.get("image_url", "") or "")
+            if index <= 0 or not image_url:
+                continue
+            self._wps_bridge_thumbnail_cache[index] = image_url
+            self._wps_bridge_pending_thumbnails.discard(index)
+            self.thumbnail_generated.emit(index, image_url)
+
+    def _handle_wps_bridge_command_result(self, payload: dict):
+        command_id = str(payload.get("command_id", "") or "")
+        ok = bool(payload.get("ok"))
+        code = str(payload.get("code", "") or "")
+        message = str(payload.get("message", "") or "")
+        if command_id and command_id == self._wps_bridge_thumbnail_command_id:
+            self._wps_bridge_thumbnail_command_id = ""
+        if not ok:
+            self._note_info(
+                f"wps_bridge_command_failed_{code or command_id}",
+                f"WPS bridge command failed code={code or 'unknown'} message={message}",
+                min_interval=1.0,
+            )
+
+    def _handle_wps_bridge_error(self, payload: dict):
+        code = str(payload.get("code", "") or "")
+        message = str(payload.get("message", "") or "")
+        self._note_info(
+            f"wps_bridge_error_{code or 'unknown'}",
+            f"WPS bridge error code={code or 'unknown'} message={message}",
+            min_interval=1.0,
+        )
+
+    def _handle_wps_bridge_log(self, payload: dict):
+        level = str(payload.get("level", "") or "info")
+        message = str(payload.get("message", "") or "")
+        if message:
+            self._note_info(
+                f"wps_bridge_plugin_log_{level}",
+                f"WPS bridge plugin {level}: {message}",
+                min_interval=2.0,
+            )
+
+    def _request_wps_bridge_thumbnail(self, index: int) -> bool:
+        if not self._wps_bridge_connected():
+            return False
+        try:
+            index = int(index)
+        except Exception:
+            return False
+        if index <= 0:
+            return False
+        cached = self._wps_bridge_thumbnail_cache.get(index)
+        if cached:
+            self.thumbnail_generated.emit(index, cached)
+            return True
+        self._wps_bridge_pending_thumbnails.add(index)
+        if not self._wps_bridge_thumbnail_command_id:
+            command_id = self._send_wps_bridge_command(
+                "presentation_thumbnails_get",
+                {"range": "all", "format": "png", "max_width": 320},
+            )
+            self._wps_bridge_thumbnail_command_id = command_id
+        return bool(self._wps_bridge_thumbnail_command_id)
+
     def _try_emit_page_info_from_ppt_app(self):
         app = self._get_active_app()
         if not app:
@@ -796,6 +1064,7 @@ class PPTWorker(QObject):
                 "Linux X11 tools: " + describe_linux_tool_capabilities(),
                 min_interval=30.0,
             )
+            self._start_wps_bridge()
 
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._check_ppt_state)
@@ -814,6 +1083,7 @@ class PPTWorker(QObject):
             except Exception:
                 pass
             self._com_initialized = False
+        self._stop_wps_bridge()
         self._note_info("timer_stopped", "PPT monitor stopped.", min_interval=0.0)
         self.finished.emit()
 
@@ -904,7 +1174,14 @@ class PPTWorker(QObject):
         try:
             if not win32com:
                 if sys.platform.startswith("linux"):
-                    self._check_linux_x11_state()
+                    if self._wps_bridge_connected():
+                        self._note_state(
+                            "wps_bridge_probe",
+                            "connected",
+                            "WPS bridge connected; xdotool slideshow probe is on standby.",
+                        )
+                    else:
+                        self._check_linux_x11_state()
                 else:
                     self._note_info(
                         "check_no_win32com",
@@ -1392,6 +1669,9 @@ class PPTWorker(QObject):
     def go_next(self):
         if not self._consume_page_turn_token():
             return
+        if self._send_wps_bridge_command("presentation_next", {}):
+            self._control_mode = "wps_bridge"
+            return
         if cfg.compatibilityMode.value:
             try:
                 if self._send_linux_shortcut_to_slideshow("Next"):
@@ -1444,6 +1724,9 @@ class PPTWorker(QObject):
     @Slot()
     def go_previous(self):
         if not self._consume_page_turn_token():
+            return
+        if self._send_wps_bridge_command("presentation_prev", {}):
+            self._control_mode = "wps_bridge"
             return
         if cfg.compatibilityMode.value:
             try:
@@ -1692,6 +1975,18 @@ class PPTWorker(QObject):
     @Slot(int, int, int)
     def set_pen_color(self, r, g, b):
         try:
+            r = max(0, min(255, int(r)))
+            g = max(0, min(255, int(g)))
+            b = max(0, min(255, int(b)))
+            if self._send_wps_bridge_command(
+                "presentation_pen_color_set",
+                {"color": f"#{r:02X}{g:02X}{b:02X}"},
+            ):
+                self._control_mode = "wps_bridge"
+                return
+        except Exception as e:
+            self._note_error("set_pen_color_wps_bridge", e)
+        try:
             ss_win = self._get_active_slideshow_window()
             view = getattr(ss_win, "View", None) if ss_win is not None else None
             if view is not None:
@@ -1702,6 +1997,16 @@ class PPTWorker(QObject):
 
     @Slot(int)
     def go_to_slide(self, index):
+        try:
+            index = int(index)
+            if self._send_wps_bridge_command(
+                "presentation_goto",
+                {"slide_index": index},
+            ):
+                self._control_mode = "wps_bridge"
+                return
+        except Exception as e:
+            self._note_error("go_to_slide_wps_bridge", e)
         try:
             ss_win = self._get_active_slideshow_window()
             view = getattr(ss_win, "View", None) if ss_win is not None else None
@@ -1722,6 +2027,8 @@ class PPTWorker(QObject):
 
     @Slot(int, str)
     def export_slide_thumbnail(self, index, path):
+        if self._request_wps_bridge_thumbnail(index):
+            return
         try:
             # Ensure directory exists
             directory = os.path.dirname(path)

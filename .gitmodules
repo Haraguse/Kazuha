@@ -1,3 +1,4 @@
 [submodule "Luminalium2WPS"]
 	path = Luminalium2WPS
 	url = https://github.com/SECTL/Luminalium2WPS
+	branch = master

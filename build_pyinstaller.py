@@ -67,6 +67,7 @@ def run():
         ("fonts", "fonts"),
         ("user", "user"),
         ("scripts", "scripts"),
+        ("Luminalium2WPS/protocol", "Luminalium2WPS/protocol"),
     ]
     add_data = []
     for src, dst in data_entries:

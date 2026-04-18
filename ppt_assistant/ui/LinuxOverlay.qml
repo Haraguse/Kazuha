@@ -1075,7 +1075,7 @@ Item {
                                 Image {
                                     id: toolIcon
                                     anchors.fill: parent
-                                    source: modelData.icon ? Qt.resolvedUrl(modelData.icon) : iconSource(modelData.key)
+                                    source: modelData.icon || iconSource(modelData.key)
                                     visible: status === Image.Ready
                                     fillMode: Image.PreserveAspectFit
                                     sourceSize.width: 40

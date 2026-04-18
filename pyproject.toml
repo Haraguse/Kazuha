@@ -8,6 +8,8 @@ dependencies = [
     "pyside6-fluent-widgets>=1.0.0",
     "psutil>=5.9.0",
     "pillow>=10.0.0",
+    "jsonschema>=4.25.0",
+    "referencing>=0.36.0",
     "pynput>=1.7.0; sys_platform == 'linux'",
 ]
 

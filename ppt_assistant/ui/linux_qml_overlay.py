@@ -18,6 +18,13 @@ from ppt_assistant.core.system import get_system_api
 from ppt_assistant.core.theme_data import THEMES
 
 
+def _thumbnail_source_to_url(source):
+    text = str(source or "")
+    if text.lower().startswith(("data:", "file:", "http://", "https://", "blob:")):
+        return text
+    return QUrl.fromLocalFile(text).toString()
+
+
 def _normalize_theme_mode(raw_theme) -> str:
     from qfluentwidgets import Theme, isDarkTheme
 
@@ -287,37 +294,58 @@ class LinuxQmlOverlayWindow(QWidget):
             self.setWindowIcon(icon)
 
         self._bridge = LinuxOverlayBridge(self)
-        self._view = QQuickWidget(self)
-        self._view.setResizeMode(QQuickWidget.SizeRootObjectToView)
-        self._view.setClearColor(QColor(0, 0, 0, 0))
-        self._view.setAttribute(Qt.WA_AlwaysStackOnTop, True)
-        self._view.rootContext().setContextProperty("overlayBridge", self._bridge)
-
-        qml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LinuxOverlay.qml")
-        self._view.setSource(QUrl.fromLocalFile(qml_path))
-        if self._view.status() == QQuickWidget.Error:
-            errors = [str(err.toString()) for err in self._view.errors()]
-            raise RuntimeError("Failed to load LinuxOverlay.qml: " + " | ".join(errors))
+        self._view = None
+        self._qml_ready = False
 
         self.start_background_caching.connect(self.on_start_background_caching)
         self.thumbnail_ready.connect(self.on_thumbnail_ready)
 
-        self._status_timer = QTimer(self)
-        self._status_timer.timeout.connect(self._update_system_status)
-        self._status_timer.start(2000)
+        self._status_timer = None
+        self._clock_timer = None
 
-        self._clock_timer = QTimer(self)
-        self._clock_timer.timeout.connect(self._emit_system_status)
-        self._clock_timer.start(1000)
-
-        self._start_smtc_thread()
         self.bind_config_signals()
-        self.apply_initial_state()
 
         print(
-            "[Overlay] Linux QML overlay is active; QWidget shell handles mask/stacking.",
+            "[Overlay] Linux QML overlay shell is active; QML scene will load on first show.",
             flush=True,
         )
+
+    def _ensure_qml_runtime(self) -> bool:
+        if self._qml_ready:
+            return True
+        try:
+            print("[Overlay] Initializing Linux QML scene...", flush=True)
+            self._view = QQuickWidget(self)
+            self._view.setResizeMode(QQuickWidget.SizeRootObjectToView)
+            self._view.setClearColor(QColor(0, 0, 0, 0))
+            self._view.setAttribute(Qt.WA_AlwaysStackOnTop, True)
+            self._view.rootContext().setContextProperty("overlayBridge", self._bridge)
+            self._view.setGeometry(self.rect())
+
+            qml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LinuxOverlay.qml")
+            print(f"[Overlay] Loading Linux QML overlay: {qml_path}", flush=True)
+            self._view.setSource(QUrl.fromLocalFile(qml_path))
+            if self._view.status() == QQuickWidget.Error:
+                errors = [str(err.toString()) for err in self._view.errors()]
+                raise RuntimeError("Failed to load LinuxOverlay.qml: " + " | ".join(errors))
+
+            self._qml_ready = True
+
+            self._status_timer = QTimer(self)
+            self._status_timer.timeout.connect(self._update_system_status)
+            self._status_timer.start(2000)
+
+            self._clock_timer = QTimer(self)
+            self._clock_timer.timeout.connect(self._emit_system_status)
+            self._clock_timer.start(1000)
+
+            self._start_smtc_thread()
+            self.apply_initial_state()
+            print("[Overlay] Linux QML scene ready.", flush=True)
+            return True
+        except Exception as exc:
+            print(f"[Overlay] Failed to initialize Linux QML scene: {exc}", flush=True)
+            return False
 
     def _emit_system_status(self):
         self._bridge.systemStatusChanged.emit(self._collect_system_status())
@@ -473,7 +501,8 @@ class LinuxQmlOverlayWindow(QWidget):
         self._bridge.restrictionsChanged.emit(self._protected_view, self._presentation_readonly)
 
     def nudge_size(self):
-        self._view.resize(self.size())
+        if self._view is not None:
+            self._view.resize(self.size())
 
     def set_monitor(self, monitor):
         self.monitor = monitor
@@ -485,7 +514,7 @@ class LinuxQmlOverlayWindow(QWidget):
             self._cached_thumbnails.add(int(index))
         except Exception:
             pass
-        url = QUrl.fromLocalFile(path).toString()
+        url = _thumbnail_source_to_url(path)
         self._bridge.thumbnailReady.emit(int(index), url)
         self._process_next_background_thumbnail()
 
@@ -635,7 +664,10 @@ class LinuxQmlOverlayWindow(QWidget):
     def set_active_on_slideshow(self, active: bool, animate: bool = True):
         self._active_on_slideshow = bool(active)
         if self._active_on_slideshow:
-            self._view.resize(self.size())
+            if not self._ensure_qml_runtime():
+                return
+            if self._view is not None:
+                self._view.resize(self.size())
             super().show()
             self.raise_()
         else:
@@ -673,14 +705,16 @@ class LinuxQmlOverlayWindow(QWidget):
 
     def cleanup(self):
         self._stop_smtc = True
-        try:
-            self._status_timer.stop()
-        except Exception:
-            pass
-        try:
-            self._clock_timer.stop()
-        except Exception:
-            pass
+        if self._status_timer is not None:
+            try:
+                self._status_timer.stop()
+            except Exception:
+                pass
+        if self._clock_timer is not None:
+            try:
+                self._clock_timer.stop()
+            except Exception:
+                pass
         if self._background_thumbnail_timer is not None:
             try:
                 self._background_thumbnail_timer.stop()
@@ -708,8 +742,10 @@ class LinuxQmlOverlayWindow(QWidget):
                 self.setGeometry(rect)
             except Exception:
                 pass
-        self._view.resize(self.size())
+        if self._view is not None:
+            self._view.resize(self.size())
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        self._view.setGeometry(self.rect())
+        if self._view is not None:
+            self._view.setGeometry(self.rect())

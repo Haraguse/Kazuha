@@ -7,7 +7,6 @@ import ctypes
 import tempfile
 import importlib.util
 from typing import Optional
-from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QObject, Slot, Signal, Qt, QUrl, QTimer, QRect, QPoint, QEvent, QByteArray
 from PySide6.QtGui import QColor, QRegion, QGuiApplication, QIcon
@@ -27,6 +26,35 @@ import threading
 import subprocess
 
 PLUGIN_DIR = os.path.join(ROOT_DIR, "plugins", "builtins")
+
+
+def _skip_webengine_import_at_startup() -> bool:
+    if sys.platform != "linux":
+        return False
+    force_webengine = str(os.environ.get("LUMINALIUM_ENABLE_WEBENGINE_OVERLAY", "")).strip().lower()
+    if force_webengine in ("1", "true", "yes", "on"):
+        return False
+    if not os.environ.get("DISPLAY"):
+        return False
+    qpa = str(os.environ.get("QT_QPA_PLATFORM", "")).strip().lower()
+    marker = str(os.environ.get("LUMINALIUM_XWAYLAND_SESSION", "")).strip().lower()
+    return qpa.startswith("xcb") and marker in ("1", "true", "yes", "on")
+
+
+if _skip_webengine_import_at_startup():
+    QWebEngineView = QWidget
+    _WEBENGINE_IMPORT_SKIPPED = True
+else:
+    from PySide6.QtWebEngineWidgets import QWebEngineView
+
+    _WEBENGINE_IMPORT_SKIPPED = False
+
+
+def _thumbnail_source_to_url(source):
+    text = str(source or "")
+    if text.lower().startswith(("data:", "file:", "http://", "https://", "blob:")):
+        return text
+    return QUrl.fromLocalFile(text).toString()
 
 
 def _qt_platform_name() -> str:
@@ -90,6 +118,14 @@ def _should_use_linux_widget_overlay() -> bool:
         return False
     force_webengine = str(os.environ.get("LUMINALIUM_ENABLE_WEBENGINE_OVERLAY", "")).strip().lower()
     return force_webengine not in ("1", "true", "yes", "on")
+
+
+def _linux_overlay_backend() -> str:
+    value = str(os.environ.get("LUMINALIUM_LINUX_OVERLAY_BACKEND", "")).strip().lower()
+    if value in ("widget", "qwidget", "compat", "safe"):
+        return "widget"
+    return "qml"
+
 
 class OverlayBridge(QObject):
     def __init__(self, overlay):
@@ -747,9 +783,11 @@ class OverlayWindow(QWebEngineView):
         # Mark as cached
         self._cached_thumbnails.add(index)
 
-        # Path needs to be converted to file URL
-        url = QUrl.fromLocalFile(path).toString()
-        script = f"if (typeof updatePageThumbnail === 'function') updatePageThumbnail({index}, '{url}');"
+        url = _thumbnail_source_to_url(path)
+        script = (
+            "if (typeof updatePageThumbnail === 'function') "
+            f"updatePageThumbnail({int(index)}, {json.dumps(url)});"
+        )
         self._run_javascript(script)
 
         # Start next background caching task if available
@@ -1258,19 +1296,32 @@ class OverlayWindow(QWebEngineView):
 
 def create_overlay_window():
     if _should_use_linux_widget_overlay():
-        try:
-            from ppt_assistant.ui.linux_qml_overlay import LinuxQmlOverlayWindow
+        backend = _linux_overlay_backend()
+        if backend == "qml":
+            try:
+                from ppt_assistant.ui.linux_qml_overlay import LinuxQmlOverlayWindow
 
-            return LinuxQmlOverlayWindow()
-        except Exception as exc:
+                print(
+                    "[Overlay] Linux overlay backend: QML "
+                    "(experimental; set LUMINALIUM_LINUX_OVERLAY_BACKEND=widget for safe mode).",
+                    flush=True,
+                )
+                return LinuxQmlOverlayWindow()
+            except Exception as exc:
+                print(
+                    f"[Overlay] Failed to initialize Linux QML overlay, "
+                    f"falling back to QWidget compatibility overlay: {exc}",
+                    flush=True,
+                )
+        else:
             print(
-                f"[Overlay] Failed to initialize Linux QML overlay, "
-                f"falling back to QWidget compatibility overlay: {exc}",
+                "[Overlay] Linux overlay backend: QWidget compatibility "
+                "(set LUMINALIUM_LINUX_OVERLAY_BACKEND=qml or unset it to use QML).",
                 flush=True,
             )
-            from ppt_assistant.ui.linux_widget_overlay import LinuxCompatOverlayWindow
+        from ppt_assistant.ui.linux_widget_overlay import LinuxCompatOverlayWindow
 
-            return LinuxCompatOverlayWindow()
+        return LinuxCompatOverlayWindow()
     if _should_use_webengine_overlay():
         return OverlayWindow()
     return WaylandFallbackOverlayWindow()
