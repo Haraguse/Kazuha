@@ -125,6 +125,34 @@ class OverlayBridge(QObject):
     @Slot(int)
     def startBackgroundThumbnailCaching(self, total_pages):
         self._overlay.start_background_caching.emit(total_pages)
+    
+    @Slot(result=str)
+    def getTimerState(self):
+        """Get current timer state as JSON string."""
+        if not self._overlay._timer_manager:
+            return '{"isRunning": false, "remainingSeconds": 0, "totalSeconds": 0, "displayText": ""}'
+        
+        try:
+            timer_mgr = self._overlay._timer_manager
+            is_running = timer_mgr.is_running
+            remaining_seconds = max(0, int(timer_mgr.remaining_seconds))
+            total_seconds = max(0, int(timer_mgr.total_seconds))
+            
+            # Format time display as MM:SS
+            minutes = remaining_seconds // 60
+            seconds = remaining_seconds % 60
+            display_text = f"{minutes:02d}:{seconds:02d}" if total_seconds > 0 else ""
+            
+            import json
+            return json.dumps({
+                "isRunning": is_running,
+                "remainingSeconds": remaining_seconds,
+                "totalSeconds": total_seconds,
+                "displayText": display_text
+            })
+        except Exception as e:
+            print(f"[Bridge] Error getting timer state: {e}", file=sys.stderr)
+            return '{"isRunning": false, "remainingSeconds": 0, "totalSeconds": 0, "displayText": ""}'
 
 class InkPromptWindow(QWidget):
     result = Signal(bool)
@@ -295,6 +323,7 @@ class OverlayWindow(QWebEngineView):
         self.load(url)
         
         self.monitor = None
+        self._timer_manager = None
         self.plugins = []
         self._icon_cache = {}
         self._is_light = False
@@ -415,6 +444,30 @@ class OverlayWindow(QWebEngineView):
         self.monitor.slide_changed.connect(self.on_slide_changed)
         self.thumbnail_ready.connect(self.on_thumbnail_ready)
         self.start_background_caching.connect(self.on_start_background_caching)
+
+    def set_timer_manager(self, timer_manager):
+        """Set the timer manager for status bar updates."""
+        self._timer_manager = timer_manager
+        if timer_manager:
+            # Connect to timer updates to refresh status bar
+            timer_manager.updated.connect(self._on_timer_updated)
+            timer_manager.state_changed.connect(self._on_timer_state_changed)
+    
+    def _on_timer_updated(self, remaining_ms):
+        """Triggered when timer is updated."""
+        try:
+            script = "if (typeof updateTimerStatus === 'function') updateTimerStatus();"
+            self.page().runJavaScript(script)
+        except Exception as e:
+            print(f"[Overlay] Error updating timer status: {e}", file=sys.stderr)
+    
+    def _on_timer_state_changed(self, is_running):
+        """Triggered when timer state changes."""
+        try:
+            script = "if (typeof updateTimerStatus === 'function') updateTimerStatus();"
+            self.page().runJavaScript(script)
+        except Exception as e:
+            print(f"[Overlay] Error updating timer state: {e}", file=sys.stderr)
 
     def on_thumbnail_ready(self, index, path):
         # Mark as cached

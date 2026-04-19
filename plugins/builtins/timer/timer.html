@@ -1551,6 +1551,70 @@
       font-size: 11px;
     }
 
+    /* 迷你模式响应式级别 */
+    /* Level 1: 圆环 + 完整内容 (宽>220px) */
+    body.mini-mode {
+      --ring-size: 186px;
+      --time-size: 42px;
+      --unit-display: block;
+      --btn-display: flex;
+      --controls-display: flex;
+    }
+
+    body.mini-mode .progress-ring {
+      width: var(--ring-size);
+      height: var(--ring-size);
+    }
+
+    body.mini-mode .progress-ring svg {
+      width: var(--ring-size);
+      height: var(--ring-size);
+    }
+
+    body.mini-mode .time-left {
+      font-size: var(--time-size);
+    }
+
+    body.mini-mode .mini-unit {
+      display: var(--unit-display);
+    }
+
+    body.mini-mode .add-time-actions {
+      display: var(--btn-display) !important;
+    }
+
+    body.mini-mode .mini-controls {
+      display: var(--controls-display);
+    }
+
+    /* Level 2: 圆环 + 简化内容 (150px < 宽 <= 220px) */
+    body.mini-mode.mini-compact {
+      --ring-size: 140px;
+      --time-size: 32px;
+      --unit-display: none;
+      --btn-display: none;
+      --controls-display: none;
+    }
+
+    /* Level 3: 只剩数字 (宽 <= 150px) */
+    body.mini-mode.mini-tiny {
+      --ring-size: 0px;
+      --time-size: 28px;
+      --unit-display: none;
+      --btn-display: none;
+      --controls-display: none;
+    }
+
+    body.mini-mode.mini-tiny .progress-ring {
+      display: none;
+    }
+
+    body.mini-mode.mini-tiny .countdown-text {
+      position: static;
+      transform: none;
+      margin: 0;
+    }
+
     .mini-exit-overlay {
       display: none;
     }
@@ -1759,10 +1823,7 @@
                 <div class="time-left" id="timeLeftDisplay">00:00</div>
                 <div class="mini-unit" id="miniUnitDisplay"></div>
                 <div class="total-time" id="totalTimeDisplay"></div>
-                <div class="add-time-actions">
-                  <button class="add-time-btn" onclick="addTime(60)">+1m</button>
-                  <button class="add-time-btn" onclick="addTime(15)">+15s</button>
-                </div>
+                <div class="add-time-actions" id="quickAddActions"></div>
                 <div class="countdown-actions">
                   <!-- Actions moved to bottom control bar -->
                 </div>
@@ -1853,6 +1914,8 @@
         "timer.minute": "分",
         "timer.second": "秒",
         "timer.totalSeconds": "共{n}秒",
+        "timer.quickAdd.short.second": "秒",
+        "timer.quickAdd.short.minute": "分",
         "timer.presets": "常用时间",
         "timer.fullscreen": "全屏",
         "timer.exitFullscreen": "退出全屏",
@@ -1876,6 +1939,8 @@
         "timer.minute": "分",
         "timer.second": "秒",
         "timer.totalSeconds": "共{n}秒",
+        "timer.quickAdd.short.second": "秒",
+        "timer.quickAdd.short.minute": "分",
         "timer.presets": "常用時間",
         "timer.fullscreen": "全螢幕",
         "timer.exitFullscreen": "退出全螢幕",
@@ -1899,6 +1964,8 @@
         "timer.minute": "分",
         "timer.second": "秒",
         "timer.totalSeconds": "總共 {n} 秒",
+        "timer.quickAdd.short.second": "秒",
+        "timer.quickAdd.short.minute": "分",
         "timer.presets": "常用時間",
         "timer.fullscreen": "全螢幕",
         "timer.exitFullscreen": "退出全螢幕",
@@ -1922,6 +1989,8 @@
         "timer.minute": "分",
         "timer.second": "秒",
         "timer.totalSeconds": "合計 {n} 秒",
+        "timer.quickAdd.short.second": "秒",
+        "timer.quickAdd.short.minute": "分",
         "timer.presets": "よく使う時間",
         "timer.fullscreen": "全画面",
         "timer.exitFullscreen": "全画面を終了",
@@ -1945,6 +2014,8 @@
         "timer.minute": "M",
         "timer.second": "S",
         "timer.totalSeconds": "Total {n} seconds",
+        "timer.quickAdd.short.second": "s",
+        "timer.quickAdd.short.minute": "m",
         "timer.presets": "Common Times",
         "timer.fullscreen": "Fullscreen",
         "timer.exitFullscreen": "Exit Fullscreen",
@@ -1993,6 +2064,31 @@
 
     function motionDelay(ms) {
       return animationsDisabled() ? 0 : ms;
+    }
+
+    function timerSoundEnabled() {
+      return settings?.Timer?.EnableSoundEffects !== false;
+    }
+
+    async function refreshSettingsForAudio() {
+      if (!(window.pywebview && window.pywebview.api && window.pywebview.api.get_settings)) {
+        return;
+      }
+      try {
+        const latest = await window.pywebview.api.get_settings();
+        if (latest && Object.keys(latest).length > 0) {
+          settings = latest;
+        }
+      } catch (error) {
+        console.error('Failed to refresh settings for audio:', error);
+      }
+    }
+
+    async function playSystemAudio(fileUrl) {
+      await refreshSettingsForAudio();
+      if (!timerSoundEnabled()) return;
+      const audio = new Audio(fileUrl);
+      audio.play().catch(e => console.error('Audio play error:', e));
     }
 
     function applyAnimationPreference() {
@@ -2506,6 +2602,9 @@
               }
             }, 100);
             updateButtonState();
+            
+            // Render quick add buttons for running state
+            renderQuickAddButtons();
           } else if (state && state.remaining > 0) {
             // Paused state
             setTimeUpMode(false);
@@ -2531,6 +2630,9 @@
             document.getElementById('totalTimeDisplay').textContent = formatTotalSecondsText(state.remaining);
             updateCountdownUI();
             updateButtonState();
+            
+            // Render quick add buttons for paused state
+            renderQuickAddButtons();
           }
         });
       }
@@ -2620,12 +2722,54 @@
 
       if (next) {
         body.classList.add('mini-mode');
+        setupMiniModeResizeListener();
       } else {
         body.classList.remove('mini-mode');
+        removeMiniModeResizeListener();
       }
 
       if (window.pywebview && window.pywebview.api && window.pywebview.api.set_mini_mode) {
         window.pywebview.api.set_mini_mode(next);
+      }
+    }
+
+    function updateMiniModeSize() {
+      const body = document.body;
+      if (!body.classList.contains('mini-mode')) return;
+
+      // 获取窗口宽度
+      const width = window.innerWidth;
+
+      // 移除所有模式的类
+      body.classList.remove('mini-compact', 'mini-tiny');
+
+      // 根据宽度应用相应的模式
+      if (width <= 150) {
+        // 只剩数字
+        body.classList.add('mini-tiny');
+      } else if (width <= 220) {
+        // 简化模式（圆环 + 数字，无按钮）
+        body.classList.add('mini-compact');
+      }
+      // 否则保持正常mini-mode样式
+    }
+
+    let miniModeResizeListener = null;
+
+    function setupMiniModeResizeListener() {
+      if (miniModeResizeListener) return;
+      
+      miniModeResizeListener = () => updateMiniModeSize();
+      window.addEventListener('resize', miniModeResizeListener);
+      
+      // 立即检查一次尺寸
+      updateMiniModeSize();
+    }
+
+    function removeMiniModeResizeListener() {
+      if (miniModeResizeListener) {
+        window.removeEventListener('resize', miniModeResizeListener);
+        miniModeResizeListener = null;
       }
     }
 
@@ -2749,6 +2893,9 @@
       }, 100);
 
       updateButtonState();
+      
+      // Initialize quick add buttons once countdown starts
+      renderQuickAddButtons();
     }
 
     function formatFullTime(sec) {
@@ -2867,6 +3014,9 @@
         }
       }, 100);
       updateButtonState();
+      
+      // Re-render quick add buttons when resuming
+      renderQuickAddButtons();
     }
 
     function finishCountdown() {
@@ -2896,8 +3046,7 @@
       bellUI.style.display = 'flex';
       setTimeUpMode(true);
 
-      const audio = new Audio('file:///C:/Windows/Media/Windows%20Notify%20Email.wav');
-      audio.play().catch(e => console.error('Audio play error:', e));
+      playSystemAudio('file:///C:/Windows/Media/Windows%20Notify%20Email.wav');
 
       updateButtonState();
     }
@@ -2919,8 +3068,7 @@
         window.pywebview.api.stop_timer();
       }
 
-      const resetAudio = new Audio('file:///C:/Windows/Media/Speech%20Off.wav');
-      resetAudio.play().catch(e => console.error('Audio play error:', e));
+      playSystemAudio('file:///C:/Windows/Media/Speech%20Off.wav');
 
       updateButtonState();
     }
@@ -3200,6 +3348,128 @@
         }
       }
     }
+
+    // --- Quick Add Presets System ---
+    
+    // Default quick add presets
+    const DEFAULT_QUICK_ADD_PRESETS = Object.freeze([
+      { value: 1, unit: "minute" },
+      { value: 15, unit: "second" }
+    ]);
+
+    let quickAddPresets = [...DEFAULT_QUICK_ADD_PRESETS];
+
+    /**
+     * 格式化快捷加时预设标签 (e.g., "+60s", "+1m")
+     */
+    function formatQuickAddLabel(preset) {
+      const unitKey = preset.unit === "minute" ? "timer.quickAdd.short.minute" : "timer.quickAdd.short.second";
+      const unitText = getText(unitKey) || (preset.unit === "minute" ? "m" : "s");
+      return `+${preset.value}${unitText}`;
+    }
+
+    /**
+     * 将秒数和单位转换为总秒数
+     */
+    function presetToSeconds(preset) {
+      if (preset.unit === "minute") {
+        return preset.value * 60;
+      }
+      return preset.value;
+    }
+
+    /**
+     * 渲染快捷加时按钮到 DOM
+     */
+    function renderQuickAddButtons() {
+      const container = document.getElementById('quickAddActions');
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      if (quickAddPresets.length === 0) {
+        return; // No presets, don't show anything
+      }
+
+      quickAddPresets.forEach(preset => {
+        const btn = document.createElement('button');
+        btn.className = 'add-time-btn';
+        btn.textContent = formatQuickAddLabel(preset);
+        btn.addEventListener('click', () => {
+          const seconds = presetToSeconds(preset);
+          addTime(seconds);
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    /**
+     * 从设置中加载快捷加时预设
+     */
+    async function loadQuickAddPresetsFromSettings() {
+      if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.get_settings) {
+        // Fallback to defaults
+        quickAddPresets = [...DEFAULT_QUICK_ADD_PRESETS];
+        return;
+      }
+
+      try {
+        const settings = await window.pywebview.api.get_settings();
+        if (settings && settings.Timer && Array.isArray(settings.Timer.QuickAddPresets)) {
+          const raw = settings.Timer.QuickAddPresets;
+          // Validate and normalize presets
+          quickAddPresets = raw
+            .filter(item => item && item.value && item.unit)
+            .slice(0, 4); // Max 4 presets
+          
+          if (quickAddPresets.length === 0) {
+            quickAddPresets = [...DEFAULT_QUICK_ADD_PRESETS];
+          }
+        } else {
+          quickAddPresets = [...DEFAULT_QUICK_ADD_PRESETS];
+        }
+      } catch (error) {
+        console.error('Failed to load quick add presets:', error);
+        quickAddPresets = [...DEFAULT_QUICK_ADD_PRESETS];
+      }
+
+      // Render buttons after loading
+      renderQuickAddButtons();
+    }
+
+    /**
+     * 在倒计时开始时初始化快捷加时按钮
+     * (在 countdownUI 添加 'active' 类后调用)
+     */
+    function initializeQuickAddOnCountdownStart() {
+      // Re-render in case settings were updated
+      renderQuickAddButtons();
+    }
+
+    /**
+     * 监听设置变更，更新快捷加时按钮
+     */
+    function setupQuickAddSettingsObserver() {
+      // Hook into the settings update if available
+      window.addEventListener('quickAddPresetsUpdated', () => {
+        loadQuickAddPresetsFromSettings();
+      });
+    }
+
+    // Initialize on page load
+    window.addEventListener('pywebviewready', () => {
+      loadQuickAddPresetsFromSettings();
+      setupQuickAddSettingsObserver();
+    });
+
+    // Fallback: also initialize when DOM is fully loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      if (document.readyState === 'loading') {
+        // Wait for pywebviewready if not ready yet
+        return;
+      }
+      loadQuickAddPresetsFromSettings();
+    });
 
   </script>
 </body>

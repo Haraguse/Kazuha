@@ -884,6 +884,27 @@
             letter-spacing: 0.02em;
         }
 
+        #timer-display {
+            font-weight: 900;
+            font-size: 14px;
+            letter-spacing: 0.02em;
+            min-width: 60px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #timer-display.active {
+            opacity: 1;
+        }
+
+        #timer-display-label {
+            font-size: 11px;
+            font-weight: 500;
+            opacity: 0.6;
+            margin-right: 4px;
+        }
+
         /* Digit animation for status bar */
         .status-digit-wrapper {
             display: inline-grid;
@@ -1992,6 +2013,10 @@
 <body>
     <div id="status-bar" class="interactive">
         <span id="time-display">12:00</span>
+        <div id="timer-display-container" style="display: flex; align-items: center; gap: 4px;">
+            <span id="timer-display-label">倒计时</span>
+            <span id="timer-display">--:--</span>
+        </div>
         <div id="system-status">
             <div class="status-item" id="status-smtc" style="display: none;">
                 <div class="icon-mask icon-music"></div>
@@ -3199,9 +3224,37 @@
                 timeDisplay.style.display = showTime ? 'inline' : 'none';
             }
         }
+
+        function updateTimerStatus() {
+            try {
+                const timerDisplay = document.getElementById('timer-display');
+                const timerContainer = document.getElementById('timer-display-container');
+                if (!timerDisplay || !timerContainer) return;
+
+                // Get timer state from bridge
+                bridge.getTimerState(function(result) {
+                    try {
+                        const state = JSON.parse(result);
+                        if (state.isRunning && state.totalSeconds > 0) {
+                            timerDisplay.textContent = state.displayText;
+                            timerContainer.style.display = 'flex';
+                            timerDisplay.classList.add('active');
+                        } else {
+                            timerContainer.style.display = 'none';
+                            timerDisplay.classList.remove('active');
+                        }
+                    } catch (e) {
+                        console.error('Error parsing timer state:', e);
+                    }
+                });
+            } catch (e) {
+                console.error('Error updating timer status:', e);
+            }
+        }
         
         // Update every 500ms to catch second changes faster
         setInterval(updateTime, 500);
+        setInterval(updateTimerStatus, 200); // More frequent for timer
         updateTime();
 
         function formatMusicTime(totalSeconds) {

@@ -46,6 +46,7 @@ from ppt_assistant.core.timer_manager import TimerManager
 from ppt_assistant.core.i18n import t
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.win_focus_watcher import WindowsFocusWatcher
+from ppt_assistant.core.resource_monitor import SystemResourceMonitor
 
 
 class WindowIconEventFilter(QObject):
@@ -465,7 +466,8 @@ def _load_version_info():
             mapping = {
                 "MomokaKawaragi": "Momoka Kawaragi",
                 "NinaIseri": "Nina Iseri",
-                "SubaruAwa": "Subaru Awa"
+                "SubaruAwa": "Subaru Awa",
+                "TomoEbizuka": "Tomo Ebizuka"
             }
             code_name = mapping.get(raw_code_name, raw_code_name)
         except Exception:
@@ -736,7 +738,7 @@ class StartupSplash(QWidget):
             
             # Draw Title
             brand_name_map = {
-                "zh-CN": "荧素万演",
+                "zh-CN": "Luminalium",
                 "zh-TW": "Luminalium",
                 "yue-HK": "Luminalium",
                 "ja-JP": "ルマイナリウム",
@@ -1332,6 +1334,9 @@ class PPTAssistantApp:
         self._onboarding_wait_timer = None
         self._onboarding_restart_started = False
         
+        # Initialize resource monitor
+        self._resource_monitor = None
+        
         # Start async initialization
         self._init_gen = self._init_steps()
         QTimer.singleShot(0, self._perform_init_step)
@@ -1397,6 +1402,7 @@ class PPTAssistantApp:
         # Step 7: Finalize connections
         yield 85, "finalizing"
         self.overlay.set_monitor(self.monitor)
+        self.overlay.set_timer_manager(self._timer_manager)
 
         yield 90, "finalizing"
         self._connect_signals()
@@ -1404,6 +1410,9 @@ class PPTAssistantApp:
         yield 95, "finalizing"
         self.monitor.start_monitoring()
         print(f"[APP] Monitor started. compatibilityMode={cfg.compatibilityMode.value}")
+        
+        # Start resource monitor
+        self._start_resource_monitor()
 
         if cfg.compatibilityMode.value:
             print("[APP] Showing overlay in compatibility mode")
@@ -1549,6 +1558,37 @@ class PPTAssistantApp:
         if self._splash:
             self._splash.set_progress(value, text)
 
+    def _start_resource_monitor(self):
+        """启动系统资源监测线程"""
+        try:
+            if self._resource_monitor is None:
+                # 创建资源监测器，设置回调函数为显示托盘通知
+                self._resource_monitor = SystemResourceMonitor(
+                    on_alert_callback=self._on_resource_alert
+                )
+                self._resource_monitor.start()
+                print("[APP] Resource monitor started")
+        except Exception as e:
+            print(f"[APP] Failed to start resource monitor: {e}")
+    
+    def _stop_resource_monitor(self):
+        """停止系统资源监测线程"""
+        try:
+            if self._resource_monitor is not None:
+                self._resource_monitor.stop()
+                self._resource_monitor = None
+                print("[APP] Resource monitor stopped")
+        except Exception as e:
+            print(f"[APP] Error stopping resource monitor: {e}")
+    
+    def _on_resource_alert(self, title: str, message: str):
+        """资源告警回调 - 显示托盘通知"""
+        try:
+            if hasattr(self, "tray") and self.tray:
+                self.tray.show_message(title, message)
+        except Exception as e:
+            print(f"[APP] Error sending resource alert: {e}")
+
     def _connect_signals(self):
         self.monitor.slideshow_started.connect(self.on_slideshow_start)
         self.monitor.slideshow_ended.connect(self.on_slideshow_end)
@@ -1597,6 +1637,11 @@ class PPTAssistantApp:
                 self.overlay.show()
 
     def _prepare_shutdown(self, restarting=False):
+        try:
+            # Stop resource monitor
+            self._stop_resource_monitor()
+        except Exception:
+            pass
         try:
             if hasattr(self, "tray") and self.tray:
                 self.tray.prepare_shutdown()
@@ -2037,7 +2082,7 @@ if __name__ == "__main__":
     crash_handler = CrashHandler(app)
     _handle_multi_instance(app)
     
-    # Initialize log manager to capture application logs
+    # 初始化日志管理器以捕获应用程序日志
     from ppt_assistant.core.log_manager import init_log_manager, get_log_manager
     init_log_manager()
     # Load log level settings from config
