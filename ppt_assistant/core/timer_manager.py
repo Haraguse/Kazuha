@@ -1,9 +1,10 @@
 from PySide6.QtCore import QObject, QTimer, Signal, Slot, QThread
 
+
 class TimerWorker(QObject):
     updated = Signal(int)
     finished = Signal()
-    
+
     def __init__(self):
         super().__init__()
         self.timer = None
@@ -74,10 +75,11 @@ class TimerWorker(QObject):
         else:
             self.stop()
 
+
 class TimerManager(QObject):
     updated = Signal(int)
     finished = Signal()
-    state_changed = Signal(bool) # is_running
+    state_changed = Signal(bool)  # is_running
 
     # Signals to control worker
     _request_start = Signal(int)
@@ -100,12 +102,12 @@ class TimerManager(QObject):
             return
         super().__init__()
         self._initialized = True
-        
+
         # Create worker thread
         self._thread = QThread()
         self._worker = TimerWorker()
         self._worker.moveToThread(self._thread)
-        
+
         # Connect control signals
         self._request_start.connect(self._worker.start)
         self._request_pause.connect(self._worker.pause)
@@ -113,11 +115,11 @@ class TimerManager(QObject):
         self._request_stop.connect(self._worker.stop)
         self._request_add_time.connect(self._worker.add_time)
         self._request_update_time.connect(self._worker.update_time)
-        
+
         # Connect feedback signals
         self._worker.updated.connect(self.updated)
         self._worker.finished.connect(self.finished)
-        
+
         # Start thread
         self._thread.start()
 
@@ -179,6 +181,6 @@ class TimerManager(QObject):
         return f"{minutes:02}:{seconds:02}"
 
     def __del__(self):
-        if hasattr(self, '_thread'):
+        if hasattr(self, "_thread"):
             self._thread.quit()
             self._thread.wait()

@@ -1,7 +1,12 @@
 from plugins.interface import AssistantPlugin
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QTimeEdit
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTimeEdit
 from PySide6.QtCore import QTimer, Qt, QTime
-from qfluentwidgets import FluentWindow, SubtitleLabel, DisplayLabel, PrimaryPushButton, SegmentedWidget, FluentIcon as FIF
+from qfluentwidgets import (
+    FluentWindow,
+    DisplayLabel,
+    PrimaryPushButton,
+    SegmentedWidget,
+)
 
 
 class TimerPlugin(AssistantPlugin):
@@ -127,7 +132,11 @@ class TimerWindow(FluentWindow):
                 self.display_lbl.setText(f"{hrs:02}:{mins:02}:{secs:02}")
 
     def toggle_timer(self):
-        if self.mode == "Countdown" and not self.running and self.btn_start.text() == "Start":
+        if (
+            self.mode == "Countdown"
+            and not self.running
+            and self.btn_start.text() == "Start"
+        ):
             t = self.time_edit.time()
             self.countdown_ms = (t.hour() * 3600 + t.minute() * 60 + t.second()) * 1000
             self.time_edit.hide()

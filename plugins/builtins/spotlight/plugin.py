@@ -1,8 +1,7 @@
-import os
 import sys
-from PySide6.QtCore import Signal, QObject
 from plugins.interface import AssistantPlugin
 from .spotlight_window import SpotlightWindow
+
 
 class SpotlightPlugin(AssistantPlugin):
     def __init__(self, parent=None):
@@ -23,8 +22,10 @@ class SpotlightPlugin(AssistantPlugin):
                 try:
                     import ctypes
                     from ctypes import wintypes
+
                     hwnd = int(self.window.winId())
                     if hwnd:
+
                         class FLASHWINFO(ctypes.Structure):
                             _fields_ = [
                                 ("cbSize", wintypes.UINT),
@@ -33,6 +34,7 @@ class SpotlightPlugin(AssistantPlugin):
                                 ("uCount", wintypes.UINT),
                                 ("dwTimeout", wintypes.DWORD),
                             ]
+
                         info = FLASHWINFO(
                             ctypes.sizeof(FLASHWINFO),
                             wintypes.HWND(hwnd),

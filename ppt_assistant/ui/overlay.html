@@ -2155,7 +2155,94 @@
     </div>
 
     <script>
-        let bridge = null;
+        function createBridgePlaceholder() {
+            const noop = () => {};
+            return {
+                requestInitState: noop,
+                setPenColor: noop,
+                setTool: noop,
+                prevPage: noop,
+                nextPage: noop,
+                gotoSlide: noop,
+                clearScreen: noop,
+                endShow: noop,
+                inkPromptResult: noop,
+                toggleSpotlight: noop,
+                toggleBoard: noop,
+                toggleTimer: noop,
+                launchApp: noop,
+                updateMask: noop,
+                releaseFocus: noop,
+                resizeNudge: noop,
+                requestThumbnail: noop,
+                startBackgroundThumbnailCaching: noop
+            };
+        }
+
+        let bridge = createBridgePlaceholder();
+        let webChannelReady = false;
+        let webChannelInitAttempts = 0;
+        let webChannelInitTimer = null;
+        const WEBCHANNEL_INIT_DELAY_MS = 50;
+        const WEBCHANNEL_INIT_MAX_ATTEMPTS = 200;
+
+        function scheduleWebChannelInit(reason) {
+            if (webChannelReady || webChannelInitTimer || webChannelInitAttempts >= WEBCHANNEL_INIT_MAX_ATTEMPTS) {
+                return;
+            }
+            webChannelInitTimer = window.setTimeout(() => {
+                webChannelInitTimer = null;
+                initWebChannel(reason);
+            }, WEBCHANNEL_INIT_DELAY_MS);
+        }
+
+        function initWebChannel(reason = 'direct') {
+            if (webChannelReady) {
+                return;
+            }
+
+            webChannelInitAttempts += 1;
+            const transport = window.qt && window.qt.webChannelTransport;
+            if (typeof QWebChannel !== 'function') {
+                if (webChannelInitAttempts === 1 || webChannelInitAttempts % 20 === 0) {
+                    console.warn(`[Overlay] QWebChannel constructor not ready (${reason}, attempt ${webChannelInitAttempts}).`);
+                }
+                scheduleWebChannelInit('constructor-wait');
+                return;
+            }
+            if (!transport) {
+                if (webChannelInitAttempts === 1 || webChannelInitAttempts % 20 === 0) {
+                    console.warn(`[Overlay] qt.webChannelTransport not ready (${reason}, attempt ${webChannelInitAttempts}).`);
+                }
+                scheduleWebChannelInit('transport-wait');
+                return;
+            }
+
+            try {
+                new QWebChannel(transport, function(channel) {
+                    webChannelReady = true;
+                    bridge = (channel && channel.objects && channel.objects.bridge) || createBridgePlaceholder();
+                    console.log(`[Overlay] QWebChannel ready after ${webChannelInitAttempts} attempt(s).`);
+                    if (bridge && typeof bridge.requestInitState === 'function') {
+                        bridge.requestInitState();
+                    }
+                });
+            } catch (error) {
+                console.error(`[Overlay] Failed to initialize QWebChannel on attempt ${webChannelInitAttempts}:`, error);
+                if (webChannelInitAttempts < WEBCHANNEL_INIT_MAX_ATTEMPTS) {
+                    scheduleWebChannelInit('exception-retry');
+                }
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => initWebChannel('dom-content-loaded'), { once: true });
+        } else {
+            initWebChannel('document-ready');
+        }
+        window.addEventListener('load', () => scheduleWebChannelInit('window-load'), { once: true });
+        requestAnimationFrame(() => scheduleWebChannelInit('raf'));
+
         let currentTool = 'select';
         let currentConfig = null;
         let currentPage = 1;
@@ -2199,11 +2286,6 @@
             '#7030A0': { tab: 'highlight', name: '紫色', rgb: '112 48 160', hex: '#7030A0' }
         });
         let currentPenColor = { ...DEFAULT_PEN_COLOR };
-
-        new QWebChannel(qt.webChannelTransport, function(channel) {
-            bridge = channel.objects.bridge;
-            bridge.requestInitState();
-        });
 
         document.addEventListener('click', (e) => {
             if (!document.body.classList.contains('popup-active')) return;

@@ -17,13 +17,31 @@ if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 
-
 from PySide6.QtWidgets import QApplication, QFileDialog
 from PySide6.QtQuick import QQuickView
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWebEngineCore import QWebEngineScript, QWebEngineSettings, QWebEngineProfile, QWebEnginePage
+from PySide6.QtWebEngineCore import (
+    QWebEngineScript,
+    QWebEngineSettings,
+    QWebEngineProfile,
+    QWebEnginePage,
+)
 from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtCore import QObject, Slot, QUrl, QFile, QIODevice, Qt, QTimer, QBuffer, QByteArray, QJsonValue, QCoreApplication, QStandardPaths, QPoint
+from PySide6.QtCore import (
+    QObject,
+    Slot,
+    QUrl,
+    QFile,
+    QIODevice,
+    Qt,
+    QTimer,
+    QBuffer,
+    QByteArray,
+    QJsonValue,
+    QCoreApplication,
+    QStandardPaths,
+    QPoint,
+)
 from PySide6.QtGui import QColor, QImage, QGuiApplication, QIcon
 from ppt_assistant.core.icon_helper import get_file_icon_base64
 from ppt_assistant.core.platform_integration import (
@@ -60,11 +78,13 @@ DWMSBT_MAINWINDOW = 2
 DWMSBT_TRANSIENTWINDOW = 3
 DWMSBT_TABBEDWINDOW = 4
 
+
 def _supports_system_backdrop():
     try:
         return sys.getwindowsversion().build >= 22000
     except Exception:
         return False
+
 
 def _safe_set_widget_attr(widget, attr, enabled):
     if attr is None:
@@ -127,7 +147,11 @@ def _resolve_window_loader_title(window_tag, title, settings=None):
     language = "zh-cn"
     if isinstance(settings, dict):
         try:
-            language = str((settings.get("General", {}) or {}).get("Language", "zh-CN")).strip().lower()
+            language = (
+                str((settings.get("General", {}) or {}).get("Language", "zh-CN"))
+                .strip()
+                .lower()
+            )
         except Exception:
             language = "zh-cn"
     title_maps = {
@@ -178,7 +202,7 @@ def _list_user_themes() -> list[dict]:
     themes_dir = os.path.join(root_dir, "user", "themes")
     if not os.path.isdir(themes_dir):
         themes_dir = os.path.join(root_dir, "users", "themes")
-        
+
     results: list[dict] = []
     if not os.path.isdir(themes_dir):
         return results
@@ -214,14 +238,20 @@ def _load_app_icon() -> QIcon:
         return QIcon()
     return QIcon(path)
 
+
 def _get_windows_dark_mode():
     try:
         import winreg
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize") as key:
+
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+        ) as key:
             val, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
             return int(val) == 0
     except Exception:
         return False
+
 
 def _resolve_theme_dark(theme_mode):
     mode = str(theme_mode or "").lower()
@@ -233,6 +263,7 @@ def _resolve_theme_dark(theme_mode):
         return _get_windows_dark_mode()
     return False
 
+
 def _apply_window_theme(hwnd, is_dark):
     if not hwnd:
         return
@@ -241,8 +272,15 @@ def _apply_window_theme(hwnd, is_dark):
         uxtheme = ctypes.windll.uxtheme
         user32 = ctypes.windll.user32
         val = ctypes.c_int(1 if is_dark else 0)
-        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ctypes.byref(val), ctypes.sizeof(val))
-        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, ctypes.byref(val), ctypes.sizeof(val))
+        dwmapi.DwmSetWindowAttribute(
+            hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ctypes.byref(val), ctypes.sizeof(val)
+        )
+        dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
+            ctypes.byref(val),
+            ctypes.sizeof(val),
+        )
         if is_dark:
             border = ctypes.c_int(0x00202020)
             caption = ctypes.c_int(0x00202020)
@@ -251,15 +289,22 @@ def _apply_window_theme(hwnd, is_dark):
             border = ctypes.c_int(_DWM_COLOR_DEFAULT)
             caption = ctypes.c_int(_DWM_COLOR_DEFAULT)
             text = ctypes.c_int(_DWM_COLOR_DEFAULT)
-        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ctypes.byref(border), ctypes.sizeof(border))
-        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, ctypes.byref(caption), ctypes.sizeof(caption))
-        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_TEXT_COLOR, ctypes.byref(text), ctypes.sizeof(text))
+        dwmapi.DwmSetWindowAttribute(
+            hwnd, DWMWA_BORDER_COLOR, ctypes.byref(border), ctypes.sizeof(border)
+        )
+        dwmapi.DwmSetWindowAttribute(
+            hwnd, DWMWA_CAPTION_COLOR, ctypes.byref(caption), ctypes.sizeof(caption)
+        )
+        dwmapi.DwmSetWindowAttribute(
+            hwnd, DWMWA_TEXT_COLOR, ctypes.byref(text), ctypes.sizeof(text)
+        )
         theme = "DarkMode_Explorer" if is_dark else "Explorer"
         uxtheme.SetWindowTheme(hwnd, ctypes.c_wchar_p(theme), None)
         flags = 0x0001 | 0x0002 | 0x0004 | 0x0020
         user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, flags)
     except Exception:
         pass
+
 
 def _resolve_system_backdrop_type(settings, window_tag):
     if window_tag not in ("settings", "timer", "crash"):
@@ -268,7 +313,9 @@ def _resolve_system_backdrop_type(settings, window_tag):
         return DWMSBT_NONE
     if not isinstance(settings, dict):
         return DWMSBT_NONE
-    general = settings.get("General") if isinstance(settings.get("General"), dict) else {}
+    general = (
+        settings.get("General") if isinstance(settings.get("General"), dict) else {}
+    )
     enabled = bool(general.get("SystemBackdropEnabled"))
     if not enabled:
         return DWMSBT_NONE
@@ -290,22 +337,30 @@ def _animations_disabled(settings) -> bool:
         return False
     return bool(general.get("DisableAnimations"))
 
+
 def _apply_system_backdrop(hwnd, backdrop_type):
     if not hwnd or backdrop_type is None:
         return
     try:
         dwmapi = ctypes.windll.dwmapi
         val = ctypes.c_int(int(backdrop_type))
-        dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ctypes.byref(val), ctypes.sizeof(val))
-        
+        dwmapi.DwmSetWindowAttribute(
+            hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ctypes.byref(val), ctypes.sizeof(val)
+        )
         if backdrop_type != DWMSBT_NONE:
             class MARGINS(ctypes.Structure):
-                _fields_ = [("cxLeftWidth", ctypes.c_int), ("cxRightWidth", ctypes.c_int), 
-                            ("cyTopHeight", ctypes.c_int), ("cyBottomHeight", ctypes.c_int)]
+                _fields_ = [
+                    ("cxLeftWidth", ctypes.c_int),
+                    ("cxRightWidth", ctypes.c_int),
+                    ("cyTopHeight", ctypes.c_int),
+                    ("cyBottomHeight", ctypes.c_int),
+                ]
+
             margins = MARGINS(-1, -1, -1, -1)
             dwmapi.DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(margins))
     except Exception:
         pass
+
 
 def _force_dwm_redraw(hwnd):
     if not hwnd:
@@ -344,6 +399,7 @@ def _force_dwm_redraw(hwnd):
     except Exception:
         pass
 
+
 def _maybe_add_vxkex_path():
     if not _is_windows7():
         return
@@ -373,9 +429,10 @@ def _is_windows7():
 def _get_screen_refresh_rate():
     try:
         import ctypes
+
         user32 = ctypes.windll.user32
         hdc = user32.GetDC(0)
-        rate = ctypes.windll.gdi32.GetDeviceCaps(hdc, 116) # VREFRESH
+        rate = ctypes.windll.gdi32.GetDeviceCaps(hdc, 116)  # VREFRESH
         user32.ReleaseDC(0, hdc)
         return rate if rate > 1 else 60
     except:
@@ -394,19 +451,33 @@ def _configure_profile(profile):
     cache_candidates = []
     local_app_data = os.environ.get("LOCALAPPDATA")
     if local_app_data:
-        storage_candidates.append(os.path.join(local_app_data, "Luminalium", "QtWebEngine", "storage"))
-        cache_candidates.append(os.path.join(local_app_data, "Luminalium", "QtWebEngine", "cache"))
+        storage_candidates.append(
+            os.path.join(local_app_data, "Luminalium", "QtWebEngine", "storage")
+        )
+        cache_candidates.append(
+            os.path.join(local_app_data, "Luminalium", "QtWebEngine", "cache")
+        )
     try:
-        app_data_location = QStandardPaths.writableLocation(QStandardPaths.AppLocalDataLocation)
+        app_data_location = QStandardPaths.writableLocation(
+            QStandardPaths.AppLocalDataLocation
+        )
         if app_data_location:
-            storage_candidates.append(os.path.join(app_data_location, "QtWebEngine", "storage"))
+            storage_candidates.append(
+                os.path.join(app_data_location, "QtWebEngine", "storage")
+            )
         cache_location = QStandardPaths.writableLocation(QStandardPaths.CacheLocation)
         if cache_location:
-            cache_candidates.append(os.path.join(cache_location, "QtWebEngine", "cache"))
+            cache_candidates.append(
+                os.path.join(cache_location, "QtWebEngine", "cache")
+            )
     except Exception:
         pass
-    storage_candidates.append(os.path.join(tempfile.gettempdir(), "Luminalium", "QtWebEngine", "storage"))
-    cache_candidates.append(os.path.join(tempfile.gettempdir(), "Luminalium", "QtWebEngine", "cache"))
+    storage_candidates.append(
+        os.path.join(tempfile.gettempdir(), "Luminalium", "QtWebEngine", "storage")
+    )
+    cache_candidates.append(
+        os.path.join(tempfile.gettempdir(), "Luminalium", "QtWebEngine", "cache")
+    )
 
     for candidate in storage_candidates:
         try:
@@ -477,7 +548,10 @@ def _warmup_webengine():
 
         page.loadFinished.connect(_finish)
         QTimer.singleShot(1500, _finish)
-        page.setHtml("<!doctype html><html><head></head><body></body></html>", QUrl("about:blank"))
+        page.setHtml(
+            "<!doctype html><html><head></head><body></body></html>",
+            QUrl("about:blank"),
+        )
         _WEBENGINE_WARMUP_PAGE = page
     except Exception:
         _WEBENGINE_WARMUP_DONE = True
@@ -491,7 +565,11 @@ def _should_defer_initial_load(url, title, explicit_defer=False):
     except Exception:
         qurl = QUrl()
     title_text = str(title or "").lower()
-    if title_text == "settings" or "onboarding" in title_text or "timer plugin" in title_text:
+    if (
+        title_text == "settings"
+        or "onboarding" in title_text
+        or "timer plugin" in title_text
+    ):
         return True
     if qurl.isLocalFile():
         try:
@@ -503,6 +581,7 @@ def _should_defer_initial_load(url, title, explicit_defer=False):
         except Exception:
             pass
     return False
+
 
 def _apply_chromium_flags():
     _maybe_add_vxkex_path()
@@ -527,10 +606,12 @@ def _apply_chromium_flags():
     ]
 
     if _is_virtual_gpu():
-        flags.extend([
-            "--disable-gpu",
-            "--disable-gpu-compositing",
-        ])
+        flags.extend(
+            [
+                "--disable-gpu",
+                "--disable-gpu-compositing",
+            ]
+        )
 
     rate = _get_screen_refresh_rate()
     target_fps = rate * 3
@@ -548,7 +629,9 @@ def _apply_chromium_flags():
     else:
         os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(flags)
 
+
 _VIRTUAL_GPU = None
+
 
 def _is_virtual_gpu():
     global _VIRTUAL_GPU
@@ -606,6 +689,7 @@ def _is_virtual_gpu():
     _VIRTUAL_GPU = any(k in hay for k in keywords)
     return _VIRTUAL_GPU
 
+
 def _get_wallpaper_path():
     try:
         SPI_GETDESKWALLPAPER = 0x0073
@@ -617,6 +701,7 @@ def _get_wallpaper_path():
     except Exception:
         return None
     return None
+
 
 def _image_path_to_data_url(path):
     if not path or not os.path.exists(path):
@@ -636,6 +721,7 @@ def _image_path_to_data_url(path):
     encoded = base64.b64encode(data).decode("utf-8")
     return f"data:image/png;base64,{encoded}"
 
+
 def _resolve_app_paths():
     if getattr(sys, "frozen", False):
         exe_path = sys.executable
@@ -651,9 +737,13 @@ def _resolve_app_paths():
         icon_path = os.path.join(root_dir, "icons", "logo.ico")
     return exe_path, work_dir, args, icon_path
 
-def _create_shortcut(target_path, shortcut_path, work_dir=None, icon_path=None, args=None):
+
+def _create_shortcut(
+    target_path, shortcut_path, work_dir=None, icon_path=None, args=None
+):
     try:
         import win32com.client
+
         shell = win32com.client.Dispatch("WScript.Shell")
         shortcut = shell.CreateShortCut(shortcut_path)
         shortcut.TargetPath = target_path
@@ -669,15 +759,17 @@ def _create_shortcut(target_path, shortcut_path, work_dir=None, icon_path=None, 
         print(f"Error creating shortcut: {e}", file=sys.stderr)
         return False
 
+
 def _set_run_at_startup(enable):
     import winreg
+
     key = winreg.HKEY_CURRENT_USER
     sub_key = r"Software\Microsoft\Windows\CurrentVersion\Run"
     app_name = "Luminalium"
-    
+
     exe_path, work_dir, args, icon_path = _resolve_app_paths()
     cmd = f'"{exe_path}" {args}' if args else f'"{exe_path}"'
-    
+
     try:
         with winreg.OpenKey(key, sub_key, 0, winreg.KEY_ALL_ACCESS) as k:
             if enable:
@@ -690,13 +782,16 @@ def _set_run_at_startup(enable):
     except Exception as e:
         print(f"Error setting startup: {e}", file=sys.stderr)
 
+
 def _pin_to_start(enable):
     try:
-        programs_path = os.path.join(os.environ["APPDATA"], r"Microsoft\Windows\Start Menu\Programs")
+        programs_path = os.path.join(
+            os.environ["APPDATA"], r"Microsoft\Windows\Start Menu\Programs"
+        )
         if not os.path.exists(programs_path):
             return
         shortcut_path = os.path.join(programs_path, "Luminalium.lnk")
-        
+
         if enable:
             exe_path, work_dir, args, icon_path = _resolve_app_paths()
             _create_shortcut(exe_path, shortcut_path, work_dir, icon_path, args)
@@ -709,75 +804,94 @@ def _pin_to_start(enable):
     except Exception as e:
         print(f"Error pinning to start: {e}", file=sys.stderr)
 
+
 def _pin_to_taskbar(enable):
-    # Best effort: Create a shortcut on Desktop if requested, 
+    # Best effort: Create a shortcut on Desktop if requested,
     # as Taskbar pinning is restricted.
-    # But user specifically asked for Taskbar. 
+    # But user specifically asked for Taskbar.
     # Let's try the verb method, if it works, great.
     try:
         import win32com.client
+
         shell = win32com.client.Dispatch("Shell.Application")
-        
+
         exe_path, work_dir, args, icon_path = _resolve_app_paths()
-        
+
         # We need a shortcut first to pin? Or pin the exe?
         # Usually we pin the exe or a shortcut.
         # Since we might have args (dev mode), we need to pin the shortcut.
-        
+
         # Let's create a temporary shortcut
         temp_dir = os.path.join(os.environ["TEMP"], "Luminalium_Pin")
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
         shortcut_path = os.path.join(temp_dir, "Luminalium.lnk")
         _create_shortcut(exe_path, shortcut_path, work_dir, icon_path, args)
-        
+
         folder = shell.Namespace(temp_dir)
         item = folder.ParseName("Luminalium.lnk")
-        
+
         # Verbs are localized. This is the problem.
         # English: "Pin to Taskbar"
         # Chinese: "固定到任务栏"
         # We can try iterating verbs.
-        
+
         verbs = item.Verbs()
         taskbar_verb = None
         for v in verbs:
             name = v.Name.replace("&", "").lower()
             if "taskbar" in name or "任务栏" in name or "タスクバー" in name:
-                if enable and ("pin" in name or "固定" in name or "ピン" in name) and ("unpin" not in name and "取消" not in name and "外す" not in name):
+                if (
+                    enable
+                    and ("pin" in name or "固定" in name or "ピン" in name)
+                    and (
+                        "unpin" not in name
+                        and "取消" not in name
+                        and "外す" not in name
+                    )
+                ):
                     taskbar_verb = v
                     break
-                elif not enable and ("unpin" in name or "取消" in name or "外す" in name):
+                elif not enable and (
+                    "unpin" in name or "取消" in name or "外す" in name
+                ):
                     taskbar_verb = v
                     break
-        
+
         if taskbar_verb:
             taskbar_verb.DoIt()
-            
+
         # Cleanup
         # os.remove(shortcut_path) # Keep it? No, delete it.
         # But if we pin the shortcut, the shortcut file must exist?
         # Yes, if we pin a shortcut, the shortcut file must stay.
         # So we should create the shortcut in a permanent place if we want to pin it.
         # Maybe use the Start Menu shortcut?
-        
+
         if enable:
-             # Ensure start menu shortcut exists first
-             _pin_to_start(True)
-             programs_path = os.path.join(os.environ["APPDATA"], r"Microsoft\Windows\Start Menu\Programs")
-             shortcut_path = os.path.join(programs_path, "Luminalium.lnk")
-             folder = shell.Namespace(programs_path)
-             item = folder.ParseName("Luminalium.lnk")
-             if item:
-                 verbs = item.Verbs()
-                 for v in verbs:
+            # Ensure start menu shortcut exists first
+            _pin_to_start(True)
+            programs_path = os.path.join(
+                os.environ["APPDATA"], r"Microsoft\Windows\Start Menu\Programs"
+            )
+            shortcut_path = os.path.join(programs_path, "Luminalium.lnk")
+            folder = shell.Namespace(programs_path)
+            item = folder.ParseName("Luminalium.lnk")
+            if item:
+                verbs = item.Verbs()
+                for v in verbs:
                     name = v.Name.replace("&", "").lower()
                     if "taskbar" in name or "任务栏" in name or "タスクバー" in name:
-                        if ("pin" in name or "固定" in name or "ピン" in name) and ("unpin" not in name and "取消" not in name and "外す" not in name):
-                             v.DoIt()
-                             break
+                        if ("pin" in name or "固定" in name or "ピン" in name) and (
+                            "unpin" not in name
+                            and "取消" not in name
+                            and "外す" not in name
+                        ):
+                            v.DoIt()
+                            break
     except Exception as e:
         print(f"Error pinning to taskbar: {e}", file=sys.stderr)
+
 
 class Api(QObject):
     def __init__(self, window=None):
@@ -952,7 +1066,7 @@ class Api(QObject):
     def update_settings(self, settings):
         if hasattr(settings, "toVariant"):
             settings = settings.toVariant()
-        
+
         if not isinstance(settings, dict):
             try:
                 # Handle possible other wrappers
@@ -964,10 +1078,10 @@ class Api(QObject):
                         settings = json.loads(settings)
                 except Exception:
                     settings = {}
-        
+
         if not isinstance(settings, dict):
             settings = {}
-            
+
         self.settings = settings
         theme_mode = settings.get("Appearance", {}).get("ThemeMode", "Light")
         theme_id = settings.get("Appearance", {}).get("ThemeId", "default")
@@ -977,11 +1091,14 @@ class Api(QObject):
             js = f"if (typeof updateTheme === 'function') updateTheme({json.dumps(theme_mode)}, {json.dumps(theme_id)})"
             self._window.page().runJavaScript(js)
             try:
-                _apply_window_theme(int(self._window.winId()), _resolve_theme_dark(theme_mode))
+                _apply_window_theme(
+                    int(self._window.winId()), _resolve_theme_dark(theme_mode)
+                )
             except Exception:
                 pass
             if hasattr(self._window, "apply_backdrop_settings"):
                 self._window.apply_backdrop_settings()
+
     @Slot(int)
     def update_timer(self, total_seconds):
         print(f"TIMER_UPDATE:{total_seconds}")
@@ -1031,13 +1148,16 @@ class Api(QObject):
     @Slot(result="QVariant")
     def get_settings(self):
         import copy
-        settings_dict = copy.deepcopy(self.settings) if isinstance(self.settings, dict) else {}
+
+        settings_dict = (
+            copy.deepcopy(self.settings) if isinstance(self.settings, dict) else {}
+        )
         if "Appearance" not in settings_dict:
             settings_dict["Appearance"] = {}
-        
+
         theme_mode = settings_dict["Appearance"].get("ThemeMode", "Auto")
         settings_dict["Appearance"]["ResolvedIsDark"] = _resolve_theme_dark(theme_mode)
-        
+
         return settings_dict
 
     @Slot(result="QVariant")
@@ -1060,7 +1180,7 @@ class Api(QObject):
             "spotlight": "spotlight.svg",
             "board_in_board": "board-in-board.svg",
             "timer": "timer.svg",
-            "exit": "Minimize.svg"
+            "exit": "Minimize.svg",
         }
         key = str(icon_name).lower()
         icon_file = icon_map.get(key)
@@ -1076,9 +1196,16 @@ class Api(QObject):
     def get_system_fonts(self):
         try:
             import winreg
+
             keys = [
-                (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"),
-                (winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"),
+                (
+                    winreg.HKEY_LOCAL_MACHINE,
+                    r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts",
+                ),
+                (
+                    winreg.HKEY_CURRENT_USER,
+                    r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts",
+                ),
             ]
             fonts = set()
             suffixes = (" (TrueType)", " (OpenType)", " (Type 1)", " (All res)")
@@ -1195,10 +1322,7 @@ class Api(QObject):
         file_path = None
         if self._window:
             file_path, _ = QFileDialog.getOpenFileName(
-                self._window,
-                "Select Application",
-                "",
-                get_quick_launch_dialog_filter()
+                self._window, "Select Application", "", get_quick_launch_dialog_filter()
             )
         if not file_path:
             return self.get_quick_launch_apps()
@@ -1288,7 +1412,7 @@ class Api(QObject):
     def get_taskbar_preview(self, screen_name):
         screens = QGuiApplication.screens()
         target_screen = QGuiApplication.primaryScreen()
-        
+
         if screen_name and screen_name != "Auto" and screen_name != "Primary":
             try:
                 parts = screen_name.split(" ")
@@ -1298,17 +1422,17 @@ class Api(QObject):
                         target_screen = screens[idx]
             except Exception:
                 pass
-        
+
         if not target_screen:
             return {"is_visible": False}
 
         geo = target_screen.geometry()
         avail = target_screen.availableGeometry()
-        
+
         tb_rect = None
         position = "bottom"
         size_percent = 0.0
-        
+
         if avail.height() < geo.height():
             diff = geo.height() - avail.height()
             size_percent = diff / geo.height()
@@ -1329,11 +1453,13 @@ class Api(QObject):
                 tb_rect = [geo.width() - diff + geo.x(), geo.y(), diff, geo.height()]
         else:
             return {"is_visible": False}
-            
+
         try:
             if not tb_rect or tb_rect[2] <= 0 or tb_rect[3] <= 0:
                 return {"is_visible": False}
-            pixmap = target_screen.grabWindow(0, tb_rect[0], tb_rect[1], tb_rect[2], tb_rect[3])
+            pixmap = target_screen.grabWindow(
+                0, tb_rect[0], tb_rect[1], tb_rect[2], tb_rect[3]
+            )
             if pixmap.isNull():
                 return {"is_visible": False}
 
@@ -1344,12 +1470,12 @@ class Api(QObject):
                 return {"is_visible": False}
             base64_data = byte_array.toBase64().data().decode()
             data_url = f"data:image/png;base64,{base64_data}"
-            
+
             return {
                 "image": data_url,
                 "position": position,
                 "size_percent": size_percent,
-                "is_visible": True
+                "is_visible": True,
             }
         except Exception as e:
             print(f"Taskbar capture error: {e}")
@@ -1359,7 +1485,7 @@ class Api(QObject):
     def get_wallpaper_path(self):
         path = _get_wallpaper_path()
         if path:
-             return _image_path_to_data_url(path)
+            return _image_path_to_data_url(path)
         return ""
 
     @Slot(str, str, QJsonValue)
@@ -1379,7 +1505,9 @@ class Api(QObject):
         settings_path = os.environ.get("SETTINGS_PATH")
         if not settings_path:
             if getattr(sys, "frozen", False):
-                settings_path = os.path.join(os.path.dirname(sys.executable), "settings.json")
+                settings_path = os.path.join(
+                    os.path.dirname(sys.executable), "settings.json"
+                )
             else:
                 base_dir = os.path.dirname(os.path.abspath(__file__))
                 settings_path = os.path.join(os.path.dirname(base_dir), "settings.json")
@@ -1408,7 +1536,10 @@ class Api(QObject):
 
             if category == "Appearance" and key in ("ThemeMode", "ThemeId"):
                 self.update_settings(data)
-            if category == "General" and key in ("SystemBackdropEnabled", "SystemBackdropType"):
+            if category == "General" and key in (
+                "SystemBackdropEnabled",
+                "SystemBackdropType",
+            ):
                 if self._window and hasattr(self._window, "apply_backdrop_settings"):
                     self._window.apply_backdrop_settings()
         except Exception as e:
@@ -1418,38 +1549,36 @@ class Api(QObject):
     def import_settings(self):
         """Import settings from a user-selected JSON file"""
         import json as json_module
+
         try:
             file_path, _ = QFileDialog.getOpenFileName(
-                self._window,
-                "选择配置文件",
-                "",
-                "JSON 配置文件 (*.json);;所有文件 (*)"
+                self._window, "选择配置文件", "", "JSON 配置文件 (*.json);;所有文件 (*)"
             )
-            
+
             if not file_path:
                 print("No file selected", file=sys.stderr)
                 return None
-            
+
             print(f"Importing from: {file_path}", file=sys.stderr)
-            
+
             # Load the config file
             with open(file_path, "r", encoding="utf-8") as f:
                 config_data = json.load(f)
-            
+
             print(f"Config data loaded: {list(config_data.keys())}", file=sys.stderr)
-            
+
             if not isinstance(config_data, dict):
                 print("Config is not a dict", file=sys.stderr)
                 return None
-            
+
             # Extract relevant config sections
             imported_config = {}
-            
+
             # Map from file config structure to state.config structure
             general = config_data.get("General", {})
             appearance = config_data.get("Appearance", {})
             overlay = config_data.get("Overlay", {})
-            
+
             if "Language" in general:
                 imported_config["language"] = general["Language"]
             if "ThemeMode" in appearance:
@@ -1461,7 +1590,9 @@ class Api(QObject):
             if "DisableAnimations" in general:
                 imported_config["disableAnimations"] = general["DisableAnimations"]
             if "CrashAutoHandleEnabled" in general:
-                imported_config["crashAutoHandleEnabled"] = general["CrashAutoHandleEnabled"]
+                imported_config["crashAutoHandleEnabled"] = general[
+                    "CrashAutoHandleEnabled"
+                ]
             if "CrashAutoHandleMode" in general:
                 imported_config["crashAutoHandleMode"] = general["CrashAutoHandleMode"]
             if "AutoShowOverlay" in general:
@@ -1474,27 +1605,30 @@ class Api(QObject):
                 imported_config["safeArea"] = overlay["SafeArea"]
             if "ShowStatusBar" in overlay:
                 imported_config["showStatusBar"] = overlay["ShowStatusBar"]
-            
+
             # Generate preview text
             preview_lines = []
             for key, value in imported_config.items():
                 preview_lines.append(f"• {key}: {value}")
-            preview = "\n".join(preview_lines) if preview_lines else "未检测到支持的配置项"
-            
+            preview = (
+                "\n".join(preview_lines) if preview_lines else "未检测到支持的配置项"
+            )
+
             # Return as JSON string for reliable serialization
-            result = {
-                "config": imported_config,
-                "preview": preview
-            }
-            
+            result = {"config": imported_config, "preview": preview}
+
             result_json = json_module.dumps(result, ensure_ascii=False)
             print(f"Returning JSON string, length: {len(result_json)}", file=sys.stderr)
-            print(f"Config keys={list(imported_config.keys())}, preview={len(preview)} chars", file=sys.stderr)
-            
+            print(
+                f"Config keys={list(imported_config.keys())}, preview={len(preview)} chars",
+                file=sys.stderr,
+            )
+
             return result_json
         except Exception as e:
             print(f"Error importing settings: {e}", file=sys.stderr)
             import traceback
+
             traceback.print_exc(file=sys.stderr)
             return None
 
@@ -1524,7 +1658,9 @@ class Api(QObject):
                 cmd = [sys.executable, "--silent"]
             else:
                 cmd = [sys.executable, main_path, "--silent"]
-            creationflags = 0x08000000 | 0x00000008  # CREATE_NO_WINDOW | DETACHED_PROCESS
+            creationflags = (
+                0x08000000 | 0x00000008
+            )  # CREATE_NO_WINDOW | DETACHED_PROCESS
             env = os.environ.copy()
             env["LUMINALIUM_RESTART"] = "1"
             env["LUMINALIUM_RESTART_PID"] = str(os.getpid())
@@ -1565,6 +1701,7 @@ class Api(QObject):
     @Slot(str)
     def open_browser(self, url):
         import webbrowser
+
         webbrowser.open(url)
 
     @Slot()
@@ -1589,12 +1726,16 @@ class Api(QObject):
             "confirmText": "",
             "cancelText": "",
             "theme": theme_lower,
-            "accentColor": accent
+            "accentColor": accent,
         }
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
             json.dump(dialog_data, f)
             temp_path = f.name
-        subprocess.Popen([sys.executable, __file__, "--dialog", temp_path], creationflags=0x08000000)
+        subprocess.Popen(
+            [sys.executable, __file__, "--dialog", temp_path], creationflags=0x08000000
+        )
 
     @Slot(str, str)
     def show_font_warning(self, font_name=None, font_lang=None):
@@ -1612,7 +1753,7 @@ class Api(QObject):
             "hideCancel": True,
             "theme": theme_lower,
             "accentColor": accent,
-            "targetLang": font_lang
+            "targetLang": font_lang,
         }
         temp_settings = json.loads(json.dumps(self.settings))
         if font_name:
@@ -1620,18 +1761,24 @@ class Api(QObject):
                 temp_settings["Fonts"] = {}
             if "Profiles" not in temp_settings["Fonts"]:
                 temp_settings["Fonts"]["Profiles"] = {}
-            lang = font_lang or temp_settings.get("General", {}).get("Language", "zh-CN")
+            lang = font_lang or temp_settings.get("General", {}).get(
+                "Language", "zh-CN"
+            )
             if lang not in temp_settings["Fonts"]["Profiles"]:
                 temp_settings["Fonts"]["Profiles"][lang] = {}
             temp_settings["Fonts"]["Profiles"][lang]["web"] = font_name
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
             json.dump(dialog_data, f)
             temp_path = f.name
         if font_name:
             dialog_data["overrideSettings"] = temp_settings
             with open(temp_path, "w", encoding="utf-8") as f:
                 json.dump(dialog_data, f)
-        subprocess.Popen([sys.executable, __file__, "--dialog", temp_path], creationflags=0x08000000)
+        subprocess.Popen(
+            [sys.executable, __file__, "--dialog", temp_path], creationflags=0x08000000
+        )
 
     @Slot(result="QVariant")
     def get_dialog_data(self):
@@ -1707,10 +1854,13 @@ class Api(QObject):
         self._close_current_window()
         if not self._in_process:
             sys.exit(0)
+
     @Slot()
     def open_onboarding_preview(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        onboarding_html = os.path.join(base_dir, "builtins", "onboarding", "onboarding.html")
+        onboarding_html = os.path.join(
+            base_dir, "builtins", "onboarding", "onboarding.html"
+        )
         root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         main_path = os.path.join(root_dir, "main.py")
         env = os.environ.copy()
@@ -1721,9 +1871,34 @@ class Api(QObject):
         width = "960"
         height = "640"
         if getattr(sys, "frozen", False):
-            subprocess.Popen([sys.executable, "--webview-runner", onboarding_html, "Onboarding Preview", width, height, "true"], env=env, creationflags=0x08000000)
+            subprocess.Popen(
+                [
+                    sys.executable,
+                    "--webview-runner",
+                    onboarding_html,
+                    "Onboarding Preview",
+                    width,
+                    height,
+                    "true",
+                ],
+                env=env,
+                creationflags=0x08000000,
+            )
         else:
-            subprocess.Popen([sys.executable, main_path, "--webview-runner", onboarding_html, "Onboarding Preview", width, height, "true"], env=env, creationflags=0x08000000)
+            subprocess.Popen(
+                [
+                    sys.executable,
+                    main_path,
+                    "--webview-runner",
+                    onboarding_html,
+                    "Onboarding Preview",
+                    width,
+                    height,
+                    "true",
+                ],
+                env=env,
+                creationflags=0x08000000,
+            )
 
     @Slot()
     def open_logs_window(self):
@@ -1746,9 +1921,13 @@ class Api(QObject):
             api.set_in_process(True)
             api.settings = self.settings
             api.version = self.version
-            theme_mode = (self.settings or {}).get("Appearance", {}).get("ThemeMode", "Auto")
+            theme_mode = (
+                (self.settings or {}).get("Appearance", {}).get("ThemeMode", "Auto")
+            )
             defer_load = _should_defer_initial_load(logs_html, "Logs", True)
-            window = MainWindow("Logs", logs_html, api, 1000, 700, theme_mode, True, defer_load)
+            window = MainWindow(
+                "Logs", logs_html, api, 1000, 700, theme_mode, True, defer_load
+            )
             window.setMinimumWidth(800)
 
             def _clear_logs_window(*_):
@@ -1771,6 +1950,7 @@ class Api(QObject):
         if os.path.exists(license_path):
             try:
                 import webbrowser
+
                 webbrowser.open("file:///" + license_path.replace("\\", "/"))
             except Exception:
                 pass
@@ -1784,13 +1964,14 @@ class Api(QObject):
         """获取应用日志"""
         try:
             from ppt_assistant.core.log_manager import get_log_manager
+
             manager = get_log_manager()
-            
+
             if levels is None:
                 levels = ["debug", "info", "warn", "error"]
             elif isinstance(levels, str):
                 levels = [levels]
-            
+
             return manager.get_logs(levels=levels, search_text=search_text)
         except Exception as e:
             print(f"Error getting logs: {e}", file=sys.stderr)
@@ -1801,6 +1982,7 @@ class Api(QObject):
         """获取日志统计"""
         try:
             from ppt_assistant.core.log_manager import get_log_manager
+
             manager = get_log_manager()
             return manager.get_stats()
         except Exception as e:
@@ -1812,6 +1994,7 @@ class Api(QObject):
         """获取日志级别过滤设置"""
         try:
             from ppt_assistant.core.log_manager import get_log_manager
+
             manager = get_log_manager()
             return manager.get_filters()
         except Exception as e:
@@ -1824,6 +2007,7 @@ class Api(QObject):
         try:
             import json
             from ppt_assistant.core.log_manager import get_log_manager
+
             manager = get_log_manager()
             filters = json.loads(filters_json)
             manager.set_filters(filters)
@@ -1835,6 +2019,7 @@ class Api(QObject):
         """清空日志"""
         try:
             from ppt_assistant.core.log_manager import get_log_manager
+
             manager = get_log_manager()
             manager.clear_logs()
         except Exception as e:
@@ -1844,21 +2029,22 @@ class Api(QObject):
     def get_system_info(self):
         """Get system information for the logs viewer"""
         import platform
+
         try:
             version_data = self._load_json_file(os.environ.get("VERSION_PATH", ""))
             version = version_data.get("version", "Unknown")
         except Exception:
             version = "Unknown"
-        
+
         return {
             "app_version": version,
             "python_version": platform.python_version(),
             "platform": platform.system(),
             "platform_version": platform.release(),
             "processor": platform.processor() or "Unknown",
-            "architecture": platform.machine()
+            "architecture": platform.machine(),
         }
-    
+
     def _load_json_file(self, path):
         """Helper to load JSON files"""
         if not path or not os.path.exists(path):
@@ -1873,7 +2059,8 @@ class Api(QObject):
     def get_timer_state(self):
         return {
             "remaining": int(os.environ.get("TIMER_REMAINING", 0)),
-            "is_running": os.environ.get("TIMER_IS_RUNNING", "false") == "true"
+            "total": int(os.environ.get("TIMER_TOTAL", 0)),
+            "is_running": os.environ.get("TIMER_IS_RUNNING", "false") == "true",
         }
 
     @Slot(int)
@@ -1962,19 +2149,21 @@ class Api(QObject):
             print(f"Error getting screens: {e}", file=sys.stderr)
         return screens
 
+
 _QWEBCHANNEL_JS_CACHE = None
+
 
 def _get_qwebchannel_js():
     global _QWEBCHANNEL_JS_CACHE
     if _QWEBCHANNEL_JS_CACHE is not None:
         return _QWEBCHANNEL_JS_CACHE
-    
+
     js = ""
     f = QFile(":/qtwebchannel/qwebchannel.js")
     if f.open(QIODevice.OpenModeFlag.ReadOnly):
         try:
             # PySide6: readAll returns QByteArray, convert to bytes then string
-            js = f.readAll().data().decode('utf-8')
+            js = f.readAll().data().decode("utf-8")
         except Exception:
             try:
                 # Fallback for older versions
@@ -1982,7 +2171,7 @@ def _get_qwebchannel_js():
             except Exception:
                 pass
         f.close()
-    
+
     shim_js = """
     new QWebChannel(qt.webChannelTransport, function(channel) {
         window.pywebview = {
@@ -2004,18 +2193,29 @@ def _get_qwebchannel_js():
     _QWEBCHANNEL_JS_CACHE = js + shim_js
     return _QWEBCHANNEL_JS_CACHE
 
+
 class MainWindow(QWebEngineView):
-    def __init__(self, title, url, api, width, height, theme_mode="auto", custom_border=False, defer_load=False):
+    def __init__(
+        self,
+        title,
+        url,
+        api,
+        width,
+        height,
+        theme_mode="auto",
+        custom_border=False,
+        defer_load=False,
+    ):
         super().__init__()
         self.setPage(QWebEnginePage(_get_shared_profile(), self))
         self.setWindowTitle(title)
         self.resize(width, height)
-        
+
         # 确保窗口可调整大小 - 设置基础窗口标志
         self.setWindowFlag(Qt.Window, True)
         self.setWindowFlag(Qt.WindowCloseButtonHint, True)
         self.setWindowFlag(Qt.WindowMinMaxButtonsHint, True)
-        
+
         try:
             if "Onboarding" in str(title):
                 self.setWindowFlag(Qt.WindowMaximizeButtonHint, False)
@@ -2044,11 +2244,20 @@ class MainWindow(QWebEngineView):
         self._apply_page_background()
         settings = self.page().settings()
         allow_gpu = (not _is_windows7()) and (not _is_virtual_gpu())
-        settings.setAttribute(QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, allow_gpu)
+        settings.setAttribute(
+            QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, allow_gpu
+        )
         settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, allow_gpu)
-        settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
-        settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True)
-        settings.setAttribute(QWebEngineSettings.WebAttribute.ScrollAnimatorEnabled, not self._disable_animations)
+        settings.setAttribute(
+            QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True
+        )
+        settings.setAttribute(
+            QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True
+        )
+        settings.setAttribute(
+            QWebEngineSettings.WebAttribute.ScrollAnimatorEnabled,
+            not self._disable_animations,
+        )
         settings.setAttribute(QWebEngineSettings.WebAttribute.AutoLoadImages, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, False)
         _configure_profile(self.page().profile())
@@ -2058,22 +2267,27 @@ class MainWindow(QWebEngineView):
         self.channel = QWebChannel()
         self.channel.registerObject("api", api)
         self.page().setWebChannel(self.channel)
-        
+
         script = QWebEngineScript()
         script.setSourceCode(_get_qwebchannel_js())
         script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
         script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         self.page().scripts().insert(script)
         import copy
-        settings_dict = copy.deepcopy(api.settings) if isinstance(api.settings, dict) else {}
+
+        settings_dict = (
+            copy.deepcopy(api.settings) if isinstance(api.settings, dict) else {}
+        )
         if "Appearance" not in settings_dict:
             settings_dict["Appearance"] = {}
         settings_dict["Appearance"]["ResolvedIsDark"] = _resolve_theme_dark(theme_mode)
-        
+
         settings_json = json.dumps(settings_dict, ensure_ascii=False)
         settings_script = QWebEngineScript()
         settings_script.setSourceCode(f"window.initialSettings = {settings_json};")
-        settings_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
+        settings_script.setInjectionPoint(
+            QWebEngineScript.InjectionPoint.DocumentCreation
+        )
         settings_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         self.page().scripts().insert(settings_script)
         motion_script = QWebEngineScript()
@@ -2083,20 +2297,33 @@ class MainWindow(QWebEngineView):
             f"document.documentElement.setAttribute('data-disable-animations', '{'true' if self._disable_animations else 'false'}');"
             "} catch (e) {}"
         )
-        motion_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
+        motion_script.setInjectionPoint(
+            QWebEngineScript.InjectionPoint.DocumentCreation
+        )
         motion_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         self.page().scripts().insert(motion_script)
         supports_backdrop = _supports_system_backdrop()
         support_script = QWebEngineScript()
-        support_script.setSourceCode(f"window.__SYSTEM_BACKDROP_SUPPORTED = {json.dumps(supports_backdrop)};")
-        support_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
+        support_script.setSourceCode(
+            f"window.__SYSTEM_BACKDROP_SUPPORTED = {json.dumps(supports_backdrop)};"
+        )
+        support_script.setInjectionPoint(
+            QWebEngineScript.InjectionPoint.DocumentCreation
+        )
         support_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         self.page().scripts().insert(support_script)
         try:
-            general = api.settings.get("General", {}) if isinstance(api.settings, dict) else {}
+            general = (
+                api.settings.get("General", {})
+                if isinstance(api.settings, dict)
+                else {}
+            )
         except Exception:
             general = {}
-        enabled = bool(general.get("SystemBackdropEnabled")) and self._window_tag in ("settings", "timer")
+        enabled = bool(general.get("SystemBackdropEnabled")) and self._window_tag in (
+            "settings",
+            "timer",
+        )
         mode = "off"
         if enabled:
             mode = "system" if supports_backdrop else "fallback"
@@ -2107,13 +2334,19 @@ class MainWindow(QWebEngineView):
             f"document.documentElement.setAttribute('data-system-backdrop-mode', '{mode}');"
             "} catch (e) {}"
         )
-        backdrop_attr_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
+        backdrop_attr_script.setInjectionPoint(
+            QWebEngineScript.InjectionPoint.DocumentCreation
+        )
         backdrop_attr_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         self.page().scripts().insert(backdrop_attr_script)
         preview_flag = os.environ.get("ONBOARDING_PREVIEW", "").lower() == "true"
         preview_script = QWebEngineScript()
-        preview_script.setSourceCode(f"window.__ONBOARDING_PREVIEW = {json.dumps(preview_flag)};")
-        preview_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
+        preview_script.setSourceCode(
+            f"window.__ONBOARDING_PREVIEW = {json.dumps(preview_flag)};"
+        )
+        preview_script.setInjectionPoint(
+            QWebEngineScript.InjectionPoint.DocumentCreation
+        )
         preview_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         self.page().scripts().insert(preview_script)
         if self._custom_border:
@@ -2133,7 +2366,9 @@ class MainWindow(QWebEngineView):
             self._pending_load_timer.start(200)
         else:
             self.load(target_url)
-        self.loadFinished.connect(lambda *_: (self._apply_page_background(), self._schedule_backdrop_apply()))
+        self.loadFinished.connect(
+            lambda *_: (self._apply_page_background(), self._schedule_backdrop_apply())
+        )
         self._schedule_backdrop_apply()
 
         self.renderProcessTerminated.connect(self._on_render_process_terminated)
@@ -2145,11 +2380,7 @@ class MainWindow(QWebEngineView):
         overlay = QQuickView()
         overlay.setResizeMode(QQuickView.SizeRootObjectToView)
         overlay.setColor(Qt.transparent)
-        overlay.setFlags(
-            Qt.FramelessWindowHint
-            | Qt.Tool
-            | Qt.WindowDoesNotAcceptFocus
-        )
+        overlay.setFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowDoesNotAcceptFocus)
         try:
             overlay.setSource(QUrl.fromLocalFile(qml_path))
         except Exception as exc:
@@ -2174,17 +2405,28 @@ class MainWindow(QWebEngineView):
             return
         logo_path = _resolve_logo_svg_path()
         font_path = _resolve_misans_font_path()
-        root.setProperty("screenTitle", _resolve_window_loader_title(self._window_tag, title, getattr(self.api, "settings", {})))
+        root.setProperty(
+            "screenTitle",
+            _resolve_window_loader_title(
+                self._window_tag, title, getattr(self.api, "settings", {})
+            ),
+        )
         root.setProperty("brandText", "Luminalium")
-        root.setProperty("logoSource", QUrl.fromLocalFile(logo_path).toString() if logo_path else "")
-        root.setProperty("fontSource", QUrl.fromLocalFile(font_path).toString() if font_path else "")
+        root.setProperty(
+            "logoSource", QUrl.fromLocalFile(logo_path).toString() if logo_path else ""
+        )
+        root.setProperty(
+            "fontSource", QUrl.fromLocalFile(font_path).toString() if font_path else ""
+        )
         root.setProperty("darkMode", bool(_resolve_theme_dark(self._theme_mode)))
         root.setProperty("animationsEnabled", not self._disable_animations)
         root.setProperty("loading", True)
         self._loading_overlay = overlay
         self._loading_overlay_hide_timer = QTimer(self)
         self._loading_overlay_hide_timer.setSingleShot(True)
-        self._loading_overlay_hide_timer.timeout.connect(self._hide_loading_overlay_window)
+        self._loading_overlay_hide_timer.timeout.connect(
+            self._hide_loading_overlay_window
+        )
         self._sync_loading_overlay_geometry()
         overlay.show()
         self._raise_loading_overlay()
@@ -2277,32 +2519,51 @@ class MainWindow(QWebEngineView):
             status_name = str(getattr(status, "name", status))
         except Exception:
             status_name = str(status)
-        print(f"[WebView] Render process terminated: status={status}, exit_code={exit_code}", file=sys.stderr)
+        print(
+            f"[WebView] Render process terminated: status={status}, exit_code={exit_code}",
+            file=sys.stderr,
+        )
         if "NormalTerminationStatus" in status_name and int(exit_code or 0) == 0:
-            print("[WebView] Renderer ended normally; skipping crash recovery.", file=sys.stderr)
+            print(
+                "[WebView] Renderer ended normally; skipping crash recovery.",
+                file=sys.stderr,
+            )
             return
         self._render_crash_count += 1
-        print(f"[WebView] Crash #{self._render_crash_count}/{self._max_reload_attempts}", file=sys.stderr)
-        
+        print(
+            f"[WebView] Crash #{self._render_crash_count}/{self._max_reload_attempts}",
+            file=sys.stderr,
+        )
+
         # If too many crashes, disable GPU and retry once, then give up
         if self._render_crash_count > self._max_reload_attempts:
-            print(f"[WebView] Too many crashes ({self._render_crash_count}). Giving up on recovery.", file=sys.stderr)
+            print(
+                f"[WebView] Too many crashes ({self._render_crash_count}). Giving up on recovery.",
+                file=sys.stderr,
+            )
             return
-        
+
         # Use exponential backoff: 100ms, 500ms, 1500ms
         delay = min(100 * (2 ** (self._render_crash_count - 1)), 2000)
         print(f"[WebView] Scheduling reload in {delay}ms", file=sys.stderr)
-        
+
         # If this is the second crash, try disabling GPU acceleration
         if self._render_crash_count == 2:
             try:
-                print(f"[WebView] Disabling GPU acceleration due to repeated crashes", file=sys.stderr)
+                print(
+                    "[WebView] Disabling GPU acceleration due to repeated crashes",
+                    file=sys.stderr,
+                )
                 settings = self.page().settings()
-                settings.setAttribute(QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, False)
-                settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, False)
+                settings.setAttribute(
+                    QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, False
+                )
+                settings.setAttribute(
+                    QWebEngineSettings.WebAttribute.WebGLEnabled, False
+                )
             except Exception as e:
                 print(f"[WebView] Error disabling GPU: {e}", file=sys.stderr)
-        
+
         # Cancel any pending reload timer
         if self._crash_recovery_timer is not None:
             try:
@@ -2310,7 +2571,7 @@ class MainWindow(QWebEngineView):
             except Exception:
                 pass
             self._crash_recovery_timer = None
-        
+
         # Schedule reload with delay
         self._crash_recovery_timer = QTimer(self)
         self._crash_recovery_timer.setSingleShot(True)
@@ -2326,7 +2587,9 @@ class MainWindow(QWebEngineView):
         api = getattr(self, "api", None)
         if api is not None:
             settings = getattr(api, "settings", {}) or {}
-        backdrop_type = _resolve_system_backdrop_type(settings, getattr(self, "_window_tag", ""))
+        backdrop_type = _resolve_system_backdrop_type(
+            settings, getattr(self, "_window_tag", "")
+        )
         if backdrop_type is not None and backdrop_type != DWMSBT_NONE:
             try:
                 self.setAutoFillBackground(False)
@@ -2364,7 +2627,9 @@ class MainWindow(QWebEngineView):
         api = getattr(self, "api", None)
         if api is not None:
             settings = getattr(api, "settings", {}) or {}
-        backdrop_type = _resolve_system_backdrop_type(settings, getattr(self, "_window_tag", ""))
+        backdrop_type = _resolve_system_backdrop_type(
+            settings, getattr(self, "_window_tag", "")
+        )
         return backdrop_type is not None and backdrop_type != DWMSBT_NONE
 
     def _force_webview_transparent(self):
@@ -2455,10 +2720,12 @@ body {
                     self._pre_mini_geometry = self.geometry()
             except Exception:
                 self._pre_mini_geometry = None
-            self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
+            self.setWindowFlags(
+                Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
+            )
             self.setAttribute(Qt.WA_TranslucentBackground)
             self.resize(340, 400)
-            
+
             # Move to top-right corner
             screen = QApplication.primaryScreen()
             if screen:
@@ -2490,7 +2757,7 @@ body {
             self._pre_mini_geometry = None
             self._pre_mini_was_maximized = False
             self._pre_mini_was_fullscreen = False
-        
+
         self._apply_page_background()
         self.show()
 
@@ -2516,18 +2783,18 @@ body {
         if self.isMaximized() or self.isFullScreen():
             super().mouseMoveEvent(event)
             return
-        
+
         pos = event.pos()
         edge_margin = 5  # pixels from edge to show resize cursor
         w = self.width()
         h = self.height()
-        
+
         # Determine which edge(s) the cursor is near
         near_left = pos.x() < edge_margin
         near_right = pos.x() > w - edge_margin
         near_top = pos.y() < edge_margin
         near_bottom = pos.y() > h - edge_margin
-        
+
         # Set cursor based on edge position
         if (near_top and near_left) or (near_bottom and near_right):
             self.setCursor(Qt.SizeFDiagCursor)
@@ -2539,7 +2806,7 @@ body {
             self.setCursor(Qt.SizeVerCursor)
         else:
             self.setCursor(Qt.ArrowCursor)
-        
+
         super().mouseMoveEvent(event)
 
     def _center_on_screen(self):
@@ -2577,7 +2844,12 @@ body {
 
     def _apply_backdrop(self):
         self._apply_page_background()
-        apply_win11_aesthetics(self, self._theme_mode, getattr(self.api, "settings", {}), getattr(self, "_window_tag", ""))
+        apply_win11_aesthetics(
+            self,
+            self._theme_mode,
+            getattr(self.api, "settings", {}),
+            getattr(self, "_window_tag", ""),
+        )
         try:
             _force_dwm_redraw(int(self.winId()))
         except Exception:
@@ -2593,18 +2865,18 @@ body {
         w, h = self.width(), self.height()
         if w <= 10 or h <= 10:
             return
-        
+
         # Nudge both size and position
         self.resize(w + 1, h + 1)
         orig_pos = self.pos()
         self.move(orig_pos.x(), orig_pos.y() + 1)
-        
+
         def _restore():
             self.resize(w, h)
             self.move(orig_pos)
             _force_dwm_redraw(int(self.winId()))
             self._force_webview_repaint()
-            
+
         QTimer.singleShot(200, _restore)
 
     def _hard_resize_nudge(self):
@@ -2625,7 +2897,9 @@ body {
         if self._loading_overlay is not None:
             root = self._loading_overlay.rootObject()
             if root is not None:
-                root.setProperty("darkMode", bool(_resolve_theme_dark(self._theme_mode)))
+                root.setProperty(
+                    "darkMode", bool(_resolve_theme_dark(self._theme_mode))
+                )
         self._schedule_backdrop_apply()
 
     def apply_backdrop_settings(self):
@@ -2633,7 +2907,9 @@ body {
         if self._loading_overlay is not None:
             root = self._loading_overlay.rootObject()
             if root is not None:
-                root.setProperty("darkMode", bool(_resolve_theme_dark(self._theme_mode)))
+                root.setProperty(
+                    "darkMode", bool(_resolve_theme_dark(self._theme_mode))
+                )
         self._schedule_backdrop_apply()
 
     def apply_animation_preference(self, disabled):
@@ -2706,7 +2982,7 @@ body {
             except Exception:
                 pass
         super().hideEvent(event)
-    
+
     def closeEvent(self, event):
         """Clean up timers and resources when window closes"""
         if self._crash_recovery_timer is not None:
@@ -2739,23 +3015,23 @@ body {
             self._loading_overlay = None
         super().closeEvent(event)
 
+
 def apply_win11_aesthetics(window, theme_mode=None, settings=None, window_tag=""):
     try:
         hwnd = int(window.winId())
         dwmapi = ctypes.windll.dwmapi
         corner_preference = ctypes.c_int(2)
         dwmapi.DwmSetWindowAttribute(
-            hwnd,
-            33,
-            ctypes.byref(corner_preference),
-            ctypes.sizeof(corner_preference)
+            hwnd, 33, ctypes.byref(corner_preference), ctypes.sizeof(corner_preference)
         )
         _apply_window_theme(hwnd, _resolve_theme_dark(theme_mode))
         backdrop_type = _resolve_system_backdrop_type(settings, window_tag)
         _apply_system_backdrop(hwnd, backdrop_type)
         if backdrop_type is not None and backdrop_type != DWMSBT_NONE:
             border = ctypes.c_int(_DWM_COLOR_NONE)
-            dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ctypes.byref(border), ctypes.sizeof(border))
+            dwmapi.DwmSetWindowAttribute(
+                hwnd, DWMWA_BORDER_COLOR, ctypes.byref(border), ctypes.sizeof(border)
+            )
         icon_path = _resolve_logo_ico_path()
         if icon_path and os.path.exists(icon_path):
             user32 = ctypes.windll.user32
@@ -2765,14 +3041,19 @@ def apply_win11_aesthetics(window, theme_mode=None, settings=None, window_tag=""
             ICON_SMALL = 0
             ICON_BIG = 1
 
-            hicon_small = user32.LoadImageW(0, icon_path, IMAGE_ICON, 16, 16, LR_LOADFROMFILE)
-            hicon_big = user32.LoadImageW(0, icon_path, IMAGE_ICON, 32, 32, LR_LOADFROMFILE)
+            hicon_small = user32.LoadImageW(
+                0, icon_path, IMAGE_ICON, 16, 16, LR_LOADFROMFILE
+            )
+            hicon_big = user32.LoadImageW(
+                0, icon_path, IMAGE_ICON, 32, 32, LR_LOADFROMFILE
+            )
             if hicon_small:
                 user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, hicon_small)
             if hicon_big:
                 user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon_big)
     except Exception:
         pass
+
 
 def main():
     _apply_chromium_flags()
@@ -2800,7 +3081,9 @@ def main():
             try:
                 with open(settings_path, "r", encoding="utf-8") as f:
                     settings = json.load(f)
-                    default_theme = settings.get("Appearance", {}).get("ThemeMode", "Auto").lower()
+                    default_theme = (
+                        settings.get("Appearance", {}).get("ThemeMode", "Auto").lower()
+                    )
                     if default_theme == "dark":
                         default_accent = "#E1EBFF"
                     else:
@@ -2830,7 +3113,7 @@ def main():
                         "cancelText": "复制错误",
                         "theme": default_theme,
                         "accentColor": default_accent,
-                        "parentPid": parent_pid
+                        "parentPid": parent_pid,
                     }
         except Exception:
             pass
@@ -2846,15 +3129,26 @@ def main():
             api.settings = settings
         base_dir = os.path.dirname(os.path.abspath(__file__))
         if mode == "--crash-file":
-            html_path = os.path.join(os.path.dirname(base_dir), "ppt_assistant", "ui", "crash_dialog.html")
+            html_path = os.path.join(
+                os.path.dirname(base_dir), "ppt_assistant", "ui", "crash_dialog.html"
+            )
             win_width = 900
             win_height = 600
         else:
-            html_path = os.path.join(os.path.dirname(base_dir), "ppt_assistant", "ui", "dialog.html")
+            html_path = os.path.join(
+                os.path.dirname(base_dir), "ppt_assistant", "ui", "dialog.html"
+            )
             win_width = 650
             win_height = 500
-        defer_load = os.environ.get("DEFER_WEBENGINE_LOAD", "").strip().lower() in ["1", "true", "yes", "on"]
-        defer_load = _should_defer_initial_load(html_path, dialog_data.get("title", "Dialog"), defer_load)
+        defer_load = os.environ.get("DEFER_WEBENGINE_LOAD", "").strip().lower() in [
+            "1",
+            "true",
+            "yes",
+            "on",
+        ]
+        defer_load = _should_defer_initial_load(
+            html_path, dialog_data.get("title", "Dialog"), defer_load
+        )
         window = MainWindow(
             dialog_data.get("title", "Dialog"),
             html_path,
@@ -2862,7 +3156,7 @@ def main():
             win_width,
             win_height,
             dialog_data.get("theme", default_theme),
-            defer_load=defer_load
+            defer_load=defer_load,
         )
         window.show()
     elif len(sys.argv) >= 5:
@@ -2872,12 +3166,19 @@ def main():
         height = int(sys.argv[4])
         custom_border = False
         if len(sys.argv) >= 6:
-            custom_border = str(sys.argv[5]).strip().lower() in ["1", "true", "yes", "on"]
+            custom_border = str(sys.argv[5]).strip().lower() in [
+                "1",
+                "true",
+                "yes",
+                "on",
+            ]
         api = Api()
         settings_path = os.environ.get("SETTINGS_PATH")
         if not settings_path:
             if getattr(sys, "frozen", False):
-                settings_path = os.path.join(os.path.dirname(sys.executable), "settings.json")
+                settings_path = os.path.join(
+                    os.path.dirname(sys.executable), "settings.json"
+                )
             else:
                 base_dir = os.path.dirname(os.path.abspath(__file__))
                 settings_path = os.path.join(os.path.dirname(base_dir), "settings.json")
@@ -2898,15 +3199,23 @@ def main():
         except Exception:
             api.version = {}
         theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
-        defer_load = os.environ.get("DEFER_WEBENGINE_LOAD", "").strip().lower() in ["1", "true", "yes", "on"]
+        defer_load = os.environ.get("DEFER_WEBENGINE_LOAD", "").strip().lower() in [
+            "1",
+            "true",
+            "yes",
+            "on",
+        ]
         defer_load = _should_defer_initial_load(url, title, defer_load)
-        window = MainWindow(title, url, api, width, height, theme_mode, custom_border, defer_load)
+        window = MainWindow(
+            title, url, api, width, height, theme_mode, custom_border, defer_load
+        )
         if title == "Settings":
             window.setMinimumWidth(1099)
         window.show()
     else:
         return
     sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     main()

@@ -5,7 +5,10 @@ from PySide6.QtWidgets import QFileDialog, QFileIconProvider, QMessageBox
 
 from plugins.interface import AssistantPlugin
 from ppt_assistant.core.config import _save_cfg, cfg
-from ppt_assistant.core.platform_integration import get_quick_launch_dialog_filter, open_path
+from ppt_assistant.core.platform_integration import (
+    get_quick_launch_dialog_filter,
+    open_path,
+)
 
 
 class AppLauncherPlugin(AssistantPlugin):
@@ -35,11 +38,13 @@ class AppLauncherPlugin(AssistantPlugin):
         if any(app["path"] == file_path for app in apps):
             return
 
-        apps.append({
-            "name": name,
-            "path": file_path,
-            "icon": "",
-        })
+        apps.append(
+            {
+                "name": name,
+                "path": file_path,
+                "icon": "",
+            }
+        )
         cfg.quickLaunchApps.value = apps
         _save_cfg()
 

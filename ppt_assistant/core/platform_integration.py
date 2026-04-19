@@ -58,7 +58,9 @@ def _spawn_detached(command: list[str], cwd: str | None = None) -> None:
         "stdin": subprocess.DEVNULL,
         "stdout": subprocess.DEVNULL,
         "stderr": subprocess.DEVNULL,
-        "creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) | getattr(subprocess, "DETACHED_PROCESS", 0),
+        "creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+        | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+        | getattr(subprocess, "DETACHED_PROCESS", 0),
     }
     subprocess.Popen(command, **kwargs)
 
@@ -74,6 +76,7 @@ def open_path(path: str) -> None:
 
 def set_run_at_startup(enabled: bool) -> None:
     import winreg
+
     app_name = "Luminalium"
     command = subprocess.list2cmdline(get_launch_command_args(autostart=True))
     try:

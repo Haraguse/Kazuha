@@ -37,6 +37,7 @@ class OnboardingPlugin(AssistantPlugin):
     def _ensure_webview_module(self):
         if self._wv is None:
             import plugins.webview_runner as webview_runner
+
             self._wv = webview_runner
         return self._wv
 
@@ -62,13 +63,33 @@ class OnboardingPlugin(AssistantPlugin):
         width = "960"
         height = "720"
         if getattr(sys, "frozen", False):
-            cmd = [sys.executable, "--webview-runner", html_path, title, width, height, "true"]
+            cmd = [
+                sys.executable,
+                "--webview-runner",
+                html_path,
+                title,
+                width,
+                height,
+                "true",
+            ]
         else:
-            cmd = [sys.executable, main_path, "--webview-runner", html_path, title, width, height, "true"]
+            cmd = [
+                sys.executable,
+                main_path,
+                "--webview-runner",
+                html_path,
+                title,
+                width,
+                height,
+                "true",
+            ]
         # Use InProcessWindowHandle for external process to prevent immediate detection of "closed"
         # The external webview runner will create its own process group
-        import subprocess
-        creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) | getattr(subprocess, "DETACHED_PROCESS", 0)
+        creationflags = (
+            getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+            | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+            | getattr(subprocess, "DETACHED_PROCESS", 0)
+        )
         self.process = subprocess.Popen(cmd, env=env, creationflags=creationflags)
         self._window = None
         self._api = None
@@ -120,7 +141,9 @@ class OnboardingPlugin(AssistantPlugin):
             title = "Onboarding Preview" if preview else "Onboarding"
             defer_load = wv._should_defer_initial_load(html_path, title, True)
             theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
-            window = wv.MainWindow(title, html_path, api, 960, 720, theme_mode, False, defer_load)
+            window = wv.MainWindow(
+                title, html_path, api, 960, 720, theme_mode, False, defer_load
+            )
         finally:
             if previous_preview is None:
                 os.environ.pop("ONBOARDING_PREVIEW", None)

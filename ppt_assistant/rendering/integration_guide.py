@@ -4,10 +4,6 @@ Application Integration Guide for DirectX/OpenGL Rendering Pipeline.
 This module shows how to integrate the new rendering system into the main Kazuha application.
 """
 
-import sys
-from pathlib import Path
-from typing import Optional
-
 # Example integration code for main.py
 INTEGRATION_CODE_EXAMPLE = '''
 import sys
@@ -137,7 +133,7 @@ class KazuhaApp:
 '''
 
 
-FEATURES_CHECKLIST = '''
+FEATURES_CHECKLIST = """
 ✅ DIRECTX 12 RENDERING PIPELINE - COMPLETE IMPLEMENTATION
 
 Core Systems Implemented:
@@ -344,13 +340,13 @@ Next Steps:
    • Resource pooling
    • Memory management
    • Driver-specific optimization
-'''
+"""
 
 
 def print_integration_guide():
     """Print integration guide to console."""
     print(INTEGRATION_CODE_EXAMPLE)
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print(FEATURES_CHECKLIST)
 
 

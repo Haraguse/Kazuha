@@ -64,14 +64,14 @@ class DemoWindow(WebViewTitlebarWindow):
             <title>自绘标题栏演示</title>
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
-                body { 
+                body {
                     font-family: system-ui, -apple-system, sans-serif;
                     background: #f5f5f5;
                     color: #333;
                     padding: 40px;
                 }
                 h1 { color: #3275F5; margin-bottom: 20px; }
-                .feature { 
+                .feature {
                     background: white;
                     padding: 16px;
                     margin: 12px 0;
@@ -81,7 +81,7 @@ class DemoWindow(WebViewTitlebarWindow):
                 .feature h3 { margin-bottom: 8px; }
                 .feature p { color: #666; line-height: 1.6; }
                 .button-group { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
-                button { 
+                button {
                     padding: 8px 16px;
                     background: #3275F5;
                     color: white;
@@ -92,7 +92,7 @@ class DemoWindow(WebViewTitlebarWindow):
                     font-weight: 500;
                 }
                 button:hover { opacity: 0.9; }
-                .code { 
+                .code {
                     background: #f0f0f0;
                     padding: 12px;
                     border-radius: 4px;
@@ -105,7 +105,7 @@ class DemoWindow(WebViewTitlebarWindow):
         </head>
         <body>
             <h1>🎉 自绘标题栏演示</h1>
-            
+
             <div class="feature">
                 <h3>✨ 功能概览</h3>
                 <p>此窗口演示了完整的自绘标题栏功能：</p>

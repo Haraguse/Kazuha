@@ -13,7 +13,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 
 class WindowsWindowManager:
     """Windows 窗口操作管理器"""
-    
+
     # Windows API 常量
     WM_SYSCOMMAND = 0x0112
     SC_MINIMIZE = 0xF020
@@ -21,7 +21,7 @@ class WindowsWindowManager:
     SC_RESTORE = 0xF120
     WM_NCLBUTTONDOWN = 0xA1
     HT_CAPTION = 0x2
-    
+
     # Windows 11 Snap 常量
     WM_SIZING = 0x0214
     WMSZ_LEFT = 1
@@ -38,7 +38,7 @@ class WindowsWindowManager:
         """最小化窗口"""
         if sys.platform == "win32":
             try:
-                ctypes.windll.user32.SendMessageW(hwnd, WindowsWindowManager.WM_SYSCOMMAND, 
+                ctypes.windll.user32.SendMessageW(hwnd, WindowsWindowManager.WM_SYSCOMMAND,
                                                   WindowsWindowManager.SC_MINIMIZE, 0)
                 return True
             except Exception:
@@ -118,24 +118,24 @@ class WindowsWindowManager:
 
 class FramelessWindowWithTitlebar(QWidget):
     """无框架窗口，带自绘标题栏"""
-    
+
     # 信号
     titlebar_height_changed = Signal(int)
-    
+
     def __init__(self, parent=None, titlebar_height=32):
         super().__init__(parent)
-        
+
         self.titlebar_height = titlebar_height
         self._titlebar_dragging = False
         self._drag_start_pos = QPoint()
         self._drag_start_geometry = QRect()
         self._hwnd = int(self.winId()) if sys.platform == "win32" else None
         self._is_maximized = False
-        
+
         # 设置窗口属性
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
         self.setAttribute(Qt.WA_StyledBackground, True)
-        
+
     def get_hwnd(self):
         """获取Windows窗口句柄"""
         if sys.platform == "win32":
@@ -144,18 +144,18 @@ class FramelessWindowWithTitlebar(QWidget):
             except Exception:
                 pass
         return None
-    
+
     def set_titlebar_height(self, height):
         """设置标题栏高度"""
         self.titlebar_height = height
         self.titlebar_height_changed.emit(height)
         self.update_content_margin()
-    
+
     def update_content_margin(self):
         """更新内容区域边距（为标题栏留出空间）"""
         # 子类应该实现此方法来调整内容区域
         pass
-    
+
     def minimize(self):
         """最小化"""
         if self._hwnd:
@@ -163,7 +163,7 @@ class FramelessWindowWithTitlebar(QWidget):
         else:
             self.showMinimized()
             return True
-    
+
     def maximize(self):
         """切换最大化/还原"""
         if self._hwnd:
@@ -179,7 +179,7 @@ class FramelessWindowWithTitlebar(QWidget):
                 self.showMaximized()
             self._is_maximized = not self._is_maximized
             return True
-    
+
     def close_window(self):
         """关闭窗口"""
         if self._hwnd:
@@ -187,7 +187,7 @@ class FramelessWindowWithTitlebar(QWidget):
         else:
             self.close()
             return True
-    
+
     def start_drag(self):
         """开始拖动窗口"""
         if self._hwnd:
@@ -198,7 +198,7 @@ class FramelessWindowWithTitlebar(QWidget):
             self._titlebar_dragging = True
             self._drag_start_pos = QPoint(self.mapFromGlobal(QGuiApplication.primaryScreen().cursor().pos())) if QGuiApplication.primaryScreen() else QPoint()
             self._drag_start_geometry = self.geometry()
-    
+
     def Mouse移动_titlebar(self, pos):
         """处理标题栏鼠标移动（用于手动拖动）"""
         if self._titlebar_dragging and not self._hwnd:
@@ -208,11 +208,11 @@ class FramelessWindowWithTitlebar(QWidget):
             delta_from_drag = pos - self._drag_start_pos
             new_pos = self._drag_start_geometry.topLeft() + delta_from_drag
             self.move(new_pos)
-    
+
     def end_drag_titlebar(self):
         """结束标题栏拖动"""
         self._titlebar_dragging = False
-    
+
     def get_window_state(self):
         """获取窗口状态"""
         if self._hwnd:
@@ -223,11 +223,11 @@ class FramelessWindowWithTitlebar(QWidget):
             return "minimized"
         else:
             return "normal"
-    
+
     def get_window_title(self):
         """获取窗口标题"""
         return self.windowTitle()
-    
+
     def set_window_title(self, title):
         """设置窗口标题"""
         self.setWindowTitle(title)
@@ -235,34 +235,34 @@ class FramelessWindowWithTitlebar(QWidget):
 
 class TitlebarBridge:
     """HTML/JS 与窗口管理器的通信桥接"""
-    
+
     def __init__(self, window: FramelessWindowWithTitlebar):
         self.window = window
-    
+
     def minimize(self):
         """最小化窗口"""
         return self.window.minimize()
-    
+
     def maximize(self):
         """最大化/还原窗口"""
         return self.window.maximize()
-    
+
     def close(self):
         """关闭窗口"""
         return self.window.close_window()
-    
+
     def start_drag(self):
         """开始拖动"""
         return self.window.start_drag()
-    
+
     def get_window_state(self):
         """获取窗口状态"""
         return self.window.get_window_state()
-    
+
     def get_window_title(self):
         """获取窗口标题"""
         return self.window.get_window_title()
-    
+
     def set_window_title(self, title):
         """设置窗口标题"""
         self.window.set_window_title(title)

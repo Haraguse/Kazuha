@@ -1,6 +1,7 @@
 """
 日志管理器 - 收集和管理应用日志流
 """
+
 import sys
 import io
 import threading
@@ -13,22 +14,20 @@ LogLevel = Literal["debug", "info", "warn", "error"]
 
 class LogEntry:
     """日志项"""
+
     def __init__(self, timestamp: str, level: LogLevel, message: str):
         self.timestamp = timestamp
         self.level = level
         self.message = message
 
     def to_dict(self) -> Dict:
-        return {
-            "time": self.timestamp,
-            "level": self.level,
-            "message": self.message
-        }
+        return {"time": self.timestamp, "level": self.level, "message": self.message}
 
 
 class LogCaptureStream(io.StringIO):
     """捕获输出流的自定义 StringIO"""
-    def __init__(self, manager: 'LogManager', level: LogLevel):
+
+    def __init__(self, manager: "LogManager", level: LogLevel):
         super().__init__()
         self.manager = manager
         self.level = level
@@ -78,7 +77,7 @@ class LogManager:
         """停止捕获并恢复原始输出"""
         # 刷新流中的剩余内容
         for stream in self._capture_streams.values():
-            if hasattr(stream, 'flush'):
+            if hasattr(stream, "flush"):
                 stream.flush()
 
         sys.stdout = self._original_stdout
@@ -99,7 +98,9 @@ class LogManager:
             entry = LogEntry(timestamp, level, message)
             self.logs.append(entry)
 
-    def get_logs(self, levels: List[LogLevel] = None, search_text: str = "") -> List[Dict]:
+    def get_logs(
+        self, levels: List[LogLevel] = None, search_text: str = ""
+    ) -> List[Dict]:
         """
         获取日志
         :param levels: 要包含的日志级别列表，None 表示全部

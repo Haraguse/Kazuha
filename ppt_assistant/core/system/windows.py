@@ -1,8 +1,6 @@
 import sys
-import ctypes
 import os
 import json
-import base64
 import subprocess
 import time
 import atexit
@@ -75,6 +73,7 @@ STRICT_PRESENTATION_SLIDESHOW_TITLE_HINTS = (
     "apresentação de slides",
 )
 
+
 class WindowsSystemAPI(SystemAPI):
     def __init__(self):
         self._focus_thread = None
@@ -137,7 +136,11 @@ class WindowsSystemAPI(SystemAPI):
 
     def _ensure_smtc_worker(self):
         with self._smtc_lock:
-            if self._smtc_worker and self._smtc_worker.poll() is None and self._smtc_output_queue is not None:
+            if (
+                self._smtc_worker
+                and self._smtc_worker.poll() is None
+                and self._smtc_output_queue is not None
+            ):
                 return self._smtc_worker, self._smtc_output_queue
             self._stop_smtc_worker_locked()
             if not self._start_smtc_dotnet_worker_locked():
@@ -149,10 +152,14 @@ class WindowsSystemAPI(SystemAPI):
     def _get_app_root_dir(self):
         if getattr(sys, "frozen", False):
             return os.path.dirname(sys.executable)
-        return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        return os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        )
 
     def _get_smtc_helper_project_path(self):
-        return os.path.join(self._get_app_root_dir(), "scripts", "smtc_helper", "SmtcHelper.csproj")
+        return os.path.join(
+            self._get_app_root_dir(), "scripts", "smtc_helper", "SmtcHelper.csproj"
+        )
 
     def _get_smtc_helper_source_paths(self):
         project_dir = os.path.dirname(self._get_smtc_helper_project_path())
@@ -164,7 +171,15 @@ class WindowsSystemAPI(SystemAPI):
     def _get_smtc_helper_executable_candidates(self):
         root_dir = self._get_app_root_dir()
         return [
-            os.path.join(root_dir, "scripts", "smtc_helper", "bin", "Release", "net8.0-windows10.0.19041.0", "SmtcHelper.exe"),
+            os.path.join(
+                root_dir,
+                "scripts",
+                "smtc_helper",
+                "bin",
+                "Release",
+                "net8.0-windows10.0.19041.0",
+                "SmtcHelper.exe",
+            ),
             os.path.join(root_dir, "scripts", "smtc_helper", "SmtcHelper.exe"),
             os.path.join(root_dir, "smtc_helper", "SmtcHelper.exe"),
         ]
@@ -222,7 +237,7 @@ class WindowsSystemAPI(SystemAPI):
                 creationflags=creationflags,
                 startupinfo=startupinfo,
                 timeout=90,
-                env=self._create_dotnet_build_env()
+                env=self._create_dotnet_build_env(),
             )
         except Exception:
             return ""
@@ -258,7 +273,7 @@ class WindowsSystemAPI(SystemAPI):
             errors="replace",
             bufsize=1,
             creationflags=creationflags,
-            startupinfo=startupinfo
+            startupinfo=startupinfo,
         )
         output_queue = queue.Queue()
         self._smtc_worker = process
@@ -266,13 +281,13 @@ class WindowsSystemAPI(SystemAPI):
         self._smtc_reader_thread = threading.Thread(
             target=self._read_smtc_worker_output,
             args=(process, output_queue),
-            daemon=True
+            daemon=True,
         )
         self._smtc_reader_thread.start()
         return True
 
     def _start_smtc_powershell_worker_locked(self):
-        script = r'''
+        script = r"""
 $ErrorActionPreference="SilentlyContinue"
 [Console]::InputEncoding = [System.Text.Encoding]::UTF8
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -327,8 +342,10 @@ while (($requestId = [Console]::In.ReadLine()) -ne $null) {
         Write-JsonResponse @{request_id=$requestId; status="Stopped"; title=""; artist=""; position_ms=0; duration_ms=0}
     }
 }
-'''
-        self._launch_smtc_worker_locked(["powershell", "-NoProfile", "-NonInteractive", "-Command", script])
+"""
+        self._launch_smtc_worker_locked(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", script]
+        )
 
     def _read_smtc_worker_output(self, process, output_queue):
         try:
@@ -425,7 +442,12 @@ while (($requestId = [Console]::In.ReadLine()) -ne $null) {
         def _get_com_slideshow_hwnd() -> int:
             if not win32com:
                 return 0
-            for prog_id in ("PowerPoint.Application", "KWPP.Application", "YozoPG.Application", "YozoPG.Application.1"):
+            for prog_id in (
+                "PowerPoint.Application",
+                "KWPP.Application",
+                "YozoPG.Application",
+                "YozoPG.Application.1",
+            ):
                 try:
                     app = win32com.client.GetActiveObject(prog_id)
                 except Exception:
@@ -450,13 +472,17 @@ while (($requestId = [Console]::In.ReadLine()) -ne $null) {
 
         def _is_ppt_slideshow(hwnd: int) -> bool:
             try:
-                if not hwnd: return False
-                if not win32gui.IsWindowVisible(int(hwnd)): return False
+                if not hwnd:
+                    return False
+                if not win32gui.IsWindowVisible(int(hwnd)):
+                    return False
                 cls_name = win32gui.GetClassName(int(hwnd))
                 if cls_name in PRESENTATION_SLIDESHOW_CLASSES:
                     return True
                 title = (win32gui.GetWindowText(int(hwnd)) or "").strip().lower()
-                if title and any(hint in title for hint in STRICT_PRESENTATION_SLIDESHOW_TITLE_HINTS):
+                if title and any(
+                    hint in title for hint in STRICT_PRESENTATION_SLIDESHOW_TITLE_HINTS
+                ):
                     return True
                 if win32api and win32process:
                     try:
@@ -470,7 +496,15 @@ while (($requestId = [Console]::In.ReadLine()) -ne $null) {
                                     win32api.CloseHandle(handle)
                                 except Exception:
                                     pass
-                            if os.path.basename(exe).strip().lower() in PRESENTATION_PROCESS_NAMES and title and any(hint in title for hint in STRICT_PRESENTATION_SLIDESHOW_TITLE_HINTS):
+                            if (
+                                os.path.basename(exe).strip().lower()
+                                in PRESENTATION_PROCESS_NAMES
+                                and title
+                                and any(
+                                    hint in title
+                                    for hint in STRICT_PRESENTATION_SLIDESHOW_TITLE_HINTS
+                                )
+                            ):
                                 return True
                     except Exception:
                         pass
@@ -484,12 +518,14 @@ while (($requestId = [Console]::In.ReadLine()) -ne $null) {
         com_hwnd = _get_com_slideshow_hwnd()
         if com_hwnd:
             return int(com_hwnd)
-        
+
         # Search all windows
         found_hwnd = 0
+
         def _enum_cb(hwnd, ctx):
             nonlocal found_hwnd
-            if found_hwnd: return
+            if found_hwnd:
+                return
             if _is_ppt_slideshow(hwnd):
                 found_hwnd = hwnd
 
@@ -497,7 +533,7 @@ while (($requestId = [Console]::In.ReadLine()) -ne $null) {
             win32gui.EnumWindows(_enum_cb, None)
         except Exception:
             pass
-            
+
         return found_hwnd
 
     def start_focus_watcher(self, callback):
@@ -507,21 +543,29 @@ while (($requestId = [Console]::In.ReadLine()) -ne $null) {
         # but make it accessible.
         # Actually, let's return the watcher instance.
         from ...core.win_focus_watcher import WindowsFocusWatcher
+
         self._focus_watcher = WindowsFocusWatcher()
         self._focus_watcher.foreground_changed.connect(callback)
         self._focus_watcher.start()
         return self._focus_watcher
 
     def stop_focus_watcher(self):
-        if hasattr(self, '_focus_watcher') and self._focus_watcher:
+        if hasattr(self, "_focus_watcher") and self._focus_watcher:
             self._focus_watcher.stop()
 
     def get_system_fonts(self):
         try:
             import winreg
+
             keys = [
-                (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"),
-                (winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"),
+                (
+                    winreg.HKEY_LOCAL_MACHINE,
+                    r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts",
+                ),
+                (
+                    winreg.HKEY_CURRENT_USER,
+                    r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts",
+                ),
             ]
             fonts = set()
             suffixes = (" (TrueType)", " (OpenType)", " (Type 1)", " (All res)")

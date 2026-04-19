@@ -1,4 +1,3 @@
-
 THEMES = {
     "default": {
         "light": {
@@ -28,7 +27,7 @@ THEMES = {
             "mask_overlay_bg": "rgba(0, 0, 0, 0.43)",
             "mask_card_bg": "rgba(30, 30, 30, 0.86)",
             "mask_text_fg": "rgba(255, 255, 255, 0.92)",
-            "dev_watermark": "rgba(255, 255, 255, 0.47)"
+            "dev_watermark": "rgba(255, 255, 255, 0.47)",
         },
         "dark": {
             "accent": "#4A85F6",
@@ -57,8 +56,8 @@ THEMES = {
             "mask_overlay_bg": "rgba(0, 0, 0, 0.43)",
             "mask_card_bg": "rgba(30, 30, 30, 0.86)",
             "mask_text_fg": "rgba(255, 255, 255, 0.92)",
-            "dev_watermark": "rgba(255, 255, 255, 0.47)"
-        }
+            "dev_watermark": "rgba(255, 255, 255, 0.47)",
+        },
     },
     "material-you": {
         "light": {
@@ -88,7 +87,7 @@ THEMES = {
             "mask_overlay_bg": "rgba(36, 22, 54, 0.48)",
             "mask_card_bg": "rgba(52, 32, 78, 0.9)",
             "mask_text_fg": "rgba(255, 255, 255, 0.94)",
-            "dev_watermark": "rgba(255, 255, 255, 0.47)"
+            "dev_watermark": "rgba(255, 255, 255, 0.47)",
         },
         "dark": {
             "accent": "#CDA7FF",
@@ -117,8 +116,8 @@ THEMES = {
             "mask_overlay_bg": "rgba(0, 0, 0, 0.48)",
             "mask_card_bg": "rgba(49, 31, 74, 0.92)",
             "mask_text_fg": "rgba(255, 255, 255, 0.94)",
-            "dev_watermark": "rgba(255, 255, 255, 0.47)"
-        }
+            "dev_watermark": "rgba(255, 255, 255, 0.47)",
+        },
     },
     "red-sunrise": {
         "light": {
@@ -148,7 +147,7 @@ THEMES = {
             "mask_overlay_bg": "rgba(54, 18, 12, 0.48)",
             "mask_card_bg": "rgba(64, 26, 20, 0.9)",
             "mask_text_fg": "rgba(255, 255, 255, 0.94)",
-            "dev_watermark": "rgba(255, 255, 255, 0.47)"
+            "dev_watermark": "rgba(255, 255, 255, 0.47)",
         },
         "dark": {
             "accent": "#FF907B",
@@ -177,8 +176,8 @@ THEMES = {
             "mask_overlay_bg": "rgba(0, 0, 0, 0.48)",
             "mask_card_bg": "rgba(51, 22, 18, 0.92)",
             "mask_text_fg": "rgba(255, 255, 255, 0.94)",
-            "dev_watermark": "rgba(255, 255, 255, 0.47)"
-        }
+            "dev_watermark": "rgba(255, 255, 255, 0.47)",
+        },
     },
     "emptiness-color": {
         "light": {
@@ -208,7 +207,7 @@ THEMES = {
             "mask_overlay_bg": "rgba(27, 31, 35, 0.43)",
             "mask_card_bg": "rgba(40, 44, 48, 0.9)",
             "mask_text_fg": "rgba(255, 255, 255, 0.92)",
-            "dev_watermark": "rgba(27, 31, 35, 0.47)"
+            "dev_watermark": "rgba(27, 31, 35, 0.47)",
         },
         "dark": {
             "accent": "#9CA3AF",
@@ -237,8 +236,8 @@ THEMES = {
             "mask_overlay_bg": "rgba(0, 0, 0, 0.5)",
             "mask_card_bg": "rgba(31, 35, 40, 0.92)",
             "mask_text_fg": "rgba(255, 255, 255, 0.94)",
-            "dev_watermark": "rgba(255, 255, 255, 0.47)"
-        }
+            "dev_watermark": "rgba(255, 255, 255, 0.47)",
+        },
     },
     "mung-bean": {
         "light": {
@@ -268,7 +267,7 @@ THEMES = {
             "mask_overlay_bg": "rgba(16, 50, 35, 0.48)",
             "mask_card_bg": "rgba(28, 58, 45, 0.9)",
             "mask_text_fg": "rgba(255, 255, 255, 0.94)",
-            "dev_watermark": "rgba(255, 255, 255, 0.47)"
+            "dev_watermark": "rgba(255, 255, 255, 0.47)",
         },
         "dark": {
             "accent": "#7FE3B1",
@@ -297,8 +296,8 @@ THEMES = {
             "mask_overlay_bg": "rgba(0, 0, 0, 0.48)",
             "mask_card_bg": "rgba(21, 40, 32, 0.92)",
             "mask_text_fg": "rgba(255, 255, 255, 0.94)",
-            "dev_watermark": "rgba(255, 255, 255, 0.47)"
-        }
+            "dev_watermark": "rgba(255, 255, 255, 0.47)",
+        },
     },
     "orange-wish": {
         "light": {
@@ -328,7 +327,7 @@ THEMES = {
             "mask_overlay_bg": "rgba(62, 32, 12, 0.48)",
             "mask_card_bg": "rgba(70, 40, 20, 0.9)",
             "mask_text_fg": "rgba(255, 255, 255, 0.94)",
-            "dev_watermark": "rgba(255, 255, 255, 0.47)"
+            "dev_watermark": "rgba(255, 255, 255, 0.47)",
         },
         "dark": {
             "accent": "#FFB677",
@@ -357,8 +356,8 @@ THEMES = {
             "mask_overlay_bg": "rgba(0, 0, 0, 0.48)",
             "mask_card_bg": "rgba(46, 28, 16, 0.92)",
             "mask_text_fg": "rgba(255, 255, 255, 0.94)",
-            "dev_watermark": "rgba(255, 255, 255, 0.47)"
-        }
+            "dev_watermark": "rgba(255, 255, 255, 0.47)",
+        },
     },
     "year-of-horse": {
         "light": {
@@ -388,7 +387,7 @@ THEMES = {
             "mask_overlay_bg": "rgba(50, 10, 10, 0.6)",
             "mask_card_bg": "rgba(180, 20, 20, 0.95)",
             "mask_text_fg": "#FFFFFF",
-            "dev_watermark": "rgba(180, 0, 0, 0.3)"
+            "dev_watermark": "rgba(180, 0, 0, 0.3)",
         },
         "dark": {
             "accent": "#FF4500",
@@ -417,7 +416,7 @@ THEMES = {
             "mask_overlay_bg": "rgba(0, 0, 0, 0.5)",
             "mask_card_bg": "rgba(62, 39, 35, 0.92)",
             "mask_text_fg": "rgba(255, 255, 255, 0.94)",
-            "dev_watermark": "rgba(255, 255, 255, 0.47)"
-        }
-    }
+            "dev_watermark": "rgba(255, 255, 255, 0.47)",
+        },
+    },
 }

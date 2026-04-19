@@ -32,6 +32,7 @@ class LogsPlugin(AssistantPlugin):
     def _ensure_webview_module(self):
         if self._wv is None:
             import plugins.webview_runner as webview_runner
+
             self._wv = webview_runner
         return self._wv
 
@@ -87,7 +88,9 @@ class LogsPlugin(AssistantPlugin):
 
         theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
         defer_load = wv._should_defer_initial_load(html_path, "Logs", True)
-        window = wv.MainWindow("Logs", html_path, api, 1000, 700, theme_mode, True, defer_load)
+        window = wv.MainWindow(
+            "Logs", html_path, api, 1000, 700, theme_mode, True, defer_load
+        )
         window.setMinimumWidth(800)
         window.destroyed.connect(self._on_window_destroyed)
 

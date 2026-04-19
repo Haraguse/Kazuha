@@ -1,10 +1,11 @@
 """DirectX 12 工具函数"""
 
-import ctypes
 from typing import Tuple
 
 
-def make_color(r: float, g: float, b: float, a: float = 1.0) -> Tuple[float, float, float, float]:
+def make_color(
+    r: float, g: float, b: float, a: float = 1.0
+) -> Tuple[float, float, float, float]:
     """创建RGBA颜色元组"""
     return (max(0, min(1, r)), max(0, min(1, g)), max(0, min(1, b)), max(0, min(1, a)))
 
@@ -30,16 +31,16 @@ def hresult_to_string(hr: int) -> str:
 
 class ComPtr:
     """COM指针包装器（用于自动引用计数）"""
-    
+
     def __init__(self, ptr=None):
         self._ptr = ptr
-    
+
     def __enter__(self):
         return self
-    
+
     def __exit__(self, *args):
         self.release()
-    
+
     def release(self):
         if self._ptr:
             # 调用Release方法
@@ -48,13 +49,13 @@ class ComPtr:
             except:
                 pass
             self._ptr = None
-    
+
     def __del__(self):
         self.release()
-    
+
     def get(self):
         return self._ptr
-    
+
     def __getattr__(self, name):
         if self._ptr:
             return getattr(self._ptr, name)

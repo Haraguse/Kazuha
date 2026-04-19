@@ -1,5 +1,8 @@
 import os
 import json
+import sys
+import threading
+import subprocess
 
 from PySide6.QtWidgets import QWidget, QApplication
 from PySide6.QtCore import Signal, Slot, QTimer
@@ -8,6 +11,57 @@ from plugins.interface import AssistantPlugin
 from plugins.in_process_window_handle import InProcessWindowHandle
 from ppt_assistant.core.config import SETTINGS_PATH
 from ppt_assistant.core.timer_manager import TimerManager
+
+
+def _use_external_webview_process() -> bool:
+    return sys.platform == "linux"
+
+
+def _build_webview_runner_command(html_path, title, width, height, custom_border=True):
+    root_dir = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    )
+    args = [
+        html_path,
+        title,
+        str(int(width)),
+        str(int(height)),
+        "true" if custom_border else "false",
+    ]
+    if getattr(sys, "frozen", False):
+        return [sys.executable, "--webview-runner", *args]
+    main_path = os.path.join(root_dir, "main.py")
+    return [sys.executable, main_path, "--webview-runner", *args]
+
+
+def _build_linux_webview_env(extra_env=None):
+    env = os.environ.copy()
+    env["SETTINGS_PATH"] = SETTINGS_PATH
+    if sys.platform == "linux":
+        if env.get("DISPLAY"):
+            env["QT_QPA_PLATFORM"] = "xcb"
+        # env["QT_OPENGL"] = "software"
+        # env["QT_RHI_BACKEND"] = "software"
+        # env["QT_VULKAN_DISABLE"] = "1"
+        # env["QT_QUICK_BACKEND"] = "software"
+        # env["QT_XCB_FORCE_SOFTWARE_OPENGL"] = "1"
+        env["QTWEBENGINE_DISABLE_SANDBOX"] = "1"
+        env["DEFER_WEBENGINE_LOAD"] = "1"
+        flags = [
+            "--disable-gpu",
+            "--disable-gpu-compositing",
+            "--enable-software-rasterizer",
+            "--disable-vulkan",
+            "--no-sandbox",
+        ]
+        merged = str(env.get("QTWEBENGINE_CHROMIUM_FLAGS", "")).split()
+        for flag in flags:
+            if flag not in merged:
+                merged.append(flag)
+        env["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(merged).strip()
+    if extra_env:
+        env.update(extra_env)
+    return env
 
 
 class _InProcessTimerApiMixin:
@@ -90,7 +144,8 @@ class TimerPlugin(AssistantPlugin):
         self.finish_requested.connect(self._timer_manager.finish)
         self.add_time_requested.connect(self._timer_manager.add_time)
         self.update_time_requested.connect(self._timer_manager.update_time)
-        QTimer.singleShot(1500, self._prewarm_webview)
+        if not _use_external_webview_process():
+            QTimer.singleShot(1500, self._prewarm_webview)
 
     def get_name(self):
         return "计时器"
@@ -109,6 +164,7 @@ class TimerPlugin(AssistantPlugin):
     def _ensure_webview_module(self):
         if self._wv is None:
             import plugins.webview_runner as webview_runner
+
             self._wv = webview_runner
         return self._wv
 
@@ -147,6 +203,85 @@ class TimerPlugin(AssistantPlugin):
         if self._timer_manager.is_running:
             self.background_mode_entered.emit()
 
+    def _handle_external_timer_line(self, line: str):
+        text = str(line or "").strip()
+        if not text:
+            return
+        try:
+            if text.startswith("TIMER_START:"):
+                self.start_requested.emit(int(text.split(":", 1)[1]))
+            elif text == "TIMER_PAUSE":
+                self.pause_requested.emit()
+            elif text == "TIMER_RESUME":
+                self.resume_requested.emit()
+            elif text == "TIMER_STOP":
+                self.stop_requested.emit()
+            elif text == "TIMER_FINISH":
+                self.finish_requested.emit()
+            elif text.startswith("TIMER_ADD_TIME:"):
+                self.add_time_requested.emit(int(text.split(":", 1)[1]))
+            elif text.startswith("TIMER_UPDATE:"):
+                self.update_time_requested.emit(int(text.split(":", 1)[1]))
+        except Exception:
+            pass
+
+    def _watch_external_timer_process(self, process):
+        try:
+            stream = getattr(process, "stdout", None)
+            if stream is not None:
+                for line in stream:
+                    self._handle_external_timer_line(line)
+        except Exception:
+            pass
+        try:
+            process.wait(timeout=1.0)
+        except Exception:
+            pass
+        if self.process is process:
+            self.process = None
+            if self._timer_manager.is_running:
+                self.background_mode_entered.emit()
+
+    def _launch_external_window(self, html_path, width, height, assets_path):
+        env = _build_linux_webview_env(
+            {
+                "ASSETS_PATH": assets_path,
+                "TIMER_REMAINING": str(
+                    int(max(0, self._timer_manager.remaining_seconds))
+                ),
+                "TIMER_TOTAL": str(int(max(0, self._timer_manager.total_seconds))),
+                "TIMER_IS_RUNNING": "true"
+                if self._timer_manager.is_running
+                else "false",
+            }
+        )
+        cmd = _build_webview_runner_command(
+            html_path,
+            "Luminalium Timer Plugin",
+            width,
+            height,
+            True,
+        )
+        process = subprocess.Popen(
+            cmd,
+            env=env,
+            close_fds=True,
+            stdout=subprocess.PIPE,
+            stdin=subprocess.DEVNULL,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
+        )
+        self.process = process
+        watcher = threading.Thread(
+            target=self._watch_external_timer_process,
+            args=(process,),
+            daemon=True,
+        )
+        watcher.start()
+        return process
+
     def _ensure_window(self):
         if self._window is not None:
             return self._window
@@ -159,10 +294,18 @@ class TimerPlugin(AssistantPlugin):
 
         screen = QApplication.primaryScreen()
         screen_geo = screen.geometry() if screen else QWidget().screen().geometry()
-        width_val = int(min(max(600, screen_geo.width() * 0.35), screen_geo.width() * 0.5))
-        height_val = int(min(max(500, screen_geo.height() * 0.45), screen_geo.height() * 0.6))
+        width_val = int(
+            min(max(600, screen_geo.width() * 0.35), screen_geo.width() * 0.5)
+        )
+        height_val = int(
+            min(max(500, screen_geo.height() * 0.45), screen_geo.height() * 0.6)
+        )
         width = int(min(width_val + 350, screen_geo.width()))
         height = int(min(height_val + 150, screen_geo.height()))
+
+        if _use_external_webview_process():
+            self._launch_external_window(html_path, width, height, assets_path)
+            return None
 
         wv = self._ensure_webview_module()
         wv._warmup_webengine()
@@ -175,8 +318,19 @@ class TimerPlugin(AssistantPlugin):
         api.version = self._load_json_file(version_path)
 
         theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
-        defer_load = wv._should_defer_initial_load(html_path, "Luminalium Timer Plugin", True)
-        window = wv.MainWindow("Luminalium Timer Plugin", html_path, api, width, height, theme_mode, True, defer_load)
+        defer_load = wv._should_defer_initial_load(
+            html_path, "Luminalium Timer Plugin", True
+        )
+        window = wv.MainWindow(
+            "Luminalium Timer Plugin",
+            html_path,
+            api,
+            width,
+            height,
+            theme_mode,
+            True,
+            defer_load,
+        )
         window.destroyed.connect(self._on_window_destroyed)
 
         self._api = api
@@ -185,6 +339,12 @@ class TimerPlugin(AssistantPlugin):
         return window
 
     def execute(self):
+        if _use_external_webview_process():
+            if self.process is not None and self.process.poll() is None:
+                return
+            self._ensure_window()
+            return
+
         if self._focus_existing_window(show_toast=True):
             return
 

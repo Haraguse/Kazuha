@@ -25,7 +25,7 @@ class WebViewTitlebarWindow(FramelessWindowWithTitlebar):
     def __init__(self, content_url=None, title="Kazuha", titlebar_height=32, parent=None):
         """
         初始化窗口
-        
+
         Args:
             content_url: 内容页面的URL（相对于应用根目录）
             title: 窗口标题
@@ -120,7 +120,7 @@ class WebViewTitlebarWindow(FramelessWindowWithTitlebar):
             <meta charset="UTF-8">
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
-                body { 
+                body {
                     font-family: system-ui, -apple-system, sans-serif;
                     background: #f3f3f3;
                     color: #333;
@@ -137,7 +137,7 @@ class WebViewTitlebarWindow(FramelessWindowWithTitlebar):
                 }
                 .titlebar-title { flex: 1; font-size: 13px; font-weight: 500; }
                 .titlebar-controls { display: flex; gap: 4px; -webkit-app-region: no-drag; }
-                button { 
+                button {
                     width: 36px; height: 32px; border: none; background: transparent;
                     cursor: pointer; font-size: 16px;
                 }
@@ -167,7 +167,7 @@ class WebViewTitlebarWindow(FramelessWindowWithTitlebar):
             </div>
             <script>
                 // 获取标题
-                document.getElementById('title').textContent = 
+                document.getElementById('title').textContent =
                     document.querySelector('title')?.textContent || '窗口';
             </script>
         </body>
@@ -223,7 +223,7 @@ class SimpleDialogWindow(WebViewTitlebarWindow):
     def __init__(self, title="对话框", content_html="", parent=None):
         """
         初始化简单对话框
-        
+
         Args:
             title: 窗口标题
             content_html: 内容 HTML

@@ -11,4 +11,3 @@ class StatusBarPlugin(AssistantPlugin):
         if isinstance(self.manifest, dict) and "icon" in self.manifest:
             return self.manifest["icon"]
         return ""
-
