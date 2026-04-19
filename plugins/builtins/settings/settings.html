@@ -1515,7 +1515,7 @@
       align-items: center;
       padding: 0 6px;
       justify-content: space-between;
-      border-bottom: 1px solid rgba(0,0,0,0.05);
+      border-bottom: none;
     }
     
     .preview-item:last-child {
@@ -1582,7 +1582,7 @@
 
     [data-theme-variant="dark"] .preview-content { border-color: rgba(255,255,255,0.08); box-shadow: none; }
     [data-theme-variant="dark"] .preview-group { border-color: rgba(255,255,255,0.08); }
-    [data-theme-variant="dark"] .preview-item { border-bottom-color: rgba(255,255,255,0.08); }
+    [data-theme-variant="dark"] .preview-item { border-bottom-color: transparent; }
     
     .theme-gallery-check svg {
       width: 16px;
@@ -2128,7 +2128,7 @@
 
     .settings-group-header {
       padding: 12px 20px 8px;
-      border-bottom: 1px solid var(--divider);
+      border-bottom: none;
     }
 
     .settings-group-header h2 {
@@ -2144,7 +2144,7 @@
       align-items: center;
       justify-content: space-between;
       min-height: 60px;
-      border-bottom: 1px solid var(--divider);
+      border-bottom: none;
       transition: background 0.15s;
     }
 
@@ -2548,7 +2548,7 @@
     .pivot-container {
       display: flex;
       gap: 24px;
-      border-bottom: 1px solid var(--divider);
+      border-bottom: none;
       margin-bottom: 8px;
     }
 
@@ -3016,7 +3016,7 @@
       backdrop-filter: blur(10px);
       opacity: 0;
       transition: opacity 0.3s;
-      border-bottom: 1px solid var(--overlay-status-sep);
+      border-bottom: none;
       transform: scale(0.5);
       transform-origin: top left;
     }
@@ -3398,7 +3398,7 @@
       gap: 14px;
       cursor: pointer;
       transition: all 0.2s;
-      border-bottom: 1px solid var(--divider);
+      border-bottom: none;
     }
 
     .toolbar-app-row:hover {
@@ -3474,6 +3474,88 @@
 
     .toolbar-app-row:hover .toolbar-app-rename-btn {
       opacity: 1;
+    }
+
+    .timer-quick-add-editor {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .timer-quick-add-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .timer-quick-add-row {
+      display: grid;
+      grid-template-columns: minmax(84px, 100px) minmax(140px, 180px) minmax(72px, 96px) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--divider);
+      border-radius: 12px;
+      background: var(--bg-surface);
+    }
+
+    .timer-quick-add-value {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .timer-quick-add-unit {
+      min-width: 0;
+    }
+
+    .timer-quick-add-unit .theme-option {
+      padding: 8px 12px;
+    }
+
+    .timer-quick-add-preview {
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent-blue);
+      white-space: nowrap;
+    }
+
+    .timer-quick-add-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .timer-quick-add-note {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .timer-quick-add-empty {
+      padding: 18px 16px;
+      border: 1px dashed var(--divider);
+      border-radius: 12px;
+      text-align: center;
+      color: var(--text-secondary);
+      background: color-mix(in srgb, var(--bg-surface) 84%, transparent);
+    }
+
+    @media (max-width: 920px) {
+      .timer-quick-add-row {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .timer-quick-add-preview {
+        text-align: left;
+      }
+
+      .timer-quick-add-row .btn {
+        justify-self: end;
+      }
     }
 
     .toolbar-app-rename-btn:hover {
@@ -4039,7 +4121,7 @@
       top: 0;
       padding: 6px 8px;
       background: var(--bg-surface);
-      border-bottom: 1px solid var(--divider);
+      border-bottom: none;
       z-index: 1;
     }
 
@@ -4853,7 +4935,7 @@
       }
 
       .font-preview-panel {
-        border-bottom: 1px solid var(--divider);
+        border-bottom: none;
       }
 
       .font-settings-column {
@@ -5603,9 +5685,13 @@
 
       <div class="sidebar-item" data-section="board-in-board">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
-          <path d="M11.1238 18.5229H4.1697C3.68755 18.5229 3.27029 18.356 2.91795 18.0223C2.58415 17.6885 2.41724 17.2805 2.41724 16.7983V6.33936H1.10988C0.75754 6.33936 0.451569 6.20955 0.191949 5.94993C-0.0491264 5.69031 -0.169678 5.38433 -0.169678 5.03198C-0.169678 4.67964 -0.0491264 4.37366 0.191949 4.11404C0.451569 3.85442 0.75754 3.72461 1.10988 3.72461H22.8623C23.2332 3.72461 23.5392 3.85442 23.7803 4.11404C24.0399 4.35512 24.1697 4.6611 24.1697 5.03198C24.1697 5.38433 24.0399 5.69031 23.7803 5.94993C23.5392 6.20955 23.2332 6.33936 22.8623 6.33936H21.555V16.7983C21.555 17.2619 21.3881 17.6699 21.0543 18.0223C20.7205 18.356 20.3125 18.5229 19.8303 18.5229H12.8484V20.2476H11.1238V18.5229ZM15.4632 20.2476C15.7042 20.2476 15.9082 20.3403 16.0751 20.5257C16.242 20.6926 16.3254 20.8966 16.3254 21.1377C16.3254 21.3788 16.242 21.5828 16.0751 21.7497C15.9082 21.9166 15.7042 22 15.4632 22H8.50905C8.26797 22 8.064 21.9166 7.89711 21.7497C7.73021 21.5828 7.64676 21.3788 7.64676 21.1377C7.64676 20.8966 7.73021 20.6926 7.89711 20.5257C8.064 20.3403 8.26797 20.2476 8.50905 20.2476H15.4632ZM11.9305 3.72461H11.1238V2.83449C11.1238 2.59341 11.2073 2.38942 11.3742 2.22253C11.5411 2.05563 11.745 1.97218 11.9861 1.97218C12.2272 1.97218 12.4312 2.05563 12.5981 2.22253C12.765 2.38942 12.8484 2.59341 12.8484 2.83449V3.72461H11.9305Z" />
+          <rect x="3.5" y="4" width="7" height="7" rx="1.5" />
+          <rect x="13.5" y="4" width="7" height="7" rx="1.5" />
+          <rect x="3.5" y="14" width="7" height="7" rx="1.5" />
+          <path d="M17 14v7" />
+          <path d="M13.5 17.5h7" />
         </svg>
-        <span data-i18n="nav.boardInBoard">板中板</span>
+        <span data-i18n="nav.boardInBoard">内建功能</span>
       </div>
       <div class="sidebar-item" data-section="window">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
@@ -6072,6 +6158,41 @@
             <div class="switch" id="sw-BoardInBoard-PenStrokeEnabled"></div>
           </div>
         </div>
+        <div class="group-title" data-i18n="group.timer">计时器</div>
+        <div class="settings-group">
+          <div class="settings-item">
+            <div class="item-info">
+              <span class="item-label" data-i18n="window.timerFullscreenBehavior.label">计时器全屏行为</span>
+              <span class="item-desc" data-i18n="window.timerFullscreenBehavior.desc">选择计时器进入全屏时是真正全屏，还是仅最大化窗口</span>
+            </div>
+            <div class="item-state">
+              <div class="theme-select" id="timer-fullscreen-behavior">
+                <div class="theme-option" data-value="fullscreen" onclick="setTimerFullscreenBehavior('fullscreen')" data-i18n="window.timerFullscreenBehavior.fullscreen">全屏切换</div>
+                <div class="theme-option" data-value="maximize" onclick="setTimerFullscreenBehavior('maximize')" data-i18n="window.timerFullscreenBehavior.maximize">最大化</div>
+              </div>
+            </div>
+          </div>
+          <div class="settings-item" onclick="toggleSwitch('Timer', 'EnableSoundEffects')">
+            <div class="item-info">
+              <span class="item-label" data-i18n="timer.enableSoundEffects.label">计时器音效</span>
+              <span class="item-desc" data-i18n="timer.enableSoundEffects.desc">控制计时结束和重置时是否播放提示音</span>
+            </div>
+            <div class="switch" id="sw-Timer-EnableSoundEffects"></div>
+          </div>
+          <div class="settings-item no-divider" style="flex-direction: column; align-items: stretch; gap: 12px;">
+            <div class="item-info" style="width: 100%;">
+              <span class="item-label" data-i18n="timer.quickAdd.label">快捷加时</span>
+              <span class="item-desc" data-i18n="timer.quickAdd.desc">编辑计时器里的快捷加时按钮，最多四个，可选秒或分</span>
+            </div>
+            <div class="timer-quick-add-editor">
+              <div id="timer-quick-add-list" class="timer-quick-add-list"></div>
+              <div class="timer-quick-add-actions">
+                <span class="timer-quick-add-note" data-i18n="timer.quickAdd.note">最多四个按钮</span>
+                <button type="button" id="timer-quick-add-add-btn" class="btn btn-confirm" onclick="addTimerQuickAddPreset()" data-i18n="timer.quickAdd.add">添加快捷加时</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="section" id="section-plugins">
@@ -6454,21 +6575,6 @@
           </div>
 
         </div>
-        <div class="group-title" data-i18n="group.timer">计时器</div>
-        <div class="settings-group">
-          <div class="settings-item">
-            <div class="item-info">
-              <span class="item-label" data-i18n="window.timerFullscreenBehavior.label">计时器全屏行为</span>
-              <span class="item-desc" data-i18n="window.timerFullscreenBehavior.desc">选择计时器进入全屏时是真正全屏，还是仅最大化窗口</span>
-            </div>
-            <div class="item-state">
-              <div class="theme-select" id="timer-fullscreen-behavior">
-                <div class="theme-option" data-value="fullscreen" onclick="setTimerFullscreenBehavior('fullscreen')" data-i18n="window.timerFullscreenBehavior.fullscreen">全屏切换</div>
-                <div class="theme-option" data-value="maximize" onclick="setTimerFullscreenBehavior('maximize')" data-i18n="window.timerFullscreenBehavior.maximize">最大化</div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- <div class="section" id="section-accessibility">
@@ -6650,6 +6756,17 @@
             <div class="item-info">
               <span class="item-label" style="color: #ff4d4f;" data-i18n="debug.triggerCrash.label">触发测试崩溃</span>
               <span class="item-desc" data-i18n="debug.triggerCrash.desc">手动触发一个 RuntimeError 以测试崩溃处理器的表现</span>
+            </div>
+            <div class="item-state">
+              <svg class="chevron" viewBox="0 0 24 24">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </div>
+          </div>
+          <div class="settings-item" onclick="triggerResourceAlert()">
+            <div class="item-info">
+              <span class="item-label" data-i18n="debug.resourceAlert.label">触发资源监测通知</span>
+              <span class="item-desc" data-i18n="debug.resourceAlert.desc">手动触发系统资源占用告警通知进行测试</span>
             </div>
             <div class="item-state">
               <svg class="chevron" viewBox="0 0 24 24">
@@ -6954,7 +7071,7 @@
       "nav.pluginSettings": "插件设置",
       "nav.debug": "调试",
       "nav.back": "返回",
-      "nav.boardInBoard": "板中板",
+      "nav.boardInBoard": "内建功能",
       "nav.accessibility": "辅助功能",
       "section.main": "常规",
       "section.theme": "个性化设置",
@@ -6963,7 +7080,7 @@
       "section.window": "窗口",
       "section.plugins": "工具栏",
       "section.plugin-settings": "插件设置",
-      "section.board-in-board": "板中板",
+      "section.board-in-board": "内建功能",
       "section.accessibility": "辅助功能",
       "section.about": "关于",
       "section.debug": "调试",
@@ -7009,6 +7126,18 @@
       "window.timerFullscreenBehavior.desc": "选择计时器进入全屏时是真正全屏，还是仅最大化窗口",
       "window.timerFullscreenBehavior.fullscreen": "全屏切换",
       "window.timerFullscreenBehavior.maximize": "最大化",
+      "timer.enableSoundEffects.label": "计时器音效",
+      "timer.enableSoundEffects.desc": "控制计时结束和重置时是否播放提示音",
+      "timer.quickAdd.label": "快捷加时",
+      "timer.quickAdd.desc": "编辑计时器里的快捷加时按钮，最多四个，可选秒或分",
+      "timer.quickAdd.note": "最多四个按钮",
+      "timer.quickAdd.add": "添加快捷加时",
+      "timer.quickAdd.empty": "还没有添加快捷加时按钮",
+      "timer.quickAdd.delete": "删除",
+      "timer.quickAdd.unit.second": "秒",
+      "timer.quickAdd.unit.minute": "分",
+      "timer.quickAdd.short.second": "秒",
+      "timer.quickAdd.short.minute": "分",
       "window.position.top": "顶部",
       "window.position.bottom": "底部",
       "window.position.left": "左侧",
@@ -7279,7 +7408,7 @@
       "nav.window": "視窗",
       "nav.plugins": "工具列",
       "nav.pluginSettings": "插件設定",
-      "nav.boardInBoard": "板中板",
+      "nav.boardInBoard": "內建功能",
       "nav.accessibility": "輔助功能",
       "nav.debug": "偵錯",
       "nav.back": "返回",
@@ -7290,7 +7419,7 @@
       "section.window": "視窗",
       "section.plugins": "工具列",
       "section.plugin-settings": "插件設定",
-      "section.board-in-board": "板中板",
+      "section.board-in-board": "內建功能",
       "section.accessibility": "輔助功能",
       "section.about": "關於",
       "section.debug": "偵錯",
@@ -7330,6 +7459,18 @@
       "window.timerFullscreenBehavior.desc": "設定計時器進入全螢幕時的視窗模式",
       "window.timerFullscreenBehavior.fullscreen": "全螢幕切換",
       "window.timerFullscreenBehavior.maximize": "最大化",
+      "timer.enableSoundEffects.label": "計時器音效",
+      "timer.enableSoundEffects.desc": "控制計時結束和重設時是否播放提示音",
+      "timer.quickAdd.label": "快捷加時",
+      "timer.quickAdd.desc": "編輯計時器裡的快捷加時按鈕，最多四個，可選秒或分",
+      "timer.quickAdd.note": "最多四個按鈕",
+      "timer.quickAdd.add": "新增快捷加時",
+      "timer.quickAdd.empty": "還沒有新增快捷加時按鈕",
+      "timer.quickAdd.delete": "刪除",
+      "timer.quickAdd.unit.second": "秒",
+      "timer.quickAdd.unit.minute": "分",
+      "timer.quickAdd.short.second": "秒",
+      "timer.quickAdd.short.minute": "分",
       "window.position.top": "頂部",
       "window.position.bottom": "底部",
       "window.position.left": "左側",
@@ -7580,7 +7721,7 @@
       "nav.window": "視窗",
       "nav.plugins": "工具列",
       "nav.pluginSettings": "插件設定",
-      "nav.boardInBoard": "板中板",
+      "nav.boardInBoard": "內建功能",
       "nav.debug": "偵錯",
       "nav.back": "返去",
       "section.main": "一般",
@@ -7590,7 +7731,7 @@
       "section.window": "視窗",
       "section.plugins": "工具列",
       "section.plugin-settings": "插件設定",
-      "section.board-in-board": "板中板",
+      "section.board-in-board": "內建功能",
       "section.about": "關於",
       "section.debug": "偵錯",
       "group.language": "語言",
@@ -7629,6 +7770,18 @@
       "window.timerFullscreenBehavior.desc": "設定計時器入全螢幕時嘅視窗模式",
       "window.timerFullscreenBehavior.fullscreen": "全螢幕切換",
       "window.timerFullscreenBehavior.maximize": "最大化",
+      "timer.enableSoundEffects.label": "計時器音效",
+      "timer.enableSoundEffects.desc": "控制計時結束同重設時播唔播提示音",
+      "timer.quickAdd.label": "快捷加時",
+      "timer.quickAdd.desc": "編輯計時器入面嘅快捷加時掣，最多四個，可揀秒或者分",
+      "timer.quickAdd.note": "最多四個掣",
+      "timer.quickAdd.add": "加快捷加時",
+      "timer.quickAdd.empty": "未有快捷加時掣",
+      "timer.quickAdd.delete": "刪除",
+      "timer.quickAdd.unit.second": "秒",
+      "timer.quickAdd.unit.minute": "分",
+      "timer.quickAdd.short.second": "秒",
+      "timer.quickAdd.short.minute": "分",
       "window.position.top": "頂部",
       "window.position.bottom": "底部",
       "window.position.left": "左邊",
@@ -7878,7 +8031,7 @@
       "nav.window": "ウィンドウ",
       "nav.plugins": "ツールバー",
       "nav.pluginSettings": "プラグイン設定",
-      "nav.boardInBoard": "ボードインボード",
+      "nav.boardInBoard": "内蔵機能",
       "nav.accessibility": "アクセシビリティ",
       "nav.debug": "デバッグ",
       "nav.back": "戻る",
@@ -7889,7 +8042,7 @@
       "section.window": "ウィンドウ",
       "section.plugins": "ツールバー",
       "section.plugin-settings": "プラグイン設定",
-      "section.board-in-board": "ボードインボード",
+      "section.board-in-board": "内蔵機能",
       "section.accessibility": "アクセシビリティ",
       "section.about": "情報",
       "section.debug": "デバッグ",
@@ -7929,6 +8082,18 @@
       "window.timerFullscreenBehavior.desc": "タイマーを全画面にする時のウィンドウモードを選択",
       "window.timerFullscreenBehavior.fullscreen": "全画面切替",
       "window.timerFullscreenBehavior.maximize": "最大化",
+      "timer.enableSoundEffects.label": "タイマー効果音",
+      "timer.enableSoundEffects.desc": "タイマー終了時とリセット時に通知音を鳴らすかを切り替えます",
+      "timer.quickAdd.label": "クイック加算",
+      "timer.quickAdd.desc": "タイマーのクイック加算ボタンを編集します。最大4個まで、秒または分を選べます",
+      "timer.quickAdd.note": "最大4個まで追加できます",
+      "timer.quickAdd.add": "クイック加算を追加",
+      "timer.quickAdd.empty": "クイック加算ボタンはまだありません",
+      "timer.quickAdd.delete": "削除",
+      "timer.quickAdd.unit.second": "秒",
+      "timer.quickAdd.unit.minute": "分",
+      "timer.quickAdd.short.second": "秒",
+      "timer.quickAdd.short.minute": "分",
       "window.position.top": "上",
       "window.position.bottom": "下",
       "window.position.left": "左",
@@ -8180,7 +8345,7 @@
       "nav.window": "Window",
       "nav.plugins": "Toolbar",
       "nav.pluginSettings": "Plugin Settings",
-      "nav.boardInBoard": "Board in Board",
+      "nav.boardInBoard": "Built-in Features",
       "nav.accessibility": "Accessibility",
       "nav.debug": "Debug",
       "nav.back": "Back",
@@ -8191,7 +8356,7 @@
       "section.window": "Window",
       "section.plugins": "Toolbar",
       "section.plugin-settings": "Plugin Settings",
-      "section.board-in-board": "Board in Board",
+      "section.board-in-board": "Built-in Features",
       "section.accessibility": "Accessibility",
       "section.about": "About",
       "section.debug": "Debug",
@@ -8223,6 +8388,18 @@
       "window.timerFullscreenBehavior.desc": "Choose how the timer enters fullscreen",
       "window.timerFullscreenBehavior.fullscreen": "Fullscreen switch",
       "window.timerFullscreenBehavior.maximize": "Maximize",
+      "timer.enableSoundEffects.label": "Timer Sound Effects",
+      "timer.enableSoundEffects.desc": "Play notification sounds when the timer ends or resets",
+      "timer.quickAdd.label": "Quick Add",
+      "timer.quickAdd.desc": "Edit the timer's quick add buttons. You can add up to four entries in seconds or minutes",
+      "timer.quickAdd.note": "Up to four buttons",
+      "timer.quickAdd.add": "Add Quick Add",
+      "timer.quickAdd.empty": "No quick add buttons yet",
+      "timer.quickAdd.delete": "Delete",
+      "timer.quickAdd.unit.second": "Sec",
+      "timer.quickAdd.unit.minute": "Min",
+      "timer.quickAdd.short.second": "s",
+      "timer.quickAdd.short.minute": "m",
       "window.position.top": "Top",
       "window.position.bottom": "Bottom",
       "window.position.left": "Left",
@@ -8379,7 +8556,7 @@
       "nav.window": "Window",
       "nav.plugins": "Toolbar",
       "nav.pluginSettings": "Plugin Settings",
-      "nav.boardInBoard": "Board in Board",
+      "nav.boardInBoard": "Built-in Features",
       "nav.accessibility": "Accessibility",
       "nav.debug": "Debug",
       "nav.back": "Back",
@@ -8390,7 +8567,7 @@
       "section.window": "Window",
       "section.plugins": "Toolbar",
       "section.plugin-settings": "Plugin Settings",
-      "section.board-in-board": "Board in Board",
+      "section.board-in-board": "Built-in Features",
       "section.accessibility": "Accessibility",
       "section.about": "About",
       "section.debug": "Debug",
@@ -8422,6 +8599,18 @@
       "window.timerFullscreenBehavior.desc": "Choose how the timer enters fullscreen",
       "window.timerFullscreenBehavior.fullscreen": "Fullscreen switch",
       "window.timerFullscreenBehavior.maximize": "Maximize",
+      "timer.enableSoundEffects.label": "Timer Sound Effects",
+      "timer.enableSoundEffects.desc": "Play notification sounds when the timer ends or resets",
+      "timer.quickAdd.label": "Quick Add",
+      "timer.quickAdd.desc": "Edit the timer's quick add buttons. You can add up to four entries in seconds or minutes",
+      "timer.quickAdd.note": "Up to four buttons",
+      "timer.quickAdd.add": "Add Quick Add",
+      "timer.quickAdd.empty": "No quick add buttons yet",
+      "timer.quickAdd.delete": "Delete",
+      "timer.quickAdd.unit.second": "Sec",
+      "timer.quickAdd.unit.minute": "Min",
+      "timer.quickAdd.short.second": "s",
+      "timer.quickAdd.short.minute": "m",
       "window.position.top": "Top",
       "window.position.bottom": "Bottom",
       "window.position.left": "Left",
@@ -10872,12 +11061,18 @@
       }
   }
 
+  const DEFAULT_TIMER_QUICK_ADD_PRESETS = Object.freeze([
+    { value: 1, unit: "minute" },
+    { value: 15, unit: "second" }
+  ]);
+
   let settings = window.initialSettings || {
     General: { RunAtStartup: false, AutoShowOverlay: true, DisableAnimations: false, CompatibilityMode: false, Language: "zh-CN", SystemBackdropEnabled: false, SystemBackdropType: "Opaque" },
     PPT: { AutoHandleInk: true },
     Overlay: { ShowStatusBar: true, ClearMode: "slide" },
     Toolbar: { ShowClear: true, ShowToolbarText: true },
     Window: { TimerFullscreenBehavior: "fullscreen" },
+    Timer: { EnableSoundEffects: true, QuickAddPresets: DEFAULT_TIMER_QUICK_ADD_PRESETS.map(item => ({ ...item })) },
     BoardInBoard: { ToolbarPosition: "bottom", BackgroundColor: "#202020", PenStrokeEnabled: false },
     Debug: { ShowLog: false, RtlTest: false, RotateTest: false },
     Update: { AutoCheck: true, Source: "github" },
@@ -11334,6 +11529,7 @@
     setSwitch("Toolbar", "ShowBoardInBoard");
     setSwitch("Toolbar", "ShowTimer");
     setSwitch("Toolbar", "ShowToolbarText");
+    setSwitch("Timer", "EnableSoundEffects");
     setSwitch("BoardInBoard", "PenStrokeEnabled");
     setSwitch("Debug", "ShowLog");
     setSwitch("Debug", "RtlTest");
@@ -11427,6 +11623,7 @@
         timerFullscreenBehavior = "fullscreen";
     }
     applyTimerFullscreenBehavior(timerFullscreenBehavior, false);
+    renderTimerQuickAddEditor();
 
     let boardBackgroundColor = settings.BoardInBoard?.BackgroundColor || "#202020";
     if (!/^#([0-9a-fA-F]{6})$/.test(boardBackgroundColor)) {
@@ -11438,7 +11635,10 @@
     }
 
     const mode = settings.Appearance && settings.Appearance.ThemeMode ? settings.Appearance.ThemeMode : "Light";
-    document.querySelectorAll(".theme-option").forEach(opt => opt.classList.remove("active"));
+    const themeSelectContainer = document.getElementById("theme-Light")?.parentElement;
+    if (themeSelectContainer) {
+        themeSelectContainer.querySelectorAll(".theme-option").forEach(opt => opt.classList.remove("active"));
+    }
     const activeOpt = document.getElementById(`theme-${mode}`);
     if (activeOpt) activeOpt.classList.add("active");
 
@@ -11542,7 +11742,9 @@
   }
 
   function setSwitch(cat, key) {
-    const defaultVal = (cat === "Overlay" && key === "StatusBarShowMusicProgress") ? true : false;
+    const defaultVal =
+      (cat === "Overlay" && key === "StatusBarShowMusicProgress")
+      || (cat === "Timer" && key === "EnableSoundEffects");
     const val = settings[cat]?.[key] ?? defaultVal;
     if (!settings[cat]) settings[cat] = {};
     if (!(key in settings[cat])) settings[cat][key] = val;
@@ -11551,6 +11753,166 @@
       if (val) el.classList.add('active');
       else el.classList.remove('active');
     }
+  }
+
+  function cloneTimerQuickAddPresets(list) {
+    return list.map(item => ({ value: item.value, unit: item.unit }));
+  }
+
+  function normalizeTimerQuickAddPreset(item) {
+    if (item == null) return null;
+
+    let value = 1;
+    let unit = "second";
+
+    if (typeof item === "number" && Number.isFinite(item)) {
+      const seconds = Math.max(1, Math.round(item));
+      if (seconds % 60 === 0) {
+        value = Math.max(1, seconds / 60);
+        unit = "minute";
+      } else {
+        value = seconds;
+      }
+    } else if (typeof item === "object") {
+      const numericValue = Number(item.value);
+      value = Number.isFinite(numericValue) ? Math.round(numericValue) : 1;
+      unit = item.unit === "minute" ? "minute" : "second";
+    } else {
+      return null;
+    }
+
+    value = Math.min(999, Math.max(1, value));
+    return { value, unit };
+  }
+
+  function getTimerQuickAddPresets(fallbackToDefault = true) {
+    if (!settings.Timer) settings.Timer = {};
+
+    const raw = settings.Timer.QuickAddPresets;
+    let presets;
+
+    if (Array.isArray(raw)) {
+      presets = raw
+        .map(normalizeTimerQuickAddPreset)
+        .filter(Boolean)
+        .slice(0, 4);
+    } else {
+      presets = fallbackToDefault ? cloneTimerQuickAddPresets(DEFAULT_TIMER_QUICK_ADD_PRESETS) : [];
+    }
+
+    settings.Timer.QuickAddPresets = cloneTimerQuickAddPresets(presets);
+    return settings.Timer.QuickAddPresets;
+  }
+
+  function formatTimerQuickAddPresetLabel(preset) {
+    const unitKey = preset.unit === "minute" ? "timer.quickAdd.short.minute" : "timer.quickAdd.short.second";
+    const unitText = getText(unitKey) || (preset.unit === "minute" ? "m" : "s");
+    return `+${preset.value}${unitText}`;
+  }
+
+  function saveTimerQuickAddPresets() {
+    const presets = getTimerQuickAddPresets(false);
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+      window.pywebview.api.save_setting("Timer", "QuickAddPresets", presets);
+    }
+  }
+
+  function renderTimerQuickAddEditor() {
+    const list = document.getElementById("timer-quick-add-list");
+    const addBtn = document.getElementById("timer-quick-add-add-btn");
+    if (!list) return;
+
+    const presets = getTimerQuickAddPresets(true);
+    list.innerHTML = "";
+
+    if (presets.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "timer-quick-add-empty";
+      empty.textContent = getText("timer.quickAdd.empty") || "还没有添加快捷加时按钮";
+      list.appendChild(empty);
+    } else {
+      presets.forEach((preset, index) => {
+        const row = document.createElement("div");
+        row.className = "timer-quick-add-row";
+
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = "1";
+        input.max = "999";
+        input.step = "1";
+        input.className = "styled-input timer-quick-add-value";
+        input.value = String(preset.value);
+        input.setAttribute("aria-label", getText("timer.quickAdd.label") || "快捷加时");
+
+        const unitSelect = document.createElement("div");
+        unitSelect.className = "theme-select timer-quick-add-unit";
+
+        const preview = document.createElement("div");
+        preview.className = "timer-quick-add-preview";
+        preview.textContent = formatTimerQuickAddPresetLabel(preset);
+
+        ["second", "minute"].forEach(unit => {
+          const option = document.createElement("div");
+          option.className = "theme-option" + (preset.unit === unit ? " active" : "");
+          option.textContent = getText(unit === "minute" ? "timer.quickAdd.unit.minute" : "timer.quickAdd.unit.second") || (unit === "minute" ? "分" : "秒");
+          option.addEventListener("click", () => {
+            presets[index].unit = unit;
+            saveTimerQuickAddPresets();
+            renderTimerQuickAddEditor();
+          });
+          unitSelect.appendChild(option);
+        });
+
+        const normalizeInputValue = () => {
+          const normalized = normalizeTimerQuickAddPreset({ value: input.value, unit: presets[index].unit }) || { value: 1, unit: presets[index].unit };
+          presets[index].value = normalized.value;
+          input.value = String(normalized.value);
+          preview.textContent = formatTimerQuickAddPresetLabel(presets[index]);
+        };
+
+        input.addEventListener("input", normalizeInputValue);
+        input.addEventListener("change", () => {
+          normalizeInputValue();
+          saveTimerQuickAddPresets();
+          renderTimerQuickAddEditor();
+        });
+        input.addEventListener("blur", () => {
+          normalizeInputValue();
+          saveTimerQuickAddPresets();
+          renderTimerQuickAddEditor();
+        });
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "btn btn-cancel";
+        removeBtn.textContent = getText("timer.quickAdd.delete") || "删除";
+        removeBtn.addEventListener("click", () => {
+          presets.splice(index, 1);
+          saveTimerQuickAddPresets();
+          renderTimerQuickAddEditor();
+        });
+
+        row.appendChild(input);
+        row.appendChild(unitSelect);
+        row.appendChild(preview);
+        row.appendChild(removeBtn);
+        list.appendChild(row);
+      });
+    }
+
+    if (addBtn) {
+      const disabled = presets.length >= 4;
+      addBtn.disabled = disabled;
+      addBtn.classList.toggle("disabled", disabled);
+    }
+  }
+
+  function addTimerQuickAddPreset() {
+    const presets = getTimerQuickAddPresets(false);
+    if (presets.length >= 4) return;
+    presets.push({ value: 30, unit: "second" });
+    saveTimerQuickAddPresets();
+    renderTimerQuickAddEditor();
   }
 
   function getCrashAutoHandleEnabled() {
@@ -12599,6 +12961,16 @@
   function triggerTestCrash() {
     if (window.pywebview && window.pywebview.api.trigger_crash) {
       window.pywebview.api.trigger_crash();
+    }
+  }
+
+  function triggerResourceAlert() {
+    try {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.trigger_resource_alert) {
+        window.pywebview.api.trigger_resource_alert();
+      }
+    } catch (error) {
+      console.error("Error calling triggerResourceAlert:", error);
     }
   }
 

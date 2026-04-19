@@ -1,0 +1,34 @@
+# Disclaimer
+
+**Last Updated: April 18, 2026**
+
+If this document is provided in a language other than Simplified Chinese, the **Simplified Chinese version shall prevail**. Any ambiguity caused by translation into other languages is outside the scope of these terms.
+
+Before using Luminalium (hereinafter referred to as "the Software"), please read this Disclaimer carefully. Any act of downloading, installing, using, or distributing the Software indicates that you have read, understood, and agreed to accept all terms of this statement. If you do not agree to the following terms, please stop using the Software immediately.
+
+### 1. "AS IS" Delivery and Disclaimer of Warranty
+
+**1.1 Provided "AS IS":** The Software is released as open-source under the GPL-3.0 license and is provided on an "AS IS" basis, without warranties of any kind, either express or implied.
+
+**1.2 No Warranty of Fitness:** The Developer does not warrant that the Software will meet your specific requirements, that the operation of the Software will be uninterrupted or error-free, or that defects in the Software will be corrected. You assume all risks associated with the use of the Software.
+
+**1.3 Limitation of Liability:** To the maximum extent permitted by applicable law, the Developer and its contributors shall not be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, loss of data, business interruption, loss of profits, computer failure, or any other commercial damages or losses) arising out of the use or inability to use the Software, even if the Developer has been advised of the possibility of such damages.
+
+### 2. Special Declaration for Presentation Control
+
+**2.1 Content Responsibility:** The Software is a presentation assistant tool only. Users shall be solely responsible for any content (including but not limited to PPT slides, text, images, audio, and video) displayed, played, or distributed through the Software. The Developer assumes no legal liability for any content that is illegal, infringing, or contrary to public order and morals.
+
+**2.2 Environment Compatibility:** Users shall independently test the compatibility of the Software with their presentation equipment (e.g., projectors, touch screens), presentation software (e.g., PowerPoint, WPS Office), and operating systems before any formal presentation. The Developer is not responsible for any presentation interruptions caused by hardware failure, system notification interference, or software conflicts.
+
+### 3. User Conduct and Compliance
+
+**3.1 Lawful Use:** Users pledge to use the Software only in compliance with the laws and regulations of their country or region.
+
+**3.2 Prohibition of Abuse:** Users shall not use the Software for any illegal activities, nor shall they perform malicious reverse engineering on the Software or exploit known vulnerabilities to attack other systems.
+
+### 4. Precedence of License
+
+This Disclaimer is a supplement to the project's open-source license (GNU General Public License v3.0). In the event of any conflict between the terms of this Disclaimer and the mandatory provisions of the GPL-3.0 license, the provisions of the GPL-3.0 license shall prevail.
+
+
+**SECTL Studio (思拓创联)** reserves the right to modify this Disclaimer at any time without prior notice.

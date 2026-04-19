@@ -1,5 +1,8 @@
 import os
+import sys
 import json
+import ctypes
+import ctypes.wintypes
 from PySide6.QtQuick import QQuickView, QQuickPaintedItem
 from PySide6.QtQml import qmlRegisterType
 from PySide6.QtCore import (
@@ -14,14 +17,125 @@ from PySide6.QtCore import (
     Property,
     QEventLoop,
     QSize,
+    QRect,
+    QRectF,
     QPropertyAnimation,
     QEasingCurve,
+    QAbstractNativeEventFilter,
 )
-from PySide6.QtGui import QColor, QGuiApplication, QPainter, QImage, QPen
+from PySide6.QtGui import QColor, QIcon, QAction, QGuiApplication, QPainter, QImage, QPen
 from ppt_assistant.core.config import cfg, SETTINGS_PATH, qconfig
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.theme_data import THEMES
 from qfluentwidgets import Theme
+
+# ── Windows hit-test constants ──────────────────────────────────────────────
+_WM_NCHITTEST   = 0x0084
+_WM_NCMOUSEMOVE = 0x00A0
+_WM_NCMOUSELEAVE = 0x02A2
+_HTCLIENT    = 1
+_HTCAPTION   = 2
+_HTLEFT      = 10
+_HTRIGHT     = 11
+_HTTOP       = 12
+_HTTOPLEFT   = 13
+_HTTOPRIGHT  = 14
+_HTBOTTOM    = 15
+_HTBOTTOMLEFT  = 16
+_HTBOTTOMRIGHT = 17
+_HTMAXBUTTON = 9
+
+
+class TitleBarNativeFilter(QAbstractNativeEventFilter):
+    """Intercepts WM_NCHITTEST to enable:
+    - Native window drag (HTCAPTION)
+    - Resize borders (HTxxxx)
+    - Win11 Snap Layouts popup (HTMAXBUTTON)
+    - Max-button hover signalling via WM_NCMOUSEMOVE
+    """
+    TITLEBAR_H   = 32   # logical px
+    BTN_W        = 46   # logical px — each caption button width
+    RESIZE_BORDER = 6   # logical px
+
+    def __init__(self, window, on_max_hover=None):
+        super().__init__()
+        self._window = window
+        self._on_max_hover = on_max_hover   # callable(bool)
+        self._max_hovered = False
+
+    def _logical_client_pos(self, hwnd, x_scr, y_scr):
+        pt = ctypes.wintypes.POINT(x_scr, y_scr)
+        ctypes.windll.user32.ScreenToClient(hwnd, ctypes.byref(pt))
+        try:
+            dpr = self._window.devicePixelRatio() or 1.0
+        except Exception:
+            dpr = 1.0
+        return pt.x / dpr, pt.y / dpr
+
+    def _hit_test(self, x, y):
+        win_w = self._window.width()
+        win_h = self._window.height()
+        rb    = self.RESIZE_BORDER
+        is_max = bool(self._window.windowState() & Qt.WindowMaximized)
+
+        if not is_max:
+            if x < rb and y < rb:                           return _HTTOPLEFT
+            if x >= win_w - rb and y < rb:                 return _HTTOPRIGHT
+            if x < rb and y >= win_h - rb:                 return _HTBOTTOMLEFT
+            if x >= win_w - rb and y >= win_h - rb:        return _HTBOTTOMRIGHT
+            if y < rb:                                      return _HTTOP
+            if y >= win_h - rb:                             return _HTBOTTOM
+            if x < rb:                                      return _HTLEFT
+            if x >= win_w - rb:                             return _HTRIGHT
+
+        if y < self.TITLEBAR_H:
+            bw = self.BTN_W
+            close_x = win_w - bw
+            max_x   = win_w - 2 * bw
+            min_x   = win_w - 3 * bw
+            if x >= close_x: return _HTCLIENT    # close  → QML handles
+            if x >= max_x:   return _HTMAXBUTTON # maximize → Win11 snap!
+            if x >= min_x:   return _HTCLIENT    # minimize → QML handles
+            return _HTCAPTION                    # drag area
+
+        return _HTCLIENT
+
+    # ── QAbstractNativeEventFilter interface ──────────────────────────────
+    def nativeEventFilter(self, eventType, message):
+        if eventType != b"windows_generic_MSG":
+            return False, 0
+        try:
+            own_hwnd = int(self._window.winId())
+        except Exception:
+            return False, 0
+        try:
+            msg = ctypes.cast(int(message),
+                              ctypes.POINTER(ctypes.wintypes.MSG)).contents
+            if int(msg.hWnd or 0) != own_hwnd:
+                return False, 0
+        except Exception:
+            return False, 0
+
+        if msg.message == _WM_NCHITTEST:
+            x_scr = ctypes.c_short(msg.lParam & 0xFFFF).value
+            y_scr = ctypes.c_short((msg.lParam >> 16) & 0xFFFF).value
+            x, y  = self._logical_client_pos(msg.hWnd, x_scr, y_scr)
+            return True, self._hit_test(x, y)
+
+        if msg.message == _WM_NCMOUSEMOVE:
+            hov = (msg.wParam == _HTMAXBUTTON)
+            if hov != self._max_hovered:
+                self._max_hovered = hov
+                if callable(self._on_max_hover):
+                    self._on_max_hover(hov)
+
+        if msg.message == _WM_NCMOUSELEAVE:
+            if self._max_hovered:
+                self._max_hovered = False
+                if callable(self._on_max_hover):
+                    self._on_max_hover(False)
+
+        return False, 0
 
 
 def _get_app_version():
@@ -517,12 +631,25 @@ def _board_document_has_content(document):
 
 
 class BoardBackend(QObject):
-    windowStateChanged = Signal()
+    windowStateChanged    = Signal()
+    maximizeBtnHoveredChanged = Signal(bool)
 
     def __init__(self, window):
         super().__init__()
         self._window = window
+        self._max_btn_hovered = False
 
+    # ── called by TitleBarNativeFilter ───────────────────────────────────
+    def _set_max_btn_hovered(self, val: bool):
+        if val != self._max_btn_hovered:
+            self._max_btn_hovered = val
+            self.maximizeBtnHoveredChanged.emit(val)
+
+    @Property(bool, notify=maximizeBtnHoveredChanged)
+    def maximizeBtnHovered(self):
+        return self._max_btn_hovered
+
+    # ── window control slots ──────────────────────────────────────────────
     @Slot(int, int)
     def moveWindow(self, dx, dy):
         current_pos = self._window.position()
@@ -555,8 +682,6 @@ class BoardBackend(QObject):
 
     @Slot(int)
     def startResize(self, edge):
-        # edge: 1=Top, 2=Bottom, 4=Left, 8=Right
-        # Combined: 5=TopLeft, 6=BottomLeft, 9=TopRight, 10=BottomRight
         self._window.startSystemResize(Qt.Edge(edge))
 
     @Property(bool, notify=windowStateChanged)
@@ -923,29 +1048,45 @@ class SaveStrokesDialog(QQuickView):
         return dialog._result
 
 
+def _apply_dwm_shadow(hwnd):
+    """Restore DWM drop shadow for a frameless window."""
+    try:
+        class _MARGINS(ctypes.Structure):
+            _fields_ = [("left",ctypes.c_int),("right",ctypes.c_int),
+                        ("top",ctypes.c_int),("bottom",ctypes.c_int)]
+        m = _MARGINS(1, 1, 1, 1)
+        ctypes.windll.dwmapi.DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(m))
+    except Exception:
+        pass
+
+
 class BoardWindow(QQuickView):
+    _WINDOW_TITLE = "小黑板 - Luminalium"
+
     def __init__(self):
         super().__init__()
         self._is_closing = False
         self._animation = None
+        self._native_filter = None
 
-        # Ensure the native board item is registered specifically for this window's engine
         qmlRegisterType(NativeBoardItem, "KazuhaBoard", 1, 0, "NativeBoardItem")
 
-        self.setTitle("小黑板 - Luminalium")
+        self.setTitle(self._WINDOW_TITLE)
         self.setResizeMode(QQuickView.SizeRootObjectToView)
 
-        # Native window with restricted flags
-        # Allow Close and Maximize. Disallow Minimize.
-        # Note: Qt.CustomizeWindowHint hides the title bar unless Qt.WindowTitleHint is present.
-        self.setFlags(
-            Qt.Window
-            | Qt.CustomizeWindowHint
-            | Qt.WindowTitleHint
-            | Qt.WindowSystemMenuHint
-            | Qt.WindowCloseButtonHint
-            | Qt.WindowMaximizeButtonHint
-        )
+        if sys.platform == "win32":
+            self.setFlags(Qt.Window)
+        else:
+            # Keep the Linux-adapt branch's restricted native title bar:
+            # allow close/maximize, but do not expose a minimize button.
+            self.setFlags(
+                Qt.Window
+                | Qt.CustomizeWindowHint
+                | Qt.WindowTitleHint
+                | Qt.WindowSystemMenuHint
+                | Qt.WindowCloseButtonHint
+                | Qt.WindowMaximizeButtonHint
+            )
 
         icon = load_app_icon()
         if not icon.isNull():
@@ -953,6 +1094,10 @@ class BoardWindow(QQuickView):
 
         self.backend = BoardBackend(self)
         self.rootContext().setContextProperty("backend", self.backend)
+        self.rootContext().setContextProperty("windowTitle", self._WINDOW_TITLE)
+        self.rootContext().setContextProperty(
+            "titleBarHeight", TitleBarNativeFilter.TITLEBAR_H
+        )
 
         # Icons directory
         base_dir = os.path.dirname(
@@ -1173,7 +1318,6 @@ class BoardWindow(QQuickView):
 
     def showEvent(self, event):
         super().showEvent(event)
-        # Reset closing flags for reuse
         self._is_closing = False
         self._force_close = False
 

@@ -347,6 +347,17 @@ def _apply_system_backdrop(hwnd, backdrop_type):
         dwmapi.DwmSetWindowAttribute(
             hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ctypes.byref(val), ctypes.sizeof(val)
         )
+        if backdrop_type != DWMSBT_NONE:
+            class MARGINS(ctypes.Structure):
+                _fields_ = [
+                    ("cxLeftWidth", ctypes.c_int),
+                    ("cxRightWidth", ctypes.c_int),
+                    ("cyTopHeight", ctypes.c_int),
+                    ("cyBottomHeight", ctypes.c_int),
+                ]
+
+            margins = MARGINS(-1, -1, -1, -1)
+            dwmapi.DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(margins))
     except Exception:
         pass
 
@@ -2199,6 +2210,12 @@ class MainWindow(QWebEngineView):
         self.setPage(QWebEnginePage(_get_shared_profile(), self))
         self.setWindowTitle(title)
         self.resize(width, height)
+
+        # 确保窗口可调整大小 - 设置基础窗口标志
+        self.setWindowFlag(Qt.Window, True)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
+        self.setWindowFlag(Qt.WindowMinMaxButtonsHint, True)
+
         try:
             if "Onboarding" in str(title):
                 self.setWindowFlag(Qt.WindowMaximizeButtonHint, False)
@@ -2575,7 +2592,7 @@ class MainWindow(QWebEngineView):
         )
         if backdrop_type is not None and backdrop_type != DWMSBT_NONE:
             try:
-                self.setAutoFillBackground(True)
+                self.setAutoFillBackground(False)
                 palette = self.palette()
                 palette.setColor(self.backgroundRole(), Qt.transparent)
                 self.setPalette(palette)
@@ -2583,9 +2600,7 @@ class MainWindow(QWebEngineView):
                 pass
             _safe_set_widget_attr(self, getattr(Qt, "WA_OpaquePaintEvent", None), False)
             _safe_set_widget_attr(self, Qt.WA_TranslucentBackground, True)
-            _safe_set_widget_attr(
-                self, getattr(Qt, "WA_NoSystemBackground", None), False
-            )
+            _safe_set_widget_attr(self, getattr(Qt, "WA_NoSystemBackground", None), True)
             self.page().setBackgroundColor(Qt.transparent)
             return
 
@@ -2763,6 +2778,37 @@ body {
         except Exception:
             pass
 
+    def mouseMoveEvent(self, event):
+        """Handle mouse move to display resize cursor at window edges."""
+        if self.isMaximized() or self.isFullScreen():
+            super().mouseMoveEvent(event)
+            return
+
+        pos = event.pos()
+        edge_margin = 5  # pixels from edge to show resize cursor
+        w = self.width()
+        h = self.height()
+
+        # Determine which edge(s) the cursor is near
+        near_left = pos.x() < edge_margin
+        near_right = pos.x() > w - edge_margin
+        near_top = pos.y() < edge_margin
+        near_bottom = pos.y() > h - edge_margin
+
+        # Set cursor based on edge position
+        if (near_top and near_left) or (near_bottom and near_right):
+            self.setCursor(Qt.SizeFDiagCursor)
+        elif (near_top and near_right) or (near_bottom and near_left):
+            self.setCursor(Qt.SizeBDiagCursor)
+        elif near_left or near_right:
+            self.setCursor(Qt.SizeHorCursor)
+        elif near_top or near_bottom:
+            self.setCursor(Qt.SizeVerCursor)
+        else:
+            self.setCursor(Qt.ArrowCursor)
+
+        super().mouseMoveEvent(event)
+
     def _center_on_screen(self):
         screen = QApplication.primaryScreen()
         if not screen:
@@ -2814,47 +2860,31 @@ body {
         self.update()
 
     def _force_refresh(self):
-        if self._mini_mode:
+        if self._mini_mode or self.isMaximized() or self.isFullScreen():
             return
-        if self.isMaximized() or self.isFullScreen():
+        w, h = self.width(), self.height()
+        if w <= 10 or h <= 10:
             return
-        w = self.width()
-        h = self.height()
-        if w <= 2 or h <= 2:
-            return
-        self.resize(w - 1, h - 1)
-        QTimer.singleShot(0, lambda: self.resize(w, h))
-        QTimer.singleShot(0, lambda: _force_dwm_redraw(int(self.winId())))
+
+        # Nudge both size and position
+        self.resize(w + 1, h + 1)
+        orig_pos = self.pos()
+        self.move(orig_pos.x(), orig_pos.y() + 1)
+
+        def _restore():
+            self.resize(w, h)
+            self.move(orig_pos)
+            _force_dwm_redraw(int(self.winId()))
+            self._force_webview_repaint()
+
+        QTimer.singleShot(200, _restore)
 
     def _hard_resize_nudge(self):
         if self._mini_mode or self.isMaximized() or self.isFullScreen():
             return
         if self._did_hard_refresh:
             return
-        w = self.width()
-        h = self.height()
-        if w <= 1 or h <= 1:
-            return
-        try:
-            self.setUpdatesEnabled(False)
-        except Exception:
-            pass
-        target_w = 1
-        target_h = 1
-        self.resize(target_w, target_h)
-
-        def _restore():
-            self.resize(w, h)
-            try:
-                self.setUpdatesEnabled(True)
-            except Exception:
-                pass
-            try:
-                _force_dwm_redraw(int(self.winId()))
-            except Exception:
-                pass
-
-        QTimer.singleShot(0, _restore)
+        self._force_refresh()
         self._did_hard_refresh = True
 
     def _schedule_backdrop_apply(self):
@@ -2931,14 +2961,11 @@ body {
                 pass
         self._apply_page_background()
         self._schedule_backdrop_apply()
-        system_backdrop_enabled = self._is_system_backdrop_enabled()
-        if system_backdrop_enabled:
-            QTimer.singleShot(50, self._force_refresh)
-        QTimer.singleShot(120, lambda: _force_dwm_redraw(int(self.winId())))
-        if system_backdrop_enabled:
-            QTimer.singleShot(180, self._force_webview_transparent)
-            QTimer.singleShot(220, self._force_webview_repaint)
-            QTimer.singleShot(260, self._hard_resize_nudge)
+        if self._is_system_backdrop_enabled():
+            # Consolidate refreshes to a single robust nudge
+            QTimer.singleShot(300, self._hard_resize_nudge)
+            QTimer.singleShot(500, self._force_webview_transparent)
+            QTimer.singleShot(600, self._force_webview_repaint)
 
     def moveEvent(self, event):
         super().moveEvent(event)

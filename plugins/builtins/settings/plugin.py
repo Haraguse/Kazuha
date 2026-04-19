@@ -66,6 +66,7 @@ class SettingsPlugin(AssistantPlugin):
         self._window = None
         self._api = None
         self._wv = None
+        self._context = None
         if not _use_external_webview_process():
             QTimer.singleShot(1200, self._prewarm_webview)
 
@@ -74,6 +75,10 @@ class SettingsPlugin(AssistantPlugin):
 
     def get_icon(self):
         return "settings.svg"
+
+    def set_context(self, context):
+        super().set_context(context)
+        self._context = context
 
     def _prewarm_webview(self):
         try:
@@ -148,6 +153,10 @@ class SettingsPlugin(AssistantPlugin):
         api.settings = self._load_json_file(SETTINGS_PATH)
         api.version = self._load_json_file(version_path)
 
+        # 为api添加trigger_resource_alert方法
+        # 使用lambda创建可调用的方法
+        api.trigger_resource_alert = lambda: self.trigger_resource_alert()
+
         theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
         defer_load = wv._should_defer_initial_load(html_path, "Settings", True)
         window = wv.MainWindow(
@@ -193,3 +202,30 @@ class SettingsPlugin(AssistantPlugin):
         self._window = None
         self._api = None
         self.process = None
+
+    def trigger_resource_alert(self):
+        """调试用：触发资源监测通知"""
+        try:
+            print("[Settings] Trigger resource alert called")
+            if self._context is None:
+                print("[Settings] Context not available")
+                return
+
+            if not hasattr(self._context, 'tray'):
+                print("[Settings] Context has no 'tray' attribute")
+                return
+
+            tray = self._context.tray
+            if tray is None:
+                print("[Settings] Tray is None")
+                return
+
+            from ppt_assistant.core.i18n import t
+            title = t("resource.monitor.title")
+            body = t("resource.monitor.body")
+            tray.show_message(title, body)
+            print("[Settings] Resource alert triggered (debug)")
+        except Exception as e:
+            print(f"[Settings] Error triggering resource alert: {e}")
+            import traceback
+            traceback.print_exc()

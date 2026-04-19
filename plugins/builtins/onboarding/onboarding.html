@@ -1226,7 +1226,7 @@
       align-items: center;
       justify-content: space-between;
       min-height: 60px;
-      border-bottom: 1px solid var(--divider);
+      border-bottom: none;
       transition: background 0.15s;
     }
 
@@ -1598,7 +1598,7 @@
     .pivot-container {
       display: flex;
       gap: 24px;
-      border-bottom: 1px solid var(--divider);
+      border-bottom: none;
       margin-bottom: 8px;
     }
 
@@ -1654,6 +1654,107 @@
     .pivot-content.active {
       display: block;
       animation: pivotSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Disclaimer Tabs - Pivot Variant */
+    .disclaimer-tabs {
+      display: flex;
+      background: var(--bg-surface);
+      padding: 4px;
+      border-radius: 24px;
+      gap: 0;
+      border: 1px solid var(--border-color);
+      position: relative;
+      overflow: hidden;
+      margin: 0 12px;
+      width: fit-content;
+      align-self: center;
+    }
+
+    .disclaimer-tabs::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: var(--disclaimer-slider-height, calc(100% - 8px));
+      width: var(--disclaimer-slider-width, 0px);
+      transform: translate(var(--disclaimer-slider-x, 0px), var(--disclaimer-slider-y, 4px));
+      background: var(--text-secondary);
+      border-radius: 20px;
+      opacity: var(--disclaimer-slider-opacity, 0);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), width 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+      pointer-events: none;
+    }
+
+    .disclaimer-tabs.has-slider::before {
+      opacity: 0.12;
+    }
+
+    .disclaimer-tab-item {
+      padding: 6px 20px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s;
+      background: transparent;
+      border: none;
+      font-weight: 500;
+      border-radius: 20px;
+      z-index: 1;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .disclaimer-tab-item:hover {
+      color: var(--text-primary);
+    }
+
+    .disclaimer-tab-item.active {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .disclaimer-content-wrapper {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      border-radius: 12px;
+      border: 1px solid var(--divider);
+      background: var(--bg-surface);
+      overflow: hidden;
+    }
+
+    .disclaimer-text-area {
+      background: var(--bg-surface);
+      height: 100%;
+      max-height: 100%;
+      padding: 16px 18px;
+      line-height: 1.7;
+      font-size: 14px;
+      box-sizing: border-box;
+      overflow-y: scroll !important;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-color) transparent;
+      word-wrap: break-word;
+      word-break: break-word;
+    }
+
+    .disclaimer-fade-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: linear-gradient(to bottom, transparent, var(--bg-surface));
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    ::selection {
+      background: rgba(50, 117, 245, 0.2);
     }
 
     .update-header {
@@ -2148,7 +2249,7 @@
       gap: 14px;
       cursor: pointer;
       transition: all 0.2s;
-      border-bottom: 1px solid var(--divider);
+      border-bottom: none;
     }
 
     .toolbar-app-row:hover {
@@ -2665,7 +2766,7 @@
       top: 0;
       padding: 6px 8px;
       background: var(--bg-surface);
-      border-bottom: 1px solid var(--divider);
+      border-bottom: none;
       z-index: 1;
     }
 
@@ -3327,7 +3428,7 @@
     .pivot-container {
       display: flex;
       gap: 24px;
-      border-bottom: 1px solid var(--divider);
+      border-bottom: none;
       margin-bottom: 8px;
     }
 
@@ -3773,13 +3874,7 @@
       z-index: 100;
     }
 
-    .hero-footer .version {
-      /* justify-self: start; handled by flex space-between */
-    }
 
-    .hero-footer .hero-links {
-      /* justify-self: end; handled by flex space-between */
-    }
     
     .hero-lang {
       position: absolute;
@@ -3903,6 +3998,8 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.3s ease;
+      height: 100%;
+      overflow: hidden;
     }
     .setup-screen.active {
       opacity: 1;
@@ -3915,12 +4012,14 @@
       border-radius: 16px;
       box-shadow: var(--shadow-main);
       border: 1px solid var(--divider);
-      margin: 12px 28px 24px 28px;
+      margin: 12px 28px 16px 28px;
       padding: 32px;
       display: flex;
       flex-direction: column;
-      flex: 1;
       gap: 24px;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
     }
     .setup-screen.active .card {
       transform: none;
@@ -3988,35 +4087,45 @@
     }
 
     .step-header {
-      text-align: left;
+      text-align: center;
     }
     .step-title {
       font-size: 24px;
       font-weight: 600;
       margin-bottom: 8px;
       color: var(--text-primary);
+      text-align: center;
     }
     .step-desc {
       font-size: 14px;
       color: var(--text-secondary);
+      text-align: center;
     }
 
     .step-content {
-      min-height: 200px;
       min-height: 0;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
       flex: 1;
-      overflow-y: auto;
+      overflow: hidden;
       padding-right: 4px;
+      position: relative;
     }
 
     .actions {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 8px;
+      margin: 0 28px 24px 28px;
+      padding: 0;
+    }
+
+    .pivot-top {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 24px;
     }
     .btn {
       height: 40px;
@@ -4042,10 +4151,10 @@
 
     .pivot-container {
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
       gap: 24px;
-      border-bottom: 1px solid var(--divider);
+      border-bottom: none;
       margin: 16px 24px 12px 24px;
       padding: 0 4px;
     }
@@ -4119,7 +4228,7 @@ html, body {
   align-items: center;
   justify-content: space-between;
   min-height: 60px;
-  border-bottom: 1px solid var(--divider);
+  border-bottom: none;
   transition: background 0.15s;
 }
 
@@ -4278,6 +4387,96 @@ html, body {
                         radial-gradient(circle at 50% 50%, rgba(255, 69, 0, 0.03) 0%, transparent 40%);
       background-attachment: fixed;
     }
+    /* Markdown content styles */
+    .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+      margin: 16px 0 8px 0;
+      font-weight: 600;
+    }
+    .markdown-content h1 { font-size: 18px; }
+    .markdown-content h2 { font-size: 16px; }
+    .markdown-content h3 { font-size: 14px; }
+    .markdown-content p { margin: 8px 0; }
+    .markdown-content ul, .markdown-content ol {
+      margin: 8px 0;
+      padding-left: 24px;
+    }
+    .markdown-content li { margin: 4px 0; }
+    .markdown-content strong { font-weight: 600; }
+    .markdown-content em { font-style: italic; }
+    .markdown-content code {
+      background: var(--bg-secondary);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .markdown-content pre {
+      background: var(--bg-secondary);
+      padding: 12px;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+    .markdown-content pre code {
+      background: none;
+      padding: 0;
+    }
+    .markdown-content blockquote {
+      margin: 8px 0;
+      padding-left: 12px;
+      border-left: 3px solid var(--border-color);
+      color: var(--text-secondary);
+    }
+    /* Disclaimer scrollbar styles */
+    .disclaimer-text-area::-webkit-scrollbar {
+      width: 6px;
+    }
+    .disclaimer-text-area::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .disclaimer-text-area::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 3px;
+    }
+    .disclaimer-text-area::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
+    /* Markdown content inside disclaimer */
+    .disclaimer-text-area * {
+      max-width: 100%;
+    }
+    .disclaimer-text-area pre,
+    .disclaimer-text-area code {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow-x: auto;
+    }
+    .disclaimer-text-area img {
+      max-width: 100%;
+      height: auto;
+    }
+    /* Left align disclaimer text content */
+    .disclaimer-text-area {
+      text-align: left;
+    }
+    .disclaimer-text-area h1,
+    .disclaimer-text-area h2,
+    .disclaimer-text-area h3,
+    .disclaimer-text-area h4,
+    .disclaimer-text-area h5,
+    .disclaimer-text-area h6 {
+      text-align: left;
+    }
+    .disclaimer-text-area p,
+    .disclaimer-text-area li {
+      text-align: left;
+    }
+    .disclaimer-text-area ul,
+    .disclaimer-text-area ol {
+      text-align: left;
+      list-style-position: outside;
+      padding-left: 20px;
+    }
 </style>
 </head>
 <body>
@@ -4322,8 +4521,7 @@ html, body {
     <div id="screen-setup" class="setup-screen">
       <!-- Pivot Header -->
       <div class="pivot-container">
-        <div id="pivot-container" style="display:flex; gap:24px;"></div>
-        <div class="pivot-tip" id="pivot-tip">请完成初始化设置以获得最佳体验。</div>
+        <div id="pivot-container" class="pivot-top" style="display:flex; gap:24px;"></div>
       </div>
 
       <!-- Island Content -->
@@ -4336,11 +4534,11 @@ html, body {
         <div class="step-content" id="step-content">
           <!-- Dynamic Content -->
         </div>
+      </div>
 
-        <div class="actions">
-          <button class="btn btn-text" id="btn-prev">返回</button>
-          <button class="btn btn-primary" id="btn-next">下一步</button>
-        </div>
+      <div class="actions">
+        <button class="btn btn-text" id="btn-prev">返回</button>
+        <button class="btn btn-primary" id="btn-next">下一步</button>
       </div>
     </div>
 
@@ -4417,8 +4615,15 @@ html, body {
     // Resources
     const langResources = {
       "zh-CN": {
-        steps: ["外观风格", "默认行为", "放映界面", "准备就绪"],
+        steps: ["免责声明", "外观风格", "默认行为", "放映界面", "准备就绪"],
         gpl: "查看 GPL 证书",
+        disclaimer: {
+          title: "免责声明与许可证",
+          subtitle: "在使用 Luminalium 之前，请阅读",
+          accepted: "我已阅读并同意的许可证和免责声明",
+          tabDisclaimer: "免责声明",
+          tabLicense: "许可证"
+        },
         import: "从外部导入配置",
         pivotTip: "请完成初始化设置以获得最佳体验。",
         theme: { title: "外观风格", desc: "选择您喜欢的应用主题", light: "亮色", dark: "暗色", auto: "跟随系统" },
@@ -4463,8 +4668,15 @@ html, body {
         }
       },
       "zh-TW": {
-        steps: ["外觀風格", "預設行為", "放映介面", "準備就緒"],
+        steps: ["免責聲明", "外觀風格", "預設行為", "放映介面", "準備就緒"],
         gpl: "檢視 GPL 授權條款",
+        disclaimer: {
+          title: "免責聲明與許可證",
+          subtitle: "使用 Luminalium 之前請閱讀",
+          accepted: "我已閱讀並同意許可證與免責聲明",
+          tabDisclaimer: "免責聲明",
+          tabLicense: "許可證"
+        },
         import: "從外部匯入設定",
         pivotTip: "請完成初始化設定以獲得最佳體驗。",
         theme: { title: "外觀風格", desc: "選擇您喜歡的應用程式主題", light: "亮色", dark: "暗色", auto: "跟隨系統" },
@@ -4509,7 +4721,15 @@ html, body {
         }
       },
       "yue-HK": {
-        steps: ["外觀風格", "預設行為", "放映介面", "準備就緒"],
+        steps: ["免責聲明", "外觀風格", "預設行為", "放映介面", "準備就緒"],
+        gpl: "睇一睇 GPL 授權",
+        disclaimer: {
+          title: "免責聲明同許可證",
+          subtitle: "用 Luminalium 之前睇一睇",
+          accepted: "我已經攞捻同意許可證同免責聲明",
+          tabDisclaimer: "免責聲明",
+          tabLicense: "許可證"
+        },
         gpl: "睇 GPL 授權條款",
         import: "由外面匯入設定",
         pivotTip: "完成初始化設定先最好用。",
@@ -4555,8 +4775,15 @@ html, body {
         }
       },
       "en-US": {
-        steps: ["Appearance", "Default Behavior", "Presentation UI", "Ready"],
+        steps: ["Disclaimer", "Appearance", "Default Behavior", "Presentation UI", "Ready"],
         gpl: "View GPL License",
+        disclaimer: {
+          title: "Disclaimer & License",
+          subtitle: "Please read before using Luminalium",
+          accepted: "I have read and agree to the disclaimer and license",
+          tabDisclaimer: "Disclaimer",
+          tabLicense: "License"
+        },
         import: "Import Config",
         pivotTip: "Complete setup for the best experience.",
         theme: { title: "Appearance", desc: "Choose your preferred theme", light: "Light", dark: "Dark", auto: "System" },
@@ -4601,8 +4828,15 @@ html, body {
         }
       },
       "ja-JP": {
-        steps: ["外観", "既定の動作", "プレゼン表示", "完了"],
+        steps: ["免責事項", "外観", "既定の動作", "プレゼン表示", "完了"],
         gpl: "GPLライセンスを表示",
+        disclaimer: {
+          title: "免責事項およびライセンス",
+          subtitle: "Luminaliumを使用する前にお読みください",
+          accepted: "免責事項とライセンスを読み、同意しました",
+          tabDisclaimer: "免責事項",
+          tabLicense: "ライセンス"
+        },
         import: "設定をインポート",
         pivotTip: "最適な体験のために初期設定を完了してください。",
         theme: { title: "外観", desc: "お好みのテーマを選択してください", light: "ライト", dark: "ダーク", auto: "システム" },
@@ -4713,6 +4947,45 @@ html, body {
     const steps = [
       { id: "hero" }, // 0
       { // 1
+        id: "disclaimer",
+        async render(t) {
+          return `
+            <div style="display: flex; flex-direction: column; height: 100%; gap: 16px;">
+              <div style="display: flex; justify-content: center;">
+                <div class="disclaimer-tabs" style="margin: 0;">
+                  <button class="disclaimer-tab-item active" onclick="switchDisclaimerTab('disclaimer')" id="tab-disclaimer-btn">${t.disclaimer.tabDisclaimer}</button>
+                  <button class="disclaimer-tab-item" onclick="switchDisclaimerTab('license')" id="tab-license-btn">${t.disclaimer.tabLicense}</button>
+                </div>
+              </div>
+              
+              <div class="settings-group" style="flex: 1; margin: 0; display: flex; flex-direction: column; min-height: 0; padding: 0; overflow: hidden; position: relative;">
+                <div class="disclaimer-content-wrapper" style="flex: 1; border: none; border-radius: 12px 12px 0 0; background: transparent;">
+                  <div id="disclaimer-content" class="markdown-content disclaimer-text-area" style="padding: 20px;">
+                  </div>
+                  <div id="license-content" class="markdown-content disclaimer-text-area" style="display: none; padding: 20px;">
+                  </div>
+                  <div class="disclaimer-fade-overlay" style="border-radius: 0;"></div>
+                </div>
+                
+                <div class="settings-item" style="border-top: 1px solid var(--card-border); min-height: 60px; cursor: pointer; border-radius: 0 0 12px 12px; background: transparent;" onclick="document.getElementById('disclaimer-agree').click();">
+                  <div class="item-info">
+                    <div class="item-label" style="font-size: 14px;">${t.disclaimer.accepted}</div>
+                  </div>
+                  <div class="item-state" style="display: flex; align-items: center;">
+                    <div class="custom-checkbox" style="position: relative; width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--text-secondary); display: flex; align-items: center; justify-content: center; pointer-events: none; transition: all 0.2s;">
+                      <svg class="check-icon" viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: none; stroke: var(--bg-surface); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transform: scale(0.5); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                    <input type="checkbox" id="disclaimer-agree" onchange="updateDisclaimerButtonState(); event.stopPropagation();" style="display: none;">
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      },
+      { // 2
         id: "theme",
         render: (t) => `
           <div class="settings-group">
@@ -4961,6 +5234,58 @@ html, body {
       }
     };
 
+    // Markdown Parser
+    function parseMarkdown(text) {
+      if (!text) return '';
+      
+      let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      
+      html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+      html = html.replace(/\*([^\*]+)\*/g, '<em>$1</em>');
+      html = html.replace(/_([^_]+)_/g, '<em>$1</em>');
+      html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+      let blocks = html.split(/\n\s*\n/);
+      
+      html = blocks.map(block => {
+        block = block.trim();
+        if (/^###\s/.test(block)) return `<h3>${block.replace(/^###\s+/, '')}</h3>`;
+        if (/^##\s/.test(block)) return `<h2>${block.replace(/^##\s+/, '')}</h2>`;
+        if (/^#\s/.test(block)) return `<h1>${block.replace(/^#\s+/, '')}</h1>`;
+        
+        if (/^>\s/.test(block)) {
+          return `<blockquote>${block.replace(/^>\s*/gm, '').replace(/\n/g, '<br>')}</blockquote>`;
+        }
+        
+        if (/^[\*\-]\s/.test(block)) {
+          let lis = block.split('\n').map(line => {
+             if (/^[\*\-]\s/.test(line)) {
+                return `<li>${line.replace(/^[\*\-]\s+/, '')}</li>`;
+             } else {
+                return line + '<br>';
+             }
+          }).join('');
+          return `<ul>${lis}</ul>`;
+        }
+        
+        if (/^\d+\.\s/.test(block)) {
+          let lis = block.split('\n').map(line => {
+             if (/^\d+\.\s/.test(line)) {
+                return `<li>${line.replace(/^\d+\.\s+/, '')}</li>`;
+             } else {
+                return line + '<br>';
+             }
+          }).join('');
+          return `<ol>${lis}</ol>`;
+        }
+        
+        return `<p>${block.replace(/\n/g, '<br>')}</p>`;
+      }).join('');
+      
+      return html;
+    }
+
     window.setTheme = (val) => {
       state.config.theme = val;
       renderStep();
@@ -4971,6 +5296,63 @@ html, body {
       state.config.themeId = val;
       renderStep();
       applyTheme();
+    };
+
+    window.switchDisclaimerTab = (tab) => {
+      const disclaimerContent = document.getElementById('disclaimer-content');
+      const licenseContent = document.getElementById('license-content');
+      const disclaimerBtn = document.getElementById('tab-disclaimer-btn');
+      const licenseBtn = document.getElementById('tab-license-btn');
+      const tabsContainer = document.querySelector('.disclaimer-tabs');
+
+      if (tab === 'disclaimer') {
+        disclaimerContent.style.display = 'block';
+        licenseContent.style.display = 'none';
+        disclaimerBtn.classList.add('active');
+        licenseBtn.classList.remove('active');
+      } else {
+        disclaimerContent.style.display = 'none';
+        licenseContent.style.display = 'block';
+        disclaimerBtn.classList.remove('active');
+        licenseBtn.classList.add('active');
+      }
+
+      // Update slider position
+      if (tabsContainer) {
+        const activeBtn = tab === 'disclaimer' ? disclaimerBtn : licenseBtn;
+        if (activeBtn) {
+          tabsContainer.classList.add('has-slider');
+          tabsContainer.style.setProperty('--disclaimer-slider-width', activeBtn.offsetWidth + 'px');
+          tabsContainer.style.setProperty('--disclaimer-slider-height', activeBtn.offsetHeight + 'px');
+          tabsContainer.style.setProperty('--disclaimer-slider-x', activeBtn.offsetLeft + 'px');
+          tabsContainer.style.setProperty('--disclaimer-slider-y', activeBtn.offsetTop + 'px');
+          tabsContainer.style.setProperty('--disclaimer-slider-opacity', '1');
+        }
+      }
+    };
+
+    window.updateDisclaimerButtonState = () => {
+      const checkbox = document.getElementById('disclaimer-agree');
+      const nextBtn = els.btnNext;
+      if (nextBtn) {
+        nextBtn.disabled = !checkbox.checked;
+      }
+      
+      const customCheckbox = document.querySelector('.custom-checkbox');
+      const checkIcon = document.querySelector('.custom-checkbox .check-icon');
+      if (customCheckbox && checkIcon) {
+        if (checkbox.checked) {
+          customCheckbox.style.background = 'var(--accent-blue)';
+          customCheckbox.style.borderColor = 'var(--accent-blue)';
+          checkIcon.style.opacity = '1';
+          checkIcon.style.transform = 'scale(1)';
+        } else {
+          customCheckbox.style.background = 'transparent';
+          customCheckbox.style.borderColor = 'var(--text-secondary)';
+          checkIcon.style.opacity = '0';
+          checkIcon.style.transform = 'scale(0.5)';
+        }
+      }
     };
 
     window.toggleStartup = () => {
@@ -5052,14 +5434,94 @@ html, body {
       // Update Step Title and Desc
       if (els.stepTitle) els.stepTitle.textContent = t[s.id]?.title || "";
       if (els.stepDesc) els.stepDesc.textContent = t[s.id]?.desc || "";
+      const stepHeader = els.stepTitle && els.stepTitle.parentElement;
+      if (stepHeader) {
+        stepHeader.style.display = s.id === 'disclaimer' ? 'none' : 'block';
+      }
 
       // Render content
       if (s.render && els.stepContent) {
-        els.stepContent.innerHTML = s.render(t);
-        // Update slider if present
-        const themeSelect = els.stepContent.querySelector('.theme-select');
-        if (themeSelect) {
-           requestAnimationFrame(() => updateSelectSlider(themeSelect));
+        const result = s.render(t);
+        // Handle both sync and async render functions
+        if (result instanceof Promise) {
+          result.then(html => {
+            els.stepContent.innerHTML = html;
+            // Special handling for disclaimer step
+            if (s.id === 'disclaimer') {
+              // Load and parse disclaimer content
+              const lang = langResources[state.config.language] ? state.config.language : "en-US";
+              const disclaimerFile = 
+                lang === "zh-CN" ? "disclaimer_cn.txt" :
+                lang === "zh-TW" ? "disclaimer_cn.txt" :
+                lang === "yue-HK" ? "disclaimer_cn.txt" :
+                lang === "ja-JP" ? "disclaimer_ja.txt" :
+                "disclaimer_en.txt";
+              
+              // Helper function to force scroll refresh
+              const forceScrollRefresh = (element) => {
+                if (!element) return;
+                // Force browser to recalculate layout
+                element.style.display = 'none';
+                element.offsetHeight; // Trigger reflow
+                element.style.display = '';
+                // Ensure scroll is enabled
+                element.scrollTop = 0;
+              };
+
+              fetch(`./${disclaimerFile}`)
+                .then(resp => resp.ok ? resp.text() : "Failed to load disclaimer")
+                .then(text => {
+                  const disclaimerContent = document.getElementById('disclaimer-content');
+                  if (disclaimerContent) {
+                    disclaimerContent.innerHTML = parseMarkdown(text);
+                    // Force scroll refresh after content is inserted
+                    requestAnimationFrame(() => forceScrollRefresh(disclaimerContent));
+                  }
+                })
+                .catch(e => {
+                  const disclaimerContent = document.getElementById('disclaimer-content');
+                  if (disclaimerContent) {
+                    disclaimerContent.innerHTML = '<p>Failed to load disclaimer</p>';
+                  }
+                });
+
+              // Load GPL license text from gplv3.txt
+              fetch('./gplv3.txt')
+                .then(resp => resp.ok ? resp.text() : "Failed to load license")
+                .then(text => {
+                  const licenseContent = document.getElementById('license-content');
+                  if (licenseContent) {
+                    licenseContent.innerHTML = parseMarkdown(text);
+                    // Force scroll refresh after content is inserted
+                    requestAnimationFrame(() => forceScrollRefresh(licenseContent));
+                  }
+                })
+                .catch(e => {
+                  const licenseContent = document.getElementById('license-content');
+                  if (licenseContent) {
+                    licenseContent.innerHTML = '<p>Failed to load license</p>';
+                  }
+                });
+
+              requestAnimationFrame(() => {
+                switchDisclaimerTab('disclaimer');
+                const checkbox = document.getElementById('disclaimer-agree');
+                if (checkbox) {
+                  checkbox.addEventListener('change', updateDisclaimerButtonState);
+                  updateDisclaimerButtonState();
+                }
+                // Initialize slider position after a short delay to ensure DOM is ready
+                setTimeout(() => switchDisclaimerTab('disclaimer'), 50);
+              });
+            }
+          });
+        } else {
+          els.stepContent.innerHTML = result;
+          // Update slider if present
+          const themeSelect = els.stepContent.querySelector('.theme-select');
+          if (themeSelect) {
+             requestAnimationFrame(() => updateSelectSlider(themeSelect));
+          }
         }
       }
       
@@ -5128,7 +5590,6 @@ html, body {
       const t = langResources[state.config.language] || langResources["zh-CN"];
       if (els.linkGpl) els.linkGpl.textContent = t.gpl;
       if (els.linkImport) els.linkImport.textContent = t.import;
-      if (els.pivotTip) els.pivotTip.textContent = t.pivotTip;
 
       if (els.finishTitle) els.finishTitle.textContent = t.finish.title;
       if (els.finishDesc) els.finishDesc.textContent = t.finish.desc;
@@ -5145,6 +5606,16 @@ html, body {
     }
 
     function next() {
+      const currentStep = steps[state.step];
+      
+      // Check disclaimer agreement before proceeding
+      if (currentStep && currentStep.id === 'disclaimer') {
+        const checkbox = document.getElementById('disclaimer-agree');
+        if (!checkbox || !checkbox.checked) {
+          return; // Don't proceed if not agreed
+        }
+      }
+      
       if (state.step === 0) {
         state.step++;
         updateStep("next");

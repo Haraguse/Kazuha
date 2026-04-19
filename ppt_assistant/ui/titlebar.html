@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Titlebar</title>
+    <style>
+        @font-face {
+            font-family: "Segoe MDL2 Assets";
+            src: local("Segoe MDL2 Assets"), local("SegoeUI");
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --titlebar-height: 32px;
+            --titlebar-bg: rgba(255, 255, 255, 0.85);
+            --titlebar-text: #1f1f1f;
+            --titlebar-hover: rgba(0, 0, 0, 0.06);
+            --titlebar-press: rgba(0, 0, 0, 0.12);
+            --button-close-hover: #c42b1c;
+            --button-close-press: #a01410;
+        }
+
+        [data-theme="dark"] {
+            --titlebar-bg: rgba(32, 32, 32, 0.9);
+            --titlebar-text: #ffffff;
+            --titlebar-hover: rgba(255, 255, 255, 0.08);
+            --titlebar-press: rgba(255, 255, 255, 0.16);
+            --button-close-hover: #da3b30;
+            --button-close-press: #c1312b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+            background: transparent;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .titlebar {
+            height: var(--titlebar-height);
+            background: var(--titlebar-bg);
+            color: var(--titlebar-text);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            -webkit-app-region: drag;
+            user-select: none;
+            flex-shrink: 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        [data-theme="dark"] .titlebar {
+            border-bottom-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .titlebar-title {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 500;
+            margin-left: 8px;
+            user-select: text;
+            -webkit-user-select: text;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .titlebar-controls {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            margin-left: auto;
+            -webkit-app-region: no-drag;
+        }
+
+        .titlebar-button {
+            width: 36px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--titlebar-text);
+            font-size: 10px;
+            font-family: "Segoe MDL2 Assets";
+            transition: background-color 0.2s ease;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .titlebar-button:hover {
+            background-color: var(--titlebar-hover);
+        }
+
+        .titlebar-button:active {
+            background-color: var(--titlebar-press);
+        }
+
+        .titlebar-button.minimize::before {
+            content: "\E949";  /* Minimize icon */
+        }
+
+        .titlebar-button.maximize::before {
+            content: "\E922";  /* Maximize icon */
+        }
+
+        .titlebar-button.maximize.is-maximized::before {
+            content: "\E923";  /* Restore/Unmaximize icon */
+        }
+
+        .titlebar-button.close::before {
+            content: "\E8BB";  /* Close icon */
+        }
+
+        .titlebar-button.close:hover {
+            background-color: var(--button-close-hover);
+            color: white;
+        }
+
+        .titlebar-button.close:active {
+            background-color: var(--button-close-press);
+            color: white;
+        }
+
+        .content {
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 这里放置内容区域的占位符 */
+        .content-placeholder {
+            flex: 1;
+            padding: 20px;
+            color: var(--titlebar-text);
+        }
+
+        /* Segoe MDL2 Assets 备用图标字体回退 */
+        @supports not (font-family: "Segoe MDL2 Assets") {
+            .titlebar-button.minimize::before {
+                content: "−";
+            }
+
+            .titlebar-button.maximize::before {
+                content: "□";
+            }
+
+            .titlebar-button.maximize.is-maximized::before {
+                content: "❑";
+            }
+
+            .titlebar-button.close::before {
+                content: "✕";
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <div class="titlebar" id="titlebar">
+        <div class="titlebar-title" id="titlebar-title">Kazuha</div>
+        <div class="titlebar-controls">
+            <button class="titlebar-button minimize" id="btn-minimize" title="最小化"></button>
+            <button class="titlebar-button maximize" id="btn-maximize" title="最大化"></button>
+            <button class="titlebar-button close" id="btn-close" title="关闭"></button>
+        </div>
+    </div>
+    <div class="content" id="content">
+        <div class="content-placeholder">内容区域</div>
+    </div>
+
+    <script>
+        // =====================
+        // 标题栏管理脚本
+        // =====================
+
+        class TitlebarManager {
+            constructor() {
+                this.titlebarEl = document.getElementById('titlebar');
+                this.titleEl = document.getElementById('titlebar-title');
+                this.btnMinimize = document.getElementById('btn-minimize');
+                this.btnMaximize = document.getElementById('btn-maximize');
+                this.btnClose = document.getElementById('btn-close');
+                this.contentEl = document.getElementById('content');
+
+                this.bridge = null;
+                this.windowState = 'normal';
+
+                this.init();
+            }
+
+            init() {
+                // 等待 QWebChannel ready
+                if (typeof qt !== 'undefined') {
+                    this.setupQtBridge();
+                } else {
+                    // 如果还没加载，等待
+                    document.addEventListener('qtBridgeReady', () => this.setupQtBridge());
+                }
+
+                // 按钮事件
+                this.btnMinimize.addEventListener('click', () => this.handleMinimize());
+                this.btnMaximize.addEventListener('click', () => this.handleMaximize());
+                this.btnClose.addEventListener('click', () => this.handleClose());
+
+                // 标题栏拖动
+                this.titlebarEl.addEventListener('mousedown', (e) => this.handleTitlebarMouseDown(e));
+                this.titlebarEl.addEventListener('dblclick', () => this.handleTitlebarDoubleClick());
+
+                // 更新窗口状态
+                this.updateWindowState();
+                setInterval(() => this.updateWindowState(), 500);
+            }
+
+            setupQtBridge() {
+                if (window.titlebarBridge) {
+                    this.bridge = window.titlebarBridge;
+                    this.updateWindowTitle();
+                }
+            }
+
+            handleMinimize() {
+                if (this.bridge) {
+                    this.bridge.minimize();
+                }
+            }
+
+            handleMaximize() {
+                if (this.bridge) {
+                    this.bridge.maximize();
+                    // 延迟更新状态，因为系统操作可能需要时间
+                    setTimeout(() => this.updateWindowState(), 100);
+                }
+            }
+
+            handleClose() {
+                if (this.bridge) {
+                    this.bridge.close();
+                }
+            }
+
+            handleTitlebarMouseDown(e) {
+                // 只在类标题部分（不包括按钮）拖动
+                if (e.target === this.titlebarEl || e.target === this.titleEl) {
+                    if (this.bridge) {
+                        this.bridge.start_drag();
+                    }
+                }
+            }
+
+            handleTitlebarDoubleClick() {
+                // 双击标题栏切换最大化
+                this.handleMaximize();
+            }
+
+            updateWindowState() {
+                if (!this.bridge) return;
+
+                try {
+                    const state = this.bridge.get_window_state();
+                    if (state !== this.windowState) {
+                        this.windowState = state;
+                        const isMaximized = state === 'maximized';
+                        if (isMaximized) {
+                            this.btnMaximize.classList.add('is-maximized');
+                        } else {
+                            this.btnMaximize.classList.remove('is-maximized');
+                        }
+                    }
+                } catch (e) {
+                    // 忽略错误
+                }
+            }
+
+            updateWindowTitle() {
+                if (!this.bridge) return;
+
+                try {
+                    const title = this.bridge.get_window_title();
+                    if (title) {
+                        this.titleEl.textContent = title;
+                    }
+                } catch (e) {
+                    // 忽略错误
+                }
+            }
+
+            setWindowTitle(title) {
+                this.titleEl.textContent = title;
+                if (this.bridge) {
+                    this.bridge.set_window_title(title);
+                }
+            }
+
+            setTheme(theme) {
+                document.body.setAttribute('data-theme', theme);
+            }
+
+            getTitlebarHeight() {
+                return this.titlebarEl.offsetHeight;
+            }
+
+            getContentElement() {
+                return this.contentEl;
+            }
+        }
+
+        // 创建全局实例
+        window.titlebarManager = new TitlebarManager();
+
+        // 监听主题变化（如果应用提供了事件）
+        if (window.hasOwnProperty('themeChangeListener')) {
+            window.themeChangeListener((theme) => {
+                window.titlebarManager.setTheme(theme);
+            });
+        }
+    </script>
+</body>
+</html>

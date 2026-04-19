@@ -1,6 +1,4 @@
 import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
 import QtQml 2.15
 import QtQuick.Window 2.15
 import KazuhaBoard 1.0
@@ -19,7 +17,139 @@ Rectangle {
     property real performanceScale: Math.max(1.0, Math.max(width, height) / 1600.0)
     property var boardPages: []
     property int currentBoardPage: 1
+    // titleBarHeight is injected from Python; fallback to 32
+    property int tbH: (typeof titleBarHeight !== "undefined") ? titleBarHeight : 32
     Keys.onEscapePressed: backend.closeWindow()
+
+    // ── Self-drawn title bar ──────────────────────────────────────────────────
+    Rectangle {
+        id: titleBar
+        visible: false  // 使用系统Windows窗口边框时隐藏自绘标题栏
+        height: root.tbH
+        anchors.top:   parent.top
+        anchors.left:  parent.left
+        anchors.right: parent.right
+        // Match board background colour exactly for a seamless look
+        color: darkBackground ? Qt.rgba(0.098, 0.098, 0.098, 1.0)
+                              : Qt.rgba(0.937, 0.937, 0.937, 1.0)
+        z: 200
+
+        // ---- Bottom separator ----
+        Rectangle {
+            anchors.bottom: parent.bottom
+            anchors.left:   parent.left
+            anchors.right:  parent.right
+            height: 1
+            color: darkBackground ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.08)
+        }
+
+        // ---- Window title ----
+        Text {
+            id: titleText
+            // wndTitle injected from Python; fallback
+            text: (typeof windowTitle !== "undefined") ? windowTitle : "\u5c0f\u9ed1\u677f"
+            color: darkBackground ? "#E5E5E5" : "#1A1A1A"
+            font.pixelSize: 12
+            elide: Text.ElideRight
+            verticalAlignment: Text.AlignVCenter
+            anchors.left:         parent.left
+            anchors.leftMargin:   12
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.right:        captionButtons.left
+            anchors.rightMargin:  8
+        }
+
+        // ---- Caption buttons row ----
+        Row {
+            id: captionButtons
+            anchors.right:  parent.right
+            anchors.top:    parent.top
+            anchors.bottom: parent.bottom
+
+            // ─ Minimize ─
+            Item {
+                id: minBtn
+                width: 46
+                height: parent.height
+                Rectangle {
+                    anchors.fill: parent
+                    color: minBtnArea.containsMouse
+                           ? (darkBackground ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.08))
+                           : "transparent"
+                    Behavior on color { ColorAnimation { duration: 80 } }
+                }
+                Text {
+                    text: "\uE921"   // Segoe MDL2: ChromeMinimize
+                    font.family: "Segoe MDL2 Assets"
+                    font.pixelSize: 10
+                    color: darkBackground ? "#E5E5E5" : "#1A1A1A"
+                    anchors.centerIn: parent
+                }
+                MouseArea {
+                    id: minBtnArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.ArrowCursor
+                    onClicked: if (backend) backend.minimizeWindow()
+                }
+            }
+
+            // ─ Maximize / Restore ─
+            Item {
+                id: maxBtn
+                width: 46
+                height: parent.height
+                // hover state driven by native filter (HTMAXBUTTON / WM_NCMOUSEMOVE)
+                property bool nativeHovered: backend ? backend.maximizeBtnHovered : false
+                Rectangle {
+                    anchors.fill: parent
+                    color: maxBtn.nativeHovered
+                           ? (darkBackground ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.08))
+                           : "transparent"
+                    Behavior on color { ColorAnimation { duration: 80 } }
+                }
+                Text {
+                    // ChromeMaximize \uE922 / ChromeRestore \uE923
+                    text: (backend && backend.isMaximized) ? "\uE923" : "\uE922"
+                    font.family: "Segoe MDL2 Assets"
+                    font.pixelSize: 10
+                    color: darkBackground ? "#E5E5E5" : "#1A1A1A"
+                    anchors.centerIn: parent
+                }
+                // No click handler: HTMAXBUTTON lets Windows handle maximize natively
+                // (also triggers Win11 Snap Layouts popup on hover)
+            }
+
+            // ─ Close ─
+            Item {
+                id: closeBtn
+                width: 46
+                height: parent.height
+                Rectangle {
+                    id: closeBtnBg
+                    anchors.fill: parent
+                    color: closeBtnArea.containsMouse ? "#C42B1C" : "transparent"
+                    Behavior on color { ColorAnimation { duration: 80 } }
+                }
+                Text {
+                    text: "\uE8BB"   // Segoe MDL2: ChromeClose
+                    font.family: "Segoe MDL2 Assets"
+                    font.pixelSize: 10
+                    color: closeBtnArea.containsMouse ? "#FFFFFF"
+                                                     : (darkBackground ? "#E5E5E5" : "#1A1A1A")
+                    anchors.centerIn: parent
+                    Behavior on color { ColorAnimation { duration: 80 } }
+                }
+                MouseArea {
+                    id: closeBtnArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.ArrowCursor
+                    onClicked: if (backend) backend.closeWindow()
+                }
+            }
+        }
+    } // end titleBar
 
     function isDarkColor(value) {
         if (!value || value.length < 6) return true;
@@ -104,10 +234,14 @@ Rectangle {
         applyCurrentBoardPage();
     }
 
+    // ── Main drawing area (below title bar) ─────────────────────────────────
     // Main Content Area
     Rectangle {
         id: board
-        anchors.fill: parent
+        anchors.top:    titleBar.visible ? titleBar.bottom : parent.top
+        anchors.left:   parent.left
+        anchors.right:  parent.right
+        anchors.bottom: parent.bottom
         color: backgroundColor
         clip: true
         
@@ -635,9 +769,9 @@ Rectangle {
     
     // Watermark
     Text {
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.rightMargin: 15
+        anchors.right:        board.right
+        anchors.bottom:       board.bottom
+        anchors.rightMargin:  15
         anchors.bottomMargin: 10
         text: typeof watermarkText !== "undefined" ? watermarkText : ""
         color: darkBackground ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(0, 0, 0, 0.3)
@@ -647,8 +781,17 @@ Rectangle {
         z: 100
     }
 
-    // Color Popup
-    Popup {
+    // ── Shared outside-click overlay (closes any open popup) ─────────────────
+    MouseArea {
+        id: popupOverlay
+        anchors.fill: board
+        z: 98
+        enabled: colorPopup.visible || eraserPopup.visible
+        onClicked: { colorPopup.close(); eraserPopup.close(); }
+    }
+
+    // Color Popup (pure QtQuick – no QtQuick.Controls)
+    Rectangle {
         id: colorPopup
         parent: root
         x: toolbarPosition === "left"
@@ -663,23 +806,24 @@ Rectangle {
                 : toolbar.y + (toolbar.height - height) / 2
         width: 300
         height: 230
-        padding: 0
-        
-        background: Rectangle {
-            color: root.popupBackgroundColor !== "" ? root.popupBackgroundColor : (darkBackground ? "#202020" : "#FFFFFF")
-            radius: 12
-            border.color: root.popupBorderColor !== "" ? root.popupBorderColor : (darkBackground ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.1))
-            border.width: 1
-            
-            layer.enabled: true
-        }
-        
-        property int activeTab: 0 // 0: Theme, 1: Standard
+        visible: false
+        z: 100
+        radius: 12
+        color: root.popupBackgroundColor !== "" ? root.popupBackgroundColor : (darkBackground ? "#202020" : "#FFFFFF")
+        border.color: root.popupBorderColor !== "" ? root.popupBorderColor : (darkBackground ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.1))
+        border.width: 1
+        clip: true
+
+        property bool opened: visible
+        function open()  { visible = true;  }
+        function close() { visible = false; }
+
+        property int activeTab: 0
         property string hoveredColorName: ""
         property string hoveredColorRgb: ""
         property string hoveredColorHex: ""
 
-        contentItem: Item {
+        Item {
             id: contentContainer
             anchors.fill: parent
             
@@ -879,14 +1023,52 @@ Rectangle {
                         font.pixelSize: 12
                     }
 
-                    Slider {
+                    // Custom slider – no QtQuick.Controls dependency
+                    Item {
                         id: penSizeSlider
-                        from: 1
-                        to: 18
-                        stepSize: 1
-                        value: canvas ? canvas.lineWidth : 3
                         width: 140
-                        onValueChanged: if (canvas) canvas.lineWidth = Math.round(value)
+                        height: 20
+                        property real from: 1
+                        property real to: 18
+                        property real stepSize: 1
+                        property real value: canvas ? canvas.lineWidth : 3
+
+                        function _calc(mx) {
+                            var ratio = Math.max(0, Math.min(1, mx / Math.max(1, width - psHandle.width)));
+                            var raw = from + ratio * (to - from);
+                            return Math.max(from, Math.min(to,
+                                stepSize > 0 ? Math.round(raw / stepSize) * stepSize : raw));
+                        }
+
+                        Rectangle {
+                            id: psTrack
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width; height: 4; radius: 2
+                            color: darkBackground ? Qt.rgba(1,1,1,0.18) : Qt.rgba(0,0,0,0.12)
+                            Rectangle {
+                                width: Math.max(0,
+                                    (penSizeSlider.value - penSizeSlider.from) /
+                                    Math.max(0.001, penSizeSlider.to - penSizeSlider.from)
+                                    * parent.width)
+                                height: parent.height; radius: parent.radius
+                                color: darkBackground ? "#C0C0C0" : "#555555"
+                            }
+                        }
+                        Rectangle {
+                            id: psHandle
+                            width: 16; height: 16; radius: 8
+                            color: darkBackground ? "#FFFFFF" : "#333333"
+                            anchors.verticalCenter: parent.verticalCenter
+                            x: Math.max(0, Math.min(penSizeSlider.width - width,
+                                (penSizeSlider.value - penSizeSlider.from) /
+                                Math.max(0.001, penSizeSlider.to - penSizeSlider.from)
+                                * (penSizeSlider.width - width)))
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            onPressed:  (m) => { penSizeSlider.value = penSizeSlider._calc(m.x - psHandle.width/2); if (canvas) canvas.lineWidth = Math.round(penSizeSlider.value); }
+                            onPositionChanged: (m) => { penSizeSlider.value = penSizeSlider._calc(m.x - psHandle.width/2); if (canvas) canvas.lineWidth = Math.round(penSizeSlider.value); }
+                        }
                     }
 
                     Text {
@@ -949,19 +1131,17 @@ Rectangle {
                 }
             }
         }
-        
+
         function updateInfo(colorVal) {
             hoveredColorHex = colorVal
             hoveredColorRgb = getRgbString(colorVal)
             hoveredColorName = getColorName(colorVal)
         }
-        
         function clearInfo() {
             hoveredColorHex = ""
             hoveredColorRgb = ""
             hoveredColorName = ""
         }
-        
         function getRgbString(hex) {
             if (!hex || hex.length < 7) return "";
             var r = parseInt(hex.substring(1, 3), 16);
@@ -969,7 +1149,6 @@ Rectangle {
             var b = parseInt(hex.substring(5, 7), 16);
             return "RGB(" + r + ", " + g + ", " + b + ")";
         }
-        
         function getColorName(hex) {
             var upper = hex.toUpperCase();
             var map = {
@@ -978,14 +1157,12 @@ Rectangle {
                 "#C00000": "Dark Red", "#FF0000": "Red", "#FFFF00": "Yellow", "#92D050": "Light Green", "#00B050": "Sea Green",
                 "#00B0F0": "Sky Blue", "#0070C0": "Blue", "#002060": "Dark Blue", "#7030A0": "Purple"
             };
-            // Translations can be handled if needed, but for now English/Generic is fine or we can add a map property
-            // If the color matches exactly one of our known ones, return a name.
             return map[upper] || upper;
         }
-    }
+    } // end colorPopup
 
-    // Eraser Size Popup
-    Popup {
+    // Eraser Size Popup (pure QtQuick)
+    Rectangle {
         id: eraserPopup
         parent: root
         x: toolbarPosition === "left"
@@ -1000,20 +1177,21 @@ Rectangle {
                 : toolbar.y + (toolbar.height - height) / 2
         width: 260
         height: 120
-        padding: 12
-        closePolicy: Popup.CloseOnPressOutside | Popup.CloseOnEscape
+        visible: false
+        z: 100
+        radius: 12
+        color: root.popupBackgroundColor !== "" ? root.popupBackgroundColor : (darkBackground ? "#202020" : "#FFFFFF")
+        border.color: root.popupBorderColor !== "" ? root.popupBorderColor : (darkBackground ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.1))
+        border.width: 1
+        clip: true
 
-        background: Rectangle {
-            color: root.popupBackgroundColor !== "" ? root.popupBackgroundColor : (darkBackground ? "#202020" : "#FFFFFF")
-            radius: 12
-            border.color: root.popupBorderColor !== "" ? root.popupBorderColor : (darkBackground ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.1))
-            border.width: 1
-            layer.enabled: true
-        }
+        property bool opened: visible
+        function open()  { visible = true;  }
+        function close() { visible = false; }
 
-        contentItem: Column {
+        Column {
             anchors.fill: parent
-            anchors.margins: 6
+            anchors.margins: 18
             spacing: 10
 
             Text {
@@ -1022,24 +1200,62 @@ Rectangle {
                 font.pixelSize: 12
             }
 
-            Slider {
+            // Custom slider for eraser size
+            Item {
                 id: eraserSizeSlider
-                from: 8
-                to: 40
-                stepSize: 1
-                value: canvas.eraserWidth
-                enabled: canvas.eraserMode === 0
-                onValueChanged: canvas.eraserWidth = Math.round(value)
+                width: parent.width
+                height: 20
+                property real from: 8
+                property real to: 40
+                property real stepSize: 1
+                property real value: canvas ? canvas.eraserWidth : 20
+                property bool enabled: canvas ? canvas.eraserMode === 0 : true
+                opacity: enabled ? 1.0 : 0.4
+
+                function _calc(mx) {
+                    var ratio = Math.max(0, Math.min(1, mx / Math.max(1, width - esHandle.width)));
+                    var raw = from + ratio * (to - from);
+                    return Math.max(from, Math.min(to, Math.round(raw / stepSize) * stepSize));
+                }
+
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width; height: 4; radius: 2
+                    color: darkBackground ? Qt.rgba(1,1,1,0.18) : Qt.rgba(0,0,0,0.12)
+                    Rectangle {
+                        width: Math.max(0,
+                            (eraserSizeSlider.value - eraserSizeSlider.from) /
+                            Math.max(0.001, eraserSizeSlider.to - eraserSizeSlider.from)
+                            * parent.width)
+                        height: parent.height; radius: parent.radius
+                        color: darkBackground ? "#C0C0C0" : "#555555"
+                    }
+                }
+                Rectangle {
+                    id: esHandle
+                    width: 16; height: 16; radius: 8
+                    color: darkBackground ? "#FFFFFF" : "#333333"
+                    anchors.verticalCenter: parent.verticalCenter
+                    x: Math.max(0, Math.min(eraserSizeSlider.width - width,
+                        (eraserSizeSlider.value - eraserSizeSlider.from) /
+                        Math.max(0.001, eraserSizeSlider.to - eraserSizeSlider.from)
+                        * (eraserSizeSlider.width - width)))
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    enabled: eraserSizeSlider.enabled
+                    onPressed:  (m) => { eraserSizeSlider.value = eraserSizeSlider._calc(m.x - esHandle.width/2); if (canvas) canvas.eraserWidth = Math.round(eraserSizeSlider.value); }
+                    onPositionChanged: (m) => { eraserSizeSlider.value = eraserSizeSlider._calc(m.x - esHandle.width/2); if (canvas) canvas.eraserWidth = Math.round(eraserSizeSlider.value); }
+                }
             }
 
             Text {
-                text: Math.round(canvas.eraserWidth)
+                text: canvas ? Math.round(canvas.eraserWidth) : 20
                 color: darkBackground ? "#AAA" : "#666"
                 font.pixelSize: 11
-                horizontalAlignment: Text.AlignRight
             }
         }
-    }
+    } // end eraserPopup
 
     // Floating Toolbar
     Rectangle {
@@ -1053,9 +1269,9 @@ Rectangle {
         color: Qt.rgba(0.2, 0.2, 0.2, 0.9)
         border.color: Qt.rgba(1, 1, 1, 0.2)
         border.width: 1
-        anchors.bottom: parent.bottom
+        anchors.bottom: board.bottom
         anchors.bottomMargin: 20
-        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.horizontalCenter: board.horizontalCenter
         
         states: [
             State {
@@ -1063,12 +1279,12 @@ Rectangle {
                 when: toolbarPosition === "top"
                 AnchorChanges {
                     target: toolbar
-                    anchors.top: parent.top
-                    anchors.bottom: undefined
-                    anchors.left: undefined
-                    anchors.right: undefined
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: undefined
+                    anchors.top:              board.top
+                    anchors.bottom:           undefined
+                    anchors.left:             undefined
+                    anchors.right:            undefined
+                    anchors.horizontalCenter: board.horizontalCenter
+                    anchors.verticalCenter:   undefined
                 }
                 PropertyChanges {
                     target: toolbar
@@ -1083,12 +1299,12 @@ Rectangle {
                 when: toolbarPosition === "left"
                 AnchorChanges {
                     target: toolbar
-                    anchors.left: parent.left
-                    anchors.right: undefined
-                    anchors.top: undefined
-                    anchors.bottom: undefined
+                    anchors.left:             board.left
+                    anchors.right:            undefined
+                    anchors.top:              undefined
+                    anchors.bottom:           undefined
                     anchors.horizontalCenter: undefined
-                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.verticalCenter:   board.verticalCenter
                 }
                 PropertyChanges {
                     target: toolbar
@@ -1103,12 +1319,12 @@ Rectangle {
                 when: toolbarPosition === "right"
                 AnchorChanges {
                     target: toolbar
-                    anchors.right: parent.right
-                    anchors.left: undefined
-                    anchors.top: undefined
-                    anchors.bottom: undefined
+                    anchors.right:            board.right
+                    anchors.left:             undefined
+                    anchors.top:              undefined
+                    anchors.bottom:           undefined
                     anchors.horizontalCenter: undefined
-                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.verticalCenter:   board.verticalCenter
                 }
                 PropertyChanges {
                     target: toolbar
@@ -1387,8 +1603,8 @@ Rectangle {
         color: toolbar.color
         border.color: toolbar.border.color
         border.width: toolbar.border.width
-        anchors.left: parent.left
-        anchors.bottom: toolbar.bottom
+        anchors.left:       board.left
+        anchors.bottom:     toolbar.bottom
         anchors.leftMargin: 20
         z: 91
 
