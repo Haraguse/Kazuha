@@ -11,6 +11,7 @@ dependencies = [
     "jsonschema>=4.25.0",
     "referencing>=0.36.0",
     "pynput>=1.7.0; sys_platform == 'linux'",
+    "ty>=0.0.31",
 ]
 
 [dependency-groups]
@@ -26,9 +27,10 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["ppt_assistant", "plugins"]
 
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
+
 [tool.ruff]
 target-version = "py311"
 line-length = 88
-
-[tool.ty.environment]
-root=["."]

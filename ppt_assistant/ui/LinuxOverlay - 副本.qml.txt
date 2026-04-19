@@ -1,7 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import Qt5Compat.GraphicalEffects
+import QtGraphicalEffects 1.15
 
 Rectangle {
     id: root
@@ -9,7 +9,7 @@ Rectangle {
     anchors.fill: parent
 
     // Context property from Python
-    property var bridge: overlayBridge
+    property var bridge: null
 
     // Theme properties
     property string themeId: "default"
@@ -63,7 +63,7 @@ Rectangle {
     property bool compatibilityMode: false
     property string flipperPosition: "center"
     property bool showClear: true
-    property string clearMode: "slide"
+    property string clearMode: "slider"
     property bool showSpotlight: true
     property bool showBoardInBoard: true
     property bool showTimer: true
@@ -127,105 +127,7 @@ Rectangle {
     ]
 
     // Tool text map
-    function normalizeToolName(toolName) {
-        var tool = String(toolName || "")
-        if (tool === "endShow" || tool === "minimize" || tool === "exit") {
-            return "end"
-        }
-        if (tool === "board" || tool === "boardInBoard") {
-            return "board_in_board"
-        }
-        return tool
-    }
-
-    function toolDisabled(toolName) {
-        var original = String(toolName || "")
-        var tool = normalizeToolName(original)
-        if (tool === "end") {
-            return disabledTools.indexOf("end") >= 0
-                || disabledTools.indexOf("endShow") >= 0
-                || disabledTools.indexOf("minimize") >= 0
-                || disabledTools.indexOf("exit") >= 0
-        }
-        return disabledTools.indexOf(tool) >= 0 || disabledTools.indexOf(original) >= 0
-    }
-
-    function shouldRenderToolbarTool(toolName) {
-        var tool = normalizeToolName(toolName)
-        if (!tool || tool === "clear" || tool === "end") {
-            return false
-        }
-        if (tool === "separator") {
-            return true
-        }
-        if (toolDisabled(tool)) {
-            return false
-        }
-        if (compatibilityMode && (tool === "pen" || tool === "eraser")) {
-            return false
-        }
-        if (tool === "spotlight") {
-            return showSpotlight
-        }
-        if (tool === "board_in_board") {
-            return showBoardInBoard
-        }
-        if (tool === "timer") {
-            return showTimer
-        }
-        if (tool === "apps") {
-            return quickApps && quickApps.length > 0
-        }
-        return tool === "select" || tool === "pen" || tool === "eraser" || tool === "compatibility"
-    }
-
-    function triggerTool(toolName) {
-        var tool = normalizeToolName(toolName)
-        if (toolDisabled(tool)) {
-            return false
-        }
-
-        if (tool === "pen") {
-            if (currentTool === "pen") {
-                colorPickerVisible = !colorPickerVisible
-                eraserPopupVisible = false
-            } else {
-                if (bridge) bridge.setTool("pen")
-                currentTool = "pen"
-            }
-        } else if (tool === "eraser") {
-            if (currentTool === "eraser") {
-                eraserPopupVisible = !eraserPopupVisible
-                colorPickerVisible = false
-            } else {
-                if (bridge) bridge.setTool("eraser")
-                currentTool = "eraser"
-            }
-        } else if (tool === "select") {
-            if (bridge) bridge.setTool("select")
-            currentTool = "select"
-        } else if (tool === "clear") {
-            if (bridge) bridge.clearScreen()
-        } else if (tool === "spotlight") {
-            if (bridge) bridge.toggleSpotlight()
-        } else if (tool === "board_in_board") {
-            if (bridge) bridge.toggleBoard()
-        } else if (tool === "timer") {
-            if (bridge) bridge.toggleTimer()
-        } else if (tool === "end") {
-            if (bridge) bridge.endShow()
-        } else if (tool === "compatibility") {
-            compatibilityMode = !compatibilityMode
-        } else {
-            return false
-        }
-
-        scheduleMaskUpdate()
-        return true
-    }
-
     function getToolText(tool) {
-        tool = normalizeToolName(tool)
         var texts = {
             "select": "选择",
             "pen": "画笔",
@@ -243,7 +145,6 @@ Rectangle {
 
     // Get icon path for tool
     function getIconPath(toolName) {
-        toolName = normalizeToolName(toolName)
         var iconMap = {
             "select": "../../icons/Mouse.svg",
             "pen": "../../icons/Pen.svg",
@@ -257,74 +158,8 @@ Rectangle {
             "previous": "../../icons/Previous.svg",
             "next": "../../icons/Next.svg"
         }
-        return Qt.resolvedUrl(iconMap[toolName] || "../../icons/More.svg")
+        return iconMap[toolName] || ""
     }
-
-    function canGoPrevious() {
-        return disabledTools.indexOf("prev") < 0 && (compatibilityMode || currentPage > 1)
-    }
-
-    function canGoNext() {
-        return disabledTools.indexOf("next") < 0 && (compatibilityMode || currentPage < totalPage)
-    }
-
-    function itemMaskRect(item, role, fillHeight) {
-        if (!item || !item.visible || item.opacity <= 0.01 || item.width <= 0 || item.height <= 0) {
-            return null
-        }
-        var point = item.mapToItem(root, 0, 0)
-        return {
-            x: point.x,
-            y: fillHeight ? 0 : point.y,
-            width: item.width,
-            height: fillHeight ? root.height : item.height,
-            role: role || ""
-        }
-    }
-
-    function pageSelectorMaskRect() {
-        var selectorWidth = 260 * uiScale
-        return {
-            x: pageSelectorLeftSide ? 16 * uiScale : root.width - selectorWidth - 16 * uiScale,
-            y: 0,
-            width: selectorWidth,
-            height: root.height,
-            role: "page-selector"
-        }
-    }
-
-    function scheduleMaskUpdate() {
-        updateMask()
-        maskRefreshTimer.restart()
-        if (!disableAnimations) {
-            maskFallbackTimer.restart()
-        }
-    }
-
-    Timer {
-        id: maskRefreshTimer
-        interval: 16
-        repeat: false
-        onTriggered: updateMask()
-    }
-
-    Timer {
-        id: maskFallbackTimer
-        interval: 420
-        repeat: false
-        onTriggered: updateMask()
-    }
-
-    onPageSelectorVisibleChanged: scheduleMaskUpdate()
-    onPageSelectorLeftSideChanged: {
-        if (pageSelectorVisible) {
-            scheduleMaskUpdate()
-        }
-    }
-    onColorPickerVisibleChanged: scheduleMaskUpdate()
-    onEraserPopupVisibleChanged: scheduleMaskUpdate()
-    onInkPromptVisibleChanged: scheduleMaskUpdate()
-    onToolbarCollapsedChanged: scheduleMaskUpdate()
 
     // Signal connections
     Connections {
@@ -346,7 +181,7 @@ Rectangle {
             compatibilityMode = config.compatibilityMode !== undefined ? config.compatibilityMode : false
             flipperPosition = config.flipperPosition || "center"
             showClear = config.showClear !== undefined ? config.showClear : true
-            clearMode = config.clearMode || "slide"
+            clearMode = config.clearMode || "slider"
             showSpotlight = config.showSpotlight !== undefined ? config.showSpotlight : true
             showBoardInBoard = config.showBoardInBoard !== undefined ? config.showBoardInBoard : true
             showTimer = config.showTimer !== undefined ? config.showTimer : true
@@ -443,23 +278,77 @@ Rectangle {
     function updateMask() {
         var rects = []
 
-        var items = [
-            [statusBar, "status-bar", false],
-            [leftFlipper, "flipper", false],
-            [rightFlipper, "flipper", false],
-            [toolbarCollapsed ? toolbarHandle : toolbar, "toolbar", false],
-            [colorPicker, "popup", false],
-            [eraserPopup, "popup", false],
-            [inkPrompt, "popup", false]
-        ]
-        if (pageSelectorVisible) {
-            rects.push(pageSelectorMaskRect())
+        // Status bar
+        if (showStatusBar && statusBar.visible) {
+            rects.push({
+                x: statusBar.x,
+                y: statusBar.y,
+                width: statusBar.width,
+                height: statusBar.height,
+                role: "status-bar"
+            })
         }
-        for (var i = 0; i < items.length; i++) {
-            var rect = itemMaskRect(items[i][0], items[i][1], items[i][2])
-            if (rect) {
-                rects.push(rect)
-            }
+
+        // Flippers
+        if (leftFlipper.visible) {
+            rects.push({
+                x: leftFlipper.x,
+                y: leftFlipper.y,
+                width: leftFlipper.width,
+                height: leftFlipper.height,
+                role: "flipper"
+            })
+        }
+        if (rightFlipper.visible) {
+            rects.push({
+                x: rightFlipper.x,
+                y: rightFlipper.y,
+                width: rightFlipper.width,
+                height: rightFlipper.height,
+                role: "flipper"
+            })
+        }
+
+        // Toolbar
+        if (toolbarContainer.visible && toolbar.visible) {
+            rects.push({
+                x: toolbarContainer.x + toolbar.x,
+                y: toolbarContainer.y + toolbar.y,
+                width: toolbar.width,
+                height: toolbar.height,
+                role: "toolbar"
+            })
+        }
+
+        // Page selector
+        if (pageSelectorVisible) {
+            rects.push({
+                x: pageSelector.x,
+                y: pageSelector.y,
+                width: pageSelector.width,
+                height: pageSelector.height,
+                role: "page-selector"
+            })
+        }
+
+        // Popups
+        if (colorPickerVisible) {
+            rects.push({
+                x: colorPicker.x,
+                y: colorPicker.y,
+                width: colorPicker.width,
+                height: colorPicker.height,
+                role: "popup"
+            })
+        }
+        if (eraserPopupVisible) {
+            rects.push({
+                x: eraserPopup.x,
+                y: eraserPopup.y,
+                width: eraserPopup.width,
+                height: eraserPopup.height,
+                role: "popup"
+            })
         }
 
         if (bridge) {
@@ -471,13 +360,13 @@ Rectangle {
     MouseArea {
         anchors.fill: parent
         enabled: colorPickerVisible || eraserPopupVisible || pageSelectorVisible
-        z: 80
         onClicked: {
             colorPickerVisible = false
             eraserPopupVisible = false
             pageSelectorVisible = false
-            scheduleMaskUpdate()
+            updateMask()
         }
+        z: 50
     }
 
     // ==================== Status Bar ====================
@@ -625,7 +514,7 @@ Rectangle {
         // ==================== Left Flipper ====================
         Rectangle {
             id: leftFlipper
-            visible: flipperPosition !== "hidden" && !(pageSelectorVisible && pageSelectorLeftSide)
+            visible: flipperPosition !== "hidden"
             width: flipperPosition === "bottom" ? 160 * uiScale : 54 * uiScale
             height: flipperPosition === "bottom" ? 54 * uiScale : 160 * uiScale
             color: applyOpacityToColor(pageBg, sidePageOpacity)
@@ -665,7 +554,6 @@ Rectangle {
                         anchors.fill: leftFlipperPrevIcon
                         source: leftFlipperPrevIcon
                         color: pageFg
-                        rotation: 90
                     }
 
                     MouseArea {
@@ -673,7 +561,7 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         onClicked: {
-                            if (canGoPrevious() && bridge) {
+                            if (currentPage > 1 && bridge) {
                                 bridge.prevPage()
                             }
                         }
@@ -716,7 +604,7 @@ Rectangle {
                             if (pageSelectorVisible && bridge) {
                                 bridge.startBackgroundThumbnailCaching(totalPage)
                             }
-                            scheduleMaskUpdate()
+                            updateMask()
                         }
                     }
                 }
@@ -741,7 +629,6 @@ Rectangle {
                         anchors.fill: leftFlipperNextIcon
                         source: leftFlipperNextIcon
                         color: pageFg
-                        rotation: 90
                     }
 
                     MouseArea {
@@ -749,7 +636,7 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         onClicked: {
-                            if (canGoNext() && bridge) {
+                            if (currentPage < totalPage && bridge) {
                                 bridge.nextPage()
                             }
                         }
@@ -789,7 +676,7 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         onClicked: {
-                            if (canGoPrevious() && bridge) {
+                            if (currentPage > 1 && bridge) {
                                 bridge.prevPage()
                             }
                         }
@@ -827,7 +714,7 @@ Rectangle {
                             if (pageSelectorVisible && bridge) {
                                 bridge.startBackgroundThumbnailCaching(totalPage)
                             }
-                            scheduleMaskUpdate()
+                            updateMask()
                         }
                     }
                 }
@@ -858,7 +745,7 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         onClicked: {
-                            if (canGoNext() && bridge) {
+                            if (currentPage < totalPage && bridge) {
                                 bridge.nextPage()
                             }
                         }
@@ -870,7 +757,7 @@ Rectangle {
         // ==================== Right Flipper ====================
         Rectangle {
             id: rightFlipper
-            visible: flipperPosition !== "hidden" && !(pageSelectorVisible && !pageSelectorLeftSide)
+            visible: flipperPosition !== "hidden"
             width: flipperPosition === "bottom" ? 160 * uiScale : 54 * uiScale
             height: flipperPosition === "bottom" ? 54 * uiScale : 160 * uiScale
             color: applyOpacityToColor(pageBg, sidePageOpacity)
@@ -910,7 +797,6 @@ Rectangle {
                         anchors.fill: rightFlipperPrevIcon
                         source: rightFlipperPrevIcon
                         color: pageFg
-                        rotation: 90
                     }
 
                     MouseArea {
@@ -918,7 +804,7 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         onClicked: {
-                            if (canGoPrevious() && bridge) {
+                            if (currentPage > 1 && bridge) {
                                 bridge.prevPage()
                             }
                         }
@@ -961,7 +847,7 @@ Rectangle {
                             if (pageSelectorVisible && bridge) {
                                 bridge.startBackgroundThumbnailCaching(totalPage)
                             }
-                            scheduleMaskUpdate()
+                            updateMask()
                         }
                     }
                 }
@@ -986,7 +872,6 @@ Rectangle {
                         anchors.fill: rightFlipperNextIcon
                         source: rightFlipperNextIcon
                         color: pageFg
-                        rotation: 90
                     }
 
                     MouseArea {
@@ -994,7 +879,7 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         onClicked: {
-                            if (canGoNext() && bridge) {
+                            if (currentPage < totalPage && bridge) {
                                 bridge.nextPage()
                             }
                         }
@@ -1034,7 +919,7 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         onClicked: {
-                            if (canGoPrevious() && bridge) {
+                            if (currentPage > 1 && bridge) {
                                 bridge.prevPage()
                             }
                         }
@@ -1072,7 +957,7 @@ Rectangle {
                             if (pageSelectorVisible && bridge) {
                                 bridge.startBackgroundThumbnailCaching(totalPage)
                             }
-                            scheduleMaskUpdate()
+                            updateMask()
                         }
                     }
                 }
@@ -1103,7 +988,7 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         onClicked: {
-                            if (canGoNext() && bridge) {
+                            if (currentPage < totalPage && bridge) {
                                 bridge.nextPage()
                             }
                         }
@@ -1243,30 +1128,17 @@ Rectangle {
 
                     delegate: Loader {
                         sourceComponent: {
-                            var tool = normalizeToolName(modelData)
-                            if (!shouldRenderToolbarTool(tool)) return null
+                            var tool = modelData
                             if (tool === "separator") return separatorComponent
-                            if (tool === "apps") return appButtonsComponent
+                            if (disabledTools.indexOf(tool) >= 0) return null
                             return toolButtonComponent
                         }
 
                         onLoaded: {
                             if (sourceComponent === toolButtonComponent) {
-                                item.toolName = normalizeToolName(modelData)
+                                item.toolName = modelData
                             }
                         }
-                    }
-                }
-
-                Loader {
-                    sourceComponent: separatorComponent
-                }
-
-                Loader {
-                    sourceComponent: toolButtonComponent
-
-                    onLoaded: {
-                        item.toolName = "end"
                     }
                 }
             }
@@ -1281,13 +1153,11 @@ Rectangle {
             id: toolBtn
             property string toolName: ""
             property bool isActive: currentTool === toolName
-            property bool isDanger: toolName === "end"
-            property bool isDisabled: toolDisabled(toolName)
+            property bool isDanger: toolName === "end" || toolName === "clear"
 
             width: 38 * uiScale
             height: 38 * uiScale
             radius: 19 * uiScale
-            opacity: isDisabled ? 0.5 : 1.0
             color: isActive ? buttonActive : (toolBtnMouse.pressed ? buttonActive : (toolBtnMouse.containsMouse ? buttonHover : "transparent"))
 
             // Icon image with ColorOverlay
@@ -1320,80 +1190,43 @@ Rectangle {
             MouseArea {
                 id: toolBtnMouse
                 anchors.fill: parent
-                enabled: !toolBtn.isDisabled
                 hoverEnabled: true
-                onClicked: triggerTool(toolName)
-            }
-        }
-    }
-
-    // Quick-launch app buttons
-    Component {
-        id: appButtonsComponent
-
-        Row {
-            spacing: 4 * uiScale
-
-            Repeater {
-                model: quickApps
-
-                delegate: Rectangle {
-                    id: appBtn
-                    property var appData: modelData
-                    property bool hasIcon: appData && appData.icon
-
-                    width: 38 * uiScale
-                    height: 38 * uiScale
-                    radius: 19 * uiScale
-                    color: appMouse.pressed ? buttonActive : (appMouse.containsMouse ? buttonHover : "transparent")
-
-                    Image {
-                        id: appIcon
-                        anchors.centerIn: parent
-                        width: 22 * uiScale
-                        height: 22 * uiScale
-                        source: hasIcon ? appData.icon : ""
-                        fillMode: Image.PreserveAspectFit
-                        visible: hasIcon
-                    }
-
-                    Image {
-                        id: appFallbackIcon
-                        anchors.centerIn: parent
-                        width: 20 * uiScale
-                        height: 20 * uiScale
-                        source: getIconPath("apps")
-                        visible: false
-                    }
-
-                    ColorOverlay {
-                        anchors.fill: appFallbackIcon
-                        source: appFallbackIcon
-                        color: toolbarFg
-                        visible: !appBtn.hasIcon
-                    }
-
-                    Text {
-                        visible: showToolbarText && appMouse.containsMouse
-                        text: appData && appData.name ? appData.name : "应用"
-                        anchors.top: parent.bottom
-                        anchors.topMargin: 4 * uiScale
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        font.pixelSize: 10 * uiScale
-                        color: textSecondary
-                    }
-
-                    MouseArea {
-                        id: appMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: {
-                            if (bridge && appData && appData.path) {
-                                bridge.launchApp(appData.path)
-                            }
-                            scheduleMaskUpdate()
+                onClicked: {
+                    if (toolName === "pen") {
+                        if (isActive) {
+                            colorPickerVisible = !colorPickerVisible
+                            eraserPopupVisible = false
+                        } else {
+                            if (bridge) bridge.setTool("pen")
+                            currentTool = "pen"
                         }
+                    } else if (toolName === "eraser") {
+                        if (isActive) {
+                            eraserPopupVisible = !eraserPopupVisible
+                            colorPickerVisible = false
+                        } else {
+                            if (bridge) bridge.setTool("eraser")
+                            currentTool = "eraser"
+                        }
+                    } else if (toolName === "select") {
+                        if (bridge) bridge.setTool("select")
+                        currentTool = "select"
+                    } else if (toolName === "clear") {
+                        if (bridge) bridge.clearScreen()
+                    } else if (toolName === "spotlight") {
+                        if (bridge) bridge.toggleSpotlight()
+                    } else if (toolName === "board_in_board") {
+                        if (bridge) bridge.toggleBoard()
+                    } else if (toolName === "timer") {
+                        if (bridge) bridge.toggleTimer()
+                    } else if (toolName === "end") {
+                        if (bridge) bridge.endShow()
+                    } else if (toolName === "apps") {
+                        // Show apps menu
+                    } else if (toolName === "compatibility") {
+                        // Toggle compatibility mode
                     }
+                    updateMask()
                 }
             }
         }
@@ -1415,7 +1248,6 @@ Rectangle {
     Rectangle {
         id: pageSelector
         visible: pageSelectorVisible
-        z: 100
         width: 260 * uiScale
         anchors.top: parent.top
         anchors.topMargin: 24 * uiScale
@@ -1518,7 +1350,7 @@ Rectangle {
                             onClicked: {
                                 if (bridge) bridge.gotoSlide(index + 1)
                                 pageSelectorVisible = false
-                                scheduleMaskUpdate()
+                                updateMask()
                             }
                         }
                     }
@@ -1540,7 +1372,6 @@ Rectangle {
     Rectangle {
         id: colorPicker
         visible: colorPickerVisible
-        z: 100
         width: 320 * uiScale
         height: colorPickerContent.implicitHeight + 32 * uiScale
         x: (parent.width - width) / 2
@@ -1642,7 +1473,7 @@ Rectangle {
                             onClicked: {
                                 if (bridge) bridge.setPenColor(modelData.r, modelData.g, modelData.b)
                                 colorPickerVisible = false
-                                scheduleMaskUpdate()
+                                updateMask()
                             }
                         }
                     }
@@ -1688,7 +1519,6 @@ Rectangle {
     Rectangle {
         id: eraserPopup
         visible: eraserPopupVisible
-        z: 100
         width: 232 * uiScale
         height: eraserContent.implicitHeight + 32 * uiScale
         x: (parent.width - width) / 2
@@ -1709,9 +1539,9 @@ Rectangle {
             anchors.margins: 16 * uiScale
             spacing: 12 * uiScale
 
-            // Slider container (for slide mode)
+            // Slider container (for slider mode)
             Rectangle {
-                visible: clearMode !== "button"
+                visible: clearMode === "slider"
                 width: 200 * uiScale
                 height: 44 * uiScale
                 color: controlBg
@@ -1792,7 +1622,7 @@ Rectangle {
                     onClicked: {
                         if (bridge) bridge.clearScreen()
                         eraserPopupVisible = false
-                        scheduleMaskUpdate()
+                        updateMask()
                     }
                 }
             }
@@ -1803,7 +1633,6 @@ Rectangle {
     Rectangle {
         id: inkPrompt
         visible: inkPromptVisible
-        z: 200
         anchors.fill: parent
         color: dialogMask
 

@@ -1,6 +1,7 @@
 import importlib
 import json
 import os
+import re
 import threading
 
 import psutil
@@ -23,6 +24,79 @@ def _thumbnail_source_to_url(source):
     if text.lower().startswith(("data:", "file:", "http://", "https://", "blob:")):
         return text
     return QUrl.fromLocalFile(text).toString()
+
+
+_CSS_RGB_RE = re.compile(r"^rgba?\((.*)\)$", re.IGNORECASE)
+
+
+def _parse_css_channel(value) -> int | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        if text.endswith("%"):
+            number = float(text[:-1])
+            return max(0, min(255, int(round(number * 2.55))))
+        number = float(text)
+        return max(0, min(255, int(round(number))))
+    except Exception:
+        return None
+
+
+def _parse_css_alpha(value) -> int | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        if text.endswith("%"):
+            alpha = float(text[:-1]) / 100.0
+        else:
+            alpha = float(text)
+        return max(0, min(255, int(round(alpha * 255))))
+    except Exception:
+        return None
+
+
+def _qml_color(value, fallback: str = "#000000") -> str:
+    """Return a color string that Qt/QML accepts reliably.
+
+    QColor does not parse CSS rgba(...) strings in the PySide versions used by
+    this project, and invalid QML colors visually fall back to opaque black.
+    """
+    text = str(value or "").strip()
+    match = _CSS_RGB_RE.match(text)
+    if match:
+        inner = match.group(1).strip()
+        alpha_part = None
+        if "/" in inner:
+            inner, alpha_part = inner.rsplit("/", 1)
+            parts = [p for p in re.split(r"[\s,]+", inner.strip()) if p]
+        else:
+            parts = [p.strip() for p in inner.split(",")]
+            if len(parts) == 1:
+                parts = [p for p in re.split(r"\s+", inner) if p]
+            if len(parts) >= 4:
+                alpha_part = parts[3]
+                parts = parts[:3]
+        if len(parts) >= 3:
+            channels = [_parse_css_channel(part) for part in parts[:3]]
+            alpha = _parse_css_alpha(alpha_part) if alpha_part is not None else 255
+            if all(channel is not None for channel in channels) and alpha is not None:
+                red, green, blue = channels
+                if alpha >= 255:
+                    return f"#{red:02X}{green:02X}{blue:02X}"
+                return f"#{alpha:02X}{red:02X}{green:02X}{blue:02X}"
+
+    color = QColor(text)
+    if color.isValid():
+        if color.alpha() >= 255:
+            return color.name(QColor.HexRgb).upper()
+        return color.name(QColor.HexArgb).upper()
+
+    fallback_text = str(fallback or "").strip()
+    if fallback_text and fallback_text != text:
+        return _qml_color(fallback_text, "#000000")
+    return "#000000"
 
 
 def _normalize_theme_mode(raw_theme) -> str:
@@ -90,6 +164,64 @@ def _dialog_palette(theme_id: str, theme_mode: str, accent: str) -> dict:
                 }
             )
     return palette
+
+
+def _web_default_overlay_palette(theme_mode: str) -> dict:
+    if theme_mode == "dark":
+        return {
+            "accent": "#4A85F6",
+            "toolbar_bg": "rgba(40, 40, 40, 0.95)",
+            "toolbar_border": "rgba(255, 255, 255, 0.15)",
+            "toolbar_line": "rgba(255, 255, 255, 0.15)",
+            "toolbar_fg": "#FFFFFF",
+            "btn_hover_bg": "rgba(255, 255, 255, 0.1)",
+            "btn_active_bg": "rgba(255, 255, 255, 0.2)",
+            "status_bg": "rgba(0, 0, 0, 0.85)",
+            "status_fg": "#FFFFFF",
+            "status_sep": "rgba(255, 255, 255, 0.2)",
+            "pageflip_bg": "rgba(40, 40, 40, 0.95)",
+            "pageflip_border": "rgba(255, 255, 255, 0.15)",
+            "pageflip_fg": "#FFFFFF",
+            "pageflip_hint": "rgba(255, 255, 255, 0.6)",
+            "pageflip_hover": "rgba(255, 255, 255, 0.1)",
+            "popup_bg": "rgba(30, 30, 30, 0.98)",
+            "popup_border": "rgba(255, 255, 255, 0.1)",
+            "popup_fg": "#FFFFFF",
+            "control_bg": "rgba(255, 255, 255, 0.1)",
+            "control_hover": "rgba(255, 255, 255, 0.15)",
+            "control_active": "rgba(255, 255, 255, 0.2)",
+            "text_primary": "#FFFFFF",
+            "text_secondary": "rgba(255, 255, 255, 0.6)",
+            "thumb_bg": "#FFFFFF",
+            "thumb_icon": "#000000",
+        }
+    return {
+        "accent": "#3275F5",
+        "toolbar_bg": "rgba(255, 255, 255, 0.95)",
+        "toolbar_border": "rgba(0, 0, 0, 0.08)",
+        "toolbar_line": "rgba(0, 0, 0, 0.15)",
+        "toolbar_fg": "#333333",
+        "btn_hover_bg": "rgba(0, 0, 0, 0.06)",
+        "btn_active_bg": "rgba(0, 0, 0, 0.12)",
+        "status_bg": "rgba(255, 255, 255, 0.98)",
+        "status_fg": "#333333",
+        "status_sep": "rgba(0, 0, 0, 0.1)",
+        "pageflip_bg": "rgba(255, 255, 255, 0.95)",
+        "pageflip_border": "rgba(0, 0, 0, 0.08)",
+        "pageflip_fg": "#333333",
+        "pageflip_hint": "rgba(0, 0, 0, 0.5)",
+        "pageflip_hover": "rgba(0, 0, 0, 0.06)",
+        "popup_bg": "rgba(255, 255, 255, 0.98)",
+        "popup_border": "rgba(0, 0, 0, 0.08)",
+        "popup_fg": "#333333",
+        "control_bg": "rgba(0, 0, 0, 0.06)",
+        "control_hover": "rgba(0, 0, 0, 0.1)",
+        "control_active": "rgba(0, 0, 0, 0.15)",
+        "text_primary": "#333333",
+        "text_secondary": "rgba(0, 0, 0, 0.6)",
+        "thumb_bg": "#FFFFFF",
+        "thumb_icon": "#333333",
+    }
 
 
 def _tool_text_map() -> dict:
@@ -333,6 +465,7 @@ class LinuxQmlOverlayWindow(QWidget):
             self._view.setClearColor(QColor(0, 0, 0, 0))
             self._view.setAttribute(Qt.WA_AlwaysStackOnTop, True)
             self._view.rootContext().setContextProperty("overlayBridge", self._bridge)
+            self._view.rootContext().setContextProperty("bridge", self._bridge)
             self._view.setGeometry(self.rect())
 
             qml_path = os.path.join(
@@ -431,53 +564,57 @@ class LinuxQmlOverlayWindow(QWidget):
         theme_id = str(cfg.themeId.value or "default")
         theme_mode = _normalize_theme_mode(cfg.themeMode.value)
         palette = _get_theme_palette(theme_id, theme_mode)
-        accent = str(themeColor().name() or palette.get("accent", "#3275F5"))
+        web_palette = _web_default_overlay_palette(theme_mode)
+        if theme_id != "default":
+            web_palette.update(palette)
+
+        accent = str(themeColor().name() or web_palette.get("accent", "#3275F5"))
+        if theme_id != "default":
+            accent = str(web_palette.get("accent") or accent)
         dialog = _dialog_palette(theme_id, theme_mode, accent)
+
+        def color(key: str, fallback: str) -> str:
+            return _qml_color(web_palette.get(key, fallback), fallback)
 
         return {
             "themeId": theme_id,
             "themeMode": theme_mode,
             "darkMode": theme_mode == "dark",
-            "accentColor": accent,
-            "toolbarBg": palette.get("toolbar_bg", "#FFFFFF"),
-            "toolbarBorder": palette.get("toolbar_border", "rgba(0, 0, 0, 0.08)"),
-            "toolbarFg": palette.get("toolbar_fg", "#191919"),
-            "toolbarShadow": palette.get("toolbar_shadow", "rgba(0, 0, 0, 0.15)"),
-            "toolbarLine": palette.get("toolbar_line", "rgba(0, 0, 0, 0.08)"),
-            "statusBg": palette.get("status_bg", "rgba(0, 0, 0, 0.25)"),
-            "statusFg": palette.get("status_fg", "#FFFFFF"),
-            "statusSep": palette.get("status_sep", "rgba(255, 255, 255, 0.3)"),
-            "pageBg": palette.get("pageflip_bg", palette.get("toolbar_bg", "#FFFFFF")),
-            "pageBorder": palette.get(
-                "pageflip_border", palette.get("toolbar_border", "rgba(0, 0, 0, 0.08)")
+            "accentColor": _qml_color(accent, "#3275F5"),
+            "toolbarBg": color("toolbar_bg", "#FFFFFF"),
+            "toolbarBorder": color("toolbar_border", "rgba(0, 0, 0, 0.08)"),
+            "toolbarFg": color("toolbar_fg", "#333333"),
+            "toolbarShadow": color("toolbar_shadow", "rgba(0, 0, 0, 0.15)"),
+            "toolbarLine": color("toolbar_line", "rgba(0, 0, 0, 0.08)"),
+            "statusBg": color("status_bg", "rgba(255, 255, 255, 0.98)"),
+            "statusFg": color("status_fg", "#333333"),
+            "statusSep": color("status_sep", "rgba(0, 0, 0, 0.1)"),
+            "pageBg": color("pageflip_bg", color("toolbar_bg", "#FFFFFF")),
+            "pageBorder": color(
+                "pageflip_border", color("toolbar_border", "#14000000")
             ),
-            "pageFg": palette.get("pageflip_fg", palette.get("toolbar_fg", "#191919")),
-            "pageHint": palette.get("pageflip_hint", "rgba(0, 0, 0, 0.5)"),
-            "pageHover": palette.get(
-                "pageflip_hover", palette.get("item_hover", "rgba(0, 0, 0, 0.05)")
+            "pageFg": color("pageflip_fg", color("toolbar_fg", "#333333")),
+            "pageHint": color("pageflip_hint", "rgba(0, 0, 0, 0.5)"),
+            "pageHover": color("pageflip_hover", color("btn_hover_bg", "#0F000000")),
+            "pageShadow": color("pageflip_shadow", "rgba(0, 0, 0, 0.15)"),
+            "popupBg": color("popup_bg", color("toolbar_bg", "#FFFFFF")),
+            "popupBorder": color("popup_border", color("toolbar_border", "#14000000")),
+            "popupFg": color("popup_fg", color("toolbar_fg", "#333333")),
+            "buttonHover": color("btn_hover_bg", "rgba(0, 0, 0, 0.06)"),
+            "buttonActive": color("btn_active_bg", "rgba(0, 0, 0, 0.12)"),
+            "cardBg": color("card_bg", "rgba(0, 0, 0, 0.03)"),
+            "cardBorder": color("card_border", "rgba(0, 0, 0, 0.02)"),
+            "itemHover": color("item_hover", "rgba(0, 0, 0, 0.05)"),
+            "controlBg": color("control_bg", color("btn_hover_bg", "#0F000000")),
+            "controlHover": color("control_hover", color("btn_hover_bg", "#1A000000")),
+            "controlActive": color(
+                "control_active", color("btn_active_bg", "#26000000")
             ),
-            "pageShadow": palette.get(
-                "pageflip_shadow", palette.get("toolbar_shadow", "rgba(0, 0, 0, 0.15)")
-            ),
-            "popupBg": palette.get("popup_bg", palette.get("toolbar_bg", "#FFFFFF")),
-            "popupBorder": palette.get(
-                "popup_border", palette.get("toolbar_border", "rgba(0, 0, 0, 0.12)")
-            ),
-            "popupFg": palette.get("popup_fg", palette.get("toolbar_fg", "#191919")),
-            "buttonHover": palette.get(
-                "btn_hover_bg", palette.get("item_hover", "rgba(0, 0, 0, 0.05)")
-            ),
-            "buttonActive": palette.get("btn_active_bg", "rgba(0, 0, 0, 0.12)"),
-            "cardBg": palette.get("card_bg", "rgba(0, 0, 0, 0.03)"),
-            "cardBorder": palette.get("card_border", "rgba(0, 0, 0, 0.02)"),
-            "itemHover": palette.get("item_hover", "rgba(0, 0, 0, 0.05)"),
-            # Additional properties for QML overlay (control colors, thumb colors, etc.)
-            "controlBg": palette.get("btn_hover_bg", "rgba(0, 0, 0, 0.06)"),
-            "controlHover": palette.get("btn_hover_bg", "rgba(0, 0, 0, 0.1)"),
-            "controlActive": palette.get("btn_active_bg", "rgba(0, 0, 0, 0.15)"),
-            "thumbBg": "#FFFFFF",
-            "thumbIcon": palette.get("toolbar_fg", "#333333"),
-            **dialog,
+            "textPrimary": color("text_primary", color("toolbar_fg", "#333333")),
+            "textSecondary": color("text_secondary", "rgba(0, 0, 0, 0.6)"),
+            "thumbBg": color("thumb_bg", "#FFFFFF"),
+            "thumbIcon": color("thumb_icon", color("toolbar_fg", "#333333")),
+            **{key: _qml_color(value, "#000000") for key, value in dialog.items()},
         }
 
     def _build_config_payload(self) -> dict:
