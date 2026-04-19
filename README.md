@@ -1,4 +1,7 @@
-<img width="4628" height="2512" alt="web 1367 1" src="https://github.com/user-attachments/assets/1bf7399c-156d-44e5-b907-52572ca95343" />
+<img width="4628" height="2512" alt="1" src="https://github.com/user-attachments/assets/80194ad8-eb04-4cc0-b4f1-deedd45f15d4" />
+
+
+
 
 
     
@@ -45,6 +48,7 @@ Luminalium 是一款专为触摸屏设计的 PowerPoint 演示辅助工具，旨
 |操作系统|演示软件|
 |-|-|
 |Windows 10 Version 1809 及更高版本|Microsoft Office 2010 及更高版本或 WPS 2019 及更高版本|
+|Linux general, X11 或 Wayland 皆可|WPS Office for Linux 11.x 及更高版本|
 
 ---
 
