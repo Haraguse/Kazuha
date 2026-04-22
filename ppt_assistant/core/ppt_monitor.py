@@ -1154,7 +1154,30 @@ class PPTWorker(QObject):
             return self.wps_app
         if self._active_kind == "yozo" and self.yozo_app:
             return self.yozo_app
-        # Fallback
+        # If _active_kind is None but we have cached apps, try to use them
+        # This happens when user cancels the exit and returns to slideshow
+        if self._active_kind is None:
+            # Try to get active app from COM
+            if win32com:
+                try:
+                    ppt = win32com.client.GetActiveObject("PowerPoint.Application")
+                    if ppt:
+                        return ppt
+                except Exception:
+                    pass
+                try:
+                    wps = win32com.client.GetActiveObject("Kwpp.Application")
+                    if wps:
+                        return wps
+                except Exception:
+                    pass
+                try:
+                    yozo = win32com.client.GetActiveObject("YozoPG.Application")
+                    if yozo:
+                        return yozo
+                except Exception:
+                    pass
+        # Fallback to cached apps
         if self.ppt_app:
             return self.ppt_app
         if self.wps_app:
@@ -2356,13 +2379,6 @@ class PPTMonitor(QObject):
             print("[Monitor] No pending ink prompt, returning", flush=True)
             return
         self._pending_ink_prompt = False
-        if keep == 'cancel':
-            # Abort the exit process and return to the slideshow
-            print("[Monitor] User cancelled, returning to slideshow", flush=True)
-            # The slideshow is still running, but _handle_stop may have been called
-            # The _check_ppt_state method in PPTWorker will automatically re-detect
-            # the slideshow on its next timer tick, so we don't need to do anything here
-            return
         print(f"[Monitor] Emitting _req_end_with_ink with keep={keep}", flush=True)
         self._req_end_with_ink.emit(bool(keep))
 

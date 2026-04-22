@@ -1153,17 +1153,6 @@
             margin-top: 4px;
         }
 
-        .ink-btn.cancel {
-            background: transparent;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        .ink-btn.cancel:hover {
-            background: var(--overlay-button-hover);
-            color: var(--text-primary);
-        }
-
         .ink-btn {
             border: 0;
             border-radius: 10px;
@@ -2018,6 +2007,22 @@
 
     </style>
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script>
+        // Patch to suppress WebChannel callback errors
+        // These errors occur when callbacks are lost due to page reloads or channel resets
+        (function() {
+            const originalConsoleError = console.error;
+            console.error = function(...args) {
+                // Filter out the specific WebChannel callback error
+                if (args.length > 0 && typeof args[0] === 'string' && 
+                    args[0].includes('execCallbacks') && args[0].includes('is not a function')) {
+                    // Silently ignore this error
+                    return;
+                }
+                originalConsoleError.apply(console, args);
+            };
+        })();
+    </script>
 </head>
 <body>
     <div id="status-bar" class="interactive">
@@ -2157,8 +2162,6 @@
             <div class="ink-title">是否保留墨迹注释？</div>
             <div class="ink-text">检测到放映期间添加了墨迹注释，是否保留到幻灯片中？</div>
             <div class="ink-actions">
-                <button class="ink-btn cancel" onclick="onInkPrompt('cancel')">返回放映</button>
-                <div style="flex: 1"></div>
                 <button class="ink-btn" onclick="onInkPrompt(false)">不保留</button>
                 <button class="ink-btn confirm" onclick="onInkPrompt(true)">保留</button>
             </div>
@@ -2802,7 +2805,12 @@
                 endBtn.classList.add('disabled');
             }
             
-            endBtn.onclick = function() { bridge.endShow(); };
+            endBtn.onclick = function() { 
+                console.log('[Overlay] End button clicked, bridge.endShow() will be called');
+                console.log('[Overlay] bridge object:', bridge);
+                console.log('[Overlay] bridge.endShow type:', typeof bridge.endShow);
+                bridge.endShow(); 
+            };
             
             let endIcon = document.createElement('div');
             endIcon.className = 'icon-mask icon-minimize';

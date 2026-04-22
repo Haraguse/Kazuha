@@ -170,6 +170,7 @@ class OverlayBridge(QObject):
 
     @Slot()
     def endShow(self):
+        print("[Bridge] endShow() called, emitting request_end", flush=True)
         self._overlay.request_end.emit()
 
     @Slot(str)
@@ -178,12 +179,11 @@ class OverlayBridge(QObject):
         QTimer.singleShot(0, lambda: self._emit_ink_prompt_result(result))
 
     def _emit_ink_prompt_result(self, result):
+        # Convert string result to boolean
         if result == "true":
             self._overlay.ink_prompt_result.emit(True)
-        elif result == "false":
-            self._overlay.ink_prompt_result.emit(False)
         else:
-            self._overlay.ink_prompt_result.emit(result)
+            self._overlay.ink_prompt_result.emit(False)
 
     @Slot()
     def toggleSpotlight(self):
@@ -263,7 +263,7 @@ class OverlayBridge(QObject):
 
 class InkPromptWindow(QWidget):
     """Independent QFluentWidgets-based dialog for ink annotation prompt."""
-    result = Signal(object)  # Can be True, False, or 'cancel'
+    result = Signal(bool)  # True (keep) or False (discard)
 
     def __init__(self, texts, parent=None):
         super().__init__(parent)
@@ -282,37 +282,23 @@ class InkPromptWindow(QWidget):
         self._dialog = self._create_dialog(texts)
         
     def _create_dialog(self, texts):
-        """Create a dialog with three buttons using qfluentwidgets Dialog."""
+        """Create a standard dialog with two buttons using qfluentwidgets Dialog."""
         from qfluentwidgets import Dialog
         
         # Create dialog with title and content
         dialog = Dialog(texts["title"], texts["text"], self)
         
-        # Set button texts: yes = 保留, cancel = 不保留
+        # Set button text
         dialog.yesButton.setText(texts.get("keep", "保留"))
         dialog.cancelButton.setText(texts.get("discard", "不保留"))
+        
+        # Connect buttons - yesButton emits True, cancelButton emits False
+        dialog.yesButton.clicked.connect(lambda: self._on_result(True))
+        dialog.cancelButton.clicked.connect(lambda: self._on_result(False))
         
         # Hide the mask widget (we have our own background)
         if hasattr(dialog, "maskWidget"):
             dialog.maskWidget.hide()
-        
-        # Connect signals
-        dialog.yesSignal.connect(lambda: self._on_result(True))
-        dialog.cancelSignal.connect(lambda: self._on_result(False))
-        
-        # Add a third button for "返回放映" (cancel the exit)
-        # We'll add it to the button layout
-        from qfluentwidgets import PushButton
-        from PySide6.QtWidgets import QHBoxLayout
-        
-        self._cancel_btn = PushButton(texts.get("cancel", "返回放映"))
-        self._cancel_btn.setFixedWidth(100)
-        self._cancel_btn.clicked.connect(lambda: self._on_result('cancel'))
-        
-        # Insert the cancel button before the yesButton
-        btn_layout = dialog.yesButton.parent().layout()
-        if btn_layout:
-            btn_layout.insertWidget(0, self._cancel_btn)
         
         return dialog
 
@@ -324,10 +310,39 @@ class InkPromptWindow(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
+        # Play Windows error sound
+        self._play_error_sound()
         # Show the dialog
         self._dialog.show()
         self._dialog.raise_()
         self._dialog.activateWindow()
+
+    def _play_error_sound(self):
+        """Play Windows error sound using Windows API."""
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            # Load winmm.dll
+            winmm = ctypes.WinDLL('winmm.dll')
+
+            # Define PlaySound function signature
+            # PlaySound(lpzSound, hmod, fdwSound)
+            # lpzSound: sound name (can be filename or system event alias)
+            # hmod: module handle (0 for NULL)
+            # fdwSound: flags
+            SND_FILENAME = 0x00020000  # Name is a file name
+            SND_ASYNC = 0x0001  # Play asynchronously
+            SND_NODEFAULT = 0x0002  # Do not use default sound
+
+            # Play the Windows Error sound
+            sound_path = r"C:\Windows\Media\Windows Error.wav"
+            result = winmm.PlaySoundW(sound_path, 0, SND_FILENAME | SND_ASYNC | SND_NODEFAULT)
+
+            if result == 0:
+                print(f"[InkPrompt] Failed to play sound: {sound_path}", flush=True)
+        except Exception as e:
+            print(f"[InkPrompt] Error playing sound: {e}", flush=True)
 
     def _on_result(self, result):
         self.result.emit(result)
@@ -493,7 +508,7 @@ class OverlayWindow(QWebEngineView):
     request_pen_color = Signal(int, int, int)
     request_thumbnail = Signal(int)
     start_background_caching = Signal(int)  # total_pages
-    ink_prompt_result = Signal(object)
+    ink_prompt_result = Signal(bool)
     thumbnail_ready = Signal(int, str)
 
     def __init__(self):
@@ -1273,7 +1288,7 @@ class OverlayWindow(QWebEngineView):
             self._ink_prompt_window.close()
             self._ink_prompt_window = None
         # Emit the result through the ink_prompt_result signal
-        # result can be True (keep), False (discard), or 'cancel' (return to slideshow)
+        # result is True (keep) or False (discard)
         self.ink_prompt_result.emit(result)
 
     def _get_ink_prompt_texts(self):
@@ -1282,7 +1297,6 @@ class OverlayWindow(QWebEngineView):
             "text": "检测到放映期间添加了墨迹注释，是否保留到幻灯片中？",
             "keep": "保留",
             "discard": "不保留",
-            "cancel": "返回放映",
         }
 
     def load_plugins(self):
