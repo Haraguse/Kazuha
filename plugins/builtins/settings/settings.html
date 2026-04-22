@@ -8,10 +8,14 @@
   <link rel="stylesheet" href="settings_primitives.css">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
-  // --- Search Functionality ---
+  // --- Global Variable Declarations (must be at the top to avoid TDZ errors) ---
   let searchIndex = [];
   let preSearchSectionId = null;
+  let CURRENT_PLATFORM = 'unknown';
+  let systemThemeCheckInterval = null;
+  let lastAppliedThemeVariant = null;
 
+  // --- Search Functionality ---
   function initSearch() {
     // Inject I18N keys
     const extraI18n = {
@@ -5975,7 +5979,15 @@
               <span class="item-label" data-i18n="appearance.overlayTheme.title">Overlay 主题</span>
               <span class="item-desc" data-i18n="appearance.overlayTheme.desc">自定义 Overlay 的 HTML/CSS/JS</span>
             </div>
-            <div id="overlay-theme-gallery" class="media-gallery"></div>
+            <div style="position: relative; width: 100%;">
+              <div id="overlay-theme-gallery" class="media-gallery"></div>
+              <div id="overlay-unsupported-mask" class="overlay-unsupported-mask" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-radius: 12px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); flex-direction: column; align-items: center; justify-content: center; z-index: 10;">
+                <div style="text-align: center; color: white; padding: 16px;">
+                  <div style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">您的操作系统不支持此功能</div>
+                  <div style="font-size: 13px; opacity: 0.8; line-height: 1.6;">Overlay 主题定制功能只在 Windows 平台可用。</div>
+                </div>
+              </div>
+            </div>
             <select id="sel-Appearance-OverlayTheme" style="display: none;"></select>
           </div>
         </div>
@@ -6157,6 +6169,13 @@
             </div>
             <div class="switch" id="sw-BoardInBoard-PenStrokeEnabled"></div>
           </div>
+          <div class="settings-item" onclick="toggleSwitch('BoardInBoard', 'WindowEnterAnimation')">
+            <div class="item-info">
+              <span class="item-label" data-i18n="boardInBoard.windowEnterAnimation.label">启用基于窗口位移的窗口进入动画</span>
+              <span class="item-desc" data-i18n="boardInBoard.windowEnterAnimation.desc">一个基于窗口位移的板中板窗口滑入动画。开启后，板中板窗口将以动画方式进入和退出，否则直接弹出和飞出</span>
+            </div>
+            <div class="switch" id="sw-BoardInBoard-WindowEnterAnimation"></div>
+          </div>
         </div>
         <div class="group-title" data-i18n="group.timer">计时器</div>
         <div class="settings-group">
@@ -6235,6 +6254,8 @@
             </div>
           </div>
         </div>
+
+        <h2 class="page-title" style="margin-top: 32px; margin-bottom: 24px;" data-i18n="section.plugins">插件</h2>
 
         <div class="group-title" data-i18n="group.toolbar.display">显示</div>
         <div class="settings-group">
@@ -6774,6 +6795,13 @@
               </svg>
             </div>
           </div>
+          <div class="settings-item" onclick="toggleSwitch('Debug', 'SimulateOverlayUnsupported')">
+            <div class="item-info">
+              <span class="item-label">模拟 Overlay 主题不支持状态</span>
+              <span class="item-desc">用于在所有平台测试 Overlay 主题不可用时的 UI 样式</span>
+            </div>
+            <div class="switch" id="sw-Debug-SimulateOverlayUnsupported"></div>
+          </div>
         </div>
       </div>
 
@@ -7060,7 +7088,7 @@
   const I18N = {
     "zh-CN": {
       "app.settings": "设置",
-      "app.name": "Luminalium",
+      "app.name": "荧素万演",
       "nav.main": "常规",
       "nav.theme": "个性化设置",
       "nav.fonts": "全局应用字体",
@@ -7322,6 +7350,8 @@
       "boardInBoard.backgroundColor.desc": "选择板中板黑板的背景颜色",
       "boardInBoard.penStroke.label": "笔锋",
       "boardInBoard.penStroke.desc": "开启后笔画带有笔锋效果",
+      "boardInBoard.windowEnterAnimation.label": "启用基于窗口位移的窗口进入动画",
+      "boardInBoard.windowEnterAnimation.desc": "一个基于窗口位移的板中板窗口滑入动画。开启后，板中板窗口将以动画方式进入和退出，否则直接弹出和飞出",
       "interaction.showTimer.label": "显示计时器",
       "interaction.showTimer.desc": "在悬浮工具栏中显示计时器按钮，可快速打开计时器窗口",
 
@@ -8022,7 +8052,7 @@
     },
     "ja-JP": {
       "app.settings": "設定",
-      "app.name": "Luminalium",
+      "app.name": "ルマイナリウム",
       "nav.main": "一般",
       "nav.theme": "テーマ",
       "nav.fonts": "グローバルフォント",
@@ -9709,6 +9739,11 @@
   function getThemeVariant(mode) {
     const m = mode || "Light";
     if (m === "Auto") {
+      // Check system preference using browser API
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return "dark";
+      }
+      // Fallback to settings if available
       const resolvedIsDark = (typeof settings !== 'undefined' && settings && settings.Appearance && settings.Appearance.ResolvedIsDark)
         || (window.initialSettings && window.initialSettings.Appearance && window.initialSettings.Appearance.ResolvedIsDark);
       return resolvedIsDark ? "dark" : "light";
@@ -11073,22 +11108,14 @@
     Toolbar: { ShowClear: true, ShowToolbarText: true },
     Window: { TimerFullscreenBehavior: "fullscreen" },
     Timer: { EnableSoundEffects: true, QuickAddPresets: DEFAULT_TIMER_QUICK_ADD_PRESETS.map(item => ({ ...item })) },
-    BoardInBoard: { ToolbarPosition: "bottom", BackgroundColor: "#202020", PenStrokeEnabled: false },
-    Debug: { ShowLog: false, RtlTest: false, RotateTest: false },
+    BoardInBoard: { ToolbarPosition: "bottom", BackgroundColor: "#202020", PenStrokeEnabled: false, WindowEnterAnimation: true },
+    Debug: { ShowLog: false, RtlTest: false, RotateTest: false, SimulateOverlayUnsupported: false },
     Update: { AutoCheck: true, Source: "github" },
     Security: { EnablePassword: false, Password: "" },
     Appearance: { ThemeMode: "Light", ThemeId: "default", MonetPalette: null }
   };
 
-  if (window.initialSettings && window.initialSettings.General && window.initialSettings.General.Language) {
-    currentLanguage = window.initialSettings.General.Language;
-  }
-
-  if (window.initialSettings) {
-    settingsLoaded = true;
-    applySettingsToUI();
-  }
-
+  // 定义 onPywebviewReady 函数（需要在任何调用之前定义）
   const onPywebviewReady = () => {
     if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.get_settings) return;
 
@@ -11118,11 +11145,112 @@
     });
   };
 
+  if (window.initialSettings && window.initialSettings.General && window.initialSettings.General.Language) {
+    currentLanguage = window.initialSettings.General.Language;
+  }
+
+  if (window.initialSettings) {
+    settingsLoaded = true;
+    // 延迟初始化平台检测，确保 pywebview.api.platform 已经设置
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.platform) {
+      applySettingsToUI();
+    } else {
+      // 等待 pywebview 就绪后再初始化
+      if (window.pywebview) {
+        onPywebviewReady();
+      }
+    }
+  }
+
+  // Platform detection and initialization
   if (window.pywebview) {
     onPywebviewReady();
   } else {
     window.addEventListener('pywebviewready', onPywebviewReady);
   }
+  
+  function getPlatform() {
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.platform) {
+      return window.pywebview.api.platform;
+    }
+    return 'unknown';
+  }
+
+  function getSystemThemeVariant() {
+    // Check if system theme is dark
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    return 'light';
+  }
+
+  function initializeThemeMonitoring() {
+    // Monitor system theme changes when in Auto mode
+    if (systemThemeCheckInterval) {
+      clearInterval(systemThemeCheckInterval);
+    }
+    
+    systemThemeCheckInterval = setInterval(() => {
+      const themeMode = settings.Appearance?.ThemeMode;
+      if (themeMode === 'Auto') {
+        const currentVariant = getSystemThemeVariant();
+        if (currentVariant !== lastAppliedThemeVariant) {
+          lastAppliedThemeVariant = currentVariant;
+          // Re-apply theme to reflect system change
+          const themeId = settings.Appearance?.ThemeId || 'default';
+          ThemeSystem.applyTheme(themeId, themeMode);
+          console.log(`[Settings] System theme changed to ${currentVariant}, updating UI`);
+        }
+      }
+    }, 500); // Check every 500ms
+  }
+
+  function stopThemeMonitoring() {
+    if (systemThemeCheckInterval) {
+      clearInterval(systemThemeCheckInterval);
+      systemThemeCheckInterval = null;
+    }
+  }
+
+  function initializePlatformDetection() {
+    CURRENT_PLATFORM = getPlatform();
+    updateOverlayUIForPlatform();
+    updateDebugMenuForPlatform();
+    initializeThemeMonitoring();
+  }
+
+  function updateOverlayUIForPlatform() {
+    const mask = document.getElementById("overlay-unsupported-mask");
+    const gallery = document.getElementById("overlay-theme-gallery");
+    const isWindows = CURRENT_PLATFORM === 'win32';
+    const debugSimulate = settings.Debug && settings.Debug.SimulateOverlayUnsupported;
+    const shouldDisableOverlay = (!isWindows) || debugSimulate;
+    
+    if (mask && gallery) {
+      if (shouldDisableOverlay) {
+        mask.style.display = 'flex';
+        gallery.style.opacity = '0.3';
+        gallery.style.pointerEvents = 'none';
+      } else {
+        mask.style.display = 'none';
+        gallery.style.opacity = '1';
+        gallery.style.pointerEvents = 'auto';
+      }
+    }
+  }
+
+  function updateDebugMenuForPlatform() {
+    // Debug menu items are visible on all platforms
+  }
+
+  // Initialize after settings are loaded
+  const originalApplySettingsToUI = window.applySettingsToUI || (() => {});
+  window.applySettingsToUI = function() {
+    if (typeof originalApplySettingsToUI === 'function') {
+      originalApplySettingsToUI();
+    }
+    initializePlatformDetection();
+  };
 
   function setSelectLabel(label, option) {
     if (!label) return;
@@ -11531,6 +11659,7 @@
     setSwitch("Toolbar", "ShowToolbarText");
     setSwitch("Timer", "EnableSoundEffects");
     setSwitch("BoardInBoard", "PenStrokeEnabled");
+    setSwitch("BoardInBoard", "WindowEnterAnimation");
     setSwitch("Debug", "ShowLog");
     setSwitch("Debug", "RtlTest");
     setSwitch("Debug", "RotateTest");
@@ -11664,7 +11793,9 @@
         if (!v) return;
         const codeName = v.code_name || "";
         const version = v.version || "";
-        UpdateManager.appVersion = version;
+        if (window.UpdateManager) {
+          window.UpdateManager.appVersion = version;
+        }
         const build = v.build != null ? v.build : "";
         const el = document.getElementById("app-version");
         if (el) {
@@ -11717,11 +11848,13 @@
     }
 
     checkLockState();
+    initializeThemeMonitoring();
   }
 
   function setTheme(mode) {
     if (!settings.Appearance) settings.Appearance = {};
     settings.Appearance.ThemeMode = mode;
+    lastAppliedThemeVariant = null; // Reset to trigger theme update
     applySettingsToUI();
     if (window.pywebview && window.pywebview.api.save_setting) {
       window.pywebview.api.save_setting("Appearance", "ThemeMode", mode);
@@ -12284,6 +12417,7 @@
       if (key === "ShowLog") toggleLogPanel(newState);
       if (key === "RtlTest") applyRtlTest(newState);
       if (key === "RotateTest") applyRotateTest(newState);
+      if (key === "SimulateOverlayUnsupported") updateOverlayUIForPlatform();
     }
   }
 

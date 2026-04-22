@@ -216,6 +216,7 @@ def _read_board_settings():
     popup_border = ""
     eraser_mode = 0  # 0: Point, 1: Stroke
     pen_stroke_enabled = False
+    window_enter_animation = True
 
     # Read settings file once
     settings_data = _load_settings_data()
@@ -235,6 +236,7 @@ def _read_board_settings():
     else:
         eraser_mode = 0
     pen_stroke_enabled = bool(board.get("PenStrokeEnabled", False))
+    window_enter_animation = bool(board.get("WindowEnterAnimation", True))
 
     # Override for year-of-horse theme
     if theme_id == "year-of-horse":
@@ -258,6 +260,7 @@ def _read_board_settings():
             popup_border,
             eraser_mode,
             pen_stroke_enabled,
+            window_enter_animation,
         )
 
     pos = board.get("ToolbarPosition", position)
@@ -277,6 +280,7 @@ def _read_board_settings():
         popup_border,
         eraser_mode,
         pen_stroke_enabled,
+        window_enter_animation,
     )
 
 
@@ -1115,6 +1119,7 @@ class BoardWindow(QQuickView):
             self._board_popup_border,
             self._board_eraser_mode,
             self._board_pen_stroke_enabled,
+            self._board_window_enter_animation,
         ) = _read_board_settings()
 
         self.rootContext().setContextProperty("iconsDir", icons_url)
@@ -1249,6 +1254,7 @@ class BoardWindow(QQuickView):
             popup_border,
             eraser_mode,
             pen_stroke_enabled,
+            window_enter_animation,
         ) = _read_board_settings()
         root = self.rootObject()
         if position != self._board_toolbar_position:
@@ -1275,6 +1281,8 @@ class BoardWindow(QQuickView):
             self._board_pen_stroke_enabled = pen_stroke_enabled
             if root:
                 root.setProperty("penStrokeEnabled", pen_stroke_enabled)
+        if window_enter_animation != self._board_window_enter_animation:
+            self._board_window_enter_animation = window_enter_animation
 
     def _on_status_changed(self, status):
         if status == QQuickView.Ready:
@@ -1321,7 +1329,7 @@ class BoardWindow(QQuickView):
         self._is_closing = False
         self._force_close = False
 
-        if self._animation and self._animation.state() != QPropertyAnimation.Running:
+        if self._board_window_enter_animation and self._animation and self._animation.state() != QPropertyAnimation.Running:
             geom = self.geometry()
 
             # If we were previously closed (moved up), we need to restore

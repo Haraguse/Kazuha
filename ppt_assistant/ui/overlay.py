@@ -172,9 +172,18 @@ class OverlayBridge(QObject):
     def endShow(self):
         self._overlay.request_end.emit()
 
-    @Slot(bool)
-    def inkPromptResult(self, keep):
-        self._overlay.ink_prompt_result.emit(bool(keep))
+    @Slot(str)
+    def inkPromptResult(self, result):
+        # Defer emission to allow the WebChannel return handshake to complete
+        QTimer.singleShot(0, lambda: self._emit_ink_prompt_result(result))
+
+    def _emit_ink_prompt_result(self, result):
+        if result == "true":
+            self._overlay.ink_prompt_result.emit(True)
+        elif result == "false":
+            self._overlay.ink_prompt_result.emit(False)
+        else:
+            self._overlay.ink_prompt_result.emit(result)
 
     @Slot()
     def toggleSpotlight(self):
@@ -253,7 +262,8 @@ class OverlayBridge(QObject):
 
 
 class InkPromptWindow(QWidget):
-    result = Signal(bool)
+    """Independent QFluentWidgets-based dialog for ink annotation prompt."""
+    result = Signal(object)  # Can be True, False, or 'cancel'
 
     def __init__(self, texts, parent=None):
         super().__init__(parent)
@@ -268,20 +278,43 @@ class InkPromptWindow(QWidget):
         # Semi-transparent black background
         self.bg_color = QColor(0, 0, 0, 140)
 
-        self._dialog = MessageBox(texts["title"], texts["text"], self)
-        self._dialog.yesButton.setText(texts["keep"])
-        self._dialog.cancelButton.setText(texts["discard"])
-
-        # Message dialog's own mask is redundant here, so we can disable it or let it be.
-        # But we want the whole window to be dimmed.
-        if hasattr(self._dialog, "maskWidget"):
-            self._dialog.maskWidget.hide()
-
-        self._dialog.yesSignal.connect(lambda: self._on_result(True))
-        self._dialog.cancelSignal.connect(lambda: self._on_result(False))
-
-        # Center the dialog manually when shown
-        self._dialog.finished.connect(self.close)
+        # Create the dialog
+        self._dialog = self._create_dialog(texts)
+        
+    def _create_dialog(self, texts):
+        """Create a dialog with three buttons using qfluentwidgets Dialog."""
+        from qfluentwidgets import Dialog
+        
+        # Create dialog with title and content
+        dialog = Dialog(texts["title"], texts["text"], self)
+        
+        # Set button texts: yes = 保留, cancel = 不保留
+        dialog.yesButton.setText(texts.get("keep", "保留"))
+        dialog.cancelButton.setText(texts.get("discard", "不保留"))
+        
+        # Hide the mask widget (we have our own background)
+        if hasattr(dialog, "maskWidget"):
+            dialog.maskWidget.hide()
+        
+        # Connect signals
+        dialog.yesSignal.connect(lambda: self._on_result(True))
+        dialog.cancelSignal.connect(lambda: self._on_result(False))
+        
+        # Add a third button for "返回放映" (cancel the exit)
+        # We'll add it to the button layout
+        from qfluentwidgets import PushButton
+        from PySide6.QtWidgets import QHBoxLayout
+        
+        self._cancel_btn = PushButton(texts.get("cancel", "返回放映"))
+        self._cancel_btn.setFixedWidth(100)
+        self._cancel_btn.clicked.connect(lambda: self._on_result('cancel'))
+        
+        # Insert the cancel button before the yesButton
+        btn_layout = dialog.yesButton.parent().layout()
+        if btn_layout:
+            btn_layout.insertWidget(0, self._cancel_btn)
+        
+        return dialog
 
     def paintEvent(self, event):
         from PySide6.QtGui import QPainter
@@ -291,13 +324,16 @@ class InkPromptWindow(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
-        # Center the dialog
+        # Show the dialog
         self._dialog.show()
-        # MessageBox from qfluentwidgets will center itself to parent automatically if it's a child.
-        # If not, we might need to call w.exec_() or w.show()
+        self._dialog.raise_()
+        self._dialog.activateWindow()
 
-    def _on_result(self, keep):
-        self.result.emit(keep)
+    def _on_result(self, result):
+        self.result.emit(result)
+        # Close the dialog first, then close the parent window
+        if hasattr(self, '_dialog') and self._dialog:
+            self._dialog.close()
         self.close()
 
 
@@ -457,7 +493,7 @@ class OverlayWindow(QWebEngineView):
     request_pen_color = Signal(int, int, int)
     request_thumbnail = Signal(int)
     start_background_caching = Signal(int)  # total_pages
-    ink_prompt_result = Signal(bool)
+    ink_prompt_result = Signal(object)
     thumbnail_ready = Signal(int, str)
 
     def __init__(self):
@@ -699,12 +735,16 @@ class OverlayWindow(QWebEngineView):
         try:
             page = self.page()
         except RuntimeError:
+            print(f"[Overlay] _run_javascript: RuntimeError getting page", flush=True)
             return
         if page is None:
+            print(f"[Overlay] _run_javascript: page is None", flush=True)
             return
         if not self._page_ready:
+            print(f"[Overlay] _run_javascript: page not ready, caching script", flush=True)
             self._pending_scripts.append(script)
             return
+        print(f"[Overlay] _run_javascript: executing script", flush=True)
         page.runJavaScript(script)
 
     def _flush_pending_scripts(self):
@@ -1217,23 +1257,24 @@ class OverlayWindow(QWebEngineView):
             pass
 
     def show_ink_prompt(self):
-        try:
-            texts = self._get_ink_prompt_texts()
-
-            # Create a standalone full-screen window for the prompt
-            win = InkPromptWindow(texts)
-            self._current_ink_dialog = win  # Keep reference
-
-            win.result.connect(self.ink_prompt_result)
-
-            # Clear reference when closed
-            win.destroyed.connect(lambda: setattr(self, "_current_ink_dialog", None))
-
-            win.show()
-            win.activateWindow()
-            win.raise_()
-        except Exception as e:
-            print(f"Error showing ink prompt: {e}")
+        # Using the independent QFluentWidgets-based dialog for better reliability
+        print(f"[Overlay] show_ink_prompt called, creating InkPromptWindow", flush=True)
+        texts = self._get_ink_prompt_texts()
+        
+        # Create and show the independent dialog
+        self._ink_prompt_window = InkPromptWindow(texts, parent=self)
+        self._ink_prompt_window.result.connect(self._on_ink_prompt_window_result)
+        self._ink_prompt_window.show()
+        
+    def _on_ink_prompt_window_result(self, result):
+        print(f"[Overlay] InkPromptWindow result: {result}", flush=True)
+        # Clean up
+        if hasattr(self, '_ink_prompt_window') and self._ink_prompt_window:
+            self._ink_prompt_window.close()
+            self._ink_prompt_window = None
+        # Emit the result through the ink_prompt_result signal
+        # result can be True (keep), False (discard), or 'cancel' (return to slideshow)
+        self.ink_prompt_result.emit(result)
 
     def _get_ink_prompt_texts(self):
         return {
@@ -1241,6 +1282,7 @@ class OverlayWindow(QWebEngineView):
             "text": "检测到放映期间添加了墨迹注释，是否保留到幻灯片中？",
             "keep": "保留",
             "discard": "不保留",
+            "cancel": "返回放映",
         }
 
     def load_plugins(self):
@@ -1394,10 +1436,17 @@ class OverlayWindow(QWebEngineView):
         if self._smtc_thread:
             self._smtc_thread.join(timeout=1.0)
 
-    def update_geometry(self, rect, screen):
-        if screen:
-            self.setGeometry(screen.geometry())
+    def update_geometry(self, rect, screen_or_metadata):
+        # screen_or_metadata can be a QScreen object or a metadata dict
+        if isinstance(screen_or_metadata, dict):
+            # Coordinates from monitor are already logical or handled by the OS
+            if rect:
+                self.setGeometry(rect)
+        elif hasattr(screen_or_metadata, "geometry"):
+            # It's a real QScreen object
+            self.setGeometry(screen_or_metadata.geometry())
         elif rect:
+            # Fallback if screen_or_metadata is None or unexpected
             self.setGeometry(rect)
 
 

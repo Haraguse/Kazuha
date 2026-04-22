@@ -2049,8 +2049,13 @@ class PPTAssistantApp:
             self.overlay.on_slideshow_end_cleanup()
         except Exception:
             pass
+        # Check if ink prompt is pending - if so, don't hide the overlay
+        # The overlay will be hidden after the user responds to the prompt
         try:
-            self.overlay.set_active_on_slideshow(False, animate=False)
+            if hasattr(self.monitor, '_pending_ink_prompt') and self.monitor._pending_ink_prompt:
+                print("[Main] Ink prompt pending, keeping overlay visible", flush=True)
+            else:
+                self.overlay.set_active_on_slideshow(False, animate=False)
         except Exception:
             pass
         try:

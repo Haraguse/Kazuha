@@ -152,6 +152,7 @@ class SettingsPlugin(AssistantPlugin):
         api.set_in_process(True)
         api.settings = self._load_json_file(SETTINGS_PATH)
         api.version = self._load_json_file(version_path)
+        api.platform = sys.platform  # Pass platform info to frontend
 
         # 为api添加trigger_resource_alert方法
         # 使用lambda创建可调用的方法

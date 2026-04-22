@@ -1560,7 +1560,9 @@ class PPTWorker(QObject):
             )
             self._running = False
             self._set_active_kind(None)
-            self._pending_ink_prompt = False
+            # Don't reset _pending_ink_prompt here - let the ink prompt handling complete
+            # It will be reset in end_show_with_ink_choice or _on_ink_prompt_result
+            print(f"[Monitor] _handle_stop: _pending_ink_prompt={self._pending_ink_prompt}", flush=True)
             self.slideshow_ended.emit()
             try:
                 self._update_restrictions(False, False)
@@ -1975,19 +1977,29 @@ class PPTWorker(QObject):
 
     @Slot()
     def end_show(self):
+        print(f"[Monitor] end_show called, autoHandleInk={cfg.autoHandleInk.value}, _active_kind={self._active_kind}", flush=True)
+        # Check if we should show ink prompt first, before checking slideshow window
+        # This ensures the prompt is shown even if the slideshow window is already closing
+        # Also check if _active_kind is None but we might have a slideshow window (e.g., after cancel)
+        should_show_prompt = cfg.autoHandleInk.value and (
+            self._active_kind in {"ppt", "wps", "yozo"} or 
+            (self._active_kind is None and self._get_active_slideshow_window() is not None)
+        )
+        if should_show_prompt:
+            print(f"[Monitor] Checking for ink annotations to show prompt", flush=True)
+            # Always show the prompt if autoHandleInk is enabled and we're in a supported app
+            # The actual ink handling will be done in end_show_with_ink_choice
+            if not self._pending_ink_prompt:
+                self._pending_ink_prompt = True
+                print(f"[Monitor] Emitting ink_prompt_requested", flush=True)
+                self.ink_prompt_requested.emit()
+            return
+        
         try:
             ss_win = self._get_active_slideshow_window()
             view = getattr(ss_win, "View", None) if ss_win is not None else None
+            print(f"[Monitor] ss_win={ss_win}, view={view}", flush=True)
             if view is not None:
-                if cfg.autoHandleInk.value and self._active_kind in {
-                    "ppt",
-                    "wps",
-                    "yozo",
-                }:
-                    if not self._pending_ink_prompt:
-                        self._pending_ink_prompt = True
-                        self.ink_prompt_requested.emit()
-                    return
                 view.Exit()
                 self._control_mode = "com"
                 return
@@ -2003,10 +2015,12 @@ class PPTWorker(QObject):
 
     @Slot(bool)
     def end_show_with_ink_choice(self, keep):
+        print(f"[Monitor] end_show_with_ink_choice called, keep={keep}", flush=True)
         self._pending_ink_prompt = False
         try:
             app = self._get_active_app()
             ss_win = self._get_active_slideshow_window()
+            print(f"[Monitor] app={app}, ss_win={ss_win}", flush=True)
             if app and ss_win is not None:
                 original_alerts = None
                 try:
@@ -2023,7 +2037,10 @@ class PPTWorker(QObject):
                     self._apply_ink_keep(ss_win)
                 else:
                     self._apply_ink_discard(ss_win)
-                ss_win.View.Exit()
+                try:
+                    ss_win.View.Exit()
+                except Exception as e:
+                    print(f"[Monitor] Error exiting slideshow: {e}", flush=True)
                 try:
                     if original_alerts is not None:
                         app.DisplayAlerts = original_alerts
@@ -2034,8 +2051,13 @@ class PPTWorker(QObject):
                     pass
                 self._control_mode = "com"
                 return
+            else:
+                print(f"[Monitor] No active slideshow window, skipping ink handling", flush=True)
         except Exception as e:
             self._note_error("end_show_ink", e)
+            print(f"[Monitor] Error in end_show_with_ink_choice: {e}", flush=True)
+        # If we reach here, either there was no slideshow window or an error occurred
+        # Try to exit using alternative methods
         try:
             self._control_mode = "win32"
             if self._send_linux_shortcut_to_slideshow("Escape"):
@@ -2315,19 +2337,33 @@ class PPTMonitor(QObject):
         self._active_kind = kind or None
 
     def _on_ink_prompt_requested(self):
+        print(f"[Monitor] _on_ink_prompt_requested called, _pending_ink_prompt={self._pending_ink_prompt}, _overlay={self._overlay}", flush=True)
         if self._pending_ink_prompt:
+            print("[Monitor] Already pending, returning", flush=True)
             return
         self._pending_ink_prompt = True
         if self._overlay:
+            print("[Monitor] Calling overlay.show_ink_prompt()", flush=True)
             self._overlay.show_ink_prompt()
         else:
+            print("[Monitor] No overlay, emitting True", flush=True)
             self._pending_ink_prompt = False
             self._req_end_with_ink.emit(True)
 
     def _on_ink_prompt_result(self, keep):
+        print(f"[Monitor] _on_ink_prompt_result called, keep={keep}", flush=True)
         if not self._pending_ink_prompt:
+            print("[Monitor] No pending ink prompt, returning", flush=True)
             return
         self._pending_ink_prompt = False
+        if keep == 'cancel':
+            # Abort the exit process and return to the slideshow
+            print("[Monitor] User cancelled, returning to slideshow", flush=True)
+            # The slideshow is still running, but _handle_stop may have been called
+            # The _check_ppt_state method in PPTWorker will automatically re-detect
+            # the slideshow on its next timer tick, so we don't need to do anything here
+            return
+        print(f"[Monitor] Emitting _req_end_with_ink with keep={keep}", flush=True)
         self._req_end_with_ink.emit(bool(keep))
 
     # --- State Handling ---

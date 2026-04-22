@@ -3851,7 +3851,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 32px;
+      gap: 12px;
       opacity: 1;
       transition: opacity 0.6s ease 0.2s, transform 0.6s ease 0.2s;
     }
@@ -4290,32 +4290,52 @@ html, body {
     }
 
     .finish-title {
-      font-size: 24px;
-      font-weight: 700;
+      font-size: 28px;
+      font-weight: 600;
       color: var(--text-primary);
       text-align: center;
       line-height: 1.2;
-      margin-bottom: 4px;
+      margin-bottom: 16px;
       animation: fadeIn 0.8s ease-out;
     }
 
     .finish-desc {
       text-align: center;
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 15px;
+      font-weight: 500;
       color: var(--text-primary);
-      margin-bottom: 7px;
+      margin-bottom: 24px;
       animation: fadeIn 0.8s ease-out 0.1s backwards;
     }
 
+    .finish-text {
+      text-align: center;
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+      line-height: 1.1;
+      animation: fadeIn 0.8s ease-out 0.1s backwards;
+    }
+    
     .finish-subtitle {
       text-align: center;
       font-size: 13px;
       color: var(--text-secondary);
       max-width: 600px;
-      line-height: 1.5;
-      margin-bottom: 32px;
+      line-height: 1.6;
+      margin: 0;
       animation: fadeIn 0.8s ease-out 0.2s backwards;
+    }
+    
+    #hero-footer-finish {
+      justify-content: center;
+    }
+    
+    #hero-footer-finish .version,
+    #hero-footer-finish .hero-lang,
+    #hero-footer-finish .hero-links {
+      display: none;
     }
     
     .finish-hint {
@@ -4325,15 +4345,55 @@ html, body {
       color: var(--text-secondary);
       animation: fadeIn 0.8s ease-out 0.4s backwards;
     }
+
+    .finish-congrats {
+      text-align: center;
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text-secondary);
+      margin: 0 0 16px 0;
+      line-height: 1.3;
+      animation: fadeIn 0.8s ease-out 0.15s backwards;
+    }
+
+    #finish-options {
+      animation: fadeIn 0.8s ease-out 0.25s backwards;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    #finish-options .settings-item {
+      background: transparent;
+      border-bottom: none;
+      transition: background 0.15s;
+    }
+
+    #finish-options .settings-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    #finish-options .item-label {
+      font-weight: 600;
+    }
+
+    .finish-option-warn .item-label {
+      color: #e5523c;
+    }
+
+    .finish-option-warn:hover {
+      background: rgba(229, 82, 60, 0.06) !important;
+    }
     
     .finish-btn-wrapper {
       position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 20px;
-      height: 64px;
-      margin-bottom: 8px; /* Give some space before hint */
+      gap: 12px;
+      height: 48px;
+      margin-bottom: 16px;
     }
 
     .hero-btn.small-btn {
@@ -4544,37 +4604,53 @@ html, body {
 
     <!-- Screen 3: Finish -->
     <div id="screen-finish" class="hero-screen fade-out" style="z-index: 20;">
+      <div class="hyperos-bg"></div>
       <div class="card">
-        <div class="finish-container">
-          <div class="finish-icon-wrapper">
-             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-             </svg>
+        <div class="hero-content" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; max-width: 560px; margin: 0 auto;">
+          <div class="hero-elements-fade" style="width: 100%;">
+            <div class="finish-text" id="finish-text">设置向导结束</div>
+            <div class="finish-congrats" id="finish-congrats">恭喜，你已完成了软件的基本设置，请选择你接下来想要做什么</div>
+            <div class="settings-group" id="finish-options">
+              <div class="settings-item" onclick="finishOption('exit')" style="cursor: pointer; border-radius: 12px 12px 0 0;">
+                <div class="item-info">
+                  <div class="item-label">直接退出设置向导</div>
+                  <div class="item-desc">关闭设置窗口，保存所有配置并立即开始使用 Luminalium。程序将在后台保持运行，随时可以通过任务栏托盘图标访问。</div>
+                </div>
+                <div class="item-state">
+                  <svg class="chevron" viewBox="0 0 24 24">
+                    <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="settings-item" onclick="finishOption('restart')" style="cursor: pointer;">
+                <div class="item-info">
+                  <div class="item-label">退出并重新启动程序</div>
+                  <div class="item-desc">保存所有配置后关闭设置窗口，并自动重新启动 Luminalium。重启完成后将直接打开设置页面，方便你进一步调整高级选项。</div>
+                </div>
+                <div class="item-state">
+                  <svg class="chevron" viewBox="0 0 24 24">
+                    <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="settings-item finish-option-warn" onclick="finishOption('quit')" style="cursor: pointer; border-radius: 0 0 12px 12px;">
+                <div class="item-info">
+                  <div class="item-label">退出 Luminalium</div>
+                  <div class="item-desc">保存配置后完全关闭程序。下次使用时需要手动启动，不推荐在首次设置后选择此选项。</div>
+                </div>
+                <div class="item-state">
+                  <svg class="chevron" viewBox="0 0 24 24">
+                    <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="finish-title" id="finish-title"></div>
-          <div class="finish-desc" id="finish-desc"></div>
+        </div>
+        <div class="hero-footer" id="hero-footer-finish" style="width: 100%;">
+          <div class="version"></div>
+          <div class="hero-lang"></div>
           <div class="finish-subtitle" id="finish-subtitle"></div>
-          
-          <div class="finish-btn-wrapper">
-            <!-- Previous Step -->
-            <div class="hero-btn small-btn" id="btn-finish-prev" title="上一步">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                   <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </div>
-
-            <!-- Main Finish Button -->
-            <!-- Checkmark button removed as per user request -->
-
-            <!-- Restart -->
-            <div class="hero-btn small-btn" id="btn-finish-restart" title="重来">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                   <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </div>
-          </div>
-
-          <div class="finish-hint" id="finish-hint"></div>
         </div>
       </div>
     </div>
@@ -4657,7 +4733,7 @@ html, body {
           popWindowScale: "弹窗缩放",
           safeArea: "屏幕边距"
         },
-        finish: { title: "恭喜！", desc: "你已完成了全部的基本设置", sub: "如需后续更改配置，请点击任务栏托盘图标访问“设置”。若要立即开始，请关闭此窗口并在 PowerPoint 中打开任意演示文稿。", hint: "关闭窗口即可完成设置向导。", hintExpanded: "上一步   •   完成   •   重来" },
+        finish: { title: "恭喜！", desc: "你已完成了全部的基本设置", text: "设置向导结束", sub: "如需后续更改配置，请点击任务栏托盘图标访问“设置”。若要立即开始，请关闭此窗口并在 PowerPoint 中打开任意演示文稿。", hint: "关闭窗口即可完成设置向导。", hintExpanded: "上一步   •   完成   •   重来" },
         btn: { next: "下一步", prev: "返回", finish: "完成" },
         watermark: {
           1: "开发中版本",
@@ -4710,7 +4786,7 @@ html, body {
           popWindowScale: "彈窗縮放",
           safeArea: "螢幕邊距"
         },
-        finish: { title: "恭喜！", desc: "您已完成了全部的基本設定", sub: "如需後續更改設定，請點擊工作列系統匣圖示並選擇「設定」。若要立即開始，請關閉此視窗並在 PowerPoint 中開啟任意簡報。", hint: "關閉視窗即可完成設定精靈。", hintExpanded: "上一步   •   完成   •   重來" },
+        finish: { title: "恭喜！", desc: "您已完成了全部的基本設定", text: "設定精靈結束", sub: "如需後續更改設定，請點擊工作列系統匣圖示並選擇「設定」。若要立即開始，請關閉此視窗並在 PowerPoint 中開啟任意簡報。", hint: "關閉視窗即可完成設定精靈。", hintExpanded: "上一步   •   完成   •   重來" },
         btn: { next: "下一步", prev: "返回", finish: "完成" },
         watermark: {
           1: "開發中版本",
@@ -4764,7 +4840,7 @@ html, body {
           popWindowScale: "彈窗縮放",
           safeArea: "屏幕邊距"
         },
-        finish: { title: "搞掂！", desc: "你已完成晒基本設定", sub: "之後要改設定就去托盤「設定」。要即刻開始就關咗呢個窗口，再喺 PowerPoint 開個簡報。", hint: "關閉視窗即可完成設定精靈。", hintExpanded: "上一步   •   完成   •   重來" },
+        finish: { title: "搞掂！", desc: "你已完成晒基本設定", text: "設定精靈完結", sub: "之後要改設定就去托盤「設定」。要即刻開始就關咗呢個窗口，再喺 PowerPoint 開個簡報。", hint: "關閉視窗即可完成設定精靈。", hintExpanded: "上一步   •   完成   •   重來" },
         btn: { next: "下一步", prev: "返回", finish: "完成" },
         watermark: {
           1: "開發中版本",
@@ -4817,7 +4893,7 @@ html, body {
           popWindowScale: "Popup scale",
           safeArea: "Screen padding"
         },
-        finish: { title: "Congratulations!", desc: "You have completed all basic settings.", sub: "To change settings later, click the tray icon and select 'Settings'. To start, close this window and open any presentation in PowerPoint.", hint: "Close the window to complete the setup wizard.", hintExpanded: "Back   •   Finish   •   Restart" },
+        finish: { title: "Congratulations!", desc: "You have completed all basic settings.", text: "Setup Wizard Complete", sub: "To change settings later, click the tray icon and select 'Settings'. To start, close this window and open any presentation in PowerPoint.", hint: "Close the window to complete the setup wizard.", hintExpanded: "Back   •   Finish   •   Restart" },
         btn: { next: "Next", prev: "Back", finish: "Finish" },
         watermark: {
           1: "In-Development",
@@ -4870,7 +4946,7 @@ html, body {
           popWindowScale: "ポップアップスケール",
           safeArea: "セーフエリア"
         },
-        finish: { title: "おめでとうございます！", desc: "基本設定がすべて完了しました", sub: "設定を変更するには、タスクトレイアイコンから「設定」を選択してください。開始するには、このウィンドウを閉じてPowerPointでプレゼンテーションを開いてください。", hint: "ウィンドウを閉じると、セットアップウィザードが完了します。", hintExpanded: "戻る   •   完了   •   最初から" },
+        finish: { title: "おめでとうございます！", desc: "基本設定がすべて完了しました", text: "セットアップウィザード完了", sub: "設定を変更するには、タスクトレイアイコンから「設定」を選択してください。開始するには、このウィンドウを閉じてPowerPointでプレゼンテーションを開いてください。", hint: "ウィンドウを閉じると、セットアップウィザードが完了します。", hintExpanded: "戻る   •   完了   •   最初から" },
         btn: { next: "次へ", prev: "戻る", finish: "完了" },
         watermark: {
           1: "開発中バージョン",
@@ -4928,6 +5004,7 @@ html, body {
       finishDesc: document.getElementById("finish-desc"),
       finishSubtitle: document.getElementById("finish-subtitle"),
       finishHint: document.getElementById("finish-hint"),
+      finishText: document.getElementById("finish-text"),
       btnFinish: document.getElementById("btn-finish"),
       btnImportCancel: document.getElementById("btn-import-cancel"),
       btnImportConfirm: document.getElementById("btn-import-confirm")
@@ -5595,6 +5672,7 @@ html, body {
       if (els.finishDesc) els.finishDesc.textContent = t.finish.desc;
       if (els.finishSubtitle) els.finishSubtitle.textContent = t.finish.sub;
       if (els.finishHint) els.finishHint.textContent = t.finish.hint;
+      if (els.finishText) els.finishText.textContent = t.finish.text;
       
       updateWatermark();
       applyLanguageFont();
@@ -5637,24 +5715,59 @@ html, body {
       }
     }
 
+    async function saveSettings() {
+      if (window.pywebview?.api?.save_setting) {
+        const crashMode = state.config.crashAutoHandleEnabled ? state.config.crashAutoHandleMode : "ShowAnalyzer";
+        await window.pywebview.api.save_setting("General", "Language", state.config.language);
+        await window.pywebview.api.save_setting("Appearance", "ThemeMode", state.config.theme);
+        await window.pywebview.api.save_setting("Appearance", "ThemeId", state.config.themeId);
+        await window.pywebview.api.save_setting("General", "RunAtStartup", state.config.runAtStartup);
+        await window.pywebview.api.save_setting("General", "DisableAnimations", state.config.disableAnimations);
+        await window.pywebview.api.save_setting("General", "CrashAutoHandleEnabled", state.config.crashAutoHandleEnabled);
+        await window.pywebview.api.save_setting("General", "CrashAutoHandleMode", crashMode);
+        await window.pywebview.api.save_setting("General", "AutoShowOverlay", state.config.autoShowOverlay);
+        await window.pywebview.api.save_setting("Overlay", "Scale", state.config.scale);
+        await window.pywebview.api.save_setting("Overlay", "PopWindowScale", state.config.popWindowScale);
+        await window.pywebview.api.save_setting("Overlay", "SafeArea", state.config.safeArea);
+        await window.pywebview.api.save_setting("Overlay", "ShowStatusBar", state.config.showStatusBar);
+      }
+    }
+
+    async function finishOption(option) {
+      if (state.previewMode) return;
+      try {
+        await saveSettings();
+        if (option === 'exit') {
+          if (window.pywebview?.api?.on_confirm) {
+            await window.pywebview.api.on_confirm();
+          } else {
+            window.close();
+          }
+        } else if (option === 'restart') {
+          if (window.pywebview?.api?.restart_and_open_settings) {
+            await window.pywebview.api.restart_and_open_settings();
+          } else if (window.pywebview?.api?.on_confirm) {
+            await window.pywebview.api.on_confirm();
+          } else {
+            window.close();
+          }
+        } else if (option === 'quit') {
+          if (window.pywebview?.api?.quit_app) {
+            await window.pywebview.api.quit_app();
+          } else {
+            window.close();
+          }
+        }
+      } catch (e) {
+        console.error("finishOption() error:", e);
+        window.close();
+      }
+    }
+
     async function finish() {
       if (state.previewMode) return;
       try {
-        if (window.pywebview?.api?.save_setting) {
-          const crashMode = state.config.crashAutoHandleEnabled ? state.config.crashAutoHandleMode : "ShowAnalyzer";
-          await window.pywebview.api.save_setting("General", "Language", state.config.language);
-          await window.pywebview.api.save_setting("Appearance", "ThemeMode", state.config.theme);
-          await window.pywebview.api.save_setting("Appearance", "ThemeId", state.config.themeId);
-          await window.pywebview.api.save_setting("General", "RunAtStartup", state.config.runAtStartup);
-          await window.pywebview.api.save_setting("General", "DisableAnimations", state.config.disableAnimations);
-          await window.pywebview.api.save_setting("General", "CrashAutoHandleEnabled", state.config.crashAutoHandleEnabled);
-          await window.pywebview.api.save_setting("General", "CrashAutoHandleMode", crashMode);
-          await window.pywebview.api.save_setting("General", "AutoShowOverlay", state.config.autoShowOverlay);
-          await window.pywebview.api.save_setting("Overlay", "Scale", state.config.scale);
-          await window.pywebview.api.save_setting("Overlay", "PopWindowScale", state.config.popWindowScale);
-          await window.pywebview.api.save_setting("Overlay", "SafeArea", state.config.safeArea);
-          await window.pywebview.api.save_setting("Overlay", "ShowStatusBar", state.config.showStatusBar);
-        }
+        await saveSettings();
         if (window.pywebview?.api?.on_confirm) {
           await window.pywebview.api.on_confirm();
         } else {
@@ -5788,79 +5901,6 @@ html, body {
     els.btnHeroNext.addEventListener("click", next);
     els.btnNext.addEventListener("click", next);
     els.btnPrev.addEventListener("click", prev);
-    
-    // Finish button long press logic
-    const btnFinishPrev = document.getElementById("btn-finish-prev");
-    const btnFinishRestart = document.getElementById("btn-finish-restart");
-    let longPressTimer;
-    let isLongPress = false;
-    
-    if (els.btnFinish) {
-        els.btnFinish.addEventListener("mousedown", (e) => {
-            if (e.button !== 0) return;
-            isLongPress = false;
-            longPressTimer = setTimeout(() => {
-                isLongPress = true;
-                if (btnFinishPrev) btnFinishPrev.classList.add("show");
-                if (btnFinishRestart) btnFinishRestart.classList.add("show");
-                
-                // Update hint text
-                const t = langResources[state.config.language] || langResources["zh-CN"];
-                if (els.finishHint && t.finish.hintExpanded) {
-                    els.finishHint.textContent = t.finish.hintExpanded;
-                    els.finishHint.style.opacity = 1;
-                }
-            }, 500);
-        });
-        
-        els.btnFinish.addEventListener("touchstart", (e) => {
-             isLongPress = false;
-             longPressTimer = setTimeout(() => {
-                isLongPress = true;
-                if (btnFinishPrev) btnFinishPrev.classList.add("show");
-                if (btnFinishRestart) btnFinishRestart.classList.add("show");
-            }, 500);
-        }, {passive: true});
-
-        const clearTimer = () => clearTimeout(longPressTimer);
-        els.btnFinish.addEventListener("mouseup", clearTimer);
-        els.btnFinish.addEventListener("mouseleave", clearTimer);
-        els.btnFinish.addEventListener("touchend", clearTimer);
-
-        els.btnFinish.addEventListener("click", (e) => {
-            if (isLongPress) {
-                e.preventDefault();
-                e.stopPropagation();
-                isLongPress = false;
-                return;
-            }
-            finish();
-        });
-    }
-    
-    if (btnFinishPrev) {
-        btnFinishPrev.addEventListener("click", () => {
-            btnFinishPrev.classList.remove("show");
-            btnFinishRestart.classList.remove("show");
-            // Reset hint
-            const t = langResources[state.config.language] || langResources["zh-CN"];
-            if (els.finishHint) els.finishHint.textContent = t.finish.hint;
-            
-            prev();
-        });
-    }
-    if (btnFinishRestart) {
-        btnFinishRestart.addEventListener("click", () => {
-             btnFinishPrev.classList.remove("show");
-             btnFinishRestart.classList.remove("show");
-             // Reset hint
-             const t = langResources[state.config.language] || langResources["zh-CN"];
-             if (els.finishHint) els.finishHint.textContent = t.finish.hint;
-             
-             state.step = 0;
-             updateStep("prev");
-        });
-    }
     
     // Import button listeners
     if (els.btnImportCancel) {

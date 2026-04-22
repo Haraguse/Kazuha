@@ -1,5 +1,3 @@
-// 不小心把代码删掉的是下头顺直
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1155,6 +1153,17 @@
             margin-top: 4px;
         }
 
+        .ink-btn.cancel {
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .ink-btn.cancel:hover {
+            background: var(--overlay-button-hover);
+            color: var(--text-primary);
+        }
+
         .ink-btn {
             border: 0;
             border-radius: 10px;
@@ -2148,6 +2157,8 @@
             <div class="ink-title">是否保留墨迹注释？</div>
             <div class="ink-text">检测到放映期间添加了墨迹注释，是否保留到幻灯片中？</div>
             <div class="ink-actions">
+                <button class="ink-btn cancel" onclick="onInkPrompt('cancel')">返回放映</button>
+                <div style="flex: 1"></div>
                 <button class="ink-btn" onclick="onInkPrompt(false)">不保留</button>
                 <button class="ink-btn confirm" onclick="onInkPrompt(true)">保留</button>
             </div>
@@ -2386,8 +2397,14 @@
         }
 
         function showInkPrompt() {
+            console.log('[Overlay] showInkPrompt called');
             const prompt = document.getElementById('ink-prompt');
-            if (prompt) prompt.classList.add('visible');
+            if (prompt) {
+                console.log('[Overlay] Found ink-prompt element, adding visible class');
+                prompt.classList.add('visible');
+            } else {
+                console.error('[Overlay] ink-prompt element not found!');
+            }
         }
 
         function hideInkPrompt() {
@@ -2395,10 +2412,11 @@
             if (prompt) prompt.classList.remove('visible');
         }
 
-        function onInkPrompt(keep) {
+        function onInkPrompt(value) {
             hideInkPrompt();
             if (bridge && typeof bridge.inkPromptResult === 'function') {
-                bridge.inkPromptResult(!!keep);
+                // Convert to string to ensure reliable transmission over WebChannel
+                bridge.inkPromptResult(String(value));
             }
         }
 
