@@ -1587,6 +1587,7 @@ class PPTAssistantApp:
         self._onboarding_wait_timer = None
         self._onboarding_restart_started = False
         self._resource_monitor = None
+        self._open_settings_after_startup = False
 
         # Start async initialization
         self._init_gen = self._init_steps()
@@ -1656,6 +1657,8 @@ class PPTAssistantApp:
         except Exception:
             pass
 
+        self._open_settings_after_startup = self._consume_open_settings_pending_flag()
+
         # Step 6: Tray (UI)
         yield 80, "init_tray"
         print("[Main] Initializing tray...", flush=True)
@@ -1697,6 +1700,8 @@ class PPTAssistantApp:
             print("[Main] Finishing splash...", flush=True)
             self._splash.finish()
             print("[Main] Splash finished.", flush=True)
+        if self._open_settings_after_startup and hasattr(self, "settings_plugin"):
+            QTimer.singleShot(200, self.settings_plugin.execute)
 
     def _perform_init_step(self):
         try:
@@ -2146,6 +2151,13 @@ class PPTAssistantApp:
             try:
                 with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
                     temp_data = json.load(f)
+                if temp_data.get("_quit_pending"):
+                    del temp_data["_quit_pending"]
+                    with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
+                        json.dump(temp_data, f, indent=4, ensure_ascii=False)
+                    self._prepare_shutdown(restarting=False)
+                    self.app.quit()
+                    return
                 if temp_data.get("_restart_pending"):
                     del temp_data["_restart_pending"]
                     with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
@@ -2269,6 +2281,21 @@ class PPTAssistantApp:
 
             if new_rebuild_at is not None:
                 self._overlay_rebuild_at = new_rebuild_at
+
+    def _consume_open_settings_pending_flag(self):
+        if not os.path.exists(SETTINGS_PATH):
+            return False
+        try:
+            with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not data.get("_open_settings_pending"):
+                return False
+            del data["_open_settings_pending"]
+            with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+            return True
+        except Exception:
+            return False
 
     def _reload_overlay(self):
         """Recreate the overlay window to apply language and layout changes."""

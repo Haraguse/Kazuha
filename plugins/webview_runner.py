@@ -1667,6 +1667,41 @@ class Api(QObject):
             print(f"Error triggering restart: {e}", file=sys.stderr)
 
     @Slot()
+    def restart_and_open_settings(self):
+        settings_path = self._get_settings_path()
+        try:
+            data = {}
+            if os.path.exists(settings_path):
+                with open(settings_path, "r", encoding="utf-8") as f:
+                    try:
+                        data = json.load(f)
+                    except JSONDecodeError:
+                        data = {}
+            data["_restart_pending"] = True
+            data["_open_settings_pending"] = True
+            with open(settings_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            print(f"Error triggering restart with settings open: {e}", file=sys.stderr)
+
+    @Slot()
+    def quit_app(self):
+        settings_path = self._get_settings_path()
+        try:
+            data = {}
+            if os.path.exists(settings_path):
+                with open(settings_path, "r", encoding="utf-8") as f:
+                    try:
+                        data = json.load(f)
+                    except JSONDecodeError:
+                        data = {}
+            data["_quit_pending"] = True
+            with open(settings_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            print(f"Error triggering quit: {e}", file=sys.stderr)
+
+    @Slot()
     def restart_from_crash_dialog(self):
         try:
             root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
