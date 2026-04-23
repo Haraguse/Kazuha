@@ -264,7 +264,7 @@ def _resolve_theme_dark(theme_mode):
     return False
 
 
-def _apply_window_theme(hwnd, is_dark):
+def _apply_window_theme(hwnd, is_dark, backdrop_type=None):
     if not hwnd:
         return
     try:
@@ -281,7 +281,12 @@ def _apply_window_theme(hwnd, is_dark):
             ctypes.byref(val),
             ctypes.sizeof(val),
         )
-        if is_dark:
+        use_system_caption = backdrop_type is not None and backdrop_type != DWMSBT_NONE
+        if use_system_caption:
+            border = ctypes.c_int(_DWM_COLOR_DEFAULT)
+            caption = ctypes.c_int(_DWM_COLOR_DEFAULT)
+            text = ctypes.c_int(_DWM_COLOR_DEFAULT)
+        elif is_dark:
             border = ctypes.c_int(0x00202020)
             caption = ctypes.c_int(0x00202020)
             text = ctypes.c_int(0x00FFFFFF)
@@ -347,17 +352,20 @@ def _apply_system_backdrop(hwnd, backdrop_type):
         dwmapi.DwmSetWindowAttribute(
             hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ctypes.byref(val), ctypes.sizeof(val)
         )
-        if backdrop_type != DWMSBT_NONE:
-            class MARGINS(ctypes.Structure):
-                _fields_ = [
-                    ("cxLeftWidth", ctypes.c_int),
-                    ("cxRightWidth", ctypes.c_int),
-                    ("cyTopHeight", ctypes.c_int),
-                    ("cyBottomHeight", ctypes.c_int),
-                ]
+        class MARGINS(ctypes.Structure):
+            _fields_ = [
+                ("cxLeftWidth", ctypes.c_int),
+                ("cxRightWidth", ctypes.c_int),
+                ("cyTopHeight", ctypes.c_int),
+                ("cyBottomHeight", ctypes.c_int),
+            ]
 
-            margins = MARGINS(-1, -1, -1, -1)
-            dwmapi.DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(margins))
+        margins = (
+            MARGINS(-1, -1, -1, -1)
+            if backdrop_type != DWMSBT_NONE
+            else MARGINS(0, 0, 0, 0)
+        )
+        dwmapi.DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(margins))
     except Exception:
         pass
 
@@ -1091,8 +1099,13 @@ class Api(QObject):
             js = f"if (typeof updateTheme === 'function') updateTheme({json.dumps(theme_mode)}, {json.dumps(theme_id)})"
             self._window.page().runJavaScript(js)
             try:
+                backdrop_type = _resolve_system_backdrop_type(
+                    getattr(self, "settings", {}), getattr(self._window, "_window_tag", "")
+                )
                 _apply_window_theme(
-                    int(self._window.winId()), _resolve_theme_dark(theme_mode)
+                    int(self._window.winId()),
+                    _resolve_theme_dark(theme_mode),
+                    backdrop_type,
                 )
             except Exception:
                 pass
@@ -1163,6 +1176,10 @@ class Api(QObject):
     @Slot(result="QVariant")
     def get_version(self):
         return self.version
+
+    @Slot(result=str)
+    def get_platform(self):
+        return str(sys.platform or "")
 
     @Slot(result="QVariant")
     def get_overlay_themes(self):
@@ -3024,8 +3041,8 @@ def apply_win11_aesthetics(window, theme_mode=None, settings=None, window_tag=""
         dwmapi.DwmSetWindowAttribute(
             hwnd, 33, ctypes.byref(corner_preference), ctypes.sizeof(corner_preference)
         )
-        _apply_window_theme(hwnd, _resolve_theme_dark(theme_mode))
         backdrop_type = _resolve_system_backdrop_type(settings, window_tag)
+        _apply_window_theme(hwnd, _resolve_theme_dark(theme_mode), backdrop_type)
         _apply_system_backdrop(hwnd, backdrop_type)
         if backdrop_type is not None and backdrop_type != DWMSBT_NONE:
             border = ctypes.c_int(_DWM_COLOR_NONE)

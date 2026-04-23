@@ -1274,11 +1274,17 @@
 
     :root[data-system-backdrop-mode="system"] .sidebar,
     :root[data-system-backdrop-mode="system"] .sidebar-mini {
-      background: transparent !important;
-      border: none !important;
+      background: rgba(255, 255, 255, 0.12) !important;
+      border: 1px solid rgba(255, 255, 255, 0.16) !important;
       box-shadow: none !important;
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
+    }
+
+    :root[data-system-backdrop-mode="system"][data-theme="dark"] .sidebar,
+    :root[data-system-backdrop-mode="system"][data-theme="dark"] .sidebar-mini {
+      background: rgba(16, 16, 16, 0.20) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
 
     :root[data-system-backdrop-mode="fallback"] .sidebar,
@@ -1303,6 +1309,35 @@
     :root[data-system-backdrop-mode="system"][data-theme="dark"] .content,
     :root[data-system-backdrop-mode="fallback"][data-theme="dark"] .content {
       background: rgba(20, 20, 20, 0.82) !important;
+    }
+
+    :root[data-system-backdrop-mode="system"] .content {
+      background: rgba(255, 255, 255, 0.14) !important;
+      border: 1px solid rgba(255, 255, 255, 0.14) !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+
+    :root[data-system-backdrop-mode="system"][data-theme="dark"] .content {
+      background: rgba(16, 16, 16, 0.24) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+
+    :root[data-system-backdrop-mode="system"] .settings-group {
+      background: rgba(255, 255, 255, 0.28) !important;
+      border-color: rgba(255, 255, 255, 0.16) !important;
+      box-shadow: none !important;
+    }
+
+    :root[data-system-backdrop-mode="system"][data-theme="dark"] .settings-group {
+      background: rgba(22, 22, 22, 0.42) !important;
+      border-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    :root[data-system-backdrop-mode="system"] .content-blur-overlay {
+      display: none !important;
+      opacity: 0 !important;
     }
 
     :root[data-disable-animations="true"] *,
@@ -6661,6 +6696,8 @@
                   <span>hujinming0722</span>
                   <span>IsHPDuwu</span>
                   <span>Evan0148</span>
+                  <span>chenjintang</span>
+                  <span>lzy98276</span>
                 </div>
               </div>
               <div class="credits-section">
@@ -7116,10 +7153,10 @@
       "group.appearance": "外观",
       "group.startup": "默认行为",
       "group.compatibility": "兼容性",
-      "general.resetPreOnboarding.label": "使 Luminalium 回到未引导前的状态",
+      "general.resetPreOnboarding.label": "使 荧素万演 回到未引导前的状态",
       "general.resetPreOnboarding.desc": "清空当前设置，重启后重新进入引导",
       "dialog.resetPreOnboarding.title": "恢复未引导前状态",
-      "dialog.resetPreOnboarding.text": "这会删除同级目录下的 settings.json，并立即重启 Luminalium。\n\n执行后将清空当前大部分用户设置，包括语言、主题、浮层与工具栏配置、快捷启动列表等；重启后会重新进入首次引导。\n\n注意：如果你之前已经打开了开机启动，这里不会帮你一并关闭。",
+      "dialog.resetPreOnboarding.text": "这会删除同级目录下的 settings.json，并立即重启 荧素万演。\n\n执行后将清空当前大部分用户设置，包括语言、主题、浮层与工具栏配置、快捷启动列表等；重启后会重新进入首次引导。\n\n注意：如果你之前已经打开了开机启动，这里不会帮你一并关闭。",
       "dialog.resetPreOnboarding.confirm": "立即恢复",
       "dialog.resetPreOnboarding.cancel": "取消",
       "group.fonts": "全局应用字体",
@@ -7199,7 +7236,7 @@
       "appearance.theme.label": "主题",
       "appearance.theme.desc": "选择配色方案，影响设置页与工具栏外观",
       "appearance.theme.default": "默认",
-      "appearance.theme.default.desc": "Luminalium 默认主题",
+      "appearance.theme.default.desc": "荧素万演 默认主题",
       "appearance.theme.materialYou": "紫色",
       "appearance.theme.materialYou.desc": "柔和紫色与轻盈氛围",
       "appearance.theme.redSunrise": "红色",
@@ -7229,7 +7266,7 @@
       "appearance.theme.monet.color.surface": "表面",
       "appearance.theme.monet.color.text": "文字",
       "general.runAtStartup.label": "开机自启",
-      "general.runAtStartup.desc": "在 Windows 登录后自动启动 Luminalium，仅对当前用户生效",
+      "general.runAtStartup.desc": "在 Windows 登录后自动启动 荧素万演，仅对当前用户生效",
       "general.disableAnimations.label": "禁用界面动画",
       "general.disableAnimations.desc": "关闭全局过渡、缩放与滚动动画；开启后各界面会直接切换到最终状态",
       "general.crashAutoHandle.label": "异常退出处理",
@@ -7239,12 +7276,12 @@
       "general.crashAutoHandle.restartSilent": "后台重启（不显示启动画面）",
       "general.crashAutoHandle.toast": "仅发送 Windows 通知",
       "general.systemBackdrop.label": "系统材质效果",
-      "general.systemBackdrop.desc": "为设置页和计时器窗口的标题栏与边框启用 Windows 材质效果，不影响内容区",
-      "general.systemBackdrop.requirements": "需要 Windows 11",
+      "general.systemBackdrop.desc": "为设置页和计时器窗口的标题栏与边框启用 Windows 材质效果，不影响内容区 | 此功能仍处于测试状态！如果你没有排障需求就不要打开！问题比你想象的多得多！",
+      "general.systemBackdrop.requirements": "需要 Windows 11，且已启用透明效果（Windows 设置 > 个性化 > 颜色 > 透明效果 > 开启）",
       "general.systemBackdrop.type.opaque": "不透明",
-      "general.systemBackdrop.type.mica": "Mica",
-      "general.systemBackdrop.type.acrylic": "Acrylic",
-      "general.systemBackdrop.type.micaAlt": "Mica Alt",
+      "general.systemBackdrop.type.mica": "云母",
+      "general.systemBackdrop.type.acrylic": "亚克力",
+      "general.systemBackdrop.type.micaAlt": "云母变体",
       "general.splashMode.label": "启动画面",
       "general.splashMode.desc": "控制启动画面的显示时机；可对开机自启或指定时段单独隐藏",
       "general.splashMode.always": "每次都显示",
@@ -7266,7 +7303,7 @@
       "watermark.4": "重新评估版本",
       "general.devWatermark": "{type}\n不保证最终品质 （{version}）",
       "general.autoShowOverlay.label": "自动显示悬浮窗",
-      "general.autoShowOverlay.desc": "检测到 PowerPoint 或 Yozo 放映开始时自动显示悬浮窗；兼容模式下会始终显示",
+      "general.autoShowOverlay.desc": "检测到演示软件放映开始时自动显示悬浮窗；兼容模式下会始终显示",
       "group.compatibility": "兼容性",
       "general.compatibilityMode.label": "兼容模式",
       "general.compatibilityMode.desc": "让悬浮窗常驻显示，翻页改用模拟键盘输入，并关闭自动显隐、页码和部分工具",
@@ -7405,7 +7442,7 @@
       "toolbar.clear": "清屏",
       "toolbar.end_show": "结束放映",
       "about.version.label": "软件版本",
-      "about.version.copyright": "COPYRIGHT 2025-2026 SECTL 丨本程序根据 GNU General Public License 3 获得许可",
+      "about.version.copyright": "COPYRIGHT 2025-2026 思拓创联 丨本程序根据 GNU General Public License 3 获得许可",
       "about.version.github": "GitHub 仓库地址",
       "about.version.qq": "QQ群（1004548404）",
       "about.credits.label": "鸣谢",
@@ -8157,7 +8194,7 @@
       "appearance.theme.label": "テーマ",
       "appearance.theme.desc": "テーマを選択してプレビューします",
       "appearance.theme.default": "デフォルト",
-      "appearance.theme.default.desc": "Luminalium のデフォルトテーマ",
+      "appearance.theme.default.desc": "ルマイナリウムのデフォルトテーマ",
       "appearance.theme.materialYou": "紫",
       "appearance.theme.materialYou.desc": "柔らかな紫と軽い雰囲気",
       "appearance.theme.redSunrise": "紅",
@@ -8197,7 +8234,7 @@
       "general.systemBackdrop.desc": "設定とタイマーの非コンテンツ領域で Windows の素材を使用",
       "general.systemBackdrop.requirements": "Windows 11 が必要です",
       "general.systemBackdrop.type.opaque": "不透明",
-      "general.systemBackdrop.type.mica": "Mica",
+      "general.systemBackdrop.type.mica": "マイカ",
       "general.systemBackdrop.type.acrylic": "Acrylic",
       "general.systemBackdrop.type.micaAlt": "Mica Alt",
       "general.splashMode.label": "スプラッシュ画面",
@@ -11152,7 +11189,7 @@
   if (window.initialSettings) {
     settingsLoaded = true;
     // 延迟初始化平台检测，确保 pywebview.api.platform 已经设置
-    if (window.pywebview && window.pywebview.api && window.pywebview.api.platform) {
+    if (window.pywebview && window.pywebview.api) {
       applySettingsToUI();
     } else {
       // 等待 pywebview 就绪后再初始化
@@ -11169,11 +11206,61 @@
     window.addEventListener('pywebviewready', onPywebviewReady);
   }
   
-  function getPlatform() {
-    if (window.pywebview && window.pywebview.api && window.pywebview.api.platform) {
-      return window.pywebview.api.platform;
+  function normalizePlatform(value) {
+    const raw = String(value || '').trim().toLowerCase();
+    if (!raw) return 'unknown';
+    if (raw.includes('win')) return 'win32';
+    if (raw.includes('mac') || raw.includes('darwin') || raw.includes('os x')) return 'darwin';
+    if (raw.includes('linux') || raw.includes('x11')) return 'linux';
+    return raw;
+  }
+
+  function guessPlatform() {
+    if (window.pywebview && window.pywebview.api) {
+      const apiPlatform = window.pywebview.api.platform;
+      if (typeof apiPlatform === 'string') {
+        return normalizePlatform(apiPlatform);
+      }
     }
+
+    if (navigator.userAgentData && navigator.userAgentData.platform) {
+      return normalizePlatform(navigator.userAgentData.platform);
+    }
+
+    if (navigator.platform) {
+      return normalizePlatform(navigator.platform);
+    }
+
+    if (navigator.userAgent) {
+      return normalizePlatform(navigator.userAgent);
+    }
+
     return 'unknown';
+  }
+
+  async function getPlatform() {
+    const api = window.pywebview && window.pywebview.api;
+    if (!api) {
+      return guessPlatform();
+    }
+
+    try {
+      if (typeof api.get_platform === 'function') {
+        return normalizePlatform(await api.get_platform());
+      }
+
+      if (typeof api.platform === 'function') {
+        return normalizePlatform(await api.platform());
+      }
+
+      if (typeof api.platform === 'string') {
+        return normalizePlatform(api.platform);
+      }
+    } catch (err) {
+      console.warn('Failed to resolve platform from pywebview API:', err);
+    }
+
+    return guessPlatform();
   }
 
   function getSystemThemeVariant() {
@@ -11212,11 +11299,17 @@
     }
   }
 
-  function initializePlatformDetection() {
-    CURRENT_PLATFORM = getPlatform();
+  function applyPlatformDetection(platform) {
+    const nextPlatform = normalizePlatform(platform);
+    CURRENT_PLATFORM = nextPlatform;
     updateOverlayUIForPlatform();
     updateDebugMenuForPlatform();
+  }
+
+  function initializePlatformDetection() {
+    applyPlatformDetection(guessPlatform());
     initializeThemeMonitoring();
+    getPlatform().then(applyPlatformDetection);
   }
 
   function updateOverlayUIForPlatform() {

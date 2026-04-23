@@ -9,6 +9,7 @@ from PySide6.QtGui import QGuiApplication
 import time
 import os
 import sys
+import ctypes
 from collections import deque
 from ppt_assistant.core.config import cfg
 from ppt_assistant.core.system.linux import (
@@ -87,6 +88,27 @@ YOZO_PROCESS_NAMES = {"yozo_impress.exe", "yozopg.exe", "yozo_office.exe"}
 ALL_PRESENTATION_PROCESS_NAMES = (
     PPT_PROCESS_NAMES | WPS_PROCESS_NAMES | YOZO_PROCESS_NAMES
 )
+PPT_INK_COLOR_GRID = {
+    (255, 255, 255): (0, 0),
+    (0, 0, 0): (0, 1),
+    (231, 230, 230): (0, 2),
+    (68, 84, 106): (0, 3),
+    (68, 114, 196): (0, 4),
+    (237, 125, 49): (0, 5),
+    (165, 165, 165): (0, 6),
+    (255, 192, 0): (0, 7),
+    (91, 155, 213): (0, 8),
+    (112, 173, 71): (0, 9),
+    (192, 0, 0): (1, 0),
+    (255, 0, 0): (1, 1),
+    (255, 255, 0): (1, 3),
+    (146, 208, 80): (1, 4),
+    (0, 176, 80): (1, 5),
+    (0, 176, 240): (1, 6),
+    (0, 112, 192): (1, 7),
+    (0, 32, 96): (1, 8),
+    (112, 48, 160): (1, 9),
+}
 YOZO_COM_PROG_IDS = ("YozoPG.Application", "YozoPG.Application.1")
 STRICT_SLIDESHOW_WINDOW_TITLE_HINTS = {
     "slide show",
@@ -493,32 +515,42 @@ class PPTWorker(QObject):
             pass
 
     def _send_vk_to_slideshow(self, vk: int) -> bool:
+        hwnd = 0
+        sent = False
         try:
-            if not win32api or not win32con:
-                return False
             hwnd = self._focus_slideshow_window()
             if not hwnd:
                 return False
-            win32api.keybd_event(int(vk), 0, 0, 0)
-            win32api.keybd_event(int(vk), 0, win32con.KEYEVENTF_KEYUP, 0)
-            return True
+            if win32api and win32con:
+                win32api.keybd_event(int(vk), 0, 0, 0)
+                win32api.keybd_event(int(vk), 0, win32con.KEYEVENTF_KEYUP, 0)
+                sent = True
         except Exception:
-            return False
+            sent = False
+        if sent:
+            return True
+        return self._post_key_press_to_window(hwnd, int(vk))
 
     def _send_ctrl_shortcut_to_slideshow(self, key_vk: int) -> bool:
+        hwnd = 0
+        sent = False
         try:
-            if not win32api or not win32con:
-                return False
             hwnd = self._focus_slideshow_window()
             if not hwnd:
                 return False
-            win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
-            win32api.keybd_event(int(key_vk), 0, 0, 0)
-            win32api.keybd_event(int(key_vk), 0, win32con.KEYEVENTF_KEYUP, 0)
-            win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
-            return True
+            if win32api and win32con:
+                win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+                win32api.keybd_event(int(key_vk), 0, 0, 0)
+                win32api.keybd_event(int(key_vk), 0, win32con.KEYEVENTF_KEYUP, 0)
+                win32api.keybd_event(
+                    win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0
+                )
+                sent = True
         except Exception:
-            return False
+            sent = False
+        if sent:
+            return True
+        return self._post_ctrl_shortcut_to_window(hwnd, int(key_vk))
 
     def _focus_slideshow_window(self, hwnd: int = 0) -> int:
         try:
@@ -544,6 +576,152 @@ class PPTWorker(QObject):
                 except Exception:
                     pass
         return int(hwnd or 0)
+
+    def _build_key_lparam(self, vk: int, key_up: bool = False) -> int:
+        try:
+            scan_code = int(ctypes.windll.user32.MapVirtualKeyW(int(vk), 0) or 0)
+        except Exception:
+            scan_code = 0
+        lparam = 1 | (scan_code << 16)
+        if key_up:
+            lparam |= 0xC0000000
+        return int(lparam)
+
+    def _post_key_press_to_window(self, hwnd: int, vk: int) -> bool:
+        if not hwnd or not win32gui or not win32con:
+            return False
+        try:
+            hwnd = int(hwnd)
+            vk = int(vk)
+            win32gui.PostMessage(
+                hwnd, win32con.WM_KEYDOWN, vk, self._build_key_lparam(vk, False)
+            )
+            win32gui.PostMessage(
+                hwnd, win32con.WM_KEYUP, vk, self._build_key_lparam(vk, True)
+            )
+            return True
+        except Exception:
+            return False
+
+    def _post_ctrl_shortcut_to_window(self, hwnd: int, key_vk: int) -> bool:
+        if not hwnd or not win32gui or not win32con:
+            return False
+        try:
+            hwnd = int(hwnd)
+            key_vk = int(key_vk)
+            ctrl_vk = int(win32con.VK_CONTROL)
+            win32gui.PostMessage(
+                hwnd,
+                win32con.WM_KEYDOWN,
+                ctrl_vk,
+                self._build_key_lparam(ctrl_vk, False),
+            )
+            win32gui.PostMessage(
+                hwnd,
+                win32con.WM_KEYDOWN,
+                key_vk,
+                self._build_key_lparam(key_vk, False),
+            )
+            win32gui.PostMessage(
+                hwnd, win32con.WM_KEYUP, key_vk, self._build_key_lparam(key_vk, True)
+            )
+            win32gui.PostMessage(
+                hwnd,
+                win32con.WM_KEYUP,
+                ctrl_vk,
+                self._build_key_lparam(ctrl_vk, True),
+            )
+            return True
+        except Exception:
+            return False
+
+    def _execute_mso_command(self, command_id: str) -> bool:
+        app = self._get_active_app()
+        if app is None:
+            return False
+        try:
+            commandbars = getattr(app, "CommandBars", None)
+            if commandbars is None:
+                return False
+            execute = getattr(commandbars, "ExecuteMso", None)
+            if not callable(execute):
+                return False
+            execute(str(command_id))
+            return True
+        except Exception:
+            return False
+
+    def _read_pointer_color_rgb(self):
+        try:
+            ss_win = self._get_active_slideshow_window()
+            view = getattr(ss_win, "View", None) if ss_win is not None else None
+            color = getattr(view, "PointerColor", None) if view is not None else None
+            rgb = getattr(color, "RGB", None) if color is not None else None
+            if callable(rgb):
+                rgb = rgb()
+            if rgb is None:
+                return None
+            value = int(rgb) & 0xFFFFFF
+            return (value & 0xFF, (value >> 8) & 0xFF, (value >> 16) & 0xFF)
+        except Exception:
+            return None
+
+    def _try_apply_pointer_color(self, r: int, g: int, b: int) -> bool:
+        try:
+            ss_win = self._get_active_slideshow_window()
+            view = getattr(ss_win, "View", None) if ss_win is not None else None
+            if view is None:
+                return False
+            rgb = int(r) + (int(g) << 8) + (int(b) << 16)
+            view.PointerColor.RGB = rgb
+            current = self._read_pointer_color_rgb()
+            return current == (int(r), int(g), int(b))
+        except Exception:
+            return False
+
+    def _send_navigation_vk(self, vk: int, repeat: int = 1, delay: float = 0.02) -> bool:
+        repeat = max(1, int(repeat))
+        ok = False
+        for _ in range(repeat):
+            ok = self._send_vk_to_slideshow(int(vk))
+            time.sleep(max(0.0, float(delay)))
+        return ok
+
+    def _try_apply_pen_color_via_palette(self, r: int, g: int, b: int) -> bool:
+        if sys.platform != "win32":
+            return False
+        if (self._active_kind or "") != "ppt":
+            return False
+        target = PPT_INK_COLOR_GRID.get((int(r), int(g), int(b)))
+        if target is None:
+            return False
+        if not win32con:
+            return False
+
+        row, col = target
+        hwnd = self._focus_slideshow_window()
+        if not hwnd:
+            return False
+
+        # Ensure pen mode is active so the ink color picker command is enabled.
+        self._execute_mso_command("AnnotInkPen")
+        self._send_ctrl_shortcut_to_slideshow(ord("P"))
+        time.sleep(0.06)
+
+        if not self._execute_mso_command("InkColorPicker"):
+            return False
+
+        time.sleep(0.12)
+        self._send_navigation_vk(win32con.VK_UP, repeat=3, delay=0.015)
+        self._send_navigation_vk(win32con.VK_LEFT, repeat=12, delay=0.015)
+        if row > 0:
+            self._send_navigation_vk(win32con.VK_DOWN, repeat=row, delay=0.02)
+        if col > 0:
+            self._send_navigation_vk(win32con.VK_RIGHT, repeat=col, delay=0.02)
+        self._send_navigation_vk(win32con.VK_RETURN, repeat=1, delay=0.04)
+        time.sleep(0.08)
+        current = self._read_pointer_color_rgb()
+        return current == (int(r), int(g), int(b))
 
     def _can_use_linux_xdotool(self) -> bool:
         return linux_can_use_xdotool()
@@ -2094,6 +2272,11 @@ class PPTWorker(QObject):
         delays = (0.0, 0.08, 0.16, 0.28)
         last_error = None
         pointer_type = int(pointer_type)
+        shortcut_vk = {
+            1: ord("A"),
+            2: ord("P"),
+            5: ord("E"),
+        }.get(pointer_type)
         for attempt, delay in enumerate(delays):
             if delay > 0:
                 time.sleep(delay)
@@ -2107,13 +2290,19 @@ class PPTWorker(QObject):
             except Exception as e:
                 last_error = e
         try:
-            if pointer_type == 2 and self._send_ctrl_shortcut_to_slideshow(ord("P")):
-                time.sleep(0.03)
-                if self._try_apply_pointer_type(pointer_type, force_arrow_reset=True):
-                    self._control_mode = "com"
+            if shortcut_vk and sys.platform == "win32":
+                if pointer_type == 2:
+                    self._send_ctrl_shortcut_to_slideshow(ord("A"))
+                    time.sleep(0.02)
+                if self._send_ctrl_shortcut_to_slideshow(shortcut_vk):
+                    time.sleep(0.05)
+                    if self._try_apply_pointer_type(
+                        pointer_type, force_arrow_reset=True
+                    ):
+                        self._control_mode = "com"
+                        return
+                    self._control_mode = "win32"
                     return
-                self._control_mode = "win32"
-                return
         except Exception as e:
             last_error = e
         shortcut = {
@@ -2124,6 +2313,21 @@ class PPTWorker(QObject):
         if shortcut:
             try:
                 if self._send_linux_shortcut_to_slideshow(shortcut):
+                    time.sleep(0.05)
+                    if self._try_apply_pointer_type(pointer_type, force_arrow_reset=True):
+                        self._control_mode = "com"
+                        return
+                    self._control_mode = "win32"
+                    return
+            except Exception as e:
+                last_error = e
+        if shortcut_vk and sys.platform == "win32":
+            try:
+                hwnd = int(self._slideshow_hwnd or 0) or self._find_ppt_slideshow_hwnd()
+                if pointer_type == 2 and hwnd:
+                    self._post_ctrl_shortcut_to_window(hwnd, ord("A"))
+                    time.sleep(0.02)
+                if hwnd and self._post_ctrl_shortcut_to_window(hwnd, shortcut_vk):
                     self._control_mode = "win32"
                     return
             except Exception as e:
@@ -2133,6 +2337,7 @@ class PPTWorker(QObject):
 
     @Slot(int, int, int)
     def set_pen_color(self, r, g, b):
+        last_error = None
         try:
             r = max(0, min(255, int(r)))
             g = max(0, min(255, int(g)))
@@ -2144,15 +2349,35 @@ class PPTWorker(QObject):
                 self._control_mode = "wps_bridge"
                 return
         except Exception as e:
+            last_error = e
             self._note_error("set_pen_color_wps_bridge", e)
+
         try:
-            ss_win = self._get_active_slideshow_window()
-            view = getattr(ss_win, "View", None) if ss_win is not None else None
-            if view is not None:
-                rgb = r + (g << 8) + (b << 16)
-                view.PointerColor.RGB = rgb
+            if self._try_apply_pointer_color(r, g, b):
+                self._control_mode = "com"
+                return
         except Exception as e:
-            self._note_error("set_pen_color", e)
+            last_error = e
+
+        try:
+            if self._try_apply_pen_color_via_palette(r, g, b):
+                self._control_mode = "win32"
+                self._note_info(
+                    "set_pen_color_palette_fallback",
+                    f"Pen color fallback applied via InkColorPicker: #{r:02X}{g:02X}{b:02X}",
+                    min_interval=0.0,
+                )
+                return
+        except Exception as e:
+            last_error = e
+
+        self._note_info(
+            f"set_pen_color_unsupported_{r:02X}{g:02X}{b:02X}",
+            f"Failed to apply pen color #{r:02X}{g:02X}{b:02X}; current Office state may not expose a reliable color entry point.",
+            min_interval=2.0,
+        )
+        if last_error is not None:
+            self._note_error("set_pen_color", last_error)
 
     @Slot(int)
     def go_to_slide(self, index):

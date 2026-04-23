@@ -275,30 +275,18 @@ Rectangle {
             property real lastFilteredX: 0
             property real lastFilteredY: 0
             property bool pointerActive: false
-            property bool hasPendingInput: false
-            property real pendingInputX: 0
-            property real pendingInputY: 0
-            property var pendingLines: []
             property var allLines: [] // Store all strokes history
             property bool needsFullRepaint: false
             property bool paintScheduled: false
-            property real smoothingFactorPen: 0.12
-            property real smoothingFactorEraser: 0.20
-            property real inputFlushIntervalMs: 2 + (root.performanceScale - 1) * 1.5
-            property real lowSamplePixels: 1.2 * root.performanceScale
+            // 极致优化：完全禁用平滑处理，直接绘制以获得最低延迟
+            property real smoothingFactorPen: 0.0
+            property real smoothingFactorEraser: 0.0
+            property real lowSamplePixels: 2.0 * root.performanceScale
             property real lowSamplePixelsSquared: lowSamplePixels * lowSamplePixels
-            property real maxSegmentPixels: 4.5 * root.performanceScale
+            // 极致优化：大幅增加最大分段像素，最小化插值计算
+            property real maxSegmentPixels: 16.0 * root.performanceScale
             readonly property bool canUndo: undoStack.length > 0
             readonly property bool canRedo: redoStack.length > 0
-
-            Timer {
-                id: inputFlushTimer
-                interval: canvas ? Math.max(4, Math.round(canvas.inputFlushIntervalMs)) : 10
-                repeat: true
-                onTriggered: {
-                    if (canvas) canvas.flushPendingInput(false);
-                }
-            }
 
             onWidthChanged: {
                 requestRepaintAll();
@@ -390,26 +378,7 @@ Rectangle {
                 canvas.lastY = currentY;
             }
 
-            function flushToPoint(currentX, currentY) {
-                processInputPoint(currentX, currentY, true);
-            }
 
-            function queueInputPoint(currentX, currentY) {
-                pendingInputX = currentX;
-                pendingInputY = currentY;
-                hasPendingInput = true;
-                if (!inputFlushTimer.running) {
-                    inputFlushTimer.start();
-                }
-            }
-
-            function flushPendingInput(forceFinal) {
-                if (!pointerActive || !hasPendingInput) return;
-                var x = pendingInputX;
-                var y = pendingInputY;
-                hasPendingInput = false;
-                processInputPoint(x, y, forceFinal);
-            }
 
             function processInputPoint(currentX, currentY, forceFinal) {
                 var w = Math.max(1, canvas.width);
@@ -417,11 +386,10 @@ Rectangle {
                 var rawDxPx = (currentX - canvas.lastRawX) * w;
                 var rawDyPx = (currentY - canvas.lastRawY) * h;
                 var rawDistSquared = rawDxPx * rawDxPx + rawDyPx * rawDyPx;
-                var interval = Math.max(1, inputFlushTimer.interval);
-                var speedPxPerMs = Math.sqrt(rawDistSquared) / interval;
                 canvas.lastRawX = currentX;
                 canvas.lastRawY = currentY;
-                if (!forceFinal && rawDistSquared < canvas.minSegmentPixelsSquared) {
+                // 极致优化：使用固定小阈值，几乎不过滤点
+                if (!forceFinal && rawDistSquared < 0.09) {
                     return;
                 }
                 if (canvas.isEraser && canvas.eraserMode === 1) {
@@ -438,14 +406,34 @@ Rectangle {
                     }
                     return;
                 }
-                var baseSmoothing = canvas.isEraser ? canvas.smoothingFactorEraser : canvas.smoothingFactorPen;
-                var lagComp = Math.min(0.32, speedPxPerMs * 0.024);
-                var smoothing = Math.min(0.9, baseSmoothing + lagComp);
-                var targetX = forceFinal ? currentX : (canvas.lastFilteredX + (currentX - canvas.lastFilteredX) * smoothing);
-                var targetY = forceFinal ? currentY : (canvas.lastFilteredY + (currentY - canvas.lastFilteredY) * smoothing);
-                canvas.lastFilteredX = targetX;
-                canvas.lastFilteredY = targetY;
-                appendToTarget(targetX, targetY, forceFinal);
+                // 极致优化：直接绘制，完全跳过所有平滑处理
+                canvas.lastFilteredX = currentX;
+                canvas.lastFilteredY = currentY;
+                appendDirectly(currentX, currentY, forceFinal);
+            }
+
+            // 极致优化：最简单的直接绘制，最小化计算
+            function appendDirectly(targetX, targetY, forceFinal) {
+                var w = canvas.width || 1;
+                var h = canvas.height || 1;
+                var startX = canvas.lastX;
+                var startY = canvas.lastY;
+                var dxPx = (targetX - startX) * w;
+                var dyPx = (targetY - startY) * h;
+                // 极致优化：使用平方距离，避免开方
+                var movePxSquared = dxPx * dxPx + dyPx * dyPx;
+                // 极致优化：极宽松的阈值，几乎不过滤
+                if (!forceFinal && movePxSquared < 0.5) {
+                    return;
+                }
+                // 极致优化：只有当距离很大时才插入一个中间点
+                var maxSegSq = canvas.maxSegmentPixels * canvas.maxSegmentPixels;
+                if (movePxSquared > maxSegSq && !forceFinal) {
+                    var midX = (startX + targetX) * 0.5;
+                    var midY = (startY + targetY) * 0.5;
+                    appendSegmentTo(midX, midY);
+                }
+                appendSegmentTo(targetX, targetY);
             }
 
             function appendToTarget(targetX, targetY, forceFinal) {
@@ -461,14 +449,16 @@ Rectangle {
                 }
                 var steps = Math.ceil(Math.sqrt(movePxSquared) / canvas.maxSegmentPixels);
                 if (steps < 1) steps = 1;
-                if (steps > 3) steps = 3;
+                // 优化：限制最大分段数为2，减少计算量
+                if (steps > 2) steps = 2;
                 for (var i = 1; i <= steps; i++) {
                     var t = i / steps;
                     var x = startX + (targetX - startX) * t;
                     var y = startY + (targetY - startY) * t;
                     var segDxPx = (x - canvas.lastX) * w;
                     var segDyPx = (y - canvas.lastY) * h;
-                    if (!forceFinal && (segDxPx * segDxPx + segDyPx * segDyPx) < 0.25) {
+                    // 优化：提高最小分段阈值，减少小分段绘制
+                    if (!forceFinal && (segDxPx * segDxPx + segDyPx * segDyPx) < 1.0) {
                         continue;
                     }
                     appendSegmentTo(x, y);
@@ -647,43 +637,42 @@ Rectangle {
             
             MouseArea {
                 anchors.fill: parent
+                // 极致优化：禁用鼠标跟踪以减少事件开销
+                hoverEnabled: false
                 onPressed: (mouse) => {
                     canvas.beginGesture()
-                    canvas.lastX = mouse.x / canvas.width
-                    canvas.lastY = mouse.y / canvas.height
-                    canvas.lastRawX = canvas.lastX
-                    canvas.lastRawY = canvas.lastY
-                    canvas.lastFilteredX = canvas.lastX
-                    canvas.lastFilteredY = canvas.lastY
+                    var x = mouse.x / canvas.width
+                    var y = mouse.y / canvas.height
+                    canvas.lastX = x
+                    canvas.lastY = y
+                    canvas.lastRawX = x
+                    canvas.lastRawY = y
+                    canvas.lastFilteredX = x
+                    canvas.lastFilteredY = y
                     canvas.pointerActive = true
                     canvas.hasPendingInput = false
                     canvas.currentStrokeId++;
                     canvas.lastWidth = canvas.lineWidth;
-                    if (!inputFlushTimer.running) {
-                        inputFlushTimer.start();
-                    }
                 }
                 onReleased: (mouse) => {
-                    canvas.queueInputPoint(mouse.x / canvas.width, mouse.y / canvas.height);
-                    canvas.flushPendingInput(true);
+                    // 极致优化：直接处理最后一个点
+                    var x = mouse.x / canvas.width
+                    var y = mouse.y / canvas.height
+                    canvas.processInputPoint(x, y, true);
                     canvas.pointerActive = false;
-                    inputFlushTimer.stop();
                     canvas.commitGesture();
                     canvas.lastWidth = canvas.lineWidth;
                 }
                 onCanceled: {
                     canvas.pointerActive = false;
-                    inputFlushTimer.stop();
                     canvas.commitGesture();
                     canvas.lastWidth = canvas.lineWidth;
                 }
                 onPositionChanged: (mouse) => {
+                    // 极致优化：直接处理移动事件，无延迟
                     var currentX = mouse.x / canvas.width;
                     var currentY = mouse.y / canvas.height;
-                    canvas.queueInputPoint(currentX, currentY);
-                    if (!inputFlushTimer.running) {
-                        inputFlushTimer.start();
-                    }
+                    canvas.processInputPoint(currentX, currentY, false);
                 }
             }
             

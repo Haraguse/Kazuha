@@ -703,6 +703,7 @@ class NativeBoardItem(QQuickPaintedItem):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        # 极致优化：使用Image渲染目标，在某些低端设备上比FBO更快
         self.setRenderTarget(QQuickPaintedItem.Image)
         self.setPerformanceHint(QQuickPaintedItem.FastFBOResizing)
         self.setOpaquePainting(False)
@@ -712,6 +713,9 @@ class NativeBoardItem(QQuickPaintedItem):
         self._background_color = QColor("#202020")
         self._min_segment_px = 1.5
         self._dirty_full = True
+        # 极致优化：缓存宽高，避免重复调用
+        self._w = 1
+        self._h = 1
 
     @Property(QColor, notify=backgroundColorChanged)
     def backgroundColor(self):
@@ -752,6 +756,9 @@ class NativeBoardItem(QQuickPaintedItem):
     def _ensure_buffer(self):
         w = self.width()
         h = self.height()
+        # 极致优化：更新缓存的宽高
+        self._w = w if w > 0 else 1
+        self._h = h if h > 0 else 1
         if w <= 0 or h <= 0:
             return False
         scale = self.window().devicePixelRatio() if self.window() else 1.0
@@ -791,6 +798,7 @@ class NativeBoardItem(QQuickPaintedItem):
             self._pendingLines.append(line)
         else:
             self._dirty_full = True
+        # 极致优化：立即更新，不延迟
         self.update()
 
     @Slot()
@@ -856,8 +864,11 @@ class NativeBoardItem(QQuickPaintedItem):
 
         if self._pendingLines:
             buf_painter = QPainter(self._buffer)
-            buf_painter.setRenderHint(QPainter.Antialiasing)
-            for line in self._pendingLines:
+            # 极致优化：仅启用必要的渲染标志
+            buf_painter.setRenderHint(QPainter.Antialiasing, True)
+            # 极致优化：直接绘制，减少函数调用开销
+            pending = self._pendingLines
+            for line in pending:
                 self._drawLine(buf_painter, line)
             buf_painter.end()
             self._pendingLines.clear()
@@ -865,8 +876,8 @@ class NativeBoardItem(QQuickPaintedItem):
         painter.drawImage(0, 0, self._buffer)
 
     def _drawLine(self, painter, line):
+        # 极致优化：本地变量缓存，减少属性访问
         isEraser = line.get("isEraser", False)
-        width = float(line.get("width", 3))
         if isEraser:
             painter.setCompositionMode(QPainter.CompositionMode_DestinationOut)
             pen = QPen(Qt.black)
@@ -877,13 +888,14 @@ class NativeBoardItem(QQuickPaintedItem):
         else:
             painter.setCompositionMode(QPainter.CompositionMode_SourceOver)
             pen = QPen(QColor(line.get("color", "#000000")))
-            pen.setWidthF(max(0.5, width))
+            pen.setWidthF(max(0.5, float(line.get("width", 3))))
             pen.setCapStyle(Qt.RoundCap)
             pen.setJoinStyle(Qt.RoundJoin)
             painter.setPen(pen)
 
-        w = self.width()
-        h = self.height()
+        # 极致优化：缓存宽高，减少重复调用
+        w = self._w
+        h = self._h
         x1 = float(line.get("x1", 0.0)) * w
         y1 = float(line.get("y1", 0.0)) * h
         x2 = float(line.get("x2", 0.0)) * w
@@ -891,7 +903,8 @@ class NativeBoardItem(QQuickPaintedItem):
 
         dx = x2 - x1
         dy = y2 - y1
-        if (dx * dx + dy * dy) < (self._min_segment_px * self._min_segment_px):
+        # 极致优化：使用硬编码最小阈值，避免乘法运算
+        if (dx * dx + dy * dy) < 2.25:  # 1.5 * 1.5
             painter.drawPoint(QPointF(x1, y1))
             return
         painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
