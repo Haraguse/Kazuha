@@ -1750,8 +1750,39 @@ class PPTAssistantApp:
         if self._onboarding_restart_started:
             return
         self._onboarding_restart_started = True
-        reload_cfg()
-        self.restart()
+
+        should_quit = False
+        try:
+            if os.path.exists(SETTINGS_PATH):
+                with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
+                    temp_data = json.load(f)
+                if temp_data.get("_quit_pending"):
+                    should_quit = True
+                    del temp_data["_quit_pending"]
+                    with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
+                        json.dump(temp_data, f, indent=4, ensure_ascii=False)
+        except Exception:
+            pass
+
+        if should_quit:
+            self._prepare_shutdown(restarting=False)
+            self.app.quit()
+            return
+
+        # Give the onboarding process a short buffer to finish flushing settings.json.
+        def _restart_after_onboarding_close():
+            try:
+                reload_cfg()
+            except Exception:
+                pass
+            try:
+                if os.path.exists(SETTINGS_PATH):
+                    self._settings_mtime = os.path.getmtime(SETTINGS_PATH)
+            except Exception:
+                pass
+            self.restart()
+
+        QTimer.singleShot(220, _restart_after_onboarding_close)
 
     def _load_plugins(self):
         """Dynamic plugin loading from builtins and external directory."""

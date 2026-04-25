@@ -1188,7 +1188,10 @@ class PPTWorker(QObject):
 
         current = 0
         total = 0
-        pres = self._get_primary_presentation(app)
+        ss_win = self._get_active_slideshow_window()
+        pres = self._get_presentation_from_ss_win(ss_win, app)
+        if pres is None:
+            pres = self._get_primary_presentation(app)
 
         total = self._extract_slide_total(pres)
 
@@ -1210,8 +1213,12 @@ class PPTWorker(QObject):
 
         try:
             if pres is not None:
-                ss_win = getattr(pres, "SlideShowWindow", None)
-                ss_view = getattr(ss_win, "View", None) if ss_win is not None else None
+                ss_win_for_pres = getattr(pres, "SlideShowWindow", None)
+                ss_view = (
+                    getattr(ss_win_for_pres, "View", None)
+                    if ss_win_for_pres is not None
+                    else None
+                )
                 current = self._extract_slide_position(ss_view)
         except Exception:
             pass
@@ -2435,8 +2442,7 @@ class PPTWorker(QObject):
                 if ss_win is not None
                 else self._get_primary_presentation(app)
             )
-            total = self._extract_slide_total(pres)
-            if pres is not None and 1 <= index <= total:
+            if pres is not None and int(index) >= 1:
                 pres.Slides(index).Export(path, "PNG", 320, 180)
                 self.thumbnail_generated.emit(index, path)
         except Exception as e:

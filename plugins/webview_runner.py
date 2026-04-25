@@ -118,6 +118,19 @@ def _resolve_logo_svg_path() -> str | None:
         os.path.join(root_dir, "icons", "logo.svg"),
         os.path.join(root_dir, "icons", "banner.png"),
     ]
+    # PyInstaller: resources may be in sys._MEIPASS
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        meipass = sys._MEIPASS
+        candidates.insert(0, os.path.join(meipass, "icons", "logo.svg"))
+        candidates.insert(1, os.path.join(meipass, "icons", "banner.png"))
+    # Nuitka: resources may be in _internal subfolder
+    if getattr(sys, "frozen", False):
+        exe_dir = os.path.dirname(sys.executable)
+        internal_dir = os.path.join(exe_dir, "_internal")
+        candidates.insert(0, os.path.join(internal_dir, "icons", "logo.svg"))
+        candidates.insert(1, os.path.join(internal_dir, "icons", "banner.png"))
+        candidates.insert(2, os.path.join(exe_dir, "icons", "logo.svg"))
+        candidates.insert(3, os.path.join(exe_dir, "icons", "banner.png"))
     for path in candidates:
         if path and os.path.exists(path):
             return path
@@ -131,6 +144,22 @@ def _resolve_misans_font_path() -> str | None:
         os.path.join(root_dir, "fonts", "MiSansTCVF.ttf"),
         os.path.join(root_dir, "fonts", "MiSansJapaneseVF.ttf"),
     ]
+    # PyInstaller: resources may be in sys._MEIPASS
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        meipass = sys._MEIPASS
+        candidates.insert(0, os.path.join(meipass, "fonts", "MiSansVF.ttf"))
+        candidates.insert(1, os.path.join(meipass, "fonts", "MiSansTCVF.ttf"))
+        candidates.insert(2, os.path.join(meipass, "fonts", "MiSansJapaneseVF.ttf"))
+    # Nuitka: resources may be in _internal subfolder
+    if getattr(sys, "frozen", False):
+        exe_dir = os.path.dirname(sys.executable)
+        internal_dir = os.path.join(exe_dir, "_internal")
+        candidates.insert(0, os.path.join(internal_dir, "fonts", "MiSansVF.ttf"))
+        candidates.insert(1, os.path.join(internal_dir, "fonts", "MiSansTCVF.ttf"))
+        candidates.insert(2, os.path.join(internal_dir, "fonts", "MiSansJapaneseVF.ttf"))
+        candidates.insert(3, os.path.join(exe_dir, "fonts", "MiSansVF.ttf"))
+        candidates.insert(4, os.path.join(exe_dir, "fonts", "MiSansTCVF.ttf"))
+        candidates.insert(5, os.path.join(exe_dir, "fonts", "MiSansJapaneseVF.ttf"))
     for path in candidates:
         if path and os.path.exists(path):
             return path
@@ -926,6 +955,51 @@ class Api(QObject):
             except Exception:
                 pass
 
+    @Slot()
+    def force_close_window(self):
+        """强制关闭当前窗口，用于 onboarding 等场景"""
+        try:
+            if self._window:
+                hwnd = self._get_window_hwnd()
+                # 先尝试正常关闭
+                self._window.close()
+                # 启动独立进程确保窗口被关闭
+                if hwnd:
+                    QTimer.singleShot(300, lambda: self._spawn_window_killer(hwnd))
+                else:
+                    QTimer.singleShot(500, self._force_destroy_window)
+        except Exception:
+            pass
+
+    def _spawn_window_killer(self, hwnd):
+        """启动独立进程强制关闭窗口"""
+        try:
+            import subprocess
+            # 使用独立的 Python 进程发送 WM_CLOSE
+            kill_script = f"""
+import ctypes
+import time
+time.sleep(0.5)
+hwnd = {hwnd}
+ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
+"""
+            subprocess.Popen(
+                [sys.executable, "-c", kill_script.strip()],
+                creationflags=0x08000000,
+            )
+        except Exception:
+            pass
+        # 同时尝试销毁
+        self._force_destroy_window()
+
+    def _force_destroy_window(self):
+        """强制销毁窗口的后备方案"""
+        try:
+            if self._window:
+                self._window.deleteLater()
+        except Exception:
+            pass
+
     def _get_window_hwnd(self):
         if not self._window:
             return 0
@@ -1677,6 +1751,7 @@ class Api(QObject):
                         data = json.load(f)
                     except JSONDecodeError:
                         data = {}
+            data.pop("_quit_pending", None)
             data["_restart_pending"] = True
             data["_open_settings_pending"] = True
             with open(settings_path, "w", encoding="utf-8") as f:
@@ -1695,11 +1770,39 @@ class Api(QObject):
                         data = json.load(f)
                     except JSONDecodeError:
                         data = {}
+            data.pop("_restart_pending", None)
+            data.pop("_open_settings_pending", None)
             data["_quit_pending"] = True
             with open(settings_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
         except Exception as e:
             print(f"Error triggering quit: {e}", file=sys.stderr)
+
+    @Slot()
+    def clear_onboarding_pending_actions(self):
+        settings_path = self._get_settings_path()
+        try:
+            data = {}
+            if os.path.exists(settings_path):
+                with open(settings_path, "r", encoding="utf-8") as f:
+                    try:
+                        data = json.load(f)
+                    except JSONDecodeError:
+                        data = {}
+            changed = False
+            for key in (
+                "_restart_pending",
+                "_open_settings_pending",
+                "_quit_pending",
+            ):
+                if key in data:
+                    del data[key]
+                    changed = True
+            if changed:
+                with open(settings_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            print(f"Error clearing onboarding pending actions: {e}", file=sys.stderr)
 
     @Slot()
     def restart_from_crash_dialog(self):

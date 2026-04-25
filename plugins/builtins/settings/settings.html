@@ -10397,7 +10397,7 @@
       const prevThemeId = settings.Appearance ? settings.Appearance.ThemeId : undefined;
       if (!settings.Appearance) settings.Appearance = {};
       settings.Appearance.ThemeId = id;
-      if (prevThemeId !== id && window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+      if (!isHydratingSettingsUI && prevThemeId !== id && window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
           window.pywebview.api.save_setting("Appearance", "ThemeId", id);
       }
     },
@@ -10711,7 +10711,7 @@
 
     if (!settings.Overlay) settings.Overlay = {};
     settings.Overlay.ToolbarPosition = pos;
-    if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+    if (!isHydratingSettingsUI && window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
       window.pywebview.api.save_setting("Overlay", "ToolbarPosition", pos);
     }
     updateToolbarIndicatorPosition();
@@ -10726,7 +10726,7 @@
     
     if (!settings.Overlay) settings.Overlay = {};
     settings.Overlay.FlipperPosition = pos;
-    if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+    if (!isHydratingSettingsUI && window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
       window.pywebview.api.save_setting("Overlay", "FlipperPosition", pos);
     }
     renderToolbarPreview();
@@ -11060,6 +11060,7 @@
 
   let isUnlocked = false;
   let settingsLoaded = false;
+  let isHydratingSettingsUI = false;
 
   function initLockScreen() {
       const btn = document.getElementById("lock-btn");
@@ -11726,6 +11727,8 @@
   }
 
   function applySettingsToUI() {
+    isHydratingSettingsUI = true;
+    try {
     loadOverlayThemes();
     const lang = settings.General && settings.General.Language;
     if (lang) currentLanguage = lang;
@@ -11944,6 +11947,9 @@
 
     checkLockState();
     initializeThemeMonitoring();
+    } finally {
+      isHydratingSettingsUI = false;
+    }
   }
 
   function setTheme(mode) {

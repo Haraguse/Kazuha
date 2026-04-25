@@ -552,8 +552,154 @@
     /* --- 计时器 --- */
     #view-timer {
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       flex-direction: column;
+    }
+
+    /* --- Timer Pivot Tabs --- */
+    .timer-pivot {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 20px;
+      flex-shrink: 0;
+    }
+
+    .timer-pivot-item {
+      padding: 8px 4px 12px 4px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      position: relative;
+      transition: color 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      border: none;
+      background: transparent;
+      font-family: inherit;
+    }
+
+    .timer-pivot-item:active {
+      transform: scale(0.96);
+    }
+
+    .timer-pivot-item:hover {
+      color: var(--text-primary);
+    }
+
+    .timer-pivot-item.active {
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+
+    @keyframes pivotUnderlineIn {
+      from {
+        opacity: 0;
+        transform: scaleX(0.5);
+      }
+      to {
+        opacity: 1;
+        transform: scaleX(1);
+      }
+    }
+
+    .timer-pivot-item.active::after {
+      content: "";
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent-blue);
+      border-radius: 1px;
+      animation: pivotUnderlineIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .timer-tab-content {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      flex: 1;
+    }
+
+    .timer-tab-content.active {
+      display: flex;
+    }
+
+    /* --- Target Time Picker --- */
+    .target-time-picker {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 240px;
+      width: 100%;
+      position: relative;
+      -webkit-mask-image: linear-gradient(to bottom,
+          transparent 0%, black 30%, black 70%, transparent 100%);
+      mask-image: linear-gradient(to bottom,
+          transparent 0%, black 30%, black 70%, transparent 100%);
+    }
+
+    .target-time-col {
+      height: 100%;
+      width: 100px;
+      overflow-y: auto;
+      scroll-snap-type: y mandatory;
+      scrollbar-width: none;
+      padding-top: 80px;
+      padding-bottom: 80px;
+    }
+
+    .target-time-col::-webkit-scrollbar {
+      display: none;
+    }
+
+    .target-time-item {
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      color: var(--text-primary);
+      scroll-snap-align: center;
+      transition: opacity 0.2s, transform 0.2s;
+      opacity: 0.3;
+      transform: scale(0.8);
+      cursor: grab;
+    }
+
+    .target-time-item.active {
+      opacity: 1;
+      transform: scale(1);
+      font-weight: 600;
+    }
+
+    .target-time-label {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-left: 4px;
+    }
+
+    .target-time-sep {
+      font-size: 40px;
+      color: var(--text-primary);
+      opacity: 0.5;
+      padding-bottom: 10px;
+    }
+
+    .target-time-info {
+      margin-top: 16px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      text-align: center;
+      min-height: 20px;
+    }
+
+    .target-time-info .highlight {
+      color: var(--accent-blue);
+      font-weight: 600;
     }
 
     /* --- Countdown UI --- */
@@ -1310,7 +1456,10 @@
     body.mini-mode .total-time,
     body.mini-mode .timer-setup-row,
     body.mini-mode .recent-durations,
-    body.mini-mode .timer-setup-divider {
+    body.mini-mode .timer-setup-divider,
+    body.mini-mode .timer-pivot,
+    body.mini-mode .target-time-picker,
+    body.mini-mode .target-time-info {
       display: none !important;
     }
 
@@ -1787,30 +1936,54 @@
         </section>
 
         <section id="view-timer" class="view-section">
-          <div class="timer-setup-row">
-            <div class="wheel-picker-container">
+          <div class="timer-pivot" id="timerPivot">
+            <button class="timer-pivot-item active" data-tab="tab-duration" data-i18n="timer.durationTab">倒计时</button>
+            <button class="timer-pivot-item" data-tab="tab-target" data-i18n="timer.targetTab">到点</button>
+          </div>
+
+          <!-- 倒计时Tab -->
+          <div class="timer-tab-content active" id="tab-duration">
+            <div class="timer-setup-row">
+              <div class="wheel-picker-container">
+                <div class="wheel-col-wrapper">
+                  <div class="wheel-col" id="wheel-hour"></div>
+                  <div class="wheel-label" data-i18n="timer.hour">时</div>
+                </div>
+                <div class="wheel-sep">:</div>
+                <div class="wheel-col-wrapper">
+                  <div class="wheel-col" id="wheel-minute"></div>
+                  <div class="wheel-label" data-i18n="timer.minute">分</div>
+                </div>
+                <div class="wheel-sep">:</div>
+                <div class="wheel-col-wrapper">
+                  <div class="wheel-col" id="wheel-second"></div>
+                  <div class="wheel-label" data-i18n="timer.second">秒</div>
+                </div>
+              </div>
+              <div class="timer-setup-divider"></div>
+              <div class="recent-durations">
+                <div class="recent-header">
+                  <div class="recent-title" data-i18n="timer.presets">常用时间</div>
+                </div>
+                <div class="recent-list" id="recentDurationList"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 到点Tab -->
+          <div class="timer-tab-content" id="tab-target">
+            <div class="target-time-picker">
               <div class="wheel-col-wrapper">
-                <div class="wheel-col" id="wheel-hour"></div>
+                <div class="target-time-col" id="target-hour"></div>
                 <div class="wheel-label" data-i18n="timer.hour">时</div>
               </div>
-              <div class="wheel-sep">:</div>
+              <div class="target-time-sep">:</div>
               <div class="wheel-col-wrapper">
-                <div class="wheel-col" id="wheel-minute"></div>
+                <div class="target-time-col" id="target-minute"></div>
                 <div class="wheel-label" data-i18n="timer.minute">分</div>
               </div>
-              <div class="wheel-sep">:</div>
-              <div class="wheel-col-wrapper">
-                <div class="wheel-col" id="wheel-second"></div>
-                <div class="wheel-label" data-i18n="timer.second">秒</div>
-              </div>
             </div>
-            <div class="timer-setup-divider"></div>
-            <div class="recent-durations">
-              <div class="recent-header">
-                <div class="recent-title" data-i18n="timer.presets">常用时间</div>
-              </div>
-              <div class="recent-list" id="recentDurationList"></div>
-            </div>
+            <div class="target-time-info" id="targetTimeInfo"></div>
           </div>
 
           <div class="countdown-container" id="countdownUI">
@@ -1913,6 +2086,10 @@
         "timer.hour": "时",
         "timer.minute": "分",
         "timer.second": "秒",
+        "timer.durationTab": "倒计时",
+        "timer.targetTab": "到点",
+        "timer.targetInfo": "将在 <span class=\"highlight\">{time}</span> 后响铃",
+        "timer.targetInfoPast": "目标时间已过，将设为明天",
         "timer.totalSeconds": "共{n}秒",
         "timer.quickAdd.short.second": "秒",
         "timer.quickAdd.short.minute": "分",
@@ -1938,6 +2115,10 @@
         "timer.hour": "時",
         "timer.minute": "分",
         "timer.second": "秒",
+        "timer.durationTab": "倒數",
+        "timer.targetTab": "到點",
+        "timer.targetInfo": "將在 <span class=\"highlight\">{time}</span> 後響鈴",
+        "timer.targetInfoPast": "目標時間已過，將設為明天",
         "timer.totalSeconds": "共{n}秒",
         "timer.quickAdd.short.second": "秒",
         "timer.quickAdd.short.minute": "分",
@@ -1963,6 +2144,10 @@
         "timer.hour": "時",
         "timer.minute": "分",
         "timer.second": "秒",
+        "timer.durationTab": "倒數",
+        "timer.targetTab": "到點",
+        "timer.targetInfo": "將在 <span class=\"highlight\">{time}</span> 後響鈴",
+        "timer.targetInfoPast": "目標時間已過，將設為明天",
         "timer.totalSeconds": "總共 {n} 秒",
         "timer.quickAdd.short.second": "秒",
         "timer.quickAdd.short.minute": "分",
@@ -1988,6 +2173,10 @@
         "timer.hour": "時",
         "timer.minute": "分",
         "timer.second": "秒",
+        "timer.durationTab": "タイマー",
+        "timer.targetTab": "指定時刻",
+        "timer.targetInfo": "<span class=\"highlight\">{time}</span> 後に通知",
+        "timer.targetInfoPast": "過ぎた時刻は明日に設定",
         "timer.totalSeconds": "合計 {n} 秒",
         "timer.quickAdd.short.second": "秒",
         "timer.quickAdd.short.minute": "分",
@@ -2013,6 +2202,10 @@
         "timer.hour": "H",
         "timer.minute": "M",
         "timer.second": "S",
+        "timer.durationTab": "Timer",
+        "timer.targetTab": "Target",
+        "timer.targetInfo": "Rings in <span class=\"highlight\">{time}</span>",
+        "timer.targetInfoPast": "Time passed, set for tomorrow",
         "timer.totalSeconds": "Total {n} seconds",
         "timer.quickAdd.short.second": "s",
         "timer.quickAdd.short.minute": "m",
@@ -2038,6 +2231,10 @@
         "timer.hour": "س",
         "timer.minute": "د",
         "timer.second": "چ",
+        "timer.durationTab": "ۋاقىت بەلگىلەش",
+        "timer.targetTab": "بەلگىلەنگەن ۋاقىت",
+        "timer.targetInfo": "<span class=\"highlight\">{time}</span> كېيىن ئۇقتۇرۇش",
+        "timer.targetInfoPast": "ۋاقىت ئۆتۈپ كەتتى، ئەتىگە تەڭشەلدى",
         "timer.totalSeconds": "جەمئى {n} سېكۇنت",
         "timer.presets": "كۆپ ئىشلىتىلىدىغان ۋاقىت",
         "timer.fullscreen": "پۈتۈن ئېكران",
@@ -2501,6 +2698,148 @@
       mContainer.scrollTo({ top: 400, behavior: 'instant' });
     }, 100);
 
+    // --- Target Time Picker Logic ---
+    let currentTimerTab = 'duration';
+
+    function initTargetTimeWheel(id, max) {
+      const container = document.getElementById(id);
+      const itemHeight = 80;
+
+      const fragment = document.createDocumentFragment();
+      for (let i = 0; i <= max; i++) {
+        const el = document.createElement('div');
+        el.className = 'target-time-item';
+        el.textContent = i.toString().padStart(2, '0');
+        el.dataset.val = i;
+        fragment.appendChild(el);
+      }
+      container.appendChild(fragment);
+
+      container.addEventListener('scroll', () => {
+        updateTargetActiveItem(container);
+        updateTargetTimeInfo();
+      });
+
+      container.addEventListener('click', (e) => {
+        if (e.target.classList.contains('target-time-item')) {
+          const val = parseInt(e.target.dataset.val);
+          const targetScroll = val * itemHeight;
+          container.scrollTo({ top: targetScroll, behavior: motionBehavior() });
+        }
+      });
+
+      updateTargetActiveItem(container);
+    }
+
+    function updateTargetActiveItem(container) {
+      const itemHeight = 80;
+      const scrollTop = container.scrollTop;
+      const index = Math.round(scrollTop / itemHeight);
+
+      const items = container.querySelectorAll('.target-time-item');
+      items.forEach((item, i) => {
+        if (i === index) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+    }
+
+    function getTargetWheelValue(id) {
+      const container = document.getElementById(id);
+      const itemHeight = 80;
+      return Math.round(container.scrollTop / itemHeight);
+    }
+
+    function setTargetWheelValue(id, val) {
+      const container = document.getElementById(id);
+      if (!container) return;
+      const itemHeight = 80;
+      container.scrollTo({ top: val * itemHeight, behavior: motionBehavior() });
+    }
+
+    function formatDurationText(totalSeconds) {
+      const h = Math.floor(totalSeconds / 3600);
+      const m = Math.floor((totalSeconds % 3600) / 60);
+      const s = totalSeconds % 60;
+      if (h > 0) {
+        return `${h}小时 ${m}分 ${s}秒`;
+      } else if (m > 0) {
+        return `${m}分 ${s}秒`;
+      }
+      return `${s}秒`;
+    }
+
+    function updateTargetTimeInfo() {
+      const infoEl = document.getElementById('targetTimeInfo');
+      if (!infoEl || currentTimerTab !== 'target') return;
+
+      const targetH = getTargetWheelValue('target-hour');
+      const targetM = getTargetWheelValue('target-minute');
+
+      const now = new Date();
+      let target = new Date();
+      target.setHours(targetH, targetM, 0, 0);
+
+      let diffMs = target - now;
+      let isTomorrow = false;
+
+      if (diffMs <= 0) {
+        // Time has passed, set for tomorrow
+        target.setDate(target.getDate() + 1);
+        diffMs = target - now;
+        isTomorrow = true;
+      }
+
+      const diffSec = Math.ceil(diffMs / 1000);
+      const durationText = formatDurationText(diffSec);
+
+      if (isTomorrow) {
+        infoEl.innerHTML = getText('timer.targetInfoPast') || '目标时间已过，将设为明天';
+      } else {
+        const tmpl = getText('timer.targetInfo') || '将在 <span class="highlight">{time}</span> 后响铃';
+        infoEl.innerHTML = tmpl.replace('{time}', durationText);
+      }
+    }
+
+    // Initialize target time wheels
+    initTargetTimeWheel('target-hour', 23);
+    initTargetTimeWheel('target-minute', 59);
+
+    // Set default target time to next hour
+    setTimeout(() => {
+      const now = new Date();
+      const nextHour = (now.getHours() + 1) % 24;
+      setTargetWheelValue('target-hour', nextHour);
+      setTargetWheelValue('target-minute', 0);
+      updateTargetTimeInfo();
+    }, 100);
+
+    // Pivot tab switching
+    const pivotItems = document.querySelectorAll('.timer-pivot-item');
+    const tabContents = document.querySelectorAll('.timer-tab-content');
+
+    pivotItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const tabId = item.dataset.tab;
+        if (!tabId) return;
+
+        pivotItems.forEach(p => p.classList.remove('active'));
+        item.classList.add('active');
+
+        tabContents.forEach(t => t.classList.remove('active'));
+        const targetTab = document.getElementById(tabId);
+        if (targetTab) targetTab.classList.add('active');
+
+        currentTimerTab = tabId === 'tab-target' ? 'target' : 'duration';
+
+        if (currentTimerTab === 'target') {
+          updateTargetTimeInfo();
+        }
+      });
+    });
+
     const recentListEl = document.getElementById('recentDurationList');
     const PRESET_SECONDS = [60, 900, 1800, 2400, 2700, 3600, 5400, 7200];
 
@@ -2584,8 +2923,7 @@
             currentMode = 'timer';
 
             // UI setup for running state
-            pickerUI.style.opacity = '0';
-            pickerUI.style.pointerEvents = 'none';
+            hideTimerSetupUI();
             countdownUI.classList.add('active');
             setCountdownActive(true);
             document.getElementById('totalTimeDisplay').textContent = formatTotalSecondsText(state.remaining);
@@ -2623,8 +2961,7 @@
             if(pt) pt.textContent = getText("title.timer") || "计时";
             currentMode = 'timer';
 
-            pickerUI.style.opacity = '0';
-            pickerUI.style.pointerEvents = 'none';
+            hideTimerSetupUI();
             countdownUI.classList.add('active');
             setCountdownActive(true);
             document.getElementById('totalTimeDisplay').textContent = formatTotalSecondsText(state.remaining);
@@ -2653,9 +2990,50 @@
     const countdownUI = document.getElementById('countdownUI');
     const bellUI = document.getElementById('bellUI');
     const pickerUI = document.querySelector('.wheel-picker-container');
+    const timerPivot = document.getElementById('timerPivot');
+    const tabDuration = document.getElementById('tab-duration');
+    const tabTarget = document.getElementById('tab-target');
     let countdownFullscreen = false;
     function setCountdownActive(active) {
       document.body.classList.toggle('countdown-active', active);
+    }
+
+    function hideTimerSetupUI() {
+      if (pickerUI) {
+        pickerUI.style.opacity = '0';
+        pickerUI.style.pointerEvents = 'none';
+      }
+      if (timerPivot) timerPivot.style.display = 'none';
+      if (tabDuration) {
+        tabDuration.style.opacity = '0';
+        tabDuration.style.pointerEvents = 'none';
+      }
+      if (tabTarget) {
+        tabTarget.style.opacity = '0';
+        tabTarget.style.pointerEvents = 'none';
+      }
+    }
+
+    function showTimerSetupUI() {
+      if (pickerUI) {
+        pickerUI.style.opacity = '1';
+        pickerUI.style.pointerEvents = 'auto';
+      }
+      if (timerPivot) timerPivot.style.display = '';
+      // Reset both tabs' opacity so switching works correctly
+      if (tabDuration) {
+        tabDuration.style.opacity = '';
+        tabDuration.style.pointerEvents = '';
+      }
+      if (tabTarget) {
+        tabTarget.style.opacity = '';
+        tabTarget.style.pointerEvents = '';
+      }
+      const activeTab = document.querySelector('.timer-tab-content.active');
+      if (activeTab) {
+        activeTab.style.opacity = '1';
+        activeTab.style.pointerEvents = 'auto';
+      }
     }
 
     const circle = document.getElementById('progressCircle');
@@ -2858,10 +3236,29 @@
     }
 
     function startCountdown() {
-      const h = getWheelValue('wheel-hour');
-      const m = getWheelValue('wheel-minute');
-      const s = getWheelValue('wheel-second');
-      const totalSec = h * 3600 + m * 60 + s;
+      let totalSec = 0;
+
+      if (currentTimerTab === 'target') {
+        // Target time mode
+        const targetH = getTargetWheelValue('target-hour');
+        const targetM = getTargetWheelValue('target-minute');
+
+        const now = new Date();
+        let target = new Date();
+        target.setHours(targetH, targetM, 0, 0);
+
+        if (target <= now) {
+          target.setDate(target.getDate() + 1);
+        }
+
+        totalSec = Math.ceil((target - now) / 1000);
+      } else {
+        // Duration mode
+        const h = getWheelValue('wheel-hour');
+        const m = getWheelValue('wheel-minute');
+        const s = getWheelValue('wheel-second');
+        totalSec = h * 3600 + m * 60 + s;
+      }
 
       if (totalSec === 0) return;
 
@@ -2875,8 +3272,7 @@
       tmState = 'running';
       setTimeUpMode(false);
       setCountdownActive(true);
-      pickerUI.style.opacity = '0';
-      pickerUI.style.pointerEvents = 'none';
+      hideTimerSetupUI();
 
       countdownUI.classList.add('active');
       document.getElementById('totalTimeDisplay').textContent = formatTotalSecondsText(totalSec);
@@ -3060,8 +3456,7 @@
       setTimeUpMode(false);
       bellUI.style.display = 'none';
       countdownUI.classList.remove('active');
-      pickerUI.style.opacity = '1';
-      pickerUI.style.pointerEvents = 'auto';
+      showTimerSetupUI();
 
       // Call Python API
       if (window.pywebview && window.pywebview.api) {
@@ -3087,8 +3482,7 @@
       setTimeUpMode(false);
       bellUI.style.display = 'none';
       countdownUI.classList.add('active');
-      pickerUI.style.opacity = '0';
-      pickerUI.style.pointerEvents = 'none';
+      hideTimerSetupUI();
       updateCountdownUI();
       updateButtonState();
 

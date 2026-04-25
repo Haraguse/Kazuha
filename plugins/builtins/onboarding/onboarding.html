@@ -5737,30 +5737,34 @@ html, body {
       if (state.previewMode) return;
       try {
         await saveSettings();
-        if (option === 'exit') {
-          if (window.pywebview?.api?.on_confirm) {
-            await window.pywebview.api.on_confirm();
-          } else {
-            window.close();
+        if (window.pywebview?.api?.clear_onboarding_pending_actions) {
+          await window.pywebview.api.clear_onboarding_pending_actions();
+        }
+        const closeOnboardingWindow = async () => {
+          // 优先使用 Python API 强制关闭窗口
+          if (window.pywebview?.api?.force_close_window) {
+            await window.pywebview.api.force_close_window();
           }
+          // 后备方案
+          window.close();
+        };
+        if (option === 'exit') {
+          await closeOnboardingWindow();
         } else if (option === 'restart') {
           if (window.pywebview?.api?.restart_and_open_settings) {
             await window.pywebview.api.restart_and_open_settings();
-          } else if (window.pywebview?.api?.on_confirm) {
-            await window.pywebview.api.on_confirm();
-          } else {
-            window.close();
           }
+          await closeOnboardingWindow();
         } else if (option === 'quit') {
           if (window.pywebview?.api?.quit_app) {
             await window.pywebview.api.quit_app();
-          } else {
-            window.close();
           }
+          await closeOnboardingWindow();
         }
       } catch (e) {
         console.error("finishOption() error:", e);
-        window.close();
+        // 最后手段：使用 taskkill 强制关闭
+        forceKillWindow();
       }
     }
 
@@ -5770,13 +5774,25 @@ html, body {
         await saveSettings();
         if (window.pywebview?.api?.on_confirm) {
           await window.pywebview.api.on_confirm();
+        } else if (window.pywebview?.api?.force_close_window) {
+          await window.pywebview.api.force_close_window();
         } else {
           window.close();
         }
       } catch (e) {
         console.error("finish() error:", e);
-        window.close();
+        forceKillWindow();
       }
+    }
+
+    // 最后手段：强制关闭窗口
+    function forceKillWindow() {
+      // 优先尝试调用 Python 后端的强制关闭
+      if (window.pywebview?.api?.force_close_window) {
+        window.pywebview.api.force_close_window().catch(() => {});
+      }
+      // 同时尝试直接关闭
+      try { window.close(); } catch (e) {}
     }
 
     function applyTheme() {
