@@ -548,8 +548,11 @@ class SystemTray(QObject):
     show_settings = Signal()
     show_board = Signal()
     show_timer = Signal()
+    show_spotlight = Signal()
     show_logs = Signal()
     toggle_overlay = Signal()
+    open_program_dir = Signal()
+    open_user_dir = Signal()
     restart_app = Signal()
     exit_app = Signal()
 
@@ -697,10 +700,7 @@ class SystemTray(QObject):
         self._fallback_menu.addAction(header)
         self._fallback_menu.addSeparator()
 
-        act_settings = Action(FIF.SETTING, t("tray.settings"), self._fallback_menu)
-        act_settings.triggered.connect(self.show_settings.emit)
-        self._fallback_menu.addAction(act_settings)
-
+        # Section 1: Tools (board/timer/spotlight)
         board_icon = self._render_menu_icon(
             os.path.join(ICON_DIR, "board-in-board.svg")
         )
@@ -713,6 +713,26 @@ class SystemTray(QObject):
         self._act_timer.triggered.connect(self.show_timer.emit)
         self._fallback_menu.addAction(self._act_timer)
 
+        spotlight_icon = self._render_menu_icon(os.path.join(ICON_DIR, "spotlight.svg"))
+        act_spotlight = Action(spotlight_icon, t("tray.spotlight"), self._fallback_menu)
+        act_spotlight.triggered.connect(self.show_spotlight.emit)
+        self._fallback_menu.addAction(act_spotlight)
+
+        self._fallback_menu.addSeparator()
+
+        # Section 2: Settings & directories
+        act_settings = Action(FIF.SETTING, t("tray.settings"), self._fallback_menu)
+        act_settings.triggered.connect(self.show_settings.emit)
+        self._fallback_menu.addAction(act_settings)
+
+        act_open_program = Action(FIF.FOLDER, t("tray.open_program"), self._fallback_menu)
+        act_open_program.triggered.connect(self.open_program_dir.emit)
+        self._fallback_menu.addAction(act_open_program)
+
+        act_open_user = Action(FIF.FOLDER, t("tray.open_user"), self._fallback_menu)
+        act_open_user.triggered.connect(self.open_user_dir.emit)
+        self._fallback_menu.addAction(act_open_user)
+
         if cfg.compatibilityMode.value:
             act_toggle = Action(FIF.APPLICATION, t("tray.toggle"), self._fallback_menu)
             act_toggle.triggered.connect(self.toggle_overlay.emit)
@@ -720,6 +740,7 @@ class SystemTray(QObject):
 
         self._fallback_menu.addSeparator()
 
+        # Section 3: Restart/exit
         act_restart = Action(FIF.SYNC, t("tray.restart"), self._fallback_menu)
         act_restart.triggered.connect(self._show_restart_confirm)
         self._fallback_menu.addAction(act_restart)
@@ -751,10 +772,7 @@ class SystemTray(QObject):
         self._native_menu.addAction(header)
         self._native_menu.addSeparator()
 
-        act_settings = Action(FIF.SETTING, t("tray.settings"), self._native_menu)
-        act_settings.triggered.connect(self.show_settings.emit)
-        self._native_menu.addAction(act_settings)
-
+        # Section 1: Tools (board/timer/spotlight)
         board_icon = self._render_menu_icon(
             os.path.join(ICON_DIR, "board-in-board.svg")
         )
@@ -767,6 +785,26 @@ class SystemTray(QObject):
         self._act_timer.triggered.connect(self.show_timer.emit)
         self._native_menu.addAction(self._act_timer)
 
+        spotlight_icon = self._render_menu_icon(os.path.join(ICON_DIR, "spotlight.svg"))
+        act_spotlight = Action(spotlight_icon, t("tray.spotlight"), self._native_menu)
+        act_spotlight.triggered.connect(self.show_spotlight.emit)
+        self._native_menu.addAction(act_spotlight)
+
+        self._native_menu.addSeparator()
+
+        # Section 2: Settings & directories
+        act_settings = Action(FIF.SETTING, t("tray.settings"), self._native_menu)
+        act_settings.triggered.connect(self.show_settings.emit)
+        self._native_menu.addAction(act_settings)
+
+        act_open_program = Action(FIF.FOLDER, t("tray.open_program"), self._native_menu)
+        act_open_program.triggered.connect(self.open_program_dir.emit)
+        self._native_menu.addAction(act_open_program)
+
+        act_open_user = Action(FIF.FOLDER, t("tray.open_user"), self._native_menu)
+        act_open_user.triggered.connect(self.open_user_dir.emit)
+        self._native_menu.addAction(act_open_user)
+
         if cfg.compatibilityMode.value:
             act_toggle = Action(FIF.APPLICATION, t("tray.toggle"), self._native_menu)
             act_toggle.triggered.connect(self.toggle_overlay.emit)
@@ -774,6 +812,7 @@ class SystemTray(QObject):
 
         self._native_menu.addSeparator()
 
+        # Section 3: Restart/exit
         act_restart = Action(FIF.SYNC, t("tray.restart"), self._native_menu)
         act_restart.triggered.connect(self.restart_app.emit)
         self._native_menu.addAction(act_restart)

@@ -127,6 +127,7 @@ from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.linux_focus_watcher import LinuxFocusWatcher
 from ppt_assistant.core.win_focus_watcher import WindowsFocusWatcher
 from ppt_assistant.core.resource_monitor import SystemResourceMonitor
+from ppt_assistant.core.platform_integration import open_path
 
 
 class WindowIconEventFilter(QObject):
@@ -1817,6 +1818,8 @@ class PPTAssistantApp:
                     self.board_plugin = plugin
                 elif cls_name == "TimerPlugin":
                     self.timer_plugin = plugin
+                elif cls_name == "SpotlightPlugin":
+                    self.spotlight_plugin = plugin
                 elif cls_name == "LogsPlugin":
                     self.logs_plugin = plugin
             except Exception as e:
@@ -1942,8 +1945,11 @@ class PPTAssistantApp:
             self.tray.show_settings.connect(self.settings_plugin.execute)
             self.tray.show_board.connect(self.board_plugin.execute)
             self.tray.show_timer.connect(self.timer_plugin.execute)
+            self.tray.show_spotlight.connect(self.spotlight_plugin.execute)
             self.tray.show_logs.connect(self.logs_plugin.execute)
             self.tray.toggle_overlay.connect(self.toggle_overlay_visibility)
+            self.tray.open_program_dir.connect(self._open_program_directory)
+            self.tray.open_user_dir.connect(self._open_user_directory)
             self.tray.restart_app.connect(self._restart_from_tray)
             self.tray.exit_app.connect(self._exit_from_tray)
 
@@ -2001,6 +2007,17 @@ class PPTAssistantApp:
         self._prepare_shutdown(restarting=True)
         self._launch_new_instance()
         self.app.quit()
+
+    @Slot()
+    def _open_program_directory(self):
+        open_path(ROOT_DIR)
+
+    @Slot()
+    def _open_user_directory(self):
+        user_dir = os.path.join(ROOT_DIR, "user")
+        if not os.path.exists(user_dir):
+            os.makedirs(user_dir)
+        open_path(user_dir)
 
     @Slot()
     def _on_timer_finished(self):
