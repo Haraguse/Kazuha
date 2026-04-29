@@ -6700,6 +6700,14 @@
                   <span>chenjintang</span>
                   <span>lzy98276</span>
                 </div>
+                <a class="btn btn-confirm" href="https://github.com/SECTL/Luminalium/graphs/contributors" target="_blank" rel="noopener noreferrer" style="margin-top: 8px; display: inline-flex; text-decoration: none;">
+                  <span data-i18n="about.credits.viewAllContributors">查看完整贡献人员</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 6px;">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/>
+                    <line x1="10" y1="14" x2="21" y2="3"/>
+                  </svg>
+                </a>
               </div>
               <div class="credits-section">
                 <div class="credits-title" data-i18n="about.credits.libraries">第三方库</div>
@@ -6718,9 +6726,13 @@
               <div class="credits-section">
                 <div class="credits-text">
                   本软件的启发来自希沃课堂助手与鸿合演示助手<br>
-                  本程序的部分图标资源来自 希沃白板5<br>
-                  应用字体使用了小米与汉仪字库联合出品的 MiSans<br>
-                  感谢所有帮助测试的用户与贡献成员<br>
+                  本程序的部分图标资源来自 希沃白板 5<br>
+                  应用字体使用了 MiSans 与 Google Sans Flex<br>
+                  一部分图像资源来自东映出品的《GIRLS BAND CRY》的衍生网络资源<br>
+                  软件经过思拓创联（SECTL Studio）的黎泽懿先生的悉心指导<br>
+                  感谢所有帮助测试的用户、积极提出 Issues 的用户们，思拓创联（SECTL Studio）的同僚们以及所有为项目贡献过的成员<br>
+                  感谢 Luminalium 项目组中陈晋瑭先生的 Linux 适配工作<br>
+                  感谢 原口正来 先生的立项<br>
                 </div>
               </div>
             </div>
@@ -7426,7 +7438,7 @@
       "update.idle.desc": "将从所选更新源获取最新版本信息",
       "update.error.title": "检查更新失败",
       "update.error.desc": "请检查网络连接后重试",
-      "update.latest.title": "已是最新版本",
+      "update.latest.title": "此版本已是最新版本",
       "update.latest.desc": "无需更新",
       "update.latest.changelogTitle": "最新公布版本的可用更新日志",
       "update.available.title": "发现新版本",
@@ -7449,6 +7461,7 @@
       "about.version.qq": "QQ群（1004548404）",
       "about.credits.label": "鸣谢",
       "about.credits.contributors": "贡献人员",
+      "about.credits.viewAllContributors": "查看完整贡献人员",
       "about.credits.libraries": "第三方库",
       "about.checkUpdate.label": "检查更新",
       "debug.createDialog.label": "创建 Dialog",
@@ -7762,6 +7775,7 @@
       "about.version.qq": "QQ群",
       "about.credits.label": "鳴謝",
       "about.credits.contributors": "貢獻人員",
+      "about.credits.viewAllContributors": "查看完整貢獻人員",
       "about.credits.libraries": "第三方庫",
       "about.checkUpdate.label": "檢查更新",
       "debug.createDialog.label": "建立 Dialog",
@@ -8072,6 +8086,7 @@
       "about.version.qq": "QQ群",
       "about.credits.label": "鳴謝",
       "about.credits.contributors": "貢獻人員",
+      "about.credits.viewAllContributors": "查看完整貢獻人員",
       "about.credits.libraries": "第三方庫",
       "about.checkUpdate.label": "檢查更新",
       "debug.createDialog.label": "建立 Dialog",
@@ -8386,6 +8401,7 @@
       "about.version.qq": "QQ グループ",
       "about.credits.label": "謝辞",
       "about.credits.contributors": "コントリビューター",
+      "about.credits.viewAllContributors": "すべてのコントリビューターを見る",
       "about.credits.libraries": "サードパーティライブラリ",
       "about.checkUpdate.label": "更新を確認",
       "debug.createDialog.label": "Dialog を作成",
@@ -8915,6 +8931,7 @@
       "about.version.qq": "QQ group",
       "about.credits.label": "Credits",
       "about.credits.contributors": "Contributors",
+      "about.credits.viewAllContributors": "View all contributors",
       "about.credits.libraries": "Third-party Libraries",
       "about.checkUpdate.label": "Check for updates",
       "debug.createDialog.label": "Create Dialog",
@@ -13796,19 +13813,14 @@
         document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
         aboutItem.classList.add('active');
         
-        // Update text? "About / Software Update"
-        const span = aboutItem.querySelector('span');
-        if (span) {
-             const aboutText = getText("nav.about") || "关于";
-             span.textContent = `${aboutText} / 软件更新`;
-        }
+
     }
 
     sections.forEach(sec => sec.classList.remove('active'));
     document.getElementById('section-update').classList.add('active');
 
     if (title) {
-      title.textContent = getText("about.checkUpdate.label") || "软件更新";
+      title.textContent = getText("about.checkUpdate.label") || "Update";
       title.style.display = 'block';
     }
   }
