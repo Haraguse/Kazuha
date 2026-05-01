@@ -114,6 +114,29 @@ def run():
             shutil.rmtree(extra_path, ignore_errors=True)
     subprocess.check_call(cmd, cwd=root_dir)
 
+    # Build updater.exe into the main app output folder so shipping is one-step.
+    updater_py = os.path.join(root_dir, "scripts", "updater.py")
+    if os.path.exists(updater_py):
+        updater_cmd = [
+            python_exe,
+            "-m",
+            "PyInstaller",
+            "--noconfirm",
+            "--clean",
+            "--onefile",
+            "--noconsole",
+            "--name",
+            "updater",
+            "--distpath",
+            os.path.join(dist_dir, "Luminalium"),
+            "--workpath",
+            os.path.join(build_dir, "updater"),
+            "--specpath",
+            os.path.join(build_dir, "updater"),
+            updater_py,
+        ]
+        subprocess.check_call(updater_cmd, cwd=root_dir)
+
     output_dir = os.path.join(dist_dir, "Luminalium")
     if os.path.isdir(output_dir):
         _remove_pdb_files(output_dir)

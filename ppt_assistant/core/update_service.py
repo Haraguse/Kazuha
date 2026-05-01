@@ -11,7 +11,7 @@ from pathlib import Path
 from aiohttp import web, ClientSession
 
 # Constants
-GITHUB_REPO = "YourOrg/Luminalium"  # Replace with actual repo
+GITHUB_REPO = "SECTL/Luminalium"
 LOCAL_APP_DATA = Path(os.getenv("LOCALAPPDATA", os.path.expanduser("~")))
 CACHE_DIR = LOCAL_APP_DATA / "Luminalium" / "update_cache"
 DB_PATH = CACHE_DIR / "update.db"
@@ -268,11 +268,31 @@ def start_update_server(port: int = 28423):
     def run_server():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(runner.setup())
-        site = web.TCPSite(runner, '127.0.0.1', port)
-        loop.run_until_complete(site.start())
-        print(f"[UpdateService] Started on http://127.0.0.1:{port}")
-        loop.run_forever()
+        try:
+            loop.run_until_complete(runner.setup())
+            site = web.TCPSite(runner, '127.0.0.1', port)
+            loop.run_until_complete(site.start())
+            print(f"[UpdateService] Started on http://127.0.0.1:{port}")
+            loop.run_forever()
+        except OSError as e:
+            # WinError 10048: port already in use (likely another instance already started service)
+            if getattr(e, "errno", None) == 10048:
+                print(
+                    f"[UpdateService] Port {port} already in use, reuse existing local update service."
+                )
+            else:
+                print(f"[UpdateService] Failed to start on port {port}: {e}")
+        except Exception as e:
+            print(f"[UpdateService] Unexpected server error: {e}")
+        finally:
+            try:
+                loop.run_until_complete(runner.cleanup())
+            except Exception:
+                pass
+            try:
+                loop.close()
+            except Exception:
+                pass
         
     t = threading.Thread(target=run_server, daemon=True)
     t.start()
