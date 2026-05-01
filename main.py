@@ -2,6 +2,29 @@ import shutil
 import sys
 import os
 
+def register_url_protocol():
+    if sys.platform != "win32":
+        return
+    try:
+        import winreg
+        key_path = r"Software\Classes\luminalium"
+        key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
+        winreg.SetValue(key, "", winreg.REG_SZ, "URL:Luminalium Protocol")
+        winreg.SetValueEx(key, "URL Protocol", 0, winreg.REG_SZ, "")
+        
+        icon_key = winreg.CreateKey(key, "DefaultIcon")
+        exe_path = os.path.abspath(sys.executable if getattr(sys, "frozen", False) else __file__)
+        winreg.SetValue(icon_key, "", winreg.REG_SZ, f'"{exe_path}",0')
+        
+        cmd_key = winreg.CreateKey(key, r"shell\open\command")
+        winreg.SetValue(cmd_key, "", winreg.REG_SZ, f'"{exe_path}" "%1"')
+        
+        winreg.CloseKey(cmd_key)
+        winreg.CloseKey(icon_key)
+        winreg.CloseKey(key)
+    except Exception as e:
+        print(f"Failed to register URL protocol: {e}")
+
 # Nuitka standalone detection and compatibility
 if hasattr(sys, "nuitka_binary"):
     sys.frozen = True
@@ -1451,6 +1474,17 @@ class CrashHandler:
         os._exit(1)
 
 
+_LUMINALIUM_MUTEX = None
+
+def _create_global_mutex():
+    if sys.platform == "win32":
+        import ctypes
+        global _LUMINALIUM_MUTEX
+        kernel32 = ctypes.windll.kernel32
+        _LUMINALIUM_MUTEX = kernel32.CreateMutexW(None, False, "Global\\Luminalium_Mutex")
+        if not _LUMINALIUM_MUTEX:
+            print("[Main] Failed to create global mutex", flush=True)
+
 def _handle_multi_instance(app: QApplication):
     if str(os.environ.get("LUMINALIUM_DISABLE_MULTI_INSTANCE", "")).strip().lower() in (
         "1",
@@ -1590,9 +1624,37 @@ class PPTAssistantApp:
         self._resource_monitor = None
         self._open_settings_after_startup = False
 
+        # Flag watcher for external settings requests
+        self._flag_timer = QTimer(self.app)
+        self._flag_timer.timeout.connect(self._check_flags)
+        self._flag_timer.start(1000)
+
         # Start async initialization
         self._init_gen = self._init_steps()
         QTimer.singleShot(0, self._perform_init_step)
+
+    def _check_flags(self):
+        try:
+            app_dir = Path(sys.executable).parent if getattr(sys, "frozen", False) else Path(__file__).parent
+            flag_file = app_dir / "_internal" / ".open_settings"
+            if flag_file.exists():
+                flag_file.unlink()
+                if hasattr(self, "settings_plugin"):
+                    self.settings_plugin.execute()
+                    # Open the Update tab
+                    QTimer.singleShot(500, lambda: self._switch_to_update_tab())
+        except Exception:
+            pass
+
+    def _switch_to_update_tab(self, retries=5):
+        try:
+            if hasattr(self.settings_plugin, "_window") and self.settings_plugin._window:
+                self.settings_plugin._window.page().runJavaScript(
+                    "if(typeof showUpdate === 'function') { showUpdate(); 'OK'; } else { 'WAIT'; }",
+                    lambda result: QTimer.singleShot(500, lambda: self._switch_to_update_tab(retries - 1)) if result == 'WAIT' and retries > 0 else None
+                )
+        except Exception:
+            pass
 
     def _init_steps(self):
         # Step 1: Basic Config
@@ -1658,7 +1720,7 @@ class PPTAssistantApp:
         except Exception:
             pass
 
-        self._open_settings_after_startup = self._consume_open_settings_pending_flag()
+        self._open_settings_after_startup = self._consume_open_settings_pending_flag() or self._open_settings_after_startup
 
         # Step 6: Tray (UI)
         yield 80, "init_tray"
@@ -1692,6 +1754,14 @@ class PPTAssistantApp:
             flush=True,
         )
         self._start_resource_monitor()
+        
+        # Start Update Service
+        try:
+            from ppt_assistant.core.update_service import start_update_server
+            start_update_server(28423)
+            print("[Main] Update service started on port 28423", flush=True)
+        except Exception as e:
+            print(f"[Main] Failed to start update service: {e}", flush=True)
 
         if cfg.compatibilityMode.value:
             print("[APP] Showing overlay in compatibility mode")
@@ -1701,8 +1771,11 @@ class PPTAssistantApp:
             print("[Main] Finishing splash...", flush=True)
             self._splash.finish()
             print("[Main] Splash finished.", flush=True)
-        if self._open_settings_after_startup and hasattr(self, "settings_plugin"):
+            
+        if getattr(self, "_open_settings_after_startup", False) and hasattr(self, "settings_plugin"):
             QTimer.singleShot(200, self.settings_plugin.execute)
+            if _should_open_settings:
+                QTimer.singleShot(800, lambda: self._switch_to_update_tab())
 
     def _perform_init_step(self):
         try:
@@ -2528,10 +2601,59 @@ class PPTAssistantApp:
         pass
 
 
+def _check_post_update():
+    try:
+        app_dir = Path(sys.executable).parent if getattr(sys, "frozen", False) else Path(__file__).parent
+        version_file = app_dir / "_internal" / ".version"
+        if version_file.exists():
+            with open(version_file, "r", encoding="utf-8") as f:
+                new_ver = f.read().strip()
+            version_file.unlink()
+            
+            if sys.platform == "win32":
+                try:
+                    from winrt.windows.ui.notifications import ToastNotificationManager, ToastNotification
+                    from winrt.windows.data.xml.dom import XmlDocument
+                    
+                    xml = XmlDocument()
+                    xml.load_xml(f"""
+                    <toast launch="luminalium://settings/update">
+                        <visual>
+                            <binding template="ToastGeneric">
+                                <text>更新完成</text>
+                                <text>应用已更新到 {new_ver}，点击以查看详细信息</text>
+                            </binding>
+                        </visual>
+                    </toast>
+                    """)
+                    
+                    notifier = ToastNotificationManager.create_toast_notifier("Luminalium")
+                    notifier.show(ToastNotification(xml))
+                except Exception as e:
+                    print(f"Failed to send update notification: {e}")
+    except Exception as e:
+        print(f"Error in post update check: {e}")
+
 if __name__ == "__main__":
     # Platform settings moved to top of file to ensure they apply before any Qt import
 
     _ensure_user_dirs()
+    
+    # Handle custom protocol early
+    _should_open_settings = False
+    for arg in sys.argv:
+        if arg.startswith("luminalium://settings/update"):
+            _should_open_settings = True
+            try:
+                import urllib.request
+                urllib.request.urlopen("http://127.0.0.1:28423/api/update/open_settings", timeout=1)
+                sys.exit(0) # Already running instance will handle it
+            except Exception:
+                pass
+            break
+            
+    register_url_protocol()
+    _check_post_update()
     _apply_graphics_settings()
     # Use Desktop OpenGL for better compatibility with Qt6
     QCoreApplication.setAttribute(Qt.AA_UseDesktopOpenGL)
@@ -2547,6 +2669,8 @@ if __name__ == "__main__":
     _apply_global_font(app)
     print("[Main] Global font applied.", flush=True)
     crash_handler = CrashHandler(app)
+    print("[Main] Creating global mutex...", flush=True)
+    _create_global_mutex()
     print("[Main] Checking multi-instance state...", flush=True)
     _handle_multi_instance(app)
     print("[Main] Multi-instance check finished.", flush=True)
@@ -2604,6 +2728,10 @@ if __name__ == "__main__":
 
     print("[Main] Creating PPTAssistantApp...", flush=True)
     app_instance = PPTAssistantApp(app, splash)
+    
+    if _should_open_settings:
+        app_instance._open_settings_after_startup = True
+        
     print("[Main] PPTAssistantApp created.", flush=True)
     crash_handler.set_app_instance(app_instance)
     sys.exit(app.exec())

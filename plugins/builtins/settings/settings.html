@@ -13958,6 +13958,7 @@
         if (!container) return;
 
         const checkText = getText("update.checkNow") || "检查更新";
+        const forceText = getText("update.forcePull") || "强制拉取更新";
         const downloadText = getText("update.download") || "下载更新";
         const laterText = getText("update.later") || "稍后提醒";
         const retryText = getText("update.retry") || "重试";
@@ -13978,30 +13979,11 @@
           <button class="btn-primary" id="update-check-btn" onclick="UpdateManager.check()">
             ${isRetry ? retryText : checkText}
           </button>
+          <button class="btn-secondary" id="update-force-btn" onclick="UpdateManager.forcePullUpdate()">
+            ${forceText}
+          </button>
         `;
         }
-      },
-
-      // Check for updates
-      async fetchLatestRelease() {
-        let lastError = null;
-        for (const source of this.getSourceList()) {
-          const apiUrl = `${this.getApiBaseForSource(source)}/repos/${this.repo}/releases/latest`;
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
-            const response = await fetch(apiUrl, { signal: controller.signal });
-            clearTimeout(timeoutId);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const data = await response.json();
-            const release = Array.isArray(data) ? data[0] : data;
-            return { release, source };
-          } catch (error) {
-            lastError = error;
-          }
-        }
-        if (lastError) throw lastError;
-        throw new Error(getText("update.error.desc") || "请检查网络连接后重试");
       },
 
       async check() {
@@ -14021,49 +14003,74 @@
         );
 
         try {
-          const { release, source } = await this.fetchLatestRelease();
-          this.currentReleaseData = release;
-          this.latestReleaseUrl = this.normalizeReleaseUrl(release.html_url, source);
+          const response = await fetch("http://127.0.0.1:28423/api/update/check");
+          const data = await response.json();
+          
+          if (data.error === "DEV_MODE" || data.reason === "DEV_MODE") {
+             this.setState('error');
+             this.setActions('retry');
+             this.updateStatusBar(
+               getText("update.devMode") || "已检测到新版本，开发模式禁止自动更新",
+               `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                 <circle cx="12" cy="12" r="10"></circle>
+                 <line x1="12" y1="8" x2="12" y2="12"></line>
+                 <line x1="12" y1="16" x2="12.01" y2="16"></line>
+               </svg>`,
+               "var(--accent-red)"
+             );
+             document.getElementById('update-check-btn').style.display = 'none'; // Hide check button
+             return;
+          }
+
           this.updateLastCheckTime();
-          if (source && source !== this.getSource()) {
-            setUpdateSource(source);
-          }
-
-          // Version comparison
-          const latestVersion = release.tag_name || '';
-          const currentV = this.appVersion.startsWith('v') ? this.appVersion : 'v' + this.appVersion;
-          const latestV = latestVersion.startsWith('v') ? latestVersion : 'v' + latestVersion;
-
-          // Compare versions (semver-ish)
-          const compare = (v1, v2) => {
-            const clean = v => v.replace(/^v/, '').split('.').map(p => parseInt(p, 10) || 0);
-            const p1 = clean(v1);
-            const p2 = clean(v2);
-            for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
-              const val1 = p1[i] || 0;
-              const val2 = p2[i] || 0;
-              if (val1 > val2) return 1;
-              if (val1 < val2) return -1;
-            }
-            return 0;
-          };
-
-          // If latest <= current, we are up to date (or newer)
-          if (compare(latestV, currentV) <= 0 || !latestVersion) {
-            this.showUpToDate(currentV, release ? release.body : '');
+          if (data.available) {
+             this.currentReleaseData = data;
+             this.showNewVersion(this.appVersion, data.version, data.changelog);
           } else {
-            this.showNewVersion(currentV, latestVersion, release.body || '');
+             this.showUpToDate(this.appVersion, data.changelog || "");
           }
-
         } catch (error) {
-          console.error("Check update failed:", error);
-          this.updateLastCheckTime();
-          const msg = (error && error.message) ? String(error.message) : "";
-          if (msg === "Failed to fetch") {
-            this.showError(getText("update.error.desc") || "请检查网络连接后重试");
-          } else {
-            this.showError(msg || (getText("update.error.desc") || "请检查网络连接后重试"));
+          console.error("Update check error:", error);
+          this.showError(getText("update.error.desc") || "请检查网络连接后重试");
+        }
+      },
+
+      async forcePullUpdate() {
+        this.setState('loading');
+        this.setActions('loading');
+        this.updateStatusBar(
+          getText("update.status.checking") || "正在检查更新...",
+          `<div class="loading-spinner" style="width: 20px; height: 20px;">
+          <svg viewBox="0 0 27 27" style="width: 20px; height: 20px;">
+            <circle class="spinner-ring" cx="13.5" cy="13.5" r="10"></circle>
+            <g class="spinner-orbit">
+              <circle class="spinner-dot" cx="13.5" cy="8.0" r="2.5"></circle>
+            </g>
+          </svg>
+        </div>`,
+          "var(--accent-blue)"
+        );
+        try {
+          const response = await fetch("http://127.0.0.1:28423/api/update/check?force=1");
+          const data = await response.json();
+          if (data.error === "DEV_MODE" || data.reason === "DEV_MODE") {
+            this.showError(getText("update.devMode") || "已检测到新版本，开发模式禁止自动更新");
+            return;
           }
+          if (!data.download_url || !data.version) {
+            this.showError(getText("update.error.desc") || "请检查网络连接后重试");
+            return;
+          }
+          this.currentReleaseData = data;
+          this.updateStatusBar(
+            getText("update.forcePull.running") || "已触发强制拉取，正在下载...",
+            "",
+            "var(--accent-blue)"
+          );
+          await this.openDownload();
+        } catch (error) {
+          console.error("Force pull update error:", error);
+          this.showError(getText("update.error.desc") || "请检查网络连接后重试");
         }
       },
 
@@ -14192,12 +14199,77 @@
       },
 
       // Open download page
-      openDownload() {
-        if (window.pywebview && window.pywebview.api.open_browser) {
-          window.pywebview.api.open_browser(this.latestReleaseUrl);
-        } else {
-          window.open(this.latestReleaseUrl, '_blank');
+      async openDownload() {
+        if (!this.currentReleaseData) return;
+        try {
+          const response = await fetch("http://127.0.0.1:28423/api/update/download", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              download_url: this.currentReleaseData.download_url,
+              version: this.currentReleaseData.version
+            })
+          });
+          const data = await response.json();
+          if (data.status === "started") {
+             this.pollProgress();
+          } else {
+             this.showError("无法启动下载");
+          }
+        } catch (e) {
+          console.error(e);
+          this.showError("无法连接到更新服务");
         }
+      },
+      
+      pollProgress() {
+        this.setState('loading');
+        this.setActions('loading');
+        const interval = setInterval(async () => {
+          try {
+            const res = await fetch("http://127.0.0.1:28423/api/update/progress");
+            const data = await res.json();
+            
+            if (data.status === "downloading") {
+               this.updateStatusBar(
+                 `正在下载... ${data.progress}%`,
+                 `<div class="loading-spinner" style="width: 20px; height: 20px;">
+                    <svg viewBox="0 0 27 27" style="width: 20px; height: 20px;">
+                      <circle class="spinner-ring" cx="13.5" cy="13.5" r="10"></circle>
+                      <g class="spinner-orbit">
+                        <circle class="spinner-dot" cx="13.5" cy="8.0" r="2.5"></circle>
+                      </g>
+                    </svg>
+                  </div>`,
+                 "var(--accent-blue)"
+               );
+               const container = document.getElementById('update-header-actions');
+               if (container) {
+                 container.innerHTML = `
+                  <div style="width: 100px; height: 4px; background: var(--bg-hover); border-radius: 2px; overflow: hidden;">
+                    <div style="width: ${data.progress}%; height: 100%; background: var(--accent-blue); transition: width 0.3s;"></div>
+                  </div>
+                 `;
+               }
+            } else if (data.status === "download_complete") {
+               clearInterval(interval);
+               this.updateStatusBar("下载完成，正在准备更新...", "", "var(--accent-blue)");
+               // Auto close settings window
+               setTimeout(() => {
+                   if (window.pywebview && window.pywebview.api.close_window) {
+                       window.pywebview.api.close_window();
+                   } else {
+                       window.close();
+                   }
+               }, 1000);
+            } else if (data.status === "failed") {
+               clearInterval(interval);
+               this.showError("下载失败，请稍后重试");
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }, 500);
       },
 
       // Dismiss update notification

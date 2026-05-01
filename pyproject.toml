@@ -12,6 +12,9 @@ dependencies = [
     "referencing>=0.36.0",
     "pynput>=1.7.0; sys_platform == 'linux'",
     "ty>=0.0.31",
+    "aiohttp>=3.9.0",
+    "winrt-windows.ui.notifications>=2.0.0; sys_platform == 'win32'",
+    "winrt-windows.data.xml.dom>=2.0.0; sys_platform == 'win32'",
 ]
 
 [dependency-groups]
