@@ -2985,16 +2985,46 @@ body {
         self.activateWindow()
 
     def nativeEvent(self, eventType, message):
-        if _EXISTING_WINDOW_NOTIFY_MESSAGE:
-            try:
-                msg_ptr = int(message)
-                if msg_ptr:
-                    msg = ctypes.wintypes.MSG.from_address(msg_ptr)
-                    if msg.message == _EXISTING_WINDOW_NOTIFY_MESSAGE:
-                        QTimer.singleShot(0, self._handle_existing_window_notification)
-                        return True, 0
-            except Exception:
-                pass
+        try:
+            import ctypes.wintypes
+            msg_ptr = int(message)
+            if msg_ptr:
+                msg = ctypes.wintypes.MSG.from_address(msg_ptr)
+                if _EXISTING_WINDOW_NOTIFY_MESSAGE and msg.message == _EXISTING_WINDOW_NOTIFY_MESSAGE:
+                    QTimer.singleShot(0, self._handle_existing_window_notification)
+                    return True, 0
+
+                if msg.message == 0x0084:  # WM_NCHITTEST
+                    if getattr(self, "_mini_mode", False) and not self.isMaximized() and not self.isFullScreen():
+                        from PySide6.QtGui import QCursor
+                        pos = self.mapFromGlobal(QCursor.pos())
+                        x, y = pos.x(), pos.y()
+                        w, h = self.width(), self.height()
+                        
+                        border = 8
+                        is_left = x < border
+                        is_right = x > w - border
+                        is_top = y < border
+                        is_bottom = y > h - border
+                        
+                        if is_top and is_left:
+                            return True, 13
+                        elif is_top and is_right:
+                            return True, 14
+                        elif is_bottom and is_left:
+                            return True, 16
+                        elif is_bottom and is_right:
+                            return True, 17
+                        elif is_left:
+                            return True, 10
+                        elif is_right:
+                            return True, 11
+                        elif is_top:
+                            return True, 12
+                        elif is_bottom:
+                            return True, 15
+        except Exception:
+            pass
         return super().nativeEvent(eventType, message)
 
     def _apply_backdrop(self):

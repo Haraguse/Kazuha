@@ -28,6 +28,11 @@ class BoardPlugin(AssistantPlugin):
             self.window.show()
             self.window.raise_()
             self.window.requestActivate()
+            self.window.raise_()
+
+    def set_pen_color(self, r, g, b):
+        if self.window:
+            self.window.set_pen_color(r, g, b)
 
     def terminate(self):
         if self.window:

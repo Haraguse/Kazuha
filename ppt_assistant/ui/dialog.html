@@ -523,9 +523,9 @@
         "dialog.multiInstance.title": "Luminalium 正在运行中",
         "dialog.multiInstance.text": "Luminalium 的另一个实例已经在后台运行。通常您可以在系统托盘区域找到它。\n如果您无法找到，可能是出现了一些问题，您可以尝试通过尝试以下的选项来解决此问题。",
         "dialog.multiInstance.restartOld.title": "重新启动实例",
-        "dialog.multiInstance.restartOld.desc": "结束旧进程并启动此新实例",
+        "dialog.multiInstance.restartOld.desc": "结束 old 进程并启动此新实例",
         "dialog.multiInstance.continueNew.title": "仍然启动",
-        "dialog.multiInstance.continueNew.desc": "保留旧进程并强制启动新实例",
+        "dialog.multiInstance.continueNew.desc": "保留 old 进程并强制启动新实例",
         "dialog.multiInstance.cancel": "取消",
         "testDialog.title": "测试对话框",
         "testDialog.confirm": "我知道了",
@@ -542,7 +542,7 @@
         "dialog.ink.text": "检测到放映期间添加了墨迹注释，是否保留到幻灯片中？",
         "dialog.ink.keep": "保留",
         "dialog.ink.discard": "不保留",
-        "general.devWatermark": "开发中版本/技术预览版本\n不保证最终品质 （{version}）"
+        "general.devWatermark": "开发中版本/技术预览版本\n不保证最终品质 （{version}）",
       },
       "zh-TW": {
         "dialog.generic.ok": "確認",
@@ -621,7 +621,7 @@
         "testDialog.confirm": "了解しました",
         "testDialog.cancel": "閉じる",
         "dialog.fontWarning.title": "カスタムフォントに関する注意",
-        "dialog.fontWarning.text": "カスタムフォントを有効にすると、次のような問題が発生する可能性があります。\n\n1. 文字のレイアウトが崩れ、コントロールがはみ出したり改行がおかしくなる\n2. 一部の文字・記号・多言語テキストにグリフがなく、四角や「?」として表示される\n3. DPI や表示スケールの違いにより、文字がにじんだり位置がずれたりする\n4. 特定のシステム環境や PowerPoint バージョンでは、開発環境と表示結果が一致しない\n\nカスタムフォントの使用によって生じた表示異常・クラッシュ・プレゼンテーション上のトラブルについて、開発者は一切の責任を負わず、個別の技術サポートも提供しません。",
+        "dialog.fontWarning.text": "カスタムフォントを有効にすると、次のような問題が発生する可能性があります。\n\n1. 文字のレイアウトが崩れ、コントロールがはみ出したり改行がおかしくなる\n2. 一部の文字・記号・多言語テキストにグリフがなく、四角や「?」として表示される\n3. DPI や表示スケールの違いにより、文字がにじんだり位置がずれたりする\n4. 特定の系統環境や PowerPoint バージョンでは、開発環境と表示結果が一致しない\n\nカスタムフォントの使用によって生じた表示異常・クラッシュ・プレゼンテーション上のトラブルについて、開発者は一切の責任を負わず、個別の技術サポートも提供しません。",
         "dialog.fontWarning.confirm": "内容を理解し、自己責任で続行します",
         "dialog.password.title": "設定パスワードの確認",
         "dialog.password.text": "設定パスワードを入力してください。",
@@ -996,8 +996,6 @@
 
     function onConfirm() {
       if (confirmPending) return;
-      // If buttons are hidden (like in multi-instance), this might not be reachable via UI,
-      // but good to keep safe.
       if (window.pywebview && window.pywebview.api) {
         if (inputMode && window.pywebview.api.on_confirm_with_value) {
           confirmPending = true;
@@ -1027,17 +1025,6 @@
           }, 2000);
         }).catch(err => {
           console.error('Failed to copy: ', err);
-          const textArea = document.createElement("textarea");
-          textArea.value = text;
-          document.body.appendChild(textArea);
-          textArea.select();
-          try {
-            document.execCommand('copy');
-            btnCancel.innerText = "已复制！";
-          } catch (e) {
-            btnCancel.innerText = "复制失败";
-          }
-          document.body.removeChild(textArea);
         });
         return;
       }
@@ -1070,27 +1057,21 @@
       document.documentElement.style.setProperty('--accent-blue', accent);
     }
 
-    function updateAccentColor() {}
+    function updateAccentColor(hex) {
+      if (hex) {
+        document.documentElement.style.setProperty('--accent-blue', hex);
+      }
+    }
 
     window.addEventListener('pywebviewready', () => {
       if (window.pywebview && window.pywebview.api) {
         const api = window.pywebview.api;
-
-        const settingsPromise = api.get_settings
-          ? api.get_settings().catch(() => null)
-          : Promise.resolve(null);
-
-        const dialogPromise = api.get_dialog_data
-          ? api.get_dialog_data()
-          : Promise.resolve(null);
+        const settingsPromise = api.get_settings ? api.get_settings().catch(() => null) : Promise.resolve(null);
+        const dialogPromise = api.get_dialog_data ? api.get_dialog_data() : Promise.resolve(null);
 
         Promise.all([settingsPromise, dialogPromise]).then(([s, d]) => {
-          if (s) {
-            updateLanguageAndSettings(s);
-          }
-          if (d) {
-            init(d);
-          }
+          if (s) updateLanguageAndSettings(s);
+          if (d) init(d);
         });
 
         if (api.get_version) {
@@ -1099,17 +1080,17 @@
             const version = v.version || "";
             const wm = document.getElementById("dev-watermark");
             if (wm && version) {
-            const parts = String(version).trim().split(".");
-            const suffix = parts[parts.length - 1];
-            const isDev = parts.length >= 2 && ["1", "2", "3", "4"].includes(suffix);
-            let displayVersion = String(version).trim();
-            if (["5", "6", "7"].includes(suffix)) {
-              const patchNum = Number(suffix) - 4;
-              displayVersion = parts.slice(0, -1).join(".") + " Patch " + patchNum;
-            }
-            if (isDev) {
-              const tmpl = getText("general.devWatermark") || "开发中版本/技术预览版本\n不保证最终品质 （{version}）";
-              wm.textContent = tmpl.replace("{version}", displayVersion);
+              const parts = String(version).trim().split(".");
+              const suffix = parts[parts.length - 1];
+              const isDev = parts.length >= 2 && ["1", "2", "3", "4"].includes(suffix);
+              let displayVersion = String(version).trim();
+              if (["5", "6", "7"].includes(suffix)) {
+                const patchNum = Number(suffix) - 4;
+                displayVersion = parts.slice(0, -1).join(".") + " Patch " + patchNum;
+              }
+              if (isDev) {
+                const tmpl = getText("general.devWatermark") || "开发中版本/技术预览版本\n不保证最终品质 （{version}）";
+                wm.textContent = tmpl.replace("{version}", displayVersion);
                 wm.style.display = "block";
               } else {
                 wm.style.display = "none";
@@ -1122,9 +1103,7 @@
 
     if (inputEl) {
       inputEl.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          onConfirm();
-        }
+        if (e.key === "Enter") onConfirm();
       });
     }
   </script>

@@ -1309,6 +1309,15 @@ class BoardWindow(QQuickView):
                 except Exception as e:
                     print(f"Failed to load strokes: {e}")
 
+    def set_pen_color(self, r, g, b):
+        root = self.rootObject()
+        if not root:
+            return
+        canvas = root.findChild(QObject, "canvas")
+        if canvas:
+            color = QColor(r, g, b)
+            canvas.setProperty("drawColor", color)
+
     def _on_show_tool_text_changed(self, value):
         self.rootContext().setContextProperty("showToolText", value)
 

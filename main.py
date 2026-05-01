@@ -1965,6 +1965,7 @@ class PPTAssistantApp:
         self.monitor.slideshow_hwnd_changed.connect(self.overlay.set_slideshow_hwnd)
         self.monitor.restrictions_changed.connect(self.overlay.set_ppt_restrictions)
         self.monitor.thumbnail_generated.connect(self.overlay.on_thumbnail_ready)
+        self.monitor.pen_color_changed.connect(self._broadcast_pen_color)
 
     @Slot()
     def toggle_overlay_visibility(self):
@@ -2480,6 +2481,33 @@ class PPTAssistantApp:
         self._prepare_shutdown(restarting=True)
         self._launch_new_instance()
         self.app.quit()
+
+    @Slot(int, int, int, str)
+    def _broadcast_pen_color(self, r, g, b, hex_color):
+        """Broadcast pen color change to all active webview windows and other plugins."""
+        # 1. Update Overlay
+        if hasattr(self.overlay, "update_accent_color"):
+            self.overlay.update_accent_color(hex_color)
+        elif hasattr(self.overlay, "run_js"):
+             self.overlay.run_js(f"if(window.updateAccentColor) updateAccentColor('{hex_color}')")
+
+        # 2. Update active plugins
+        for plugin in getattr(self, "plugins", []):
+            # Check for webview windows
+            window = getattr(plugin, "_window", None)
+            if window and hasattr(window, "runJavaScript"):
+                window.runJavaScript(f"if(window.updateAccentColor) updateAccentColor('{hex_color}')")
+            
+            # Special case for Board plugin (QML)
+            if plugin.get_name() == "板中板" or plugin.get_name() == "Board":
+                if hasattr(plugin, "set_pen_color"):
+                    plugin.set_pen_color(r, g, b)
+
+        # 3. Update Settings window if open
+        if hasattr(self, "settings_plugin"):
+            window = getattr(self.settings_plugin, "_window", None)
+            if window and hasattr(window, "runJavaScript"):
+                window.runJavaScript(f"if(window.updateAccentColor) updateAccentColor('{hex_color}')")
 
     def cleanup(self):
         """Cleanup app resources and terminate subprocesses."""

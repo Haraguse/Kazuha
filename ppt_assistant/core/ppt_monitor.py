@@ -150,6 +150,8 @@ class PPTWorker(QObject):
     restrictions_changed = Signal(bool, bool)  # protected_view, presentation_readonly
     active_kind_changed = Signal(str)
     ink_prompt_requested = Signal()
+    animation_step_changed = Signal(int, int)  # click_index, click_count
+    pen_color_changed = Signal(int, int, int, str)
 
     def __init__(self):
         super().__init__()
@@ -186,6 +188,9 @@ class PPTWorker(QObject):
         self._wps_bridge_thumbnail_cache = {}
         self._wps_bridge_pending_thumbnails = set()
         self._wps_bridge_thumbnail_command_id = ""
+        # Animation click step tracking
+        self._last_anim_click_index = -1
+        self._last_anim_click_count = -1
 
     def _consume_page_turn_token(self) -> bool:
         now = time.monotonic()
@@ -1245,6 +1250,15 @@ class PPTWorker(QObject):
         if current > 0:
             self._degraded_current = current
 
+        # Track animation click steps for PPT COM (best-effort via active slideshow view)
+        try:
+            if self._active_kind == "ppt" or self._active_kind is None:
+                ss_win_anim = self._get_active_slideshow_window()
+                view_anim = getattr(ss_win_anim, "View", None) if ss_win_anim is not None else None
+                self._emit_animation_step_if_changed(view_anim)
+        except Exception:
+            pass
+
     def _init_degraded_page_info(self):
         total = 0
         try:
@@ -1386,6 +1400,30 @@ class PPTWorker(QObject):
                 return app
         return None
 
+    def _read_animation_click_info(self, view) -> tuple[int, int]:
+        """Read (click_index, click_count) from a SlideShowView.
+        Returns (-1, -1) if the info is not available (e.g. WPS/Yozo or COM error)."""
+        try:
+            if view is None:
+                return -1, -1
+            click_index = getattr(view, "GetClickIndex", None)
+            click_count = getattr(view, "GetClickCount", None)
+            if callable(click_index) and callable(click_count):
+                idx = int(click_index())
+                cnt = int(click_count())
+                return idx, cnt
+        except Exception:
+            pass
+        return -1, -1
+
+    def _emit_animation_step_if_changed(self, view):
+        """Emit animation_step_changed if click index/count changed."""
+        idx, cnt = self._read_animation_click_info(view)
+        if idx != self._last_anim_click_index or cnt != self._last_anim_click_count:
+            self._last_anim_click_index = idx
+            self._last_anim_click_count = cnt
+            self.animation_step_changed.emit(idx, cnt)
+
     def _update_slide_info_from_ss_win(self, ss_win, app=None, kind: str | None = None):
         current = 0
         total = 0
@@ -1423,6 +1461,10 @@ class PPTWorker(QObject):
             self.slide_changed.emit(current, total)
             self._degraded_current = current
             self._degraded_total = total
+
+        # Track animation click steps (PPT COM only; silently ignored for WPS/Yozo)
+        if kind == "ppt":
+            self._emit_animation_step_if_changed(view)
 
     def _get_primary_presentation(self, app):
         if app is None:
@@ -2354,6 +2396,7 @@ class PPTWorker(QObject):
                 {"color": f"#{r:02X}{g:02X}{b:02X}"},
             ):
                 self._control_mode = "wps_bridge"
+                self.pen_color_changed.emit(r, g, b, f"#{r:02X}{g:02X}{b:02X}")
                 return
         except Exception as e:
             last_error = e
@@ -2362,6 +2405,7 @@ class PPTWorker(QObject):
         try:
             if self._try_apply_pointer_color(r, g, b):
                 self._control_mode = "com"
+                self.pen_color_changed.emit(r, g, b, f"#{r:02X}{g:02X}{b:02X}")
                 return
         except Exception as e:
             last_error = e
@@ -2374,9 +2418,13 @@ class PPTWorker(QObject):
                     f"Pen color fallback applied via InkColorPicker: #{r:02X}{g:02X}{b:02X}",
                     min_interval=0.0,
                 )
+                self.pen_color_changed.emit(r, g, b, f"#{r:02X}{g:02X}{b:02X}")
                 return
         except Exception as e:
             last_error = e
+
+        # Even if application failed, we still emit the signal to sync UI components
+        self.pen_color_changed.emit(r, g, b, f"#{r:02X}{g:02X}{b:02X}")
 
         self._note_info(
             f"set_pen_color_unsupported_{r:02X}{g:02X}{b:02X}",
@@ -2463,6 +2511,8 @@ class PPTMonitor(QObject):
     video_state_changed = Signal(float, float, float)
     thumbnail_generated = Signal(int, str)
     restrictions_changed = Signal(bool, bool)
+    animation_step_changed = Signal(int, int)  # click_index, click_count
+    pen_color_changed = Signal(int, int, int, str)
 
     # Internal signals to worker
     _req_start = Signal()
@@ -2497,6 +2547,8 @@ class PPTMonitor(QObject):
         self._worker.restrictions_changed.connect(self.restrictions_changed)
         self._worker.active_kind_changed.connect(self._on_active_kind_changed)
         self._worker.ink_prompt_requested.connect(self._on_ink_prompt_requested)
+        self._worker.animation_step_changed.connect(self.animation_step_changed)
+        self._worker.pen_color_changed.connect(self.pen_color_changed)
         self._worker.finished.connect(self._thread.quit)
         self._thread.finished.connect(self._worker.deleteLater)
 

@@ -429,6 +429,9 @@ class WaylandFallbackOverlayWindow(QWidget):
     def update_config(self):
         pass
 
+    def update_accent_color(self, hex_color):
+        pass
+
     def reset_tool_state_ui(self, tool: str = "select"):
         pass
 
@@ -579,6 +582,10 @@ class OverlayWindow(QWebEngineView):
         self._render_crash_count = 0
         self._max_reload_attempts = 3
         self._crash_recovery_timer = None
+
+    def update_accent_color(self, hex_color):
+        if self.page():
+            self.page().runJavaScript(f"if(window.updateAccentColor) updateAccentColor('{hex_color}');")
 
     def _resolve_theme_path(self) -> str:
         theme_name = cfg.overlayTheme.value
@@ -908,6 +915,8 @@ class OverlayWindow(QWebEngineView):
         self.monitor.slide_changed.connect(self.on_slide_changed)
         self.thumbnail_ready.connect(self.on_thumbnail_ready)
         self.start_background_caching.connect(self.on_start_background_caching)
+        if hasattr(self.monitor, "animation_step_changed"):
+            self.monitor.animation_step_changed.connect(self.on_animation_step_changed)
 
     def set_timer_manager(self, timer_manager):
         """Set the timer manager for status bar updates."""
@@ -987,7 +996,25 @@ class OverlayWindow(QWebEngineView):
         self.request_thumbnail.emit(next_page)
 
     def on_slide_changed(self, current, total):
-        script = f"if (typeof updatePageInfo === 'function') updatePageInfo({current}, {total});"
+        # Reset animation state first so the previous slide's pending-animation
+        # flag never leaks into the new slide's button state.  The real value
+        # will arrive via animation_step_changed within the next poll cycle (~200ms).
+        reset = "if (typeof updateAnimationInfo === 'function') updateAnimationInfo(false);"
+        update = f"if (typeof updatePageInfo === 'function') updatePageInfo({current}, {total});"
+        self._run_javascript(reset + " " + update)
+
+    def on_animation_step_changed(self, click_index, click_count):
+        """Called when PPT animation click index/count changes.
+        click_index: how many animation steps have been triggered (GetClickIndex).
+        click_count: total animation steps on the current slide (GetClickCount).
+        When click_index < click_count, there are still pending animations.
+        -1 means the info is unavailable (WPS/Yozo or degraded mode).
+        """
+        has_remaining = False
+        if click_index >= 0 and click_count >= 0:
+            has_remaining = click_index < click_count
+        js_bool = "true" if has_remaining else "false"
+        script = f"if (typeof updateAnimationInfo === 'function') updateAnimationInfo({js_bool});"
         self._run_javascript(script)
 
     def update_page_info(self, current, total):

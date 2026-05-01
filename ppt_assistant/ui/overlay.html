@@ -3126,6 +3126,10 @@
             document.getElementById('info-hex').innerText = hex;
         }
 
+        // Track whether the current PPT slide has remaining animation steps.
+        // Updated by the Python backend via updateAnimationInfo().
+        let hasRemainingAnimation = false;
+
         function updatePageInfo(current, total) {
             currentPage = current;
             totalPage = total;
@@ -3172,13 +3176,22 @@
                         btn.classList.remove('disabled');
                     }
                 } else if (isNext) {
-                    if ((!isCompat && current >= total) || disabledTools.includes('next')) {
+                    // Keep next enabled on the last slide if animations are still pending
+                    const atLastSlide = !isCompat && current >= total;
+                    const nextBlocked = atLastSlide && !hasRemainingAnimation;
+                    if (nextBlocked || disabledTools.includes('next')) {
                         btn.classList.add('disabled');
                     } else {
                         btn.classList.remove('disabled');
                     }
                 }
             });
+        }
+
+        function updateAnimationInfo(hasRemaining) {
+            hasRemainingAnimation = !!hasRemaining;
+            // Re-evaluate the next button state with the new info.
+            updatePageInfo(currentPage, totalPage);
         }
 
         function setTheme(isDark, accentColor, themeId) {
@@ -3209,6 +3222,12 @@
         }
 
 
+
+        function updateAccentColor(hex) {
+            if (hex) {
+                document.documentElement.style.setProperty('--accent-color', hex);
+            }
+        }
 
         let lastTimeString = '';
         let lastStatusValues = {

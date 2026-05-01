@@ -2512,7 +2512,12 @@
       applyTheme(settings.Appearance.ThemeMode || themeMode || 'Light', settings.Appearance.ThemeId || themeId);
     }
 
-    function updateAccentColor() { }
+    function updateAccentColor(hex) {
+      if (hex) {
+        document.documentElement.style.setProperty('--accent-blue', hex);
+      }
+    }
+
 
     const navItems = document.querySelectorAll('.nav-item');
     const sections = document.querySelectorAll('.view-section');
@@ -2983,7 +2988,12 @@
       applyTheme(mode);
     }
 
-    function updateAccentColor() { }
+    function updateAccentColor(hex) {
+      if (hex) {
+        document.documentElement.style.setProperty('--accent-blue', hex);
+      }
+    }
+
 
     let tmState = 'picker'; // picker, running, paused, finished
 
