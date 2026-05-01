@@ -24,6 +24,7 @@ from PySide6.QtCore import (
     QAbstractNativeEventFilter,
 )
 from PySide6.QtGui import QColor, QIcon, QAction, QGuiApplication, QPainter, QImage, QPen
+from PySide6.QtWidgets import QFileDialog
 from ppt_assistant.core.config import cfg, SETTINGS_PATH, qconfig
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.theme_data import THEMES
@@ -472,6 +473,8 @@ _TRANSLATIONS = {
         "dialog.save_strokes_yes": "保留",
         "dialog.save_strokes_no": "不保留",
         "dialog.cancel": "取消",
+        "toolbar.save_page": "保存",
+        "toolbar.add_page": "加页",
     },
     "zh-TW": {
         "watermark.1": "開發中版本",
@@ -490,6 +493,8 @@ _TRANSLATIONS = {
         "dialog.save_strokes_yes": "保留",
         "dialog.save_strokes_no": "不保留",
         "dialog.cancel": "取消",
+        "toolbar.save_page": "儲存",
+        "toolbar.add_page": "加頁",
     },
     "yue-HK": {
         "watermark.1": "開發中版本",
@@ -508,6 +513,8 @@ _TRANSLATIONS = {
         "dialog.save_strokes_yes": "留低",
         "dialog.save_strokes_no": "唔留",
         "dialog.cancel": "取消",
+        "toolbar.save_page": "儲存",
+        "toolbar.add_page": "加頁",
     },
     "en-US": {
         "watermark.1": "Dev Build",
@@ -526,6 +533,8 @@ _TRANSLATIONS = {
         "dialog.save_strokes_yes": "Keep",
         "dialog.save_strokes_no": "Don't Keep",
         "dialog.cancel": "Cancel",
+        "toolbar.save_page": "Save",
+        "toolbar.add_page": "Add",
     },
     "ja-JP": {
         "watermark.1": "開発中のバージョン",
@@ -544,6 +553,8 @@ _TRANSLATIONS = {
         "dialog.save_strokes_yes": "保存する",
         "dialog.save_strokes_no": "保存しない",
         "dialog.cancel": "キャンセル",
+        "toolbar.save_page": "保存",
+        "toolbar.add_page": "追加",
     },
 }
 
@@ -683,6 +694,10 @@ class BoardBackend(QObject):
     def toggleFullscreen(self):
         self._window.toggle_fullscreen()
         self.windowStateChanged.emit()
+
+    @Slot()
+    def saveCurrentPageAsPng(self):
+        self._window.save_current_page_png()
 
     @Slot(int)
     def startResize(self, edge):
@@ -1160,6 +1175,8 @@ class BoardWindow(QQuickView):
         self.rootContext().setContextProperty("clearText", _t("toolbar.clear"))
         self.rootContext().setContextProperty("undoText", "撤销")
         self.rootContext().setContextProperty("redoText", "重做")
+        self.rootContext().setContextProperty("savePageText", _t("toolbar.save_page"))
+        self.rootContext().setContextProperty("addPageText", _t("toolbar.add_page"))
         self.rootContext().setContextProperty(
             "themeColorsText", _t("toolbar.theme_colors")
         )
@@ -1345,6 +1362,113 @@ class BoardWindow(QQuickView):
         self._animation.setDuration(450)
         # Use OutQuint for a more distinct non-linear feel
         self._animation.setEasingCurve(QEasingCurve.OutQuint)
+
+    def save_current_page_png(self):
+        root = self.rootObject()
+        if not root:
+            return
+        document = {"currentPage": 1, "pages": [{"strokes": []}]}
+        try:
+            if hasattr(root, "getBoardDocument"):
+                raw = root.getBoardDocument()
+                if hasattr(raw, "toVariant"):
+                    raw = raw.toVariant()
+                document = _normalize_board_document(raw)
+        except Exception:
+            document = _normalize_board_document(document)
+
+        pages = document.get("pages", [])
+        if not isinstance(pages, list) or not pages:
+            pages = [{"strokes": []}]
+        current_page = document.get("currentPage", 1)
+        try:
+            current_page = int(current_page)
+        except Exception:
+            current_page = 1
+        current_page = max(1, min(current_page, len(pages)))
+        page = pages[current_page - 1] if isinstance(pages[current_page - 1], dict) else {}
+        strokes = page.get("strokes", [])
+        if not isinstance(strokes, list):
+            strokes = []
+
+        canvas = root.findChild(QObject, "canvas")
+        width = 0
+        height = 0
+        if canvas:
+            try:
+                width = int(canvas.property("width") or 0)
+                height = int(canvas.property("height") or 0)
+            except Exception:
+                width = 0
+                height = 0
+        if width <= 0 or height <= 0:
+            width = max(1, int(self.width()))
+            height = max(1, int(self.height()))
+
+        bg = root.property("backgroundColor")
+        if not isinstance(bg, str) or not bg:
+            bg = self._board_background_color
+        if not isinstance(bg, str) or not bg:
+            bg = "#202020"
+
+        home_dir = os.path.expanduser("~")
+        default_name = f"board-page-{current_page}.png"
+        default_path = os.path.join(home_dir, default_name)
+        save_path, _ = QFileDialog.getSaveFileName(
+            None, "保存当前页为 PNG", default_path, "PNG 图片 (*.png)"
+        )
+        if not save_path:
+            return
+        if not save_path.lower().endswith(".png"):
+            save_path += ".png"
+
+        image = QImage(width, height, QImage.Format_ARGB32_Premultiplied)
+        image.fill(QColor(bg))
+        painter = QPainter(image)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        for line in strokes:
+            if not isinstance(line, dict):
+                continue
+            try:
+                x1 = float(line.get("x1", 0.0))
+                y1 = float(line.get("y1", 0.0))
+                x2 = float(line.get("x2", 0.0))
+                y2 = float(line.get("y2", 0.0))
+                if abs(x1) > 1.1 or abs(y1) > 1.1 or abs(x2) > 1.1 or abs(y2) > 1.1:
+                    x1 /= max(1.0, float(width))
+                    y1 /= max(1.0, float(height))
+                    x2 /= max(1.0, float(width))
+                    y2 /= max(1.0, float(height))
+            except Exception:
+                continue
+
+            is_eraser = bool(line.get("isEraser", False))
+            if is_eraser:
+                painter.setCompositionMode(QPainter.CompositionMode_DestinationOut)
+                pen = QPen(Qt.black)
+                pen.setWidthF(max(1.0, float(line.get("eraserPx", 20))) + 8.0)
+            else:
+                painter.setCompositionMode(QPainter.CompositionMode_SourceOver)
+                pen = QPen(QColor(line.get("color", "#000000")))
+                pen.setWidthF(max(0.5, float(line.get("width", 3))))
+
+            pen.setCapStyle(Qt.RoundCap)
+            pen.setJoinStyle(Qt.RoundJoin)
+            painter.setPen(pen)
+
+            px1 = x1 * width
+            py1 = y1 * height
+            px2 = x2 * width
+            py2 = y2 * height
+            dx = px2 - px1
+            dy = py2 - py1
+            if (dx * dx + dy * dy) < 2.25:
+                painter.drawPoint(QPointF(px1, py1))
+            else:
+                painter.drawLine(QPointF(px1, py1), QPointF(px2, py2))
+
+        painter.end()
+        image.save(save_path, "PNG")
 
     def showEvent(self, event):
         super().showEvent(event)

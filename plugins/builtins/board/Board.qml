@@ -189,43 +189,72 @@ Rectangle {
     function ensureBoardPages() {
         if (!isArrayLike(boardPages) || boardPages.length === 0) {
             boardPages = [createEmptyBoardPage()];
-        } else if (boardPages.length > 1) {
-            boardPages = [normalizeBoardPage(boardPages[0])];
+        } else {
+            var normalizedPages = [];
+            for (var i = 0; i < boardPages.length; i++) {
+                normalizedPages.push(normalizeBoardPage(boardPages[i]));
+            }
+            boardPages = normalizedPages;
         }
-        currentBoardPage = 1;
+        if (currentBoardPage < 1) {
+            currentBoardPage = 1;
+        }
+        if (currentBoardPage > boardPages.length) {
+            currentBoardPage = boardPages.length;
+        }
     }
 
     function persistCurrentPageToModel() {
         ensureBoardPages();
-        var page = normalizeBoardPage(boardPages[0] || createEmptyBoardPage());
+        var pageIndex = Math.max(0, Math.min(boardPages.length - 1, currentBoardPage - 1));
+        var page = normalizeBoardPage(boardPages[pageIndex] || createEmptyBoardPage());
         page.strokes = cloneStrokeList(canvas.getStrokes());
-        boardPages = [page];
+        boardPages[pageIndex] = page;
+        boardPages = boardPages.slice(0);
         return page;
     }
 
     function applyCurrentBoardPage() {
         ensureBoardPages();
-        var page = normalizeBoardPage(boardPages[0] || createEmptyBoardPage());
+        var pageIndex = Math.max(0, Math.min(boardPages.length - 1, currentBoardPage - 1));
+        var page = normalizeBoardPage(boardPages[pageIndex] || createEmptyBoardPage());
         canvas.setStrokes(page.strokes);
     }
 
     function getBoardDocument() {
-        var page = persistCurrentPageToModel();
+        persistCurrentPageToModel();
+        var pagesOut = [];
+        for (var i = 0; i < boardPages.length; i++) {
+            var page = normalizeBoardPage(boardPages[i]);
+            pagesOut.push({
+                strokes: cloneStrokeList(page.strokes),
+                thumb: ""
+            });
+        }
         return {
-            currentPage: 1,
-            pages: [{ strokes: cloneStrokeList(page.strokes), thumb: "" }]
+            currentPage: currentBoardPage,
+            pages: pagesOut
         };
     }
 
     function setBoardDocument(documentData) {
-        var strokes = [];
+        var pages = [];
+        var currPage = 1;
         if (isArrayLike(documentData)) {
-            strokes = cloneStrokeList(documentData);
-        } else if (documentData && isArrayLike(documentData.pages)) {
-            strokes = cloneStrokeList((documentData.pages[0] || {}).strokes || []);
+            pages = [{ strokes: cloneStrokeList(documentData), thumb: "" }];
+        } else if (documentData && isArrayLike(documentData.pages) && documentData.pages.length > 0) {
+            for (var i = 0; i < documentData.pages.length; i++) {
+                pages.push(normalizeBoardPage(documentData.pages[i]));
+            }
+            currPage = parseInt(documentData.currentPage || 1);
+            if (isNaN(currPage)) currPage = 1;
         }
-        boardPages = [{ strokes: strokes, thumb: "" }];
-        currentBoardPage = 1;
+        if (pages.length === 0) {
+            pages = [createEmptyBoardPage()];
+            currPage = 1;
+        }
+        boardPages = pages;
+        currentBoardPage = Math.max(1, Math.min(boardPages.length, currPage));
         applyCurrentBoardPage();
     }
 
@@ -776,7 +805,10 @@ Rectangle {
         anchors.fill: board
         z: 98
         enabled: colorPopup.visible || eraserPopup.visible
-        onClicked: { colorPopup.close(); eraserPopup.close(); }
+        onClicked: {
+            colorPopup.close();
+            eraserPopup.close();
+        }
     }
 
     // Color Popup (pure QtQuick – no QtQuick.Controls)
@@ -1586,14 +1618,14 @@ Rectangle {
 
     Rectangle {
         id: fullscreenToggle
-        width: toolbar.height
-        height: toolbar.height
+        width: toolbar.capThickness
+        height: toolbar.capThickness
         radius: toolbar.radius
         color: toolbar.color
         border.color: toolbar.border.color
         border.width: toolbar.border.width
-        anchors.left:       board.left
-        anchors.bottom:     toolbar.bottom
+        anchors.left: board.left
+        anchors.verticalCenter: toolbar.verticalCenter
         anchors.leftMargin: 20
         z: 91
 
@@ -1607,9 +1639,41 @@ Rectangle {
         }
 
         MouseArea {
+            id: fullscreenMouse
             anchors.fill: parent
+            hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: if (backend) backend.toggleFullscreen()
+        }
+    }
+
+    Rectangle {
+        id: savePageButton
+        width: toolbar.capThickness
+        height: toolbar.capThickness
+        radius: toolbar.radius
+        color: toolbar.color
+        border.color: toolbar.border.color
+        border.width: toolbar.border.width
+        anchors.right: board.right
+        anchors.verticalCenter: toolbar.verticalCenter
+        anchors.rightMargin: 20
+        z: 91
+
+        Text {
+            anchors.centerIn: parent
+            text: "PNG"
+            color: "white"
+            font.pixelSize: 12
+            font.bold: true
+        }
+
+        MouseArea {
+            id: savePngMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: if (backend) backend.saveCurrentPageAsPng()
         }
     }
 

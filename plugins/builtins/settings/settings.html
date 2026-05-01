@@ -4447,13 +4447,86 @@
 
     .language-select {
       width: 100%;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+      overflow: visible;
     }
 
     .language-select .theme-option {
       flex: 1 1 0;
       text-align: center;
       padding: 6px 8px;
+    }
+
+    .language-more {
+      position: relative;
+      flex: 1 1 0;
+      min-width: 0;
+    }
+
+    .language-more-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .language-more-toggle::after {
+      content: "";
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid currentColor;
+      transition: transform 0.2s ease;
+      opacity: 0.8;
+    }
+
+    .language-more.open .language-more-toggle::after {
+      transform: rotate(180deg);
+    }
+
+    .language-more-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      max-height: 240px;
+      overflow-y: auto;
+      background: var(--bg-surface);
+      border: 1px solid var(--divider);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px var(--shadow-color);
+      z-index: 20;
+      display: block;
+      opacity: 0;
+      transform: scaleY(0.9) translateY(-10px);
+      transform-origin: top center;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .language-more.open .language-more-menu {
+      opacity: 1;
+      transform: scaleY(1) translateY(0);
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .language-more-option {
+      text-align: center;
+      justify-content: center;
+    }
+
+    .language-more-option:hover {
+      background: var(--item-hover);
+    }
+
+    .language-more-option.selected {
+      background: var(--item-hover);
+      color: var(--accent-blue);
+      font-weight: 500;
     }
 
     .theme-gallery {
@@ -5996,14 +6069,21 @@
                   data-i18n="language.zh-CN">简体中文</div>
                 <div class="theme-option language-option" data-lang="zh-TW" onclick="setLanguage('zh-TW')"
                   data-i18n="language.zh-TW">繁體中文</div>
-                <div class="theme-option language-option" data-lang="yue-HK" onclick="setLanguage('yue-HK')"
-                  data-i18n="language.yue-HK">粵語（繁體）</div>
                 <div class="theme-option language-option" data-lang="ja-JP" onclick="setLanguage('ja-JP')"
                   data-i18n="language.ja-JP">日本語</div>
                 <div class="theme-option language-option" data-lang="en-US" onclick="setLanguage('en-US')"
                   data-i18n="language.en-US">English</div>
-                <div class="theme-option language-option" data-lang="ug-CN" onclick="setLanguage('ug-CN')"
-                  data-i18n="language.ug-CN">ئۇيغۇرچە</div>
+                <div class="language-more" id="language-more">
+                  <div class="theme-option language-more-toggle" id="language-more-toggle" onclick="toggleLanguageMore()">
+                    More
+                  </div>
+                  <div class="language-more-menu custom-select-menu" id="language-more-menu">
+                    <div class="language-more-option custom-select-option language-option" data-lang="yue-HK" onclick="setLanguage('yue-HK')"
+                      data-i18n="language.yue-HK">粵語（繁體）</div>
+                    <div class="language-more-option custom-select-option language-option" data-lang="ug-CN" onclick="setLanguage('ug-CN')"
+                      data-i18n="language.ug-CN">ئۇيغۇرچە</div>
+                  </div>
+                </div>
               </div>
               <div class="language-warning" id="language-warning" style="margin-top: 12px; margin-bottom: 4px;">
                 <svg class="warning-icon" viewBox="0 0 24 24">
@@ -11183,8 +11263,8 @@
     }
 
     document.addEventListener("pointerdown", (e) => {
-      if (e.target.closest(".custom-select-container") || e.target.closest(".font-dropdown")) return;
-      document.querySelectorAll(".font-dropdown.open, .custom-select-container.open").forEach(dd => dd.classList.remove("open"));
+      if (e.target.closest(".custom-select-container") || e.target.closest(".font-dropdown") || e.target.closest(".language-more")) return;
+      document.querySelectorAll(".font-dropdown.open, .custom-select-container.open, .language-more.open").forEach(dd => dd.classList.remove("open"));
     });
 
     function animateLayoutDirectionSwitch(prevIsRtl, nextIsRtl) {
@@ -11293,6 +11373,8 @@
           btn.classList.remove("active");
         }
       });
+      syncLanguageMoreUI();
+      updateSelectSlider(document.querySelector(".language-select"));
       ThemeSystem.renderThemeSelect("color-scheme-select", settings.Appearance?.ThemeId || "default", settings.Appearance?.ThemeMode || "Light");
       updateWindowTitleFromActive();
       refreshAllCustomSelects();
@@ -12286,8 +12368,55 @@
       }
     }
 
+    function getLanguageMoreLabel() {
+      switch (currentLanguage) {
+        case "zh-CN":
+        case "zh-TW":
+        case "yue-HK":
+          return "更多";
+        case "ja-JP":
+          return "その他";
+        case "ug-CN":
+          return "باشقا";
+        default:
+          return "More";
+      }
+    }
+
+    function closeLanguageMore() {
+      const wrapper = document.getElementById("language-more");
+      if (wrapper) wrapper.classList.remove("open");
+    }
+
+    function toggleLanguageMore() {
+      const wrapper = document.getElementById("language-more");
+      if (!wrapper) return;
+      document.querySelectorAll(".font-dropdown.open, .custom-select-container.open").forEach(dd => dd.classList.remove("open"));
+      wrapper.classList.toggle("open");
+    }
+
+    function syncLanguageMoreUI() {
+      const wrapper = document.getElementById("language-more");
+      const toggle = document.getElementById("language-more-toggle");
+      if (!wrapper || !toggle) return;
+
+      const activeExtra = wrapper.querySelector(`.language-option[data-lang="${currentLanguage}"]`);
+      wrapper.querySelectorAll(".language-option").forEach(opt => {
+        opt.classList.toggle("selected", opt.getAttribute("data-lang") === currentLanguage);
+      });
+
+      if (activeExtra) {
+        toggle.textContent = activeExtra.textContent || getLanguageMoreLabel();
+        toggle.classList.add("active");
+      } else {
+        toggle.textContent = getLanguageMoreLabel();
+        toggle.classList.remove("active");
+      }
+    }
+
     function setLanguage(lang) {
       if (!settings.General) settings.General = {};
+      closeLanguageMore();
       if (settings.General.Language !== lang) {
         settings.General.Language = lang;
         currentLanguage = lang;
