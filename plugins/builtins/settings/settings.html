@@ -14254,14 +14254,22 @@
             } else if (data.status === "download_complete") {
                clearInterval(interval);
                this.updateStatusBar("下载完成，正在准备更新...", "", "var(--accent-blue)");
-               // Auto close settings window
-               setTimeout(() => {
-                   if (window.pywebview && window.pywebview.api.close_window) {
-                       window.pywebview.api.close_window();
-                   } else {
-                       window.close();
-                   }
-               }, 1000);
+                // Ask main app to quit so updater can replace files.
+                try {
+                  if (window.pywebview && window.pywebview.api && window.pywebview.api.quit_app_for_update) {
+                    await window.pywebview.api.quit_app_for_update();
+                  }
+                } catch (e) {
+                  console.error("quit_app_for_update failed:", e);
+                }
+                // Close settings window as fallback in case quit signal is ignored.
+                setTimeout(() => {
+                  if (window.pywebview && window.pywebview.api && window.pywebview.api.force_close_window) {
+                    window.pywebview.api.force_close_window();
+                  } else {
+                    window.close();
+                  }
+                }, 600);
             } else if (data.status === "failed") {
                clearInterval(interval);
                this.showError("下载失败，请稍后重试");

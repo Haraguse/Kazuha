@@ -187,7 +187,8 @@ def trigger_updater(zip_path: Path, version: str):
         "--zip", str(zip_path),
         "--version", version,
         "--app-dir", str(APP_DIR),
-        "--cache-dir", str(CACHE_DIR)
+        "--cache-dir", str(CACHE_DIR),
+        "--parent-pid", str(os.getpid()),
     ])
     
     # DETACHED_PROCESS = 0x00000008

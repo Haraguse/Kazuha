@@ -157,6 +157,7 @@ class SettingsPlugin(AssistantPlugin):
         # 为api添加trigger_resource_alert方法
         # 使用lambda创建可调用的方法
         api.trigger_resource_alert = lambda: self.trigger_resource_alert()
+        api.quit_app_for_update = lambda: self.quit_app_for_update()
 
         theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
         defer_load = wv._should_defer_initial_load(html_path, "Settings", True)
@@ -230,3 +231,17 @@ class SettingsPlugin(AssistantPlugin):
             print(f"[Settings] Error triggering resource alert: {e}")
             import traceback
             traceback.print_exc()
+
+    def quit_app_for_update(self):
+        """由更新流程调用，通知主程序完整退出，便于 updater 接管文件替换。"""
+        try:
+            if self._context is None:
+                return False
+            if hasattr(self._context, "_prepare_shutdown"):
+                self._context._prepare_shutdown(restarting=False)
+            if hasattr(self._context, "app") and self._context.app is not None:
+                QTimer.singleShot(0, self._context.app.quit)
+                return True
+        except Exception:
+            pass
+        return False

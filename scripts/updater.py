@@ -6,6 +6,7 @@ import zipfile
 import argparse
 import traceback
 import ctypes
+import subprocess
 from pathlib import Path
 import ctypes.wintypes
 
@@ -24,6 +25,44 @@ def wait_for_mutex(mutex_name, timeout=30):
             kernel32.CloseHandle(hMutex)
         time.sleep(1)
     return False
+
+
+def wait_for_process_exit(pid: int, timeout=30):
+    if not pid or pid <= 0:
+        return False
+    kernel32 = ctypes.windll.kernel32
+    SYNCHRONIZE = 0x00100000
+    WAIT_OBJECT_0 = 0x00000000
+    WAIT_TIMEOUT = 0x00000102
+    handle = kernel32.OpenProcess(SYNCHRONIZE, False, int(pid))
+    if not handle:
+        # Process not found, treat as already exited.
+        return True
+    try:
+        result = kernel32.WaitForSingleObject(handle, int(timeout * 1000))
+        if result == WAIT_OBJECT_0:
+            return True
+        if result == WAIT_TIMEOUT:
+            return False
+        return False
+    finally:
+        kernel32.CloseHandle(handle)
+
+
+def force_kill_process_tree(pid: int):
+    if not pid or pid <= 0:
+        return
+    try:
+        # /T kills child process tree, /F forces termination.
+        subprocess.run(
+            ["taskkill", "/PID", str(pid), "/T", "/F"],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=0x08000000,
+        )
+    except Exception:
+        pass
 
 def backup_app(app_dir, bak_dir):
     if bak_dir.exists():
@@ -82,6 +121,7 @@ def main():
     parser.add_argument("--version", required=True)
     parser.add_argument("--app-dir", required=True)
     parser.add_argument("--cache-dir", required=True)
+    parser.add_argument("--parent-pid", type=int, default=0)
     args = parser.parse_args()
     
     app_dir = Path(args.app_dir)
@@ -94,8 +134,13 @@ def main():
     unpack_dir = cache_dir / "unpack"
     
     try:
-        # 1. Wait for main process to exit
-        if not wait_for_mutex("Global\\Luminalium_Mutex", timeout=60):
+        # 1. Ensure main process is gone. If still alive, force kill and re-check.
+        if args.parent_pid:
+            if not wait_for_process_exit(args.parent_pid, timeout=60):
+                force_kill_process_tree(args.parent_pid)
+                if not wait_for_process_exit(args.parent_pid, timeout=15):
+                    raise Exception("Timeout waiting for Luminalium process to exit.")
+        elif not wait_for_mutex("Global\\Luminalium_Mutex", timeout=60):
             raise Exception("Timeout waiting for Luminalium to exit.")
             
         # 2. Backup
