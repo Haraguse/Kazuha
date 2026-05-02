@@ -123,8 +123,11 @@ def run():
             "PyInstaller",
             "--noconfirm",
             "--clean",
-            "--onefile",
-            "--noconsole",
+            "--windowed",  # Now has GUI, avoid console
+            "--hidden-import", "PySide6.QtCore",
+            "--hidden-import", "PySide6.QtGui",
+            "--hidden-import", "PySide6.QtWidgets",
+            "--hidden-import", "qfluentwidgets",
             "--name",
             "updater",
             "--distpath",
