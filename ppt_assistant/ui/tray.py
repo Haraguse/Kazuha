@@ -2,10 +2,10 @@ import json
 import os
 import sys
 
-from PySide6.QtCore import QObject, QTimer, Qt, Signal
-from PySide6.QtGui import QColor, QCursor, QIcon, QPainter, QPixmap
+from PySide6.QtCore import QObject, QTimer, Qt, QRect, Signal, QSize
+from PySide6.QtGui import QColor, QCursor, QFont, QIcon, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
-from PySide6.QtWidgets import QHBoxLayout, QMenu, QSystemTrayIcon, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QMenu, QSystemTrayIcon, QVBoxLayout, QWidget
 from qfluentwidgets import (
     Action,
     BodyLabel,
@@ -19,6 +19,8 @@ from qfluentwidgets import (
     isDarkTheme,
     themeColor,
 )
+from qfluentwidgets.components.widgets.menu import MenuActionListWidget, MenuAnimationType
+from qframelesswindow import WindowEffect
 
 from ppt_assistant.core.config import SETTINGS_PATH, cfg, ROOT_DIR
 from ppt_assistant.core.i18n import get_language, t
@@ -27,60 +29,41 @@ ICON_DIR = os.path.join(ROOT_DIR, "icons")
 VERSION_PATH = os.path.join(ROOT_DIR, "version.json")
 
 
-TRAY_COPY = {
-    "zh-CN": {
-        "subtitle": "\u6258\u76d8\u5feb\u6377\u5165\u53e3",
-        "shortcuts_title": "\u5feb\u6377\u64cd\u4f5c",
-        "featured_title": "\u5207\u6362\u5de5\u5177\u680f",
-        "open": "\u6253\u5f00",
-        "run": "\u6267\u884c",
-        "settings_desc": "\u8c03\u6574 Luminalium \u8bbe\u7f6e",
-        "board_desc": "\u6253\u5f00\u5c0f\u9ed1\u677f\u5de5\u5177",
-        "timer_desc": "\u6253\u5f00\u8ba1\u65f6\u5de5\u5177",
-        "toggle_desc": "\u663e\u793a\u6216\u9690\u85cf\u6f14\u793a\u5de5\u5177\u680f",
-        "restart_desc": "\u91cd\u65b0\u542f\u52a8 Luminalium",
-        "exit_desc": "\u9000\u51fa Luminalium",
-    },
-    "zh-TW": {
-        "subtitle": "\u7cfb\u7d71\u5323\u5feb\u6377\u5165\u53e3",
-        "shortcuts_title": "\u5feb\u6377\u64cd\u4f5c",
-        "featured_title": "\u5207\u63db\u5de5\u5177\u5217",
-        "open": "\u958b\u555f",
-        "run": "\u57f7\u884c",
-        "settings_desc": "\u8abf\u6574 Luminalium \u8a2d\u5b9a",
-        "board_desc": "\u6253\u958b\u5c0f\u9ed1\u677f\u5de5\u5177",
-        "timer_desc": "\u6253\u958b\u8a08\u6642\u5de5\u5177",
-        "toggle_desc": "\u986f\u793a\u6216\u96b1\u85cf\u6f14\u793a\u5de5\u5177\u5217",
-        "restart_desc": "\u91cd\u65b0\u555f\u52d5 Luminalium",
-        "exit_desc": "\u7d50\u675f Luminalium",
-    },
-    "yue-HK": {
-        "subtitle": "\u6258\u76e4\u5feb\u6377\u5165\u53e3",
-        "shortcuts_title": "\u5feb\u6377\u64cd\u4f5c",
-        "featured_title": "\u5207\u63db\u5de5\u5177\u5217",
-        "open": "\u6253\u958b",
-        "run": "\u57f7\u884c",
-        "settings_desc": "\u8abf\u6574 Luminalium \u8a2d\u5b9a",
-        "board_desc": "\u6253\u958b\u9ed1\u677f\u5de5\u5177",
-        "timer_desc": "\u6253\u958b\u8a08\u6642\u5de5\u5177",
-        "toggle_desc": "\u986f\u793a\u6216\u96b1\u85cf\u6f14\u793a\u5de5\u5177\u5217",
-        "restart_desc": "\u91cd\u65b0\u555f\u52d5 Luminalium",
-        "exit_desc": "\u7d50\u675f Luminalium",
-    },
-    "en-US": {
-        "subtitle": "Tray quick access",
-        "shortcuts_title": "Quick Actions",
-        "featured_title": "Toolbar Visibility",
-        "open": "Open",
-        "run": "Run",
-        "settings_desc": "Adjust Luminalium settings",
-        "board_desc": "Open the board tool",
-        "timer_desc": "Open the timer tool",
-        "toggle_desc": "Show or hide the toolbar",
-        "restart_desc": "Restart Luminalium",
-        "exit_desc": "Exit Luminalium",
-    },
-}
+def _apply_app_font(widget):
+    font = QFont(QApplication.font())
+    if sys.platform == "win32":
+        font.setHintingPreference(QFont.PreferNoHinting)
+        font.setStyleStrategy(QFont.PreferAntialias)
+    widget.setFont(font)
+
+
+class AcrylicRoundMenu(RoundMenu):
+    """RoundMenu with DWM acrylic background."""
+
+    def __init__(self, title="", parent=None):
+        super().__init__(title, parent)
+        self.windowEffect = WindowEffect(self)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+
+        self.view.setStyleSheet("MenuActionListWidget { background: transparent; }")
+
+        _apply_app_font(self)
+        if isinstance(self.view, MenuActionListWidget):
+            _apply_app_font(self.view)
+
+    def showEvent(self, e):
+        super().showEvent(e)
+        self._update_acrylic_color()
+
+    def exec_(self, pos, ani=True, aniType=MenuAnimationType.NONE):
+        RoundMenu.exec(self, pos, ani, aniType)
+
+    def _update_acrylic_color(self):
+        if sys.platform == "win32":
+            if isDarkTheme():
+                self.windowEffect.setAcrylicEffect(self.winId(), "20202000", True)
+            else:
+                self.windowEffect.setAcrylicEffect(self.winId(), "F2F2F200", True)
 
 
 def _hex_to_rgb(value: str):
@@ -162,10 +145,6 @@ def _load_settings_json():
     return {}
 
 
-def _localized_copy():
-    lang = get_language()
-    fallback_lang = "zh-TW" if lang == "yue-HK" else "zh-CN"
-    return TRAY_COPY.get(lang) or TRAY_COPY.get(fallback_lang) or TRAY_COPY["en-US"]
 
 
 def _load_version_text():
@@ -688,32 +667,42 @@ class SystemTray(QObject):
         self._act_timer.setText(timer_text)
 
     def _init_fallback_menu(self):
-        # Always create a fresh RoundMenu to avoid stale height from clear().
         old = self._fallback_menu
-        self._fallback_menu = RoundMenu(parent=self._parent)
+        self._fallback_menu = AcrylicRoundMenu(parent=self._parent)
         self._fallback_menu.aboutToShow.connect(self._update_timer_text)
+
+        self._fallback_menu.setItemHeight(32)
+        self._fallback_menu.view.setGraphicsEffect(None)
+        self._fallback_menu.hBoxLayout.setContentsMargins(0, 2, 0, 2)
+        view = self._fallback_menu.view
+        if isinstance(view, MenuActionListWidget):
+            view.setIconSize(QSize(18, 18))
+            view.setViewportMargins(0, 2, 0, 2)
+            view.setMinimumWidth(200)
+            view.setMaximumWidth(200)
+            _apply_app_font(view)
 
         self.tray_icon.setToolTip(t("tray.tooltip"))
 
-        header_icon = self._render_colored_icon(os.path.join(ICON_DIR, "logo.svg"), 20)
+        header_icon = self._render_colored_icon(os.path.join(ICON_DIR, "logo.svg"), 18)
         header = Action(header_icon, t("tray.title"), self._fallback_menu)
         self._fallback_menu.addAction(header)
         self._fallback_menu.addSeparator()
 
         # Section 1: Tools (board/timer/spotlight)
         board_icon = self._render_menu_icon(
-            os.path.join(ICON_DIR, "board-in-board.svg")
+            os.path.join(ICON_DIR, "board-in-board.svg"), size=18
         )
         act_board = Action(board_icon, t("tray.board"), self._fallback_menu)
         act_board.triggered.connect(self.show_board.emit)
         self._fallback_menu.addAction(act_board)
 
-        timer_icon = self._render_menu_icon(os.path.join(ICON_DIR, "timer.svg"))
+        timer_icon = self._render_menu_icon(os.path.join(ICON_DIR, "timer.svg"), size=18)
         self._act_timer = Action(timer_icon, t("tray.timer"), self._fallback_menu)
         self._act_timer.triggered.connect(self.show_timer.emit)
         self._fallback_menu.addAction(self._act_timer)
 
-        spotlight_icon = self._render_menu_icon(os.path.join(ICON_DIR, "spotlight.svg"))
+        spotlight_icon = self._render_menu_icon(os.path.join(ICON_DIR, "spotlight.svg"), size=18)
         act_spotlight = Action(spotlight_icon, t("tray.spotlight"), self._fallback_menu)
         act_spotlight.triggered.connect(self.show_spotlight.emit)
         self._fallback_menu.addAction(act_spotlight)
@@ -760,6 +749,7 @@ class SystemTray(QObject):
         old = self._native_menu
         self._native_menu = QMenu(parent=self._parent)
         self._native_menu.aboutToShow.connect(self._update_timer_text)
+        _apply_app_font(self._native_menu)
 
         self.tray_icon.setToolTip(t("tray.tooltip"))
 
@@ -891,6 +881,8 @@ class SystemTray(QObject):
         view = ActionConfirmFlyoutView(title, body, confirm_text, anchor)
         self._confirm_anchor = anchor
         self._confirm_flyout = Flyout.make(view, anchor)
+        self._confirm_flyout.view.setGraphicsEffect(None)
+        self._confirm_flyout.hBoxLayout.setContentsMargins(0, 0, 0, 0)
 
         view.cancelled.connect(self._close_confirm_flyout)
         view.confirmed.connect(confirmed_slot)
@@ -950,7 +942,7 @@ class SystemTray(QObject):
     def _show_panel(self):
         if self._use_native_menu:
             return
-        self._fallback_menu.exec(QCursor.pos())
+        self._fallback_menu.exec_(QCursor.pos(), ani=True, aniType=MenuAnimationType.NONE)
 
     def _on_activated(self, reason):
         if reason in (QSystemTrayIcon.Trigger, QSystemTrayIcon.Context):

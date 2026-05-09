@@ -56,7 +56,6 @@ Rectangle {
     property bool statusBarShowVolume: false
     property bool statusBarShowNetwork: true
     property bool statusBarShowMusic: true
-    property bool statusBarShowMusicProgress: true
     property bool showToolbarText: false
     property var toolbarOrder: ["select", "pen", "eraser", "clear", "spotlight", "board_in_board", "timer", "end"]
     property string toolbarPosition: "bottom"
@@ -339,7 +338,6 @@ Rectangle {
             statusBarShowVolume = config.statusBarShowVolume !== undefined ? config.statusBarShowVolume : false
             statusBarShowNetwork = config.statusBarShowNetwork !== undefined ? config.statusBarShowNetwork : true
             statusBarShowMusic = config.statusBarShowMusic !== undefined ? config.statusBarShowMusic : true
-            statusBarShowMusicProgress = config.statusBarShowMusicProgress !== undefined ? config.statusBarShowMusicProgress : true
             showToolbarText = config.showToolbarText !== undefined ? config.showToolbarText : false
             toolbarOrder = config.toolbarOrder || ["select", "pen", "eraser", "clear", "spotlight", "board_in_board", "timer", "end"]
             toolbarPosition = config.toolbarPosition || "bottom"

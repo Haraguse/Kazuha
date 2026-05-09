@@ -545,6 +545,7 @@ class LinuxQmlOverlayWindow(QWidget):
         smtc_title = str(self._smtc_info.get("title", "") or "")
         smtc_position_ms = int(self._smtc_info.get("position_ms", 0) or 0)
         smtc_duration_ms = int(self._smtc_info.get("duration_ms", 0) or 0)
+        smtc_artwork_data_url = str(self._smtc_info.get("artwork_data_url", "") or "")
 
         return {
             "is_desktop": is_desktop,
@@ -556,6 +557,7 @@ class LinuxQmlOverlayWindow(QWidget):
             "smtc_title": smtc_title,
             "smtc_position_ms": max(0, smtc_position_ms),
             "smtc_duration_ms": max(0, smtc_duration_ms),
+            "smtc_artwork_data_url": smtc_artwork_data_url,
         }
 
     def _build_theme_payload(self) -> dict:
@@ -633,7 +635,6 @@ class LinuxQmlOverlayWindow(QWidget):
             "statusBarShowVolume": cfg.statusBarShowVolume.value,
             "statusBarShowNetwork": cfg.statusBarShowNetwork.value,
             "statusBarShowMusic": cfg.statusBarShowMusic.value,
-            "statusBarShowMusicProgress": cfg.statusBarShowMusicProgress.value,
             "showToolbarText": cfg.showToolbarText.value,
             "toolbarOrder": toolbar_order,
             "toolbarPosition": cfg.toolbarPosition.value,
@@ -832,9 +833,6 @@ class LinuxQmlOverlayWindow(QWidget):
         cfg.statusBarShowVolume.valueChanged.connect(lambda *_: self.update_config())
         cfg.statusBarShowNetwork.valueChanged.connect(lambda *_: self.update_config())
         cfg.statusBarShowMusic.valueChanged.connect(lambda *_: self.update_config())
-        cfg.statusBarShowMusicProgress.valueChanged.connect(
-            lambda *_: self.update_config()
-        )
 
     def set_active_on_slideshow(self, active: bool, animate: bool = True):
         self._active_on_slideshow = bool(active)

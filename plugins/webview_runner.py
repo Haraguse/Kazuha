@@ -941,6 +941,7 @@ class Api(QObject):
         self._icon_cache = {}
         self._logs_window = None
         self._logs_api = None
+        self._storage_cache = None
 
     def set_window(self, window):
         self._window = window
@@ -1636,6 +1637,219 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
         except Exception as e:
             print(f"Error saving settings: {e}", file=sys.stderr)
 
+    def _get_profiles_dir(self):
+        settings_path = self._get_settings_path()
+        profiles_dir = os.path.join(os.path.dirname(settings_path), "profiles")
+        if not os.path.exists(profiles_dir):
+            try:
+                os.makedirs(profiles_dir)
+            except Exception:
+                pass
+        return profiles_dir
+
+    def _get_active_profile_path(self):
+        return os.path.join(self._get_profiles_dir(), "_active")
+
+    def _sanitize_profile_name(self, name):
+        import re
+        name = name.strip()
+        name = re.sub(r'[<>:"/\\|?*]', '_', name)
+        name = name.replace('..', '')
+        if not name or name.startswith('_'):
+            name = "profile_" + name.lstrip('_') if name.startswith('_') else "unnamed"
+        return name[:64]
+
+    @Slot(result="QVariant")
+    def list_profiles(self):
+        profiles_dir = self._get_profiles_dir()
+        profiles = []
+        try:
+            active_name = "default"
+            active_path = self._get_active_profile_path()
+            if os.path.exists(active_path):
+                try:
+                    with open(active_path, "r", encoding="utf-8") as f:
+                        active_name = f.read().strip() or "default"
+                except Exception:
+                    pass
+
+            if os.path.exists(profiles_dir):
+                for fname in os.listdir(profiles_dir):
+                    if fname.startswith('_') or not fname.endswith('.json'):
+                        continue
+                    pname = fname[:-5]
+                    fpath = os.path.join(profiles_dir, fname)
+                    try:
+                        mtime = os.path.getmtime(fpath)
+                        fsize = os.path.getsize(fpath)
+                        profiles.append({
+                            "name": pname,
+                            "active": pname == active_name,
+                            "mtime": mtime,
+                            "size": fsize,
+                        })
+                    except Exception:
+                        continue
+            profiles.sort(key=lambda p: p["name"].lower())
+        except Exception as e:
+            print(f"Error listing profiles: {e}", file=sys.stderr)
+        return {"profiles": profiles, "active": active_name}
+
+    @Slot(str, result="QVariant")
+    def create_profile(self, name):
+        name = self._sanitize_profile_name(name)
+        profiles_dir = self._get_profiles_dir()
+        profile_path = os.path.join(profiles_dir, name + ".json")
+        if os.path.exists(profile_path):
+            return {"success": False, "error": "profile_exists"}
+        try:
+            settings_path = self._get_settings_path()
+            data = {}
+            if os.path.exists(settings_path):
+                with open(settings_path, "r", encoding="utf-8") as f:
+                    try:
+                        data = json.load(f)
+                    except Exception:
+                        data = {}
+            for k in ("_restart_pending", "_open_settings_pending", "_quit_pending"):
+                data.pop(k, None)
+            with open(profile_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+            return {"success": True, "name": name}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @Slot(str, result="QVariant")
+    def switch_profile(self, name):
+        name = self._sanitize_profile_name(name)
+        profiles_dir = self._get_profiles_dir()
+        settings_path = self._get_settings_path()
+        active_path = self._get_active_profile_path()
+
+        if name == "default":
+            try:
+                if os.path.exists(settings_path):
+                    with open(settings_path, "r", encoding="utf-8") as f:
+                        current_data = json.load(f)
+                    current_name = "default"
+                    if os.path.exists(active_path):
+                        try:
+                            with open(active_path, "r", encoding="utf-8") as f:
+                                current_name = f.read().strip() or "default"
+                        except Exception:
+                            pass
+                    if current_name != "default":
+                        old_profile_path = os.path.join(profiles_dir, current_name + ".json")
+                        try:
+                            save_data = dict(current_data)
+                            for k in ("_restart_pending", "_open_settings_pending", "_quit_pending"):
+                                save_data.pop(k, None)
+                            with open(old_profile_path, "w", encoding="utf-8") as f:
+                                json.dump(save_data, f, indent=4, ensure_ascii=False)
+                        except Exception:
+                            pass
+                with open(active_path, "w", encoding="utf-8") as f:
+                    f.write("default")
+                return {"success": True, "name": "default"}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+
+        profile_path = os.path.join(profiles_dir, name + ".json")
+        if not os.path.exists(profile_path):
+            return {"success": False, "error": "not_found"}
+        try:
+            with open(settings_path, "r", encoding="utf-8") as f:
+                current_data = json.load(f)
+            current_name = "default"
+            if os.path.exists(active_path):
+                try:
+                    with open(active_path, "r", encoding="utf-8") as f:
+                        current_name = f.read().strip() or "default"
+                except Exception:
+                    pass
+            if current_name != "default":
+                old_profile_path = os.path.join(profiles_dir, current_name + ".json")
+                try:
+                    save_data = dict(current_data)
+                    for k in ("_restart_pending", "_open_settings_pending", "_quit_pending"):
+                        save_data.pop(k, None)
+                    with open(old_profile_path, "w", encoding="utf-8") as f:
+                        json.dump(save_data, f, indent=4, ensure_ascii=False)
+                except Exception:
+                    pass
+            with open(profile_path, "r", encoding="utf-8") as f:
+                new_data = json.load(f)
+            with open(settings_path, "w", encoding="utf-8") as f:
+                json.dump(new_data, f, indent=4, ensure_ascii=False)
+            with open(active_path, "w", encoding="utf-8") as f:
+                f.write(name)
+            return {"success": True, "name": name}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @Slot(str, result="QVariant")
+    def delete_profile(self, name):
+        name = self._sanitize_profile_name(name)
+        profiles_dir = self._get_profiles_dir()
+        profile_path = os.path.join(profiles_dir, name + ".json")
+        active_name = "default"
+        active_path = self._get_active_profile_path()
+        if os.path.exists(active_path):
+            try:
+                with open(active_path, "r", encoding="utf-8") as f:
+                    active_name = f.read().strip() or "default"
+            except Exception:
+                pass
+        if name == active_name:
+            return {"success": False, "error": "cannot_delete_active"}
+        if not os.path.exists(profile_path):
+            return {"success": False, "error": "not_found"}
+        try:
+            os.remove(profile_path)
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @Slot(str, str, result="QVariant")
+    def rename_profile(self, old_name, new_name):
+        old_name = self._sanitize_profile_name(old_name)
+        new_name = self._sanitize_profile_name(new_name)
+        profiles_dir = self._get_profiles_dir()
+        old_path = os.path.join(profiles_dir, old_name + ".json")
+        new_path = os.path.join(profiles_dir, new_name + ".json")
+        if not os.path.exists(old_path):
+            return {"success": False, "error": "not_found"}
+        if os.path.exists(new_path):
+            return {"success": False, "error": "name_exists"}
+        try:
+            os.rename(old_path, new_path)
+            active_name = "default"
+            active_path = self._get_active_profile_path()
+            if os.path.exists(active_path):
+                try:
+                    with open(active_path, "r", encoding="utf-8") as f:
+                        active_name = f.read().strip() or "default"
+                except Exception:
+                    pass
+            if active_name == old_name:
+                with open(active_path, "w", encoding="utf-8") as f:
+                    f.write(new_name)
+            return {"success": True, "name": new_name}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @Slot(result="QVariant")
+    def get_active_profile(self):
+        active_path = self._get_active_profile_path()
+        try:
+            if os.path.exists(active_path):
+                with open(active_path, "r", encoding="utf-8") as f:
+                    name = f.read().strip() or "default"
+                return {"name": name}
+        except Exception:
+            pass
+        return {"name": "default"}
+
     @Slot(result=str)
     def import_settings(self):
         """Import settings from a user-selected JSON file"""
@@ -2271,6 +2485,151 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
         except Exception as e:
             print(f"Monet error: {e}")
             return {}
+
+    @staticmethod
+    def _get_dir_size(path):
+        total = 0
+        if not os.path.exists(path):
+            return 0
+        try:
+            for entry in os.scandir(path):
+                try:
+                    if entry.is_file(follow_symlinks=False):
+                        total += entry.stat().st_size
+                    elif entry.is_dir(follow_symlinks=False):
+                        total += Api._get_dir_size(entry.path)
+                except (OSError, PermissionError):
+                    pass
+        except (OSError, PermissionError):
+            pass
+        return total
+
+    @staticmethod
+    def _get_all_disks_info():
+        try:
+            total_all = 0
+            free_all = 0
+            if sys.platform == "win32":
+                import ctypes
+                buf = ctypes.create_unicode_buffer(256)
+                ctypes.windll.kernel32.GetLogicalDriveStringsW(256, buf)
+                drives = []
+                i = 0
+                while i < 256 and buf[i] != '\x00':
+                    s = ''
+                    while i < 256 and buf[i] != '\x00':
+                        s += buf[i]
+                        i += 1
+                    if s:
+                        drives.append(s)
+                    i += 1
+                for drive in drives:
+                    free_bytes = ctypes.c_ulonglong(0)
+                    total_bytes = ctypes.c_ulonglong(0)
+                    ret = ctypes.windll.kernel32.GetDiskFreeSpaceExW(
+                        drive, None, ctypes.pointer(total_bytes), ctypes.pointer(free_bytes)
+                    )
+                    if ret:
+                        total_all += total_bytes.value
+                        free_all += free_bytes.value
+            else:
+                for mnt in os.listdir("/mnt") + ["/"]:
+                    if os.path.ismount(mnt):
+                        st = os.statvfs(mnt)
+                        total_all += st.f_blocks * st.f_frsize
+                        free_all += st.f_bavail * st.f_frsize
+            return {"total": total_all, "free": free_all, "used": total_all - free_all}
+        except Exception:
+            return {"total": 0, "free": 0, "used": 0}
+
+    @Slot(bool, result="QVariant")
+    def get_storage_info(self, force=False):
+        import time
+        if not force and self._storage_cache is not None:
+            return self._storage_cache
+
+        try:
+            local_app_data = os.getenv("LOCALAPPDATA", os.path.expanduser("~"))
+            if getattr(sys, "frozen", False):
+                app_dir = os.path.dirname(sys.executable)
+            else:
+                app_dir = os.path.dirname(
+                    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                )
+
+            local_luminalium_path = os.path.join(local_app_data, "Luminalium")
+            update_bak_path = os.path.join(app_dir, ".update_bak")
+            update_cache_path = os.path.join(local_luminalium_path, "update_cache")
+
+            disk_info = self._get_all_disks_info()
+
+            local_luminalium_size = self._get_dir_size(local_luminalium_path)
+            update_bak_size = self._get_dir_size(update_bak_path)
+            app_dir_size = self._get_dir_size(app_dir)
+            update_cache_size = self._get_dir_size(update_cache_path)
+
+            result = {
+                "localLuminalium": {
+                    "path": local_luminalium_path,
+                    "size": local_luminalium_size,
+                    "exists": os.path.exists(local_luminalium_path),
+                },
+                "updateBak": {
+                    "path": update_bak_path,
+                    "size": update_bak_size,
+                    "exists": os.path.exists(update_bak_path),
+                },
+                "appDir": {
+                    "path": app_dir,
+                    "size": app_dir_size,
+                },
+                "updateCache": {
+                    "path": update_cache_path,
+                    "size": update_cache_size,
+                    "exists": os.path.exists(update_cache_path),
+                },
+                "disk": disk_info,
+                "updatedAt": time.time(),
+            }
+            self._storage_cache = result
+            return result
+        except Exception as e:
+            print(f"Storage info error: {e}")
+            return self._storage_cache if self._storage_cache else {}
+
+    @Slot(str, result="QVariant")
+    def clean_directory(self, target):
+        import shutil
+        try:
+            local_app_data = os.getenv("LOCALAPPDATA", os.path.expanduser("~"))
+            if getattr(sys, "frozen", False):
+                app_dir = os.path.dirname(sys.executable)
+            else:
+                app_dir = os.path.dirname(
+                    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                )
+
+            target_map = {
+                "update_bak": os.path.join(app_dir, ".update_bak"),
+                "update_cache": os.path.join(local_app_data, "Luminalium", "update_cache"),
+            }
+
+            path = target_map.get(target)
+            if not path:
+                return {"success": False, "error": "Invalid target"}
+
+            if not os.path.exists(path):
+                return {"success": True, "freed": 0}
+
+            size_before = self._get_dir_size(path)
+            shutil.rmtree(path, ignore_errors=True)
+            size_after = self._get_dir_size(path) if os.path.exists(path) else 0
+            freed = size_before - size_after
+
+            self._storage_cache = None
+            return {"success": True, "freed": freed}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     @Slot(result="QVariant")
     def get_screen_list(self):
@@ -3367,6 +3726,24 @@ def main():
             else:
                 base_dir = os.path.dirname(os.path.abspath(__file__))
                 settings_path = os.path.join(os.path.dirname(base_dir), "settings.json")
+
+        profiles_dir = os.path.join(os.path.dirname(settings_path), "profiles")
+        active_marker = os.path.join(profiles_dir, "_active")
+        if os.path.exists(active_marker):
+            try:
+                with open(active_marker, "r", encoding="utf-8") as _af:
+                    _active_name = _af.read().strip()
+                if _active_name and _active_name != "default":
+                    _profile_path = os.path.join(profiles_dir, _active_name + ".json")
+                    if os.path.exists(_profile_path):
+                        with open(_profile_path, "r", encoding="utf-8") as _pf:
+                            _profile_data = json.load(_pf)
+                        if isinstance(_profile_data, dict):
+                            with open(settings_path, "w", encoding="utf-8") as _sf:
+                                json.dump(_profile_data, _sf, indent=4, ensure_ascii=False)
+            except Exception:
+                pass
+
         api.settings = {}
         if settings_path and os.path.exists(settings_path):
             try:

@@ -467,6 +467,131 @@
       color: var(--text-primary);
       flex-shrink: 0;
     }
+
+    /* Inline confirmation modal - reused from settings.html */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-dialog {
+      background: var(--bg-app);
+      width: 420px;
+      max-width: 90vw;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 20px 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      animation: modalFadeIn 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    @keyframes modalFadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      padding: 0 4px;
+    }
+
+    .modal-island {
+      background: var(--bg-surface);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--divider);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    }
+
+    .modal-text {
+      font-size: 14.5px;
+      line-height: 1.6;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 0 4px;
+    }
+
+    .modal-btn {
+      min-width: 88px;
+      height: 36px;
+      border-radius: 18px;
+      border: none;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      outline: none;
+    }
+
+    .modal-btn-secondary {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--divider);
+    }
+
+    .modal-btn-secondary:hover {
+      background: var(--item-hover);
+      color: var(--text-primary);
+      border-color: var(--text-secondary);
+    }
+
+    .modal-btn-confirm {
+      background: transparent;
+      color: var(--accent-blue);
+      border: 1px solid var(--accent-blue);
+    }
+
+    .modal-btn-confirm:hover {
+      background: var(--accent-blue);
+      color: #FFFFFF;
+    }
+
+    .modal-btn:active {
+      transform: scale(0.98);
+      filter: brightness(0.9);
+    }
+
+    .rtl .modal-title,
+    .rtl .modal-text {
+      text-align: right;
+    }
+
+    .rtl .modal-footer {
+      flex-direction: row-reverse;
+    }
   </style>
 </head>
 <body>
@@ -499,6 +624,20 @@
     </div>
   </div>
 
+  <!-- Multi-instance warning inline modal -->
+  <div id="multi-warning-modal" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-title" id="multi-warning-title"></div>
+      <div class="modal-island">
+        <div class="modal-text" id="multi-warning-text"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-secondary" id="multi-warning-back"></button>
+        <button class="modal-btn modal-btn-confirm" id="multi-warning-confirm"></button>
+      </div>
+    </div>
+  </div>
+
   <div id="dev-watermark" class="dev-watermark" style="display: none;"></div>
 
   <script>
@@ -520,13 +659,17 @@
         "dialog.crash.title": "程序崩溃了 (´；ω；`)",
         "dialog.crash.confirm": "关闭",
         "dialog.crash.cancel": "复制错误",
-        "dialog.multiInstance.title": "Luminalium 正在运行中",
-        "dialog.multiInstance.text": "Luminalium 的另一个实例已经在后台运行。通常您可以在系统托盘区域找到它。\n如果您无法找到，可能是出现了一些问题，您可以尝试通过尝试以下的选项来解决此问题。",
+        "dialog.multiInstance.title": "荧素万演 正在运行",
+        "dialog.multiInstance.text": "荧素万演的另一个实例已经在后台运行。通常您可以在系统托盘区域找到它。\n如果您无法找到，可能是出现了一些问题，您可以尝试通过尝试以下的选项来解决此问题。",
         "dialog.multiInstance.restartOld.title": "重新启动实例",
-        "dialog.multiInstance.restartOld.desc": "结束 old 进程并启动此新实例",
+        "dialog.multiInstance.restartOld.desc": "结束旧实例并启动此新实例",
         "dialog.multiInstance.continueNew.title": "仍然启动",
-        "dialog.multiInstance.continueNew.desc": "保留 old 进程并强制启动新实例",
+        "dialog.multiInstance.continueNew.desc": "保留旧实例并强制启动新实例",
         "dialog.multiInstance.cancel": "取消",
+        "dialog.multiInstance.warning.title": "不建议多开实例",
+        "dialog.multiInstance.warning.text": "同时运行多个实例，可能会导致：资源占用翻倍、数据冲突或丢失、功能异常或崩溃等。\n\n因此，开发者不推荐用户多开实例。若您在生产环境中强行使用此类功能，开发者不对该行为产生的后果承担任何责任。",
+        "dialog.multiInstance.warning.back": "返回",
+        "dialog.multiInstance.warning.confirm": "仍然启动",
         "testDialog.title": "测试对话框",
         "testDialog.confirm": "我知道了",
         "testDialog.cancel": "关闭",
@@ -557,6 +700,10 @@
         "dialog.multiInstance.continueNew.title": "仍然啟動",
         "dialog.multiInstance.continueNew.desc": "保留舊行程並強制啟動新實例",
         "dialog.multiInstance.cancel": "取消",
+        "dialog.multiInstance.warning.title": "不建議多開實例",
+        "dialog.multiInstance.warning.text": "同時執行多個實例，可能會導致：資源占用翻倍、資料衝突或遺失、功能異常或當機等。\n\n因此，開發者不建議使用者多開實例。若您在生產環境中強行使用此類功能，開發者不對該行為產生的後果承擔任何責任。",
+        "dialog.multiInstance.warning.back": "返回",
+        "dialog.multiInstance.warning.confirm": "仍然啟動",
         "testDialog.title": "測試對話框",
         "testDialog.confirm": "我知道了",
         "testDialog.cancel": "關閉",
@@ -587,6 +734,10 @@
         "dialog.multiInstance.continueNew.title": "照開",
         "dialog.multiInstance.continueNew.desc": "留返舊嗰個，照開呢個新嘅",
         "dialog.multiInstance.cancel": "算數",
+        "dialog.multiInstance.warning.title": "唔建議開多個實例",
+        "dialog.multiInstance.warning.text": "同時開幾個實例，可能會搞到：資源占用翻倍、資料衝突或遺失、功能異常或當機等。\n\n所以開發者唔建議你開多個實例。如果你喺生產環境硬係要用，搞出嚟嘅後果開發者唔負責。",
+        "dialog.multiInstance.warning.back": "返轉頭",
+        "dialog.multiInstance.warning.confirm": "照開",
         "testDialog.title": "測試對話框",
         "testDialog.confirm": "知啦",
         "testDialog.cancel": "閂咗佢",
@@ -617,6 +768,10 @@
         "dialog.multiInstance.continueNew.title": "強制起動",
         "dialog.multiInstance.continueNew.desc": "古いプロセスを保持し、新しいインスタンスを強制的に起動します",
         "dialog.multiInstance.cancel": "キャンセル",
+        "dialog.multiInstance.warning.title": "複数起動は推奨されません",
+        "dialog.multiInstance.warning.text": "複数のインスタンスを同時に実行すると、リソースの倍増、データの競合や消失、機能の異常やクラッシュなどが発生する可能性があります。\n\nそのため、開発者は複数起動を推奨しません。本番環境でこの機能を強行して使用した場合、その行為によって生じた結果について開発者は一切の責任を負いません。",
+        "dialog.multiInstance.warning.back": "戻る",
+        "dialog.multiInstance.warning.confirm": "強制起動",
         "testDialog.title": "テストダイアログ",
         "testDialog.confirm": "了解しました",
         "testDialog.cancel": "閉じる",
@@ -647,6 +802,10 @@
         "dialog.multiInstance.continueNew.title": "Launch Anyway",
         "dialog.multiInstance.continueNew.desc": "Keep the old process and force launch new instance",
         "dialog.multiInstance.cancel": "Cancel",
+        "dialog.multiInstance.warning.title": "Multiple Instances Not Recommended",
+        "dialog.multiInstance.warning.text": "Running multiple instances simultaneously may cause: doubled resource usage, data conflicts or loss, functional abnormalities or crashes, etc.\n\nTherefore, the developer does not recommend running multiple instances. If you force this feature in a production environment, the developer assumes no responsibility for any consequences arising from this behavior.",
+        "dialog.multiInstance.warning.back": "Back",
+        "dialog.multiInstance.warning.confirm": "Launch Anyway",
         "testDialog.title": "Test dialog",
         "testDialog.confirm": "Got it",
         "testDialog.cancel": "Close",
@@ -677,6 +836,10 @@
         "dialog.multiInstance.continueNew.title": "مەجبۇرىي قوزغىتىش",
         "dialog.multiInstance.continueNew.desc": "كونا جەرياننى ساقلاپ، يېڭى نۇسخىنى مەجبۇرىي قوزغىتىش",
         "dialog.multiInstance.cancel": "بىكار قىلىش",
+        "dialog.multiInstance.warning.title": "كۆپ نۇسخا قوزغىتىشنى تەۋسىيە قىلمايمىز",
+        "dialog.multiInstance.warning.text": "بىر ۋاقىتتا بىر نەچچە نۇسخىنى ئىجرا قىلسىڭىز، بايلىق ئىستېمالىنىڭ ئىككى ھەسسىلىنىشى، سانلىق مەلۇمات توقۇنۇشى ياكى يوقىلىشى، فۇنكسىيە ئېغىرىمى ياكى قۇلاقسىزلىق قاتارلىق مەسىلىلەر كېلىپ چىقىشى مۇمكىن.\n\nشۇ سەۋەبتىن، تەرەققىيات تەرەپ كۆپ نۇسخا قوزغىتىشنى تەۋسىيە قىلمايدۇ. ئەگەر سىز ئىشلەتكۈچى مۇھىتىدا بۇ خىل ئىقتىدارنى مەجبۇرىي ئىشلەتسىڭىز، بۇ ھەرىكەتتىن كېلىپ چىققان ئاقىۋەتكە تەرەققىيات تەرەپ ھېچقانداق مەسئۇلىيەت ئالمايدۇ.",
+        "dialog.multiInstance.warning.back": "قايتىش",
+        "dialog.multiInstance.warning.confirm": "مەجبۇرىي قوزغىتىش",
         "testDialog.title": "سىناق سۆزلەشكۈ",
         "testDialog.confirm": "چۈشەندىم",
         "testDialog.cancel": "تاقاش",
@@ -912,11 +1075,7 @@
           getText("dialog.multiInstance.continueNew.desc"),
           `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`,
           () => {
-             if (window.pywebview && window.pywebview.api) {
-                 window.pywebview.api.on_confirm_with_value("CONTINUE_NEW");
-             } else {
-                 window.close();
-             }
+             showMultiInstanceWarning();
           }
         );
 
@@ -957,6 +1116,36 @@
       }
       const isDark = mode === 'dark';
       updateTheme(mode, themeId);
+    }
+
+    function showMultiInstanceWarning() {
+      const modal = document.getElementById("multi-warning-modal");
+      const titleEl = document.getElementById("multi-warning-title");
+      const textEl = document.getElementById("multi-warning-text");
+      const backBtn = document.getElementById("multi-warning-back");
+      const confirmBtn = document.getElementById("multi-warning-confirm");
+
+      if (!modal || !titleEl || !textEl || !backBtn || !confirmBtn) return;
+
+      titleEl.textContent = getText("dialog.multiInstance.warning.title") || "不建议多开实例";
+      textEl.textContent = getText("dialog.multiInstance.warning.text") || "同时运行多个实例，可能会导致：资源占用翻倍、数据冲突或丢失、功能异常或崩溃等。\n\n因此，开发者不推荐用户多开实例。若您在生产环境中强行使用此类功能，开发者不对该行为产生的后果承担任何责任。";
+      backBtn.textContent = getText("dialog.multiInstance.warning.back") || "返回";
+      confirmBtn.textContent = getText("dialog.multiInstance.warning.confirm") || "仍然启动";
+
+      backBtn.onclick = () => {
+        modal.classList.remove("active");
+      };
+
+      confirmBtn.onclick = () => {
+        modal.classList.remove("active");
+        if (window.pywebview && window.pywebview.api) {
+          window.pywebview.api.on_confirm_with_value("CONTINUE_NEW");
+        } else {
+          window.close();
+        }
+      };
+
+      modal.classList.add("active");
     }
 
     function createCommandLink(title, desc, iconSvg, onClick) {

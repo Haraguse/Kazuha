@@ -13,9 +13,18 @@ import ctypes.wintypes
 
 # --- GUI Dependencies ---
 from PySide6.QtCore import Qt, QTimer, Signal, QObject
-from PySide6.QtGui import QIcon, QFont
-from PySide6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QLabel, QWidget
-from qfluentwidgets import IndeterminateProgressRing, ProgressBar, setTheme, Theme
+from PySide6.QtGui import QIcon, QFont, QColor
+from PySide6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QLabel, QWidget, QGraphicsDropShadowEffect
+from qfluentwidgets import (
+    IndeterminateProgressRing,
+    ProgressBar,
+    setTheme,
+    Theme,
+    CardWidget,
+    SubtitleLabel,
+    BodyLabel,
+    isDarkTheme,
+)
 
 def is_admin():
     try:
@@ -138,9 +147,9 @@ class UpdaterWindow(QWidget):
         super().__init__()
         self.args = args
         self.setWindowTitle("Luminalium 更新程序")
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
-        self.setAttribute(Qt.WA_TranslucentBackground)
-        self.resize(360, 160)
+        # 移除透明背景，设为标准的不可关闭对话框样式
+        self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint | Qt.WindowStaysOnTopHint)
+        self.resize(540, 240)
         self._setup_ui()
         self._center()
         
@@ -155,68 +164,93 @@ class UpdaterWindow(QWidget):
         QTimer.singleShot(500, self._start_worker)
 
     def _setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(16)
-        
-        # Make a card background
-        self.card = QWidget(self)
-        self.card.setObjectName("card")
-        self.card.setStyleSheet("""
-            #card {
-                background: var(--bg-color);
-                border: 1px solid var(--border-color);
-                border-radius: 8px;
-            }
-        """)
-        
-        card_layout = QVBoxLayout(self.card)
-        card_layout.setContentsMargins(20, 20, 20, 20)
-        card_layout.setSpacing(12)
-        
-        # Title and Ring
-        top_layout = QHBoxLayout()
-        self.ring = IndeterminateProgressRing(self)
-        self.ring.setFixedSize(24, 24)
-        top_layout.addWidget(self.ring)
-        
-        self.title_label = QLabel("请稍后 Luminalium 正在部署更新...", self)
-        font = self.title_label.font()
-        font.setPixelSize(14)
-        font.setBold(True)
-        self.title_label.setFont(font)
-        top_layout.addWidget(self.title_label)
-        top_layout.addStretch(1)
-        
-        card_layout.addLayout(top_layout)
-        
-        # Status text
-        self.status_label = QLabel("准备就绪...", self)
-        self.status_label.setStyleSheet("color: gray;")
-        card_layout.addWidget(self.status_label)
-        
-        # Progress Bar
-        self.progress_bar = ProgressBar(self)
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
-        card_layout.addWidget(self.progress_bar)
-        
-        layout.addWidget(self.card)
-        
-        # Basic dynamic colors (very simple fallback if qfluentwidgets theme takes over)
+        # 整体采用白色/深色实心背景
+        self.setObjectName("updaterWindow")
         self.setStyleSheet("""
-            QWidget {
-                --bg-color: #ffffff;
-                --border-color: #e5e5e5;
+            #updaterWindow {
+                background: #ffffff;
             }
             @media (prefers-color-scheme: dark) {
-                QWidget {
-                    --bg-color: #2b2b2b;
-                    --border-color: #3d3d3d;
-                    color: white;
+                #updaterWindow {
+                    background: #2b2b2b;
                 }
             }
         """)
+
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        # 顶部主内容区
+        content_widget = QWidget(self)
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(32, 32, 32, 32)
+        content_layout.setSpacing(16)
+
+        # 标题：请稍候
+        title_label = QLabel("请稍候", self)
+        font = title_label.font()
+        font.setPixelSize(22)
+        font.setBold(True)
+        title_label.setFont(font)
+        content_layout.addWidget(title_label)
+
+        # 副标题
+        subtitle_label = BodyLabel("Luminalium 正在部署更新。\n此操作可能需要几分钟，恭请您坐和放宽。", self)
+        subtitle_label.setWordWrap(True)
+        font_sub = subtitle_label.font()
+        font_sub.setPixelSize(14)
+        subtitle_label.setFont(font_sub)
+        content_layout.addWidget(subtitle_label)
+
+        content_layout.addSpacing(20)
+
+        # 进度条与百分比
+        progress_layout = QHBoxLayout()
+        self.progress_bar = ProgressBar(self)
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setFixedHeight(4)
+        progress_layout.addWidget(self.progress_bar, 1)
+
+        self.percent_label = BodyLabel("0%", self)
+        self.percent_label.setFixedWidth(40)
+        self.percent_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        progress_layout.addWidget(self.percent_label)
+
+        content_layout.addLayout(progress_layout)
+        content_layout.addStretch(1)
+
+        main_layout.addWidget(content_widget, 1)
+
+        # 底部状态栏（灰色背景）
+        footer_widget = QWidget(self)
+        footer_widget.setObjectName("footerWidget")
+        footer_widget.setStyleSheet("""
+            #footerWidget {
+                background: #f3f3f3;
+                border-top: 1px solid #e5e5e5;
+            }
+            @media (prefers-color-scheme: dark) {
+                #footerWidget {
+                    background: #202020;
+                    border-top: 1px solid #1a1a1a;
+                }
+            }
+        """)
+        footer_layout = QVBoxLayout(footer_widget)
+        footer_layout.setContentsMargins(32, 16, 32, 16)
+        
+        self.status_label = BodyLabel("准备就绪...", self)
+        self.status_label.setWordWrap(False)
+        self.status_label.setStyleSheet("color: var(--TextSecondaryColor);")
+        # 缩略显示超长路径
+        font_status = self.status_label.font()
+        font_status.setPixelSize(12)
+        self.status_label.setFont(font_status)
+        footer_layout.addWidget(self.status_label)
+
+        main_layout.addWidget(footer_widget, 0)
 
     def _center(self):
         screen = QApplication.primaryScreen().geometry()
@@ -228,15 +262,14 @@ class UpdaterWindow(QWidget):
 
     def _on_progress(self, val):
         self.progress_bar.setValue(val)
+        self.percent_label.setText(f"{val}%")
 
     def _on_text(self, text):
         self.status_label.setText(text)
 
     def _on_finished(self, success, msg):
         if not success:
-            self.title_label.setText("更新失败")
-            self.ring.stop()
-            self.ring.hide()
+            self.status_label.setText("更新失败: " + msg)
             self.progress_bar.setStyleSheet("QProgressBar::chunk { background-color: #ff4d4f; }")
             QTimer.singleShot(3000, QApplication.quit)
         else:
@@ -259,7 +292,7 @@ class UpdaterWindow(QWidget):
         
         try:
             self.signals.text.emit("正在终止正在运行的实例...")
-            self.signals.progress.emit(5)
+            self.signals.progress.emit(2)
             # 1. Ensure main process is gone. If still alive, force kill and re-check.
             if args.parent_pid:
                 force_kill_process_tree(args.parent_pid)
@@ -281,21 +314,32 @@ class UpdaterWindow(QWidget):
             # Additional small wait
             time.sleep(1)
             
-            self.signals.text.emit("备份当前版本...")
-            self.signals.progress.emit(15)
+            self.signals.text.emit("正在准备备份当前版本...")
+            self.signals.progress.emit(5)
             # 2. Backup
             backup_app(app_dir, bak_dir)
             
-            self.signals.text.emit("解压更新包...")
-            self.signals.progress.emit(30)
+            self.signals.text.emit("正在清理旧的解压缓存...")
+            self.signals.progress.emit(10)
             # 3. Clean unpack dir
             if unpack_dir.exists():
                 shutil.rmtree(unpack_dir, ignore_errors=True)
             unpack_dir.mkdir(parents=True)
             
+            self.signals.text.emit("正在解压更新包...")
+            self.signals.progress.emit(15)
             # 4. Extract zip
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(unpack_dir)
+                # Get total files to extract
+                members = zip_ref.infolist()
+                total_members = len(members)
+                for i, member in enumerate(members):
+                    zip_ref.extract(member, unpack_dir)
+                    if i % 10 == 0:
+                        # map 15% -> 40%
+                        progress = 15 + int((i / total_members) * 25)
+                        self.signals.progress.emit(progress)
+                        self.signals.text.emit(f"解压: {member.filename}")
                 
             # If the zip contains a single folder (e.g. Luminalium-windows), adjust unpack_dir
             extracted_items = list(unpack_dir.iterdir())
@@ -305,51 +349,83 @@ class UpdaterWindow(QWidget):
                 actual_unpack = unpack_dir
                 
             self.signals.text.emit("清理旧文件...")
-            self.signals.progress.emit(50)
+            self.signals.progress.emit(40)
             # 5. Delete old Luminalium.exe
             exe_path = app_dir / "Luminalium.exe"
             if exe_path.exists():
+                self.signals.text.emit("删除: Luminalium.exe")
                 exe_path.unlink()
                 
             # 6. Delete _internal except user dir
             internal_dir = app_dir / "_internal"
             if internal_dir.exists():
+                # Count files to delete for progress
+                files_to_delete = []
+                for root, dirs, files in os.walk(internal_dir):
+                    rel_path = Path(root).relative_to(internal_dir)
+                    if rel_path.parts and rel_path.parts[0] == "user":
+                        continue
+                    for f in files:
+                        files_to_delete.append(Path(root) / f)
+                
+                total_del = len(files_to_delete)
+                for i, file_path in enumerate(files_to_delete):
+                    try:
+                        self.signals.text.emit(f"删除: {file_path.relative_to(app_dir)}")
+                        file_path.unlink()
+                    except Exception:
+                        pass
+                    if i % 10 == 0 and total_del > 0:
+                        # map 40% -> 60%
+                        progress = 40 + int((i / total_del) * 20)
+                        self.signals.progress.emit(progress)
+                
+                # Cleanup empty dirs
                 for item in internal_dir.iterdir():
                     if item.name == "user":
                         continue
                     if item.is_dir():
                         shutil.rmtree(item, ignore_errors=True)
-                    else:
-                        item.unlink()
                         
             self.signals.text.emit("应用新文件...")
-            self.signals.progress.emit(70)
+            self.signals.progress.emit(60)
             # 7. Copy new Luminalium.exe
             new_exe = actual_unpack / "Luminalium.exe"
             if new_exe.exists():
+                self.signals.text.emit("复制: Luminalium.exe")
                 shutil.copy2(new_exe, exe_path)
                 
             # 8. Merge _internal
             new_internal = actual_unpack / "_internal"
             if new_internal.exists():
+                files_to_copy = []
                 for root, dirs, files in os.walk(new_internal):
-                    rel_path = Path(root).relative_to(new_internal)
-                    target_root = internal_dir / rel_path
+                    for f in files:
+                        files_to_copy.append(Path(root) / f)
+                
+                total_copy = len(files_to_copy)
+                for i, src_f in enumerate(files_to_copy):
+                    rel_path = src_f.relative_to(new_internal)
+                    target_root = internal_dir / rel_path.parent
                     target_root.mkdir(parents=True, exist_ok=True)
                     
-                    # Check if this path is under 'user'
                     if rel_path.parts and rel_path.parts[0] == "user":
                         continue # Skip overwriting user data
                         
-                    for f in files:
-                        src_f = Path(root) / f
-                        dst_f = target_root / f
-                        if dst_f.exists() and "user" in rel_path.parts:
-                            continue
-                        shutil.copy2(src_f, dst_f)
+                    dst_f = internal_dir / rel_path
+                    if dst_f.exists() and "user" in rel_path.parts:
+                        continue
+                    
+                    self.signals.text.emit(f"复制: _internal\\{rel_path}")
+                    shutil.copy2(src_f, dst_f)
+                    
+                    if i % 10 == 0 and total_copy > 0:
+                        # map 60% -> 90%
+                        progress = 60 + int((i / total_copy) * 30)
+                        self.signals.progress.emit(progress)
                         
             self.signals.text.emit("完成配置...")
-            self.signals.progress.emit(90)
+            self.signals.progress.emit(95)
             # 9. Write .version
             if not internal_dir.exists():
                 internal_dir.mkdir(parents=True)

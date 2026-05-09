@@ -173,6 +173,33 @@ class OverlayBridge(QObject):
         print("[Bridge] endShow() called, emitting request_end", flush=True)
         self._overlay.request_end.emit()
 
+    @Slot()
+    def mediaPlayPause(self):
+        try:
+            import ctypes
+            ctypes.windll.user32.keybd_event(0xB3, 0, 0, 0)
+            ctypes.windll.user32.keybd_event(0xB3, 0, 2, 0)
+        except Exception as e:
+            print(f"mediaPlayPause error: {e}")
+
+    @Slot()
+    def mediaPrev(self):
+        try:
+            import ctypes
+            ctypes.windll.user32.keybd_event(0xB1, 0, 0, 0)
+            ctypes.windll.user32.keybd_event(0xB1, 0, 2, 0)
+        except Exception as e:
+            print(f"mediaPrev error: {e}")
+
+    @Slot()
+    def mediaNext(self):
+        try:
+            import ctypes
+            ctypes.windll.user32.keybd_event(0xB0, 0, 0, 0)
+            ctypes.windll.user32.keybd_event(0xB0, 0, 2, 0)
+        except Exception as e:
+            print(f"mediaNext error: {e}")
+
     @Slot(str)
     def inkPromptResult(self, result):
         # Defer emission to allow the WebChannel return handshake to complete
@@ -286,7 +313,7 @@ class InkPromptWindow(QWidget):
         from qfluentwidgets import Dialog
         
         # Create dialog with title and content
-        dialog = Dialog(texts["title"], texts["text"], self)
+        dialog = Dialog(texts["title"], texts["text"], None)
         
         # Set button text
         dialog.yesButton.setText(texts.get("keep", "保留"))
@@ -668,10 +695,14 @@ class OverlayWindow(QWebEngineView):
                 except Exception as e:
                     print(f"[Overlay] Error checking cache: {e}", file=sys.stderr)
 
-            profile.setCachePath(cache_path)
-            profile.setPersistentStoragePath(cache_path)
-            profile.setHttpCacheType(profile.HttpCacheType.DiskHttpCache)
-            profile.setHttpCacheMaximumSize(50 * 1024 * 1024)
+            try:
+                profile.setCachePath(cache_path)
+                profile.setPersistentStoragePath(cache_path)
+                profile.setHttpCacheType(profile.HttpCacheType.DiskHttpCache)
+                profile.setHttpCacheMaximumSize(50 * 1024 * 1024)
+            except Exception as e:
+                print(f"[Overlay] Failed to set disk cache, falling back to memory: {e}")
+                profile.setHttpCacheType(profile.HttpCacheType.MemoryHttpCache)
 
             settings = self.page().settings()
             from PySide6.QtWebEngineCore import QWebEngineSettings
@@ -682,6 +713,8 @@ class OverlayWindow(QWebEngineView):
                 ("WebGLEnabled", False),
                 ("Accelerated2dCanvasEnabled", False),
                 ("ScrollAnimatorEnabled", not cfg.disableAnimations.value),
+                ("LocalContentCanAccessFileUrls", True),
+                ("LocalContentCanAccessRemoteUrls", True),
             ]:
                 attr = getattr(QWebEngineSettings.WebAttribute, attr_name, None)
                 if attr is not None:
@@ -1133,20 +1166,21 @@ class OverlayWindow(QWebEngineView):
             # Network
             net_stats = psutil.net_if_stats()
             network_online = False
-            # Check for any active interface (excluding loopback)
             for iface, stats in net_stats.items():
                 if stats.isup and "loopback" not in iface.lower():
                     network_online = True
                     break
 
-            # Volume (Placeholder for now as pycaw/comtypes might not be present)
             volume = -1
 
-            # SMTC
             smtc_status = self._smtc_info.get("status", "")
             smtc_title = self._smtc_info.get("title", "")
+            smtc_artist = self._smtc_info.get("artist", "")
             smtc_position_ms = int(self._smtc_info.get("position_ms", 0) or 0)
             smtc_duration_ms = int(self._smtc_info.get("duration_ms", 0) or 0)
+            smtc_artwork_data_url = self._smtc_info.get("artwork_data_url", "") or ""
+
+            print(f"[Overlay] SMTC: status={smtc_status}, title={smtc_title}, artist={smtc_artist}")
 
             data = {
                 "is_desktop": is_desktop,
@@ -1156,8 +1190,10 @@ class OverlayWindow(QWebEngineView):
                 "volume": volume,
                 "smtc_status": smtc_status,
                 "smtc_title": smtc_title,
+                "smtc_artist": smtc_artist,
                 "smtc_position_ms": max(0, smtc_position_ms),
                 "smtc_duration_ms": max(0, smtc_duration_ms),
+                "smtc_artwork_data_url": smtc_artwork_data_url,
             }
 
             js = f"if(window.updateSystemStatus) window.updateSystemStatus({json.dumps(data)});"
@@ -1256,7 +1292,6 @@ class OverlayWindow(QWebEngineView):
             "statusBarShowVolume": cfg.statusBarShowVolume.value,
             "statusBarShowNetwork": cfg.statusBarShowNetwork.value,
             "statusBarShowMusic": cfg.statusBarShowMusic.value,
-            "statusBarShowMusicProgress": cfg.statusBarShowMusicProgress.value,
             "showToolbarText": cfg.showToolbarText.value,
             "toolbarOrder": toolbar_order,
             "toolbarPosition": cfg.toolbarPosition.value,

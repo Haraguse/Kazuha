@@ -874,6 +874,23 @@
             opacity: 0;
             transition: opacity 0.3s;
             border-bottom: 1px solid var(--overlay-status-sep);
+            position: relative;
+        }
+
+        #status-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        #status-center {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         #time-display {
@@ -882,25 +899,35 @@
             letter-spacing: 0.02em;
         }
 
+        #timer-area {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: rgba(74, 133, 246, 0.15);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #timer-area.active {
+            opacity: 1;
+        }
+
         #timer-display {
             font-weight: 900;
             font-size: 14px;
             letter-spacing: 0.02em;
             min-width: 60px;
             text-align: center;
-            opacity: 0;
-            transition: opacity 0.3s;
+            color: #4A85F6;
         }
 
-        #timer-display.active {
-            opacity: 1;
-        }
-
-        #timer-display-label {
+        #timer-label {
             font-size: 11px;
             font-weight: 500;
-            opacity: 0.6;
-            margin-right: 4px;
+            opacity: 0.7;
+            color: #4A85F6;
         }
 
         /* Digit animation for status bar */
@@ -999,6 +1026,7 @@
             display: flex;
             align-items: center;
             gap: 16px;
+            flex-shrink: 0;
         }
         
         .status-item {
@@ -1018,6 +1046,135 @@
             width: 16px;
             height: 16px;
             background-color: var(--overlay-status-fg);
+        }
+
+        /* Media Popup */
+        #media-popup {
+            position: fixed;
+            top: 40px;
+            left: 0;
+            transform: translateY(-10px);
+            width: 360px;
+            height: 140px;
+            border-radius: 12px;
+            background: #2a2a2a;
+            border: 1px solid var(--overlay-popup-border);
+            box-shadow: none;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s cubic-bezier(0.2, 1.25, 0.4, 1), transform 0.3s cubic-bezier(0.2, 1.25, 0.4, 1), left 0.3s cubic-bezier(0.2, 1.25, 0.4, 1);
+            z-index: 1000;
+            box-sizing: border-box;
+        }
+        #media-popup.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .media-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background-size: cover;
+            background-position: center;
+            filter: blur(40px) brightness(0.7);
+            transform: scale(1.5);
+        }
+        .media-artwork-bg {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100%;
+            width: 60%;
+            object-fit: cover;
+            z-index: 1;
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 40%);
+            mask-image: linear-gradient(to right, transparent 0%, black 40%);
+        }
+        .media-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 20px 20px 16px 20px;
+            box-sizing: border-box;
+            color: #fff;
+        }
+        .media-titles {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            width: 65%;
+            margin-bottom: 8px;
+        }
+        .media-title {
+            font-size: 18px;
+            font-weight: 900;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+        .media-artist {
+            font-size: 13px;
+            font-weight: 500;
+            opacity: 0.9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+        .media-controls {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 14px;
+            margin-top: auto;
+            margin-bottom: 0;
+        }
+        .media-right-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .media-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: background 0.2s;
+            opacity: 1;
+        }
+        .media-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            opacity: 1;
+        }
+        .media-btn:active {
+            transform: none;
+        }
+        .media-btn .icon-mask {
+            width: 20px;
+            height: 20px;
+            background-color: #fff;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+        }
+        .media-play-btn {
+            background: transparent !important;
+        }
+        .media-play-btn .icon-mask {
+            width: 22px;
+            height: 22px;
+            background-color: #fff;
         }
 
         #center-area {
@@ -1434,6 +1591,10 @@
         .icon-mouse { -webkit-mask-image: url('../../icons/Mouse.svg'); mask-image: url('../../icons/Mouse.svg'); }
         .icon-previous { -webkit-mask-image: url('../../icons/Previous.svg'); mask-image: url('../../icons/Previous.svg'); }
         .icon-next { -webkit-mask-image: url('../../icons/Next.svg'); mask-image: url('../../icons/Next.svg'); }
+        .icon-media-play { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M320-200v-560l440 280-440 280Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M320-200v-560l440 280-440 280Z'/%3E%3C/svg%3E"); }
+        .icon-media-pause { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M520-200v-560h200v560H520Zm-280 0v-560h200v560H240Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M520-200v-560h200v560H520Zm-280 0v-560h200v560H240Z'/%3E%3C/svg%3E"); }
+        .icon-media-prev { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M220-240v-480h80v480h-80Zm520 0L380-480l360-240v480Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M220-240v-480h80v480h-80Zm520 0L380-480l360-240v480Z'/%3E%3C/svg%3E"); }
+        .icon-media-next { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M660-240v-480h80v480h-80Zm-440 0v-480l360 240-360 240Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M660-240v-480h80v480h-80Zm-440 0v-480l360 240-360 240Z'/%3E%3C/svg%3E"); }
         .icon-pen { -webkit-mask-image: url('../../icons/Pen.svg'); mask-image: url('../../icons/Pen.svg'); }
         .icon-eraser { -webkit-mask-image: url('../../icons/Eraser.svg'); mask-image: url('../../icons/Eraser.svg'); }
         .icon-clear { -webkit-mask-image: url('../../icons/Clear.svg'); mask-image: url('../../icons/Clear.svg'); }
@@ -2026,16 +2187,21 @@
 </head>
 <body>
     <div id="status-bar" class="interactive">
-        <span id="time-display">12:00</span>
-        <div id="timer-display-container" style="display: flex; align-items: center; gap: 4px;">
-            <span id="timer-display-label">倒计时</span>
-            <span id="timer-display">--:--</span>
+        <div id="status-left">
+            <span id="time-display">12:00</span>
+            <div id="timer-area">
+                <span id="timer-display">--:--</span>
+                <span id="timer-label">倒计时</span>
+            </div>
         </div>
-        <div id="system-status">
-            <div class="status-item" id="status-smtc" style="display: none;">
-                <div class="icon-mask icon-music"></div>
+        <div id="status-center">
+            <div class="status-item interactive" id="status-smtc" style="display: none; cursor: pointer;" onclick="toggleMediaPopup(event)">
+                <div class="icon-mask icon-music" id="smtc-music-icon"></div>
+                <img class="icon-img" id="smtc-artwork-thumb" src="" alt="" style="display: none;" onerror="this.style.display='none';var icon=document.getElementById('smtc-music-icon');if(icon)icon.style.display='';" />
                 <span class="status-text"></span>
             </div>
+        </div>
+        <div id="system-status">
             <div class="status-item" id="status-volume">
                 <div class="icon-mask icon-volume"></div>
                 <span class="status-text">--%</span>
@@ -2050,6 +2216,30 @@
         </div>
     </div>
 
+    <div id="media-popup" class="interactive">
+        <div class="media-bg" id="popup-media-bg"></div>
+        <img class="media-artwork-bg" id="popup-media-artwork-bg" src="" alt="" style="display: none;" onerror="this.style.display='none';" />
+        <div class="media-content">
+            <div class="media-titles">
+                <div class="media-title" id="popup-media-title">Title</div>
+                <div class="media-artist" id="popup-media-artist">Artist</div>
+            </div>
+            <div class="media-controls">
+                <div class="media-btn media-play-btn" onclick="bridge.mediaPlayPause(window.noop)">
+                    <div class="icon-mask icon-media-play" id="popup-play-icon"></div>
+                </div>
+                <div class="media-right-controls">
+                    <div class="media-btn" onclick="bridge.mediaPrev(window.noop)">
+                        <div class="icon-mask icon-media-prev"></div>
+                    </div>
+                    <div class="media-btn" onclick="bridge.mediaNext(window.noop)">
+                        <div class="icon-mask icon-media-next"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="eraser-settings" class="interactive">
         <div class="slider-container" id="clear-slider">
             <div class="slider-text">滑动清屏</div>
@@ -2058,7 +2248,7 @@
                 <div class="icon-mask icon-clear"></div>
             </div>
         </div>
-        <div class="clear-btn-container" id="clear-btn" onclick="bridge.clearScreen(); closePopup()">
+        <div class="clear-btn-container" id="clear-btn" onclick="bridge.clearScreen(window.noop); closePopup()">
             <div class="clear-btn-icon"></div>
             <div class="clear-btn-text">清空屏幕</div>
         </div>
@@ -2115,7 +2305,7 @@
 
     <div id="center-area">
         <div id="left-flipper" class="interactive flipper">
-            <div class="flipper-btn" onclick="bridge.prevPage()">
+            <div class="flipper-btn" onclick="bridge.prevPage(window.noop)">
                 <div class="icon-mask icon-previous"></div>
             </div>
             <div class="page-info-container" onclick="togglePageSelector(event)" style="cursor: pointer;">
@@ -2125,13 +2315,13 @@
                 </div>
 
             </div>
-            <div class="flipper-btn" onclick="bridge.nextPage()">
+            <div class="flipper-btn" onclick="bridge.nextPage(window.noop)">
                 <div class="icon-mask icon-next"></div>
             </div>
         </div>
 
         <div id="right-flipper" class="interactive flipper">
-            <div class="flipper-btn" onclick="bridge.prevPage()">
+            <div class="flipper-btn" onclick="bridge.prevPage(window.noop)">
                 <div class="icon-mask icon-previous"></div>
             </div>
             <div class="page-info-container" onclick="togglePageSelector(event)" style="cursor: pointer;">
@@ -2141,7 +2331,7 @@
                 </div>
 
             </div>
-            <div class="flipper-btn" onclick="bridge.nextPage()">
+            <div class="flipper-btn" onclick="bridge.nextPage(window.noop)">
                 <div class="icon-mask icon-next"></div>
             </div>
         </div>
@@ -2189,8 +2379,15 @@
                 releaseFocus: noop,
                 resizeNudge: noop,
                 requestThumbnail: noop,
-                startBackgroundThumbnailCaching: noop
+                startBackgroundThumbnailCaching: noop,
+                mediaPlayPause: noop,
+                mediaPrev: noop,
+                mediaNext: noop
             };
+        }
+
+        if (typeof window.noop !== 'function') {
+            window.noop = function() {};
         }
 
         let bridge = createBridgePlaceholder();
@@ -2827,6 +3024,8 @@
             document.getElementById('color-picker').classList.remove('visible');
             document.getElementById('eraser-settings').classList.remove('visible');
             document.getElementById('page-selector').classList.remove('visible');
+            document.getElementById('media-popup').classList.remove('visible');
+            isMediaPopupVisible = false;
             document.getElementById('left-flipper').classList.remove('hidden-flipper');
             document.getElementById('right-flipper').classList.remove('hidden-flipper');
             document.body.classList.remove('popup-active');
@@ -3240,10 +3439,15 @@
             visible: false,
             status: '',
             baseText: '',
+            rawTitle: '',
+            artist: '',
             positionMs: 0,
             durationMs: 0,
-            syncedAtMs: 0
+            syncedAtMs: 0,
+            artworkDataUrl: ''
         };
+        let lastStatusArtworkUrl = '';
+        let lastPopupArtworkUrl = '';
 
         function getStatusDisplayChar(char) {
             return char === ' ' ? '\u00A0' : char;
@@ -3335,9 +3539,9 @@
             
             if (showTime) {
                 if (showSeconds) {
-                    timeString = `${hours}:${minutes}:${seconds}|${month}月${date}日${day}`;
+                    timeString = `${hours}:${minutes}:${seconds}|${month}月${date}日 ${day}`;
                 } else {
-                    timeString = `${hours}:${minutes}|${month}月${date}日${day}`;
+                    timeString = `${hours}:${minutes}|${month}月${date}日 ${day}`;
                 }
             }
             
@@ -3355,8 +3559,8 @@
         function updateTimerStatus() {
             try {
                 const timerDisplay = document.getElementById('timer-display');
-                const timerContainer = document.getElementById('timer-display-container');
-                if (!timerDisplay || !timerContainer) return;
+                const timerArea = document.getElementById('timer-area');
+                if (!timerDisplay || !timerArea) return;
 
                 // Get timer state from bridge
                 bridge.getTimerState(function(result) {
@@ -3364,11 +3568,9 @@
                         const state = JSON.parse(result);
                         if (state.isRunning && state.totalSeconds > 0) {
                             timerDisplay.textContent = state.displayText;
-                            timerContainer.style.display = 'flex';
-                            timerDisplay.classList.add('active');
+                            timerArea.classList.add('active');
                         } else {
-                            timerContainer.style.display = 'none';
-                            timerDisplay.classList.remove('active');
+                            timerArea.classList.remove('active');
                         }
                     } catch (e) {
                         console.error('Error parsing timer state:', e);
@@ -3394,49 +3596,32 @@
         function buildMusicStatusText(data) {
             const baseText = String(data.smtc_title || data.smtc_status || '').trim();
             if (!baseText) return '';
-            const showMusicProgress = currentConfig ? (currentConfig.statusBarShowMusicProgress !== false) : true;
-            if (!showMusicProgress) {
-                return baseText;
-            }
-
-            const positionMs = Math.max(0, Number(data.smtc_position_ms) || 0);
-            const durationMs = Math.max(0, Number(data.smtc_duration_ms) || 0);
-            if (durationMs <= 0) {
-                return baseText;
-            }
-
-            const clampedPositionMs = Math.min(positionMs, durationMs);
-            const remainingMs = Math.max(durationMs - clampedPositionMs, 0);
-            return `${baseText} ${formatMusicTime(clampedPositionMs / 1000)}/-${formatMusicTime(remainingMs / 1000)}`;
-        }
-
-        function getCurrentMusicPositionMs() {
-            const durationMs = Math.max(0, Number(currentMusicState.durationMs) || 0);
-            const basePositionMs = Math.max(0, Number(currentMusicState.positionMs) || 0);
-            if (durationMs <= 0) {
-                return basePositionMs;
-            }
-            if (currentMusicState.status !== 'Playing' || !currentMusicState.syncedAtMs) {
-                return Math.min(basePositionMs, durationMs);
-            }
-
-            const elapsedMs = Math.max(0, Date.now() - currentMusicState.syncedAtMs);
-            return Math.min(durationMs, basePositionMs + elapsedMs);
+            return baseText;
         }
 
         function hideMusicStatus() {
             const smtcItem = document.getElementById('status-smtc');
             const smtcText = smtcItem ? smtcItem.querySelector('.status-text') : null;
+            const musicIcon = document.getElementById('smtc-music-icon');
+            const artworkThumb = document.getElementById('smtc-artwork-thumb');
             if (smtcItem) smtcItem.style.display = 'none';
             if (smtcText) smtcText.textContent = '';
+            if (artworkThumb) {
+                artworkThumb.src = '';
+                artworkThumb.style.display = 'none';
+            }
+            if (musicIcon) musicIcon.style.display = '';
             lastStatusValues.music = '';
             lastStatusValues.musicBase = '';
+            lastStatusArtworkUrl = '';
         }
 
         function renderMusicStatus(flipTitle = false) {
             const showMusic = currentConfig ? (currentConfig.statusBarShowMusic !== false) : true;
             const smtcItem = document.getElementById('status-smtc');
             const smtcText = smtcItem ? smtcItem.querySelector('.status-text') : null;
+            const musicIcon = document.getElementById('smtc-music-icon');
+            const artworkThumb = document.getElementById('smtc-artwork-thumb');
             if (!smtcItem || !smtcText) return;
 
             if (!showMusic || !currentMusicState.visible) {
@@ -3445,11 +3630,28 @@
             }
 
             smtcItem.style.display = 'flex';
+
+            if (artworkThumb && currentMusicState.artworkDataUrl) {
+                if (lastStatusArtworkUrl !== currentMusicState.artworkDataUrl) {
+                    artworkThumb.src = currentMusicState.artworkDataUrl;
+                    lastStatusArtworkUrl = currentMusicState.artworkDataUrl;
+                }
+                artworkThumb.style.display = '';
+                if (musicIcon) musicIcon.style.display = 'none';
+            } else {
+                if (artworkThumb) {
+                    if (lastStatusArtworkUrl !== '') {
+                        artworkThumb.src = '';
+                        lastStatusArtworkUrl = '';
+                    }
+                    artworkThumb.style.display = 'none';
+                }
+                if (musicIcon) musicIcon.style.display = '';
+            }
+
             const newMusicText = buildMusicStatusText({
                 smtc_title: currentMusicState.baseText,
-                smtc_status: currentMusicState.status,
-                smtc_position_ms: getCurrentMusicPositionMs(),
-                smtc_duration_ms: currentMusicState.durationMs
+                smtc_status: currentMusicState.status
             });
             if (!newMusicText) {
                 hideMusicStatus();
@@ -3483,10 +3685,77 @@
             }
 
             updateMusicDigits();
+            
+            if (isMediaPopupVisible) {
+                updateMediaPopupPosition();
+            }
+        }
+
+        let isMediaPopupVisible = false;
+        function toggleMediaPopup(e) {
+            if(e) e.stopPropagation();
+            isMediaPopupVisible = !isMediaPopupVisible;
+            const popup = document.getElementById('media-popup');
+            if(isMediaPopupVisible) {
+                updateMediaPopupPosition();
+                popup.classList.add('visible');
+                updateMediaPopupUI();
+            } else {
+                popup.classList.remove('visible');
+            }
+            scheduleMaskUpdate();
+        }
+
+        function updateMediaPopupPosition() {
+            const popup = document.getElementById('media-popup');
+            const statusCenter = document.getElementById('status-center');
+            if (!popup || !statusCenter) return;
+            
+            const centerRect = statusCenter.getBoundingClientRect();
+            const popupWidth = 360;
+            const left = centerRect.left + centerRect.width / 2 - popupWidth / 2;
+            popup.style.left = Math.max(8, Math.min(left, window.innerWidth - popupWidth - 8)) + 'px';
+        }
+
+        function updateMediaPopupUI() {
+            if(!isMediaPopupVisible) return;
+            const titleEl = document.getElementById('popup-media-title');
+            const artistEl = document.getElementById('popup-media-artist');
+            const artworkBgEl = document.getElementById('popup-media-artwork-bg');
+            const popupBgEl = document.getElementById('popup-media-bg');
+            const playIcon = document.getElementById('popup-play-icon');
+            
+            titleEl.textContent = currentMusicState.rawTitle || currentMusicState.baseText || 'Unknown';
+            artistEl.textContent = currentMusicState.artist || '';
+            
+            if (artworkBgEl && currentMusicState.artworkDataUrl) {
+                if (lastPopupArtworkUrl !== currentMusicState.artworkDataUrl) {
+                    artworkBgEl.src = currentMusicState.artworkDataUrl;
+                    popupBgEl.style.backgroundImage = `url('${currentMusicState.artworkDataUrl}')`;
+                    lastPopupArtworkUrl = currentMusicState.artworkDataUrl;
+                }
+                artworkBgEl.style.display = '';
+            } else if (artworkBgEl) {
+                if (lastPopupArtworkUrl !== '') {
+                    artworkBgEl.src = '';
+                    popupBgEl.style.backgroundImage = '';
+                    lastPopupArtworkUrl = '';
+                }
+                artworkBgEl.style.display = 'none';
+                popupBgEl.style.backgroundImage = '';
+            }
+            
+            const isPlaying = currentMusicState.status === 'Playing';
+            playIcon.className = isPlaying ? 'icon-mask icon-media-pause' : 'icon-mask icon-media-play';
+            
+            updateMediaPopupPosition();
         }
 
         setInterval(() => {
             renderMusicStatus(false);
+            if (isMediaPopupVisible) {
+                updateMediaPopupUI();
+            }
         }, 1000);
 
         function updateSystemStatus(data) {
@@ -3555,13 +3824,20 @@
             }
             
             // SMTC
+            let fullTitle = data.smtc_title || data.smtc_status || '';
+            if (data.smtc_title && data.smtc_artist) {
+                fullTitle = data.smtc_title + ' - ' + data.smtc_artist;
+            }
             currentMusicState = {
                 visible: !!(showMusic && data.smtc_status && data.smtc_status !== 'Closed' && data.smtc_status !== 'Stopped'),
                 status: String(data.smtc_status || ''),
-                baseText: String(data.smtc_title || data.smtc_status || '').trim(),
+                baseText: String(fullTitle).trim(),
+                artist: String(data.smtc_artist || ''),
                 positionMs: Math.max(0, Number(data.smtc_position_ms) || 0),
                 durationMs: Math.max(0, Number(data.smtc_duration_ms) || 0),
-                syncedAtMs: Date.now()
+                syncedAtMs: Date.now(),
+                rawTitle: String(data.smtc_title || ''),
+                artworkDataUrl: String(data.smtc_artwork_data_url || '')
             };
             renderMusicStatus(true);
         }
@@ -3776,6 +4052,21 @@
                         }
                         return;
                     }
+
+                    // Explicit handling for media popup because window mask clips visual output.
+                    // Its soft transitions/shadow can be outside normal layout bounds.
+                    if (el.id === 'media-popup') {
+                        if (el.classList.contains('visible')) {
+                            const r = el.getBoundingClientRect();
+                            rects.push({
+                                x: Math.max(0, r.x - 2),
+                                y: Math.max(0, r.y - 2),
+                                width: r.width + 4,
+                                height: r.height + 4
+                            });
+                        }
+                        return;
+                    }
                     
                     if (el.offsetParent === null) return;
                     
@@ -3798,7 +4089,7 @@
                         height: r.height
                     });
                 });
-                bridge.updateMask(rects);
+                bridge.updateMask(rects, window.noop);
             });
         }
     </script>

@@ -118,9 +118,6 @@ class Config(QConfig):
     statusBarShowMusic = ConfigItem(
         "Overlay", "StatusBarShowMusic", True, BoolValidator()
     )
-    statusBarShowMusicProgress = ConfigItem(
-        "Overlay", "StatusBarShowMusicProgress", True, BoolValidator()
-    )
     clearMode = OptionsConfigItem(
         "Overlay",
         "ClearMode",
@@ -215,6 +212,17 @@ class Config(QConfig):
     )
     disabledTools = ConfigItem("Toolbar", "DisabledTools", [], restart=False)
 
+    resourceMonitorInterval = OptionsConfigItem(
+        "Notifications",
+        "ResourceMonitorInterval",
+        300,
+        OptionsValidator([30, 300, 600, 1800, 2700, 3600, 0]),
+        restart=False,
+    )
+    timerNotifyEnabled = ConfigItem(
+        "Notifications", "TimerNotifyEnabled", True, BoolValidator()
+    )
+
 
 cfg = Config()
 
@@ -237,6 +245,38 @@ if not os.path.exists(PLUGINS_DIR):
         pass
 
 FIRST_RUN = not os.path.exists(SETTINGS_PATH)
+
+def _apply_active_profile():
+    profiles_dir = os.path.join(os.path.dirname(SETTINGS_PATH), "profiles")
+    active_marker = os.path.join(profiles_dir, "_active")
+    if not os.path.exists(active_marker):
+        return
+    try:
+        with open(active_marker, "r", encoding="utf-8") as f:
+            profile_name = f.read().strip()
+        if not profile_name or profile_name == "default":
+            return
+        profile_path = os.path.join(profiles_dir, profile_name + ".json")
+        if not os.path.exists(profile_path):
+            return
+        with open(profile_path, "r", encoding="utf-8") as f:
+            profile_data = json.load(f)
+        if not isinstance(profile_data, dict):
+            return
+        current_data = {}
+        if os.path.exists(SETTINGS_PATH):
+            try:
+                with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
+                    current_data = json.load(f)
+            except Exception:
+                current_data = {}
+        if current_data != profile_data:
+            with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
+                json.dump(profile_data, f, indent=4, ensure_ascii=False)
+    except Exception:
+        pass
+
+_apply_active_profile()
 
 qconfig.load(SETTINGS_PATH, cfg)
 
@@ -365,7 +405,6 @@ def _bind_auto_save():
     cfg.statusBarShowVolume.valueChanged.connect(lambda *_: _save_cfg())
     cfg.statusBarShowNetwork.valueChanged.connect(lambda *_: _save_cfg())
     cfg.statusBarShowMusic.valueChanged.connect(lambda *_: _save_cfg())
-    cfg.statusBarShowMusicProgress.valueChanged.connect(lambda *_: _save_cfg())
     cfg.toolbarPosition.valueChanged.connect(lambda *_: _save_cfg())
     cfg.flipperPosition.valueChanged.connect(lambda *_: _save_cfg())
     cfg.safeArea.valueChanged.connect(lambda *_: _save_cfg())
@@ -382,6 +421,8 @@ def _bind_auto_save():
     cfg.splashStartTime.valueChanged.connect(lambda *_: _save_cfg())
     cfg.splashEndTime.valueChanged.connect(lambda *_: _save_cfg())
     cfg.disabledTools.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.resourceMonitorInterval.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.timerNotifyEnabled.valueChanged.connect(lambda *_: _save_cfg())
     # cfg.toolbarLayout.valueChanged.connect(lambda *_: _save_cfg())
 
 

@@ -1,6 +1,7 @@
 import shutil
 import sys
 import os
+from pathlib import Path
 
 def register_url_protocol():
     if sys.platform != "win32":
@@ -116,7 +117,6 @@ from PySide6.QtWidgets import (
     QWidget,
     QLabel,
     QFrame,
-    QGraphicsDropShadowEffect,
     QProgressBar,
 )
 from PySide6.QtCore import Qt, QTimer, Slot, QPoint, QCoreApplication, QEvent, QObject
@@ -304,6 +304,15 @@ def _is_compatibility_mode_enabled() -> bool:
         return False
 
 
+def _force_directwrite_font_engine():
+    if sys.platform != "win32":
+        return
+    qpa = os.environ.get("QT_QPA_PLATFORM", "windows")
+    if ":fontengine=" not in qpa:
+        os.environ["QT_QPA_PLATFORM"] = qpa + ":fontengine=directwrite"
+    print("[Main] DirectWrite font engine forced.", flush=True)
+
+
 def _apply_graphics_settings():
     if sys.platform == "linux":
         qpa_platform = str(os.environ.get("QT_QPA_PLATFORM", "")).strip().lower()
@@ -339,6 +348,8 @@ def _apply_graphics_settings():
     os.environ["QT_VULKAN_DISABLE"] = "1"
     # Let Qt automatically choose the best RHI backend
     # Don't force QSG_RHI_BACKEND to allow fallback
+
+    _force_directwrite_font_engine()
 
     use_software_webengine = _is_compatibility_mode_enabled() or _env_flag_enabled(
         "LUMINALIUM_WEBENGINE_SOFTWARE", False
@@ -994,7 +1005,7 @@ class StartupSplash(QWidget):
         # Redesigned based on QML spec
         # Width: 678, Height: 255
         self._container.setFixedSize(678, 255)
-        self._container.move(24, 16)  # Offset for shadow
+        self._container.move(0, 0)
 
         # Logo (kZHTXT_2.png equivalent) - x: 38, y: 37
         self._icon_label = QLabel(self._container)
@@ -1085,12 +1096,6 @@ class StartupSplash(QWidget):
         self._progress.setFixedWidth(678)
         self._progress.move(0, 247)
 
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(24)
-        shadow.setOffset(0, 8)
-        shadow.setColor(QColor(0, 0, 0, 60))
-        self._container.setGraphicsEffect(shadow)
-
     def _apply_styles(self):
         if self._is_first_run:
             self.resize(960, 540)
@@ -1123,7 +1128,7 @@ class StartupSplash(QWidget):
             progress_bg = "#e5e5e5"
             chunk_color = "#3275F5"
 
-        self.resize(678 + 48, 255 + 48)  # Increased for shadow
+        self.setFixedSize(678, 255)
 
         self._container.setStyleSheet(
             f"QFrame#splashContainer {{"
@@ -1579,7 +1584,18 @@ def _handle_multi_instance(app: QApplication):
         )
         return
 
-    proc = show_webview_dialog(title="", text="", code="multi_instance")
+    lang = _get_current_language()
+    _WINDOW_TITLES = {
+        "zh-CN": "荧素万演 已在运行",
+        "zh-TW": "Luminalium 已在執行",
+        "yue-HK": "Luminalium 喺度跑緊",
+        "ja-JP": "ルマイナリウム が実行中です",
+        "en-US": "Luminalium is already running",
+        "ug-CN": "Luminalium ئىجرا قىلىنىۋاتىدۇ",
+    }
+    window_title = _WINDOW_TITLES.get(lang, _WINDOW_TITLES["zh-CN"])
+
+    proc = show_webview_dialog(title=window_title, text="", code="multi_instance")
     stdout, _ = proc.communicate()
 
     if 'DIALOG_VALUE:"RESTART_OLD"' in stdout:
@@ -2099,6 +2115,11 @@ class PPTAssistantApp:
         if now - self._last_timer_notify_at < 1.0:
             return
         self._last_timer_notify_at = now
+        try:
+            if not cfg.timerNotifyEnabled.value:
+                return
+        except Exception:
+            pass
         if hasattr(self, "tray") and self.tray:
             self.tray.show_message(t("timer.notify.title"), t("timer.notify.body"))
 
@@ -2303,7 +2324,6 @@ class PPTAssistantApp:
             old_status_bar_show_volume = cfg.statusBarShowVolume.value
             old_status_bar_show_network = cfg.statusBarShowNetwork.value
             old_status_bar_show_music = cfg.statusBarShowMusic.value
-            old_status_bar_show_music_progress = cfg.statusBarShowMusicProgress.value
             old_clear = cfg.showClear.value
             old_spotlight = cfg.showSpotlight.value
             old_timer = cfg.showTimer.value
@@ -2377,8 +2397,6 @@ class PPTAssistantApp:
                         or cfg.statusBarShowVolume.value != old_status_bar_show_volume
                         or cfg.statusBarShowNetwork.value != old_status_bar_show_network
                         or cfg.statusBarShowMusic.value != old_status_bar_show_music
-                        or cfg.statusBarShowMusicProgress.value
-                        != old_status_bar_show_music_progress
                     )
 
                     if status_bar_changed:

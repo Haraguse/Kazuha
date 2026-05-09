@@ -2664,6 +2664,261 @@
       animation: slideUpFadeIn 0.3s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
     }
 
+    .storage-disk-overview {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .storage-disk-bar-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .storage-disk-bar {
+      width: 100%;
+      height: 10px;
+      border-radius: 5px;
+      background: var(--divider);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .storage-disk-bar-used {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background: var(--text-secondary);
+      opacity: 0.4;
+      border-radius: 5px;
+      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .storage-disk-bar-luminalium {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      background: var(--accent-blue);
+      border-radius: 5px;
+      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1), left 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .storage-disk-legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .storage-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .storage-legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .storage-disk-summary {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .storage-breakdown-list {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--divider);
+      border-radius: 12px;
+      background: var(--bg-surface);
+      padding: 4px 0;
+    }
+
+    .storage-breakdown-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .storage-breakdown-item:last-child {
+      border-bottom: none;
+    }
+
+    .storage-breakdown-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .storage-breakdown-size {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      flex-shrink: 0;
+    }
+
+    .storage-cleanup-btn {
+      white-space: nowrap;
+    }
+
+    .storage-cleanup-btn.cleaning {
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    .archive-profile-list {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--divider);
+      border-radius: 12px;
+      background: var(--bg-surface);
+      padding: 4px 0;
+    }
+
+    .archive-profile-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .archive-profile-item:last-child {
+      border-bottom: none;
+    }
+
+    .archive-profile-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .archive-profile-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .archive-profile-meta {
+      font-size: 13px;
+      color: var(--text-secondary);
+      opacity: 0.85;
+    }
+
+    .archive-profile-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(50, 117, 245, 0.1);
+      color: var(--accent-blue);
+      border: 1px solid rgba(50, 117, 245, 0.2);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .archive-profile-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .archive-dialog-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .archive-dialog {
+      background: var(--bg-surface);
+      border-radius: 16px;
+      padding: 24px;
+      min-width: 320px;
+      max-width: 400px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+    }
+
+    .archive-dialog-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+
+    .archive-dialog input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--divider);
+      border-radius: 8px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .archive-dialog input:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .archive-dialog-btns {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .archive-dialog-btns .settings-button {
+      padding: 8px 20px;
+    }
+
+    .archive-dialog-btns .btn-primary {
+      background: var(--accent-blue);
+      color: #fff;
+      border-color: var(--accent-blue);
+    }
+
+    .storage-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      box-shadow: 0 4px 20px var(--shadow-color);
+      border: 1px solid var(--card-border);
+      z-index: 9999;
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .storage-toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
     .update-header {
       display: flex;
       align-items: center;
@@ -6020,6 +6275,18 @@
         </svg>
         <span data-i18n="nav.window">窗口</span>
       </div>
+      <div class="sidebar-item" data-section="storage">
+        <svg class="sidebar-icon" viewBox="0 0 24 24">
+          <path d="M20 13H4c-1.1 0-2 .9-2 2v4c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-4c0-1.1-.9-2-2-2zm0 6H4v-4h16v4zM20 3H4c-1.1 0-2 .9-2 2v4c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 6H4V5h16v4z" />
+        </svg>
+        <span data-i18n="nav.storage">存储、档案和备份</span>
+      </div>
+      <div class="sidebar-item" data-section="notifications">
+        <svg class="sidebar-icon" viewBox="0 0 24 24">
+          <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
+        </svg>
+        <span data-i18n="nav.notifications">通知</span>
+      </div>
       <!-- <div class="sidebar-item" data-section="accessibility">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
           <path d="M20.5 6c-2.61.7-5.67 1-8.5 1s-5.89-.3-8.5-1L3 8c1.86.5 4 .83 6 1v13h2v-6h2v6h2V9c2-.17 4.14-.5 6-1l-.5-2zM12 6c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
@@ -6774,6 +7041,143 @@
           </div>
         </div>
 
+        <div class="section" id="section-storage">
+          <div class="pivot-container" style="margin-bottom: 12px; padding: 0 4px;">
+            <div class="pivot-item active" data-pivot-group="storage" data-pivot="storage"
+              onclick="switchStorageTab('storage')" data-i18n="storage.pivot.storage">存储</div>
+            <div class="pivot-item" data-pivot-group="storage" data-pivot="archive"
+              onclick="switchStorageTab('archive')" data-i18n="storage.pivot.archive">档案</div>
+            <div class="pivot-item" data-pivot-group="storage" data-pivot="backup"
+              onclick="switchStorageTab('backup')" data-i18n="storage.pivot.backup">备份</div>
+          </div>
+
+          <div class="pivot-content active" data-pivot-group="storage" data-pivot-content="storage">
+            <div class="settings-group">
+              <div class="settings-item" style="flex-direction: column; align-items: stretch; gap: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                  <div class="item-info">
+                    <span class="item-label" data-i18n="storage.diskUsage.label">磁盘占用</span>
+                    <span class="item-desc" data-i18n="storage.diskUsage.desc">查看 Luminalium 各目录的硬盘占用情况</span>
+                  </div>
+                  <button class="settings-button" onclick="refreshStorageInfo(true)" data-i18n="storage.refresh">刷新</button>
+                </div>
+                <div id="storage-disk-overview" class="storage-disk-overview">
+                  <div class="storage-disk-bar-container">
+                    <div class="storage-disk-bar">
+                      <div class="storage-disk-bar-used" id="storage-disk-bar-used" style="width: 0%"></div>
+                      <div class="storage-disk-bar-luminalium" id="storage-disk-bar-luminalium" style="width: 0%"></div>
+                    </div>
+                    <div class="storage-disk-legend">
+                      <span class="storage-legend-item"><span class="storage-legend-dot" style="background: var(--accent-blue)"></span><span data-i18n="storage.legend.luminalium">Luminalium 占用</span></span>
+                      <span class="storage-legend-item"><span class="storage-legend-dot" style="background: var(--text-secondary)"></span><span data-i18n="storage.legend.otherUsed">其他占用</span></span>
+                      <span class="storage-legend-item"><span class="storage-legend-dot" style="background: var(--divider)"></span><span data-i18n="storage.legend.free">可用空间</span></span>
+                    </div>
+                  </div>
+                  <div class="storage-disk-summary" id="storage-disk-summary"></div>
+                </div>
+
+                <div class="item-info" style="margin-top: 8px;">
+                  <span class="item-label" data-i18n="storage.breakdown.label">占用明细</span>
+                  <span class="item-desc" data-i18n="storage.breakdown.desc">各目录的详细占用大小</span>
+                </div>
+                <div id="storage-breakdown-list" class="storage-breakdown-list">
+                  <div class="storage-breakdown-item" id="storage-item-local">
+                    <span class="storage-breakdown-name" data-i18n="storage.localLuminalium.label">AppData 本地数据</span>
+                    <span class="storage-breakdown-size" id="storage-local-size">-</span>
+                  </div>
+                  <div class="storage-breakdown-item" id="storage-item-updatebak">
+                    <span class="storage-breakdown-name" data-i18n="storage.updateBak.label">更新备份</span>
+                    <span class="storage-breakdown-size" id="storage-updatebak-size">-</span>
+                  </div>
+                  <div class="storage-breakdown-item" id="storage-item-appdir">
+                    <span class="storage-breakdown-name" data-i18n="storage.appDir.label">程序目录</span>
+                    <span class="storage-breakdown-size" id="storage-appdir-size">-</span>
+                  </div>
+                  <div class="storage-breakdown-item" id="storage-item-updatecache">
+                    <span class="storage-breakdown-name" data-i18n="storage.updateCache.label">更新缓存</span>
+                    <span class="storage-breakdown-size" id="storage-updatecache-size">-</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="group-title" data-i18n="storage.cleanup.title">清理</div>
+            <div class="settings-group" style="margin-top: 12px;">
+              <div class="settings-item" id="storage-cleanup-updatebak">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="storage.cleanup.updateBak.label">清理更新备份</span>
+                  <span class="item-desc" data-i18n="storage.cleanup.updateBak.desc">删除 .update_bak 目录中的旧版本备份文件，释放磁盘空间</span>
+                </div>
+                <button class="settings-button storage-cleanup-btn" onclick="cleanDirectory('update_bak')" data-i18n="storage.cleanup.btn">清理</button>
+              </div>
+              <div class="settings-item" id="storage-cleanup-updatecache">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="storage.cleanup.updateCache.label">清理更新缓存</span>
+                  <span class="item-desc" data-i18n="storage.cleanup.updateCache.desc">删除 AppData 中的 update_cache 目录，释放下载缓存空间</span>
+                </div>
+                <button class="settings-button storage-cleanup-btn" onclick="cleanDirectory('update_cache')" data-i18n="storage.cleanup.btn">清理</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="pivot-content" data-pivot-group="storage" data-pivot-content="archive">
+            <div class="settings-group">
+              <div class="settings-item" style="flex-direction: column; align-items: stretch; gap: 16px;">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="archive.label">用户档案</span>
+                  <span class="item-desc" data-i18n="archive.desc">管理不同的配置档案，切换后下次启动生效</span>
+                </div>
+                <div id="archive-profile-list" class="archive-profile-list">
+                </div>
+                <div style="display: flex; justify-content: flex-end;">
+                  <button class="settings-button" onclick="createProfileDialog()" data-i18n="archive.create">新建档案</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pivot-content" data-pivot-group="storage" data-pivot-content="backup">
+            <div class="settings-group">
+              <div class="settings-item">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="storage.backup.placeholder.label">备份设置</span>
+                  <span class="item-desc" data-i18n="storage.backup.placeholder.desc">此页面正在开发中，未来将提供备份与恢复功能</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section" id="section-notifications">
+          <div class="group-title" data-i18n="group.notifications">通知</div>
+          <div class="settings-group">
+            <div class="settings-item">
+              <div class="item-info">
+                <span class="item-label" data-i18n="notifications.resourceMonitorInterval.label">性能检测通知间隔</span>
+                <span class="item-desc" data-i18n="notifications.resourceMonitorInterval.desc">设置系统资源性能检测的通知间隔时间</span>
+              </div>
+              <div class="item-state">
+                <select class="styled-select" id="sel-Notifications-ResourceMonitorInterval" onchange="setResourceMonitorInterval(Number(this.value))">
+                  <option value="30" data-i18n="notifications.interval.30s">30 秒</option>
+                  <option value="300" data-i18n="notifications.interval.5min">5 分钟</option>
+                  <option value="600" data-i18n="notifications.interval.10min">10 分钟</option>
+                  <option value="1800" data-i18n="notifications.interval.30min">30 分钟</option>
+                  <option value="2700" data-i18n="notifications.interval.45min">45 分钟</option>
+                  <option value="3600" data-i18n="notifications.interval.1hour">1 小时</option>
+                  <option value="0" data-i18n="notifications.interval.never">永不</option>
+                </select>
+              </div>
+            </div>
+            <div class="settings-item" onclick="toggleSwitch('Notifications', 'TimerNotifyEnabled')">
+              <div class="item-info">
+                <span class="item-label" data-i18n="notifications.timerNotifyEnabled.label">倒计时结束系统通知</span>
+                <span class="item-desc" data-i18n="notifications.timerNotifyEnabled.desc">倒计时结束时是否发送系统通知提醒</span>
+              </div>
+              <div class="switch" id="sw-Notifications-TimerNotifyEnabled"></div>
+            </div>
+          </div>
+        </div>
+
         <div class="section" id="section-window">
           <div class="group-title" data-i18n="group.window">窗口设置</div>
           <div class="settings-group">
@@ -6974,14 +7378,6 @@
                   data-i18n="interaction.statusBarShowMusic.desc">显示系统媒体会话中的正在播放信息；没有媒体时会自动隐藏</span>
               </div>
               <div class="switch" id="sw-Overlay-StatusBarShowMusic"></div>
-            </div>
-            <div class="settings-item" onclick="toggleSwitch('Overlay', 'StatusBarShowMusicProgress')">
-              <div class="item-info">
-                <span class="item-label" data-i18n="interaction.statusBarShowMusicProgress.label">显示进度</span>
-                <span class="item-desc"
-                  data-i18n="interaction.statusBarShowMusicProgress.desc">在音乐标题后追加播放进度，仅在已开启“显示音乐”时生效</span>
-              </div>
-              <div class="switch" id="sw-Overlay-StatusBarShowMusicProgress"></div>
             </div>
             <div class="settings-item" onclick="toggleSwitch('Overlay', 'StrictEdgeAlignment')">
               <div class="item-info">
@@ -7528,6 +7924,8 @@
         "nav.overlay": "放映",
         "nav.about": "关于",
         "nav.window": "窗口",
+        "nav.storage": "存储、档案和备份",
+        "nav.notifications": "通知",
         "nav.plugins": "工具栏",
         "nav.pluginSettings": "插件设置",
         "nav.debug": "调试",
@@ -7539,6 +7937,8 @@
         "section.fonts": "全局应用字体",
         "section.overlay": "放映",
         "section.window": "窗口",
+        "section.storage": "存储、档案和备份",
+        "section.notifications": "通知",
         "section.plugins": "工具栏",
         "section.plugin-settings": "插件设置",
         "section.board-in-board": "内建功能",
@@ -7549,6 +7949,66 @@
         "group.appearance": "外观",
         "group.startup": "默认行为",
         "group.compatibility": "兼容性",
+        "group.storage": "存储、档案和备份",
+        "group.notifications": "通知",
+        "storage.pivot.storage": "存储",
+        "storage.pivot.archive": "档案",
+        "storage.pivot.backup": "备份",
+        "storage.diskUsage.label": "磁盘占用",
+        "storage.diskUsage.desc": "查看 Luminalium 各目录的硬盘占用情况",
+        "storage.refresh": "刷新",
+        "storage.legend.luminalium": "Luminalium 占用",
+        "storage.legend.otherUsed": "其他占用",
+        "storage.legend.free": "可用空间",
+        "storage.breakdown.label": "占用明细",
+        "storage.breakdown.desc": "各目录的详细占用大小",
+        "storage.localLuminalium.label": "AppData 本地数据",
+        "storage.updateBak.label": "更新备份",
+        "storage.appDir.label": "程序目录",
+        "storage.updateCache.label": "更新缓存",
+        "storage.cleanup.title": "清理",
+        "storage.cleanup.updateBak.label": "清理更新备份",
+        "storage.cleanup.updateBak.desc": "删除 .update_bak 目录中的旧版本备份文件，释放磁盘空间",
+        "storage.cleanup.updateCache.label": "清理更新缓存",
+        "storage.cleanup.updateCache.desc": "删除 AppData 中的 update_cache 目录，释放下载缓存空间",
+        "storage.cleanup.btn": "清理",
+        "storage.cleanup.success": "已释放 {size}",
+        "storage.cleanup.fail": "清理失败",
+        "storage.cleanup.confirm": "确定要清理吗？此操作不可撤销。",
+        "archive.label": "用户档案",
+        "archive.desc": "管理不同的配置档案，切换后下次启动生效",
+        "archive.default": "默认档案",
+        "archive.defaultDesc": "当前正在使用的配置",
+        "archive.defaultInactiveDesc": "初始配置",
+        "archive.create": "新建档案",
+        "archive.createTitle": "新建档案",
+        "archive.namePlaceholder": "输入档案名称",
+        "archive.switch": "切换",
+        "archive.rename": "重命名",
+        "archive.renameTitle": "重命名档案",
+        "archive.delete": "删除",
+        "archive.cancel": "取消",
+        "archive.switchConfirm": "切换到档案「{name}」？下次启动时生效。",
+        "archive.switchSuccess": "档案已切换，重启后生效",
+        "archive.deleteConfirm": "确定要删除档案「{name}」吗？此操作不可撤销。",
+        "archive.cannotDeleteActive": "无法删除当前使用的档案",
+        "archive.activeBadge": "使用中",
+        "storage.backup.placeholder.label": "备份设置",
+        "storage.backup.placeholder.desc": "此页面正在开发中，未来将提供备份与恢复功能",
+        "storage.diskSummary": "磁盘总容量 {total}，已使用 {used}，Luminalium 占用 {luminaliumSize}",
+        "notifications.placeholder.label": "通知设置",
+        "notifications.placeholder.desc": "此页面正在开发中，未来将提供通知推送相关设置",
+        "notifications.resourceMonitorInterval.label": "性能检测通知间隔",
+        "notifications.resourceMonitorInterval.desc": "设置系统资源性能检测的通知间隔时间",
+        "notifications.interval.30s": "30 秒",
+        "notifications.interval.5min": "5 分钟",
+        "notifications.interval.10min": "10 分钟",
+        "notifications.interval.30min": "30 分钟",
+        "notifications.interval.45min": "45 分钟",
+        "notifications.interval.1hour": "1 小时",
+        "notifications.interval.never": "永不",
+        "notifications.timerNotifyEnabled.label": "倒计时结束系统通知",
+        "notifications.timerNotifyEnabled.desc": "倒计时结束时是否发送系统通知提醒",
         "general.resetPreOnboarding.label": "使 荧素万演 回到未引导前的状态",
         "general.resetPreOnboarding.desc": "清空当前设置，重启后重新进入引导",
         "dialog.resetPreOnboarding.title": "恢复未引导前状态",
@@ -7713,7 +8173,7 @@
         "general.overlayScreen.screen3": "显示器 3",
         "general.language.label": "界面语言",
         "general.language.desc": "更改语言后需重启软件才能在所有界面生效",
-        "general.language.warning": "当前选择的语言不是简体中文。为了获得最佳体验，建议使用简体中文。其他语言可能存在翻译不全或排版错位的问题。",
+        "general.language.warning": "此语言可能存在翻译不全或排版错位的问题。",
         "language.zh-CN": "简体中文",
         "language.zh-TW": "繁體中文",
         "language.yue-HK": "粤语（繁体）",
@@ -7741,8 +8201,6 @@
         "interaction.statusBarShowNetwork.desc": "显示当前网络连接状态图标",
         "interaction.statusBarShowMusic.label": "显示音乐",
         "interaction.statusBarShowMusic.desc": "显示系统媒体会话中的正在播放信息；没有媒体时会自动隐藏",
-        "interaction.statusBarShowMusicProgress.label": "显示进度",
-        "interaction.statusBarShowMusicProgress.desc": "在音乐标题后追加播放进度，仅在已开启“显示音乐”时生效",
         "overlay.safeArea.label": "屏幕内安全区",
         "overlay.safeArea.desc": "给工具栏和翻页栏额外留出离屏幕边缘的距离，适合避开任务栏等区域",
         "overlay.scale.label": "组件缩放倍率",
@@ -7875,6 +8333,8 @@
         "nav.overlay": "放映",
         "nav.about": "關於",
         "nav.window": "視窗",
+        "nav.storage": "存儲、檔案和備份",
+        "nav.notifications": "通知",
         "nav.plugins": "工具列",
         "nav.pluginSettings": "插件設定",
         "nav.boardInBoard": "內建功能",
@@ -7886,6 +8346,8 @@
         "section.fonts": "全域字型",
         "section.overlay": "放映",
         "section.window": "視窗",
+        "section.storage": "存儲、檔案和備份",
+        "section.notifications": "通知",
         "section.plugins": "工具列",
         "section.plugin-settings": "插件設定",
         "section.board-in-board": "內建功能",
@@ -7896,6 +8358,66 @@
         "group.appearance": "外觀",
         "group.startup": "預設行為",
         "group.compatibility": "相容性",
+        "group.storage": "存儲、檔案和備份",
+        "group.notifications": "通知",
+        "storage.pivot.storage": "存儲",
+        "storage.pivot.archive": "檔案",
+        "storage.pivot.backup": "備份",
+        "storage.diskUsage.label": "磁碟佔用",
+        "storage.diskUsage.desc": "檢視 Luminalium 各目錄的硬碟佔用情況",
+        "storage.refresh": "重新整理",
+        "storage.legend.luminalium": "Luminalium 佔用",
+        "storage.legend.otherUsed": "其他佔用",
+        "storage.legend.free": "可用空間",
+        "storage.breakdown.label": "佔用明細",
+        "storage.breakdown.desc": "各目錄的詳細佔用大小",
+        "storage.localLuminalium.label": "AppData 本地資料",
+        "storage.updateBak.label": "更新備份",
+        "storage.appDir.label": "程式目錄",
+        "storage.updateCache.label": "更新快取",
+        "storage.cleanup.title": "清理",
+        "storage.cleanup.updateBak.label": "清理更新備份",
+        "storage.cleanup.updateBak.desc": "刪除 .update_bak 目錄中的舊版本備份檔案，釋放磁碟空間",
+        "storage.cleanup.updateCache.label": "清理更新快取",
+        "storage.cleanup.updateCache.desc": "刪除 AppData 中的 update_cache 目錄，釋放下載快取空間",
+        "storage.cleanup.btn": "清理",
+        "storage.cleanup.success": "已釋放 {size}",
+        "storage.cleanup.fail": "清理失敗",
+        "storage.cleanup.confirm": "確定要清理嗎？此操作不可撤銷。",
+        "archive.label": "使用者檔案",
+        "archive.desc": "管理不同的設定檔案，切換後下次啟動生效",
+        "archive.default": "預設檔案",
+        "archive.defaultDesc": "目前使用的設定",
+        "archive.defaultInactiveDesc": "初始設定",
+        "archive.create": "新建檔案",
+        "archive.createTitle": "新建檔案",
+        "archive.namePlaceholder": "輸入檔案名稱",
+        "archive.switch": "切換",
+        "archive.rename": "重新命名",
+        "archive.renameTitle": "重新命名檔案",
+        "archive.delete": "刪除",
+        "archive.cancel": "取消",
+        "archive.switchConfirm": "切換到檔案「{name}」？下次啟動時生效。",
+        "archive.switchSuccess": "檔案已切換，重啟後生效",
+        "archive.deleteConfirm": "確定要刪除檔案「{name}」嗎？此操作不可撤銷。",
+        "archive.cannotDeleteActive": "無法刪除目前使用的檔案",
+        "archive.activeBadge": "使用中",
+        "storage.backup.placeholder.label": "備份設定",
+        "storage.backup.placeholder.desc": "此頁面正在開發中，未來將提供備份與復原功能",
+        "storage.diskSummary": "磁碟總容量 {total}，已使用 {used}，Luminalium 佔用 {luminaliumSize}",
+        "notifications.placeholder.label": "通知設定",
+        "notifications.placeholder.desc": "此頁面正在開發中，未來將提供通知推送相關設定",
+        "notifications.resourceMonitorInterval.label": "效能檢測通知間隔",
+        "notifications.resourceMonitorInterval.desc": "設定系統資源效能檢測的通知間隔時間",
+        "notifications.interval.30s": "30 秒",
+        "notifications.interval.5min": "5 分鐘",
+        "notifications.interval.10min": "10 分鐘",
+        "notifications.interval.30min": "30 分鐘",
+        "notifications.interval.45min": "45 分鐘",
+        "notifications.interval.1hour": "1 小時",
+        "notifications.interval.never": "永不",
+        "notifications.timerNotifyEnabled.label": "倒數計時結束系統通知",
+        "notifications.timerNotifyEnabled.desc": "倒數計時結束時是否發送系統通知提醒",
         "group.fonts": "全域字型",
         "group.presentation": "放映",
         "group.overlayUi": "頂層視窗",
@@ -8048,7 +8570,7 @@
         "general.overlayScreen.screen3": "顯示器 3",
         "general.language.label": "介面語言",
         "general.language.desc": "更改語言後需重新啟動才能在所有介面生效",
-        "general.language.warning": "目前選擇的語言不是簡體中文。為了獲得最佳體驗，建議使用簡體中文。其他語言可能存在翻譯不全或排版錯位的問題。",
+        "general.language.warning": "此語言可能存在翻譯不全或排版錯位的問題。",
         "language.zh-CN": "簡體中文",
         "language.zh-TW": "繁體中文",
         "language.yue-HK": "粵語（繁體）",
@@ -8189,6 +8711,8 @@
         "nav.overlay": "放映",
         "nav.about": "關於",
         "nav.window": "視窗",
+        "nav.storage": "存儲、檔案同備份",
+        "nav.notifications": "通知",
         "nav.plugins": "工具列",
         "nav.pluginSettings": "插件設定",
         "nav.boardInBoard": "內建功能",
@@ -8199,6 +8723,8 @@
         "section.fonts": "全域字型",
         "section.overlay": "放映",
         "section.window": "視窗",
+        "section.storage": "存儲、檔案同備份",
+        "section.notifications": "通知",
         "section.plugins": "工具列",
         "section.plugin-settings": "插件設定",
         "section.board-in-board": "內建功能",
@@ -8208,6 +8734,66 @@
         "group.appearance": "外觀",
         "group.startup": "預設行為",
         "group.compatibility": "相容性",
+        "group.storage": "存儲、檔案同備份",
+        "group.notifications": "通知",
+        "storage.pivot.storage": "存儲",
+        "storage.pivot.archive": "檔案",
+        "storage.pivot.backup": "備份",
+        "storage.diskUsage.label": "磁碟佔用",
+        "storage.diskUsage.desc": "檢視 Luminalium 各目錄嘅硬碟佔用情況",
+        "storage.refresh": "重新整理",
+        "storage.legend.luminalium": "Luminalium 佔用",
+        "storage.legend.otherUsed": "其他佔用",
+        "storage.legend.free": "可用空間",
+        "storage.breakdown.label": "佔用明細",
+        "storage.breakdown.desc": "各目錄嘅詳細佔用大小",
+        "storage.localLuminalium.label": "AppData 本地資料",
+        "storage.updateBak.label": "更新備份",
+        "storage.appDir.label": "程式目錄",
+        "storage.updateCache.label": "更新快取",
+        "storage.cleanup.title": "清理",
+        "storage.cleanup.updateBak.label": "清理更新備份",
+        "storage.cleanup.updateBak.desc": "刪除 .update_bak 目錄入面嘅舊版本備份檔案，釋放磁碟空間",
+        "storage.cleanup.updateCache.label": "清理更新快取",
+        "storage.cleanup.updateCache.desc": "刪除 AppData 入面嘅 update_cache 目錄，釋放下載快取空間",
+        "storage.cleanup.btn": "清理",
+        "storage.cleanup.success": "已釋放 {size}",
+        "storage.cleanup.fail": "清理失敗",
+        "storage.cleanup.confirm": "確定要清理？呢個操作唔可以撤銷。",
+        "archive.label": "使用者檔案",
+        "archive.desc": "管理唔同嘅設定檔案，切換後下次啟動生效",
+        "archive.default": "預設檔案",
+        "archive.defaultDesc": "目前使用嘅設定",
+        "archive.defaultInactiveDesc": "初始設定",
+        "archive.create": "新建檔案",
+        "archive.createTitle": "新建檔案",
+        "archive.namePlaceholder": "輸入檔案名稱",
+        "archive.switch": "切換",
+        "archive.rename": "改 名",
+        "archive.renameTitle": "改名檔案",
+        "archive.delete": "刪除",
+        "archive.cancel": "取消",
+        "archive.switchConfirm": "切換到檔案「{name}」？下次啟動時生效。",
+        "archive.switchSuccess": "檔案已切換，重啟後生效",
+        "archive.deleteConfirm": "確定要刪除檔案「{name}」？呢個操作唔可以撤銷。",
+        "archive.cannotDeleteActive": "無法刪除目前使用嘅檔案",
+        "archive.activeBadge": "使用中",
+        "storage.backup.placeholder.label": "備份設定",
+        "storage.backup.placeholder.desc": "呢個頁面起緊，遲啲會提供備份同復原功能",
+        "storage.diskSummary": "磁碟總容量 {total}，已使用 {used}，Luminalium 佔用 {luminaliumSize}",
+        "notifications.placeholder.label": "通知設定",
+        "notifications.placeholder.desc": "呢個頁面起緊，遲啲會提供通知推送相關設定",
+        "notifications.resourceMonitorInterval.label": "效能檢測通知間隔",
+        "notifications.resourceMonitorInterval.desc": "設定系統資源效能檢測嘅通知間隔時間",
+        "notifications.interval.30s": "30 秒",
+        "notifications.interval.5min": "5 分鐘",
+        "notifications.interval.10min": "10 分鐘",
+        "notifications.interval.30min": "30 分鐘",
+        "notifications.interval.45min": "45 分鐘",
+        "notifications.interval.1hour": "1 小時",
+        "notifications.interval.never": "永不",
+        "notifications.timerNotifyEnabled.label": "倒數計時結束系統通知",
+        "notifications.timerNotifyEnabled.desc": "倒數計時結束時係咪發送系統通知提醒",
         "group.fonts": "全域字型",
         "group.presentation": "放映",
         "group.overlayUi": "頂層視窗",
@@ -8360,7 +8946,7 @@
         "general.overlayScreen.screen3": "顯示器 3",
         "general.language.label": "介面語言",
         "general.language.desc": "改語言後要重啟先會完全生效",
-        "general.language.warning": "而家揀嘅唔係簡體中文，翻譯可能唔齊兼排版會走樣。要穩陣就用簡體，出事唔好屌我。",
+        "general.language.warning": "此語言可能存在翻譯唔齊兼排版會走樣。",
         "language.zh-CN": "簡體中文",
         "language.zh-TW": "繁體中文",
         "language.yue-HK": "粵語（繁體）",
@@ -8506,11 +9092,15 @@
         "nav.accessibility": "アクセシビリティ",
         "nav.debug": "デバッグ",
         "nav.back": "戻る",
+        "nav.storage": "ストレージ、アーカイブ、バックアップ",
+        "nav.notifications": "通知",
         "section.main": "一般",
         "section.theme": "テーマ",
         "section.fonts": "グローバルフォント",
         "section.overlay": "プレゼン",
         "section.window": "ウィンドウ",
+        "section.storage": "ストレージ、アーカイブ、バックアップ",
+        "section.notifications": "通知",
         "section.plugins": "ツールバー",
         "section.plugin-settings": "プラグイン設定",
         "section.board-in-board": "内蔵機能",
@@ -8521,6 +9111,66 @@
         "group.appearance": "外観",
         "group.startup": "既定の動作",
         "group.compatibility": "互換性",
+        "group.storage": "ストレージ、アーカイブ、バックアップ",
+        "group.notifications": "通知",
+        "storage.pivot.storage": "ストレージ",
+        "storage.pivot.archive": "アーカイブ",
+        "storage.pivot.backup": "バックアップ",
+        "storage.diskUsage.label": "ディスク使用量",
+        "storage.diskUsage.desc": "Luminalium の各ディレクトリのディスク使用状況を確認",
+        "storage.refresh": "更新",
+        "storage.legend.luminalium": "Luminalium 使用量",
+        "storage.legend.otherUsed": "その他使用量",
+        "storage.legend.free": "空き容量",
+        "storage.breakdown.label": "使用量の内訳",
+        "storage.breakdown.desc": "各ディレクトリの詳細な使用量",
+        "storage.localLuminalium.label": "AppData ローカルデータ",
+        "storage.updateBak.label": "更新バックアップ",
+        "storage.appDir.label": "プログラムディレクトリ",
+        "storage.updateCache.label": "更新キャッシュ",
+        "storage.cleanup.title": "クリーンアップ",
+        "storage.cleanup.updateBak.label": "更新バックアップをクリーンアップ",
+        "storage.cleanup.updateBak.desc": ".update_bak ディレクトリの旧バージョンバックアップファイルを削除し、ディスク容量を解放",
+        "storage.cleanup.updateCache.label": "更新キャッシュをクリーンアップ",
+        "storage.cleanup.updateCache.desc": "AppData の update_cache ディレクトリを削除し、ダウンロードキャッシュを解放",
+        "storage.cleanup.btn": "クリーンアップ",
+        "storage.cleanup.success": "{size} 解放しました",
+        "storage.cleanup.fail": "クリーンアップに失敗しました",
+        "storage.cleanup.confirm": "クリーンアップしますか？この操作は元に戻せません。",
+        "archive.label": "ユーザープロファイル",
+        "archive.desc": "異なる設定プロファイルを管理し、切り替え後次回起動時に適用",
+        "archive.default": "デフォルト",
+        "archive.defaultDesc": "現在使用中の設定",
+        "archive.defaultInactiveDesc": "初期設定",
+        "archive.create": "新規作成",
+        "archive.createTitle": "プロファイルを新規作成",
+        "archive.namePlaceholder": "プロファイル名を入力",
+        "archive.switch": "切替",
+        "archive.rename": "名前変更",
+        "archive.renameTitle": "プロファイル名を変更",
+        "archive.delete": "削除",
+        "archive.cancel": "キャンセル",
+        "archive.switchConfirm": "プロファイル「{name}」に切り替えますか？次回起動時に適用されます。",
+        "archive.switchSuccess": "プロファイルを切り替えました。再起動後に適用されます",
+        "archive.deleteConfirm": "プロファイル「{name}」を削除しますか？この操作は元に戻せません。",
+        "archive.cannotDeleteActive": "現在使用中のプロファイルは削除できません",
+        "archive.activeBadge": "使用中",
+        "storage.backup.placeholder.label": "バックアップ設定",
+        "storage.backup.placeholder.desc": "このページは開発中であり、将来的にバックアップと復元機能を提供します",
+        "storage.diskSummary": "ディスク総容量 {total}、使用済み {used}、Luminalium 使用量 {luminaliumSize}",
+        "notifications.placeholder.label": "通知設定",
+        "notifications.placeholder.desc": "このページは開発中であり、将来的に通知プッシュ関連の設定を提供します",
+        "notifications.resourceMonitorInterval.label": "パフォーマンス検出通知間隔",
+        "notifications.resourceMonitorInterval.desc": "システムリソースのパフォーマンス検出の通知間隔を設定します",
+        "notifications.interval.30s": "30 秒",
+        "notifications.interval.5min": "5 分",
+        "notifications.interval.10min": "10 分",
+        "notifications.interval.30min": "30 分",
+        "notifications.interval.45min": "45 分",
+        "notifications.interval.1hour": "1 時間",
+        "notifications.interval.never": "通知しない",
+        "notifications.timerNotifyEnabled.label": "カウントダウン終了システム通知",
+        "notifications.timerNotifyEnabled.desc": "カウントダウン終了時にシステム通知を送信するかどうか",
         "group.fonts": "グローバルフォント",
         "group.presentation": "プレゼン",
         "group.overlayUi": "オーバーレイ UI",
@@ -8673,7 +9323,7 @@
         "general.overlayScreen.screen3": "ディスプレイ 3",
         "general.language.label": "表示言語",
         "general.language.desc": "言語変更後は再起動するとすべての画面に反映されます",
-        "general.language.warning": "現在選択されている言語は簡体字中国語ではありません。最高の体験を得るためには、簡体字中国語の使用をお勧めします。他の言語では翻訳が不完全であったり、レイアウトが崩れたりする可能性があります。",
+        "general.language.warning": "翻訳が不完全であったりレイアウトが崩れたりする可能性があります。",
         "language.zh-CN": "簡体字中国語",
         "language.zh-TW": "繁体字中国語",
         "language.yue-HK": "広東語（繁体字）",
@@ -8821,11 +9471,15 @@
         "nav.accessibility": "Accessibility",
         "nav.debug": "Debug",
         "nav.back": "Back",
+        "nav.storage": "Storage, Archive & Backup",
+        "nav.notifications": "Notifications",
         "section.main": "General",
         "section.theme": "Theme",
         "section.fonts": "Global Fonts",
         "section.overlay": "Presentation",
         "section.window": "Window",
+        "section.storage": "Storage, Archive & Backup",
+        "section.notifications": "Notifications",
         "section.plugins": "Toolbar",
         "section.plugin-settings": "Plugin Settings",
         "section.board-in-board": "Built-in Features",
@@ -8836,6 +9490,66 @@
         "group.appearance": "Appearance",
         "group.startup": "Default Behavior",
         "group.compatibility": "Compatibility",
+        "group.storage": "Storage, Archive and Backup",
+        "group.notifications": "Notifications",
+        "storage.pivot.storage": "Storage",
+        "storage.pivot.archive": "Archive",
+        "storage.pivot.backup": "Backup",
+        "storage.diskUsage.label": "Disk Usage",
+        "storage.diskUsage.desc": "View disk usage of Luminalium directories",
+        "storage.refresh": "Refresh",
+        "storage.legend.luminalium": "Luminalium Usage",
+        "storage.legend.otherUsed": "Other Usage",
+        "storage.legend.free": "Free Space",
+        "storage.breakdown.label": "Usage Breakdown",
+        "storage.breakdown.desc": "Detailed size of each directory",
+        "storage.localLuminalium.label": "AppData Local Data",
+        "storage.updateBak.label": "Update Backup",
+        "storage.appDir.label": "Program Directory",
+        "storage.updateCache.label": "Update Cache",
+        "storage.cleanup.title": "Cleanup",
+        "storage.cleanup.updateBak.label": "Clean Update Backup",
+        "storage.cleanup.updateBak.desc": "Delete old version backup files in .update_bak directory to free up disk space",
+        "storage.cleanup.updateCache.label": "Clean Update Cache",
+        "storage.cleanup.updateCache.desc": "Delete update_cache directory in AppData to free up download cache space",
+        "storage.cleanup.btn": "Clean",
+        "storage.cleanup.success": "Freed {size}",
+        "storage.cleanup.fail": "Cleanup failed",
+        "storage.cleanup.confirm": "Are you sure you want to clean? This action cannot be undone.",
+        "archive.label": "User Profiles",
+        "archive.desc": "Manage different configuration profiles, applied on next startup after switching",
+        "archive.default": "Default Profile",
+        "archive.defaultDesc": "Currently active configuration",
+        "archive.defaultInactiveDesc": "Initial configuration",
+        "archive.create": "New Profile",
+        "archive.createTitle": "Create New Profile",
+        "archive.namePlaceholder": "Enter profile name",
+        "archive.switch": "Switch",
+        "archive.rename": "Rename",
+        "archive.renameTitle": "Rename Profile",
+        "archive.delete": "Delete",
+        "archive.cancel": "Cancel",
+        "archive.switchConfirm": "Switch to profile \"{name}\"? It will take effect on next startup.",
+        "archive.switchSuccess": "Profile switched. Restart to apply.",
+        "archive.deleteConfirm": "Delete profile \"{name}\"? This action cannot be undone.",
+        "archive.cannotDeleteActive": "Cannot delete the active profile",
+        "archive.activeBadge": "Active",
+        "storage.backup.placeholder.label": "Backup Settings",
+        "storage.backup.placeholder.desc": "This page is under development and will provide backup and restore features in the future",
+        "storage.diskSummary": "Disk total {total}, used {used}, Luminalium usage {luminaliumSize}",
+        "notifications.placeholder.label": "Notification Settings",
+        "notifications.placeholder.desc": "This page is under development and will provide notification push related settings in the future",
+        "notifications.resourceMonitorInterval.label": "Performance Check Notification Interval",
+        "notifications.resourceMonitorInterval.desc": "Set the notification interval for system resource performance checks",
+        "notifications.interval.30s": "30 seconds",
+        "notifications.interval.5min": "5 minutes",
+        "notifications.interval.10min": "10 minutes",
+        "notifications.interval.30min": "30 minutes",
+        "notifications.interval.45min": "45 minutes",
+        "notifications.interval.1hour": "1 hour",
+        "notifications.interval.never": "Never",
+        "notifications.timerNotifyEnabled.label": "Countdown End System Notification",
+        "notifications.timerNotifyEnabled.desc": "Send a system notification when the countdown finishes",
         "group.fonts": "Global Fonts",
         "group.presentation": "Presentation",
         "group.overlayUi": "Overlay UI",
@@ -8982,7 +9696,7 @@
         "general.overlayScreen.screen3": "Screen 3",
         "general.language.label": "Interface language",
         "general.language.desc": "Restart is required for the language to apply everywhere",
-        "general.language.warning": "The selected language may be incomplete or misaligned. For the best experience, Simplified Chinese is recommended.",
+        "general.language.warning": "The selected language may be incomplete or misaligned.",
         "language.zh-CN": "Simplified Chinese",
         "language.zh-TW": "Traditional Chinese",
         "language.yue-HK": "Cantonese (Traditional)",
@@ -9032,6 +9746,8 @@
         "nav.accessibility": "Accessibility",
         "nav.debug": "Debug",
         "nav.back": "Back",
+        "nav.storage": "Storage, Archive & Backup",
+        "nav.notifications": "Notifications",
         "section.main": "General",
         "section.theme": "Theme",
         "section.fonts": "Global Fonts",
@@ -9193,7 +9909,7 @@
         "general.overlayScreen.screen3": "Screen 3",
         "general.language.label": "Interface language",
         "general.language.desc": "Restart is required for the language to apply everywhere",
-        "general.language.warning": "The selected language may be incomplete or misaligned. For the best experience, Simplified Chinese is recommended.",
+        "general.language.warning": "The selected language may be incomplete or misaligned.",
         "language.zh-CN": "Simplified Chinese",
         "language.zh-TW": "Traditional Chinese",
         "language.yue-HK": "Cantonese (Traditional)",
@@ -9227,8 +9943,6 @@
         "interaction.statusBarShowNetwork.desc": "Display network status in status bar",
         "interaction.statusBarShowMusic.label": "Show music",
         "interaction.statusBarShowMusic.desc": "Display currently playing music in status bar",
-        "interaction.statusBarShowMusicProgress.label": "Show progress",
-        "interaction.statusBarShowMusicProgress.desc": "Display playback progress after music title in status bar",
         "overlay.safeArea.label": "Safe Area",
         "overlay.safeArea.desc": "Adjust distance between components and screen edge",
         "overlay.scale.label": "Component Scaling",
@@ -9343,6 +10057,9 @@
         "nav.theme": "ئۇسلۇب",
         "nav.fonts": "خەت نۇسخىسى",
         "nav.overlay": "قەۋەت كۆزنەك",
+        "nav.window": "كۆزنەك",
+        "nav.storage": "ساقلاش، ئارخىپ ۋە زاپاسلاش",
+        "nav.notifications": "ئۇقتۇرۇش",
         "nav.plugins": "قىستۇرما",
         "nav.pluginSettings": "قىستۇرما تەڭشەك",
         "nav.about": "ھەققىدە",
@@ -9351,9 +10068,73 @@
         "section.main": "ئاساسىي",
         "section.theme": "ئۇسلۇب",
         "section.fonts": "خەت نۇسخىسى",
+        "section.overlay": "قەۋەت كۆزنەك",
+        "section.window": "كۆزنەك",
+        "section.storage": "ساقلاش، ئارخىپ ۋە زاپاسلاش",
+        "section.notifications": "ئۇقتۇرۇش",
         "section.pluginSettings": "قىستۇرما تەڭشەك",
         "group.language": "تىل",
         "group.appearance": "كۆرۈنۈش",
+        "group.storage": "ساقلاش، ئارخىپ ۋە زاپاسلاش",
+        "group.notifications": "ئۇقتۇرۇش",
+        "storage.pivot.storage": "ساقلاش",
+        "storage.pivot.archive": "ئارخىپ",
+        "storage.pivot.backup": "زاپاسلاش",
+        "storage.diskUsage.label": "دىسكا ئىگىلەش",
+        "storage.diskUsage.desc": "Luminalium ھۆججەت قىسقۇچلىرىنىڭ دىسكا ئىگىلەش ئەھۋالىنى كۆرۈش",
+        "storage.refresh": "يېڭىلاش",
+        "storage.legend.luminalium": "Luminalium ئىگىلەش",
+        "storage.legend.otherUsed": "باشقا ئىگىلەش",
+        "storage.legend.free": "بوشلۇق",
+        "storage.breakdown.label": "ئىگىلەش تەپسىلاتى",
+        "storage.breakdown.desc": "ھەر بىر ھۆججەت قىسقۇچنىڭ تەپسىلىي چوڭلۇقى",
+        "storage.localLuminalium.label": "AppData يەرلىك سانلىق مەلۇمات",
+        "storage.updateBak.label": "يېڭىلاش زاپاس نۇسخىسى",
+        "storage.appDir.label": "پروگرامما ھۆججەت قىسقۇچى",
+        "storage.updateCache.label": "يېڭىلاش غەملىكى",
+        "storage.cleanup.title": "تازىلاش",
+        "storage.cleanup.updateBak.label": "يېڭىلاش زاپاس نۇسخىسىنى تازىلاش",
+        "storage.cleanup.updateBak.desc": ".update_bak ھۆججەت قىسقۇچىدىكى كونا نۇسخا زاپاس ھۆججەتلىرىنى ئۆچۈرۈپ، دىسكا بوشلۇقىنى قويۇپ بېرىش",
+        "storage.cleanup.updateCache.label": "يېڭىلاش غەملىكىنى تازىلاش",
+        "storage.cleanup.updateCache.desc": "AppData دىكى update_cache ھۆججەت قىسقۇچىنى ئۆچۈرۈپ، چۈشۈرۈش غەملىك بوشلۇقىنى قويۇپ بېرىش",
+        "storage.cleanup.btn": "تازىلاش",
+        "storage.cleanup.success": "{size} قويۇپ بېرىلدى",
+        "storage.cleanup.fail": "تازىلاش مەغلۇپ بولدى",
+        "storage.cleanup.confirm": "تازىلاشنى جەزملەشتۈرەمسىز؟ بۇ مەشغۇلاتنى ئەمەلدىن قالدۇرغىلى بولمايدۇ.",
+        "archive.label": "ئىشلەتكۈچى ئارخىپى",
+        "archive.desc": "ئوخشىمىغان سەپلىمە ئارخىپلىرىنى باشقۇرۇڭ، ئالماشتۇرغاندىن كېيىن كېيىنكى قېتىم قوزغالغاندا كۈچكە كىرىدۇ",
+        "archive.default": "كۆڭۈلدىكى ئارخىپ",
+        "archive.defaultDesc": "نۆۋەتتە ئىشلىتىلىۋاتقان سەپلىمە",
+        "archive.defaultInactiveDesc": "دەسلەپكى سەپلىمە",
+        "archive.create": "يېڭى ئارخىپ",
+        "archive.createTitle": "يېڭى ئارخىپ قۇرۇش",
+        "archive.namePlaceholder": "ئارخىپ نامىنى كىرگۈزۈڭ",
+        "archive.switch": "ئالماشتۇرۇش",
+        "archive.rename": "ئۆزگەرتىش",
+        "archive.renameTitle": "ئارخىپ نامىنى ئۆزگەرتىش",
+        "archive.delete": "ئۆچۈرۈش",
+        "archive.cancel": "بىكار قىلىش",
+        "archive.switchConfirm": "«{name}» ئارخىپىغا ئالماشتۇرامسىز؟ كېيىنكى قېتىم قوزغالغاندا كۈچكە كىرىدۇ.",
+        "archive.switchSuccess": "ئارخىپ ئالماشتۇرۇلدى، قايتا قوزغاتقاندىن كېيىن كۈچكە كىرىدۇ",
+        "archive.deleteConfirm": "«{name}» ئارخىپىنى ئۆچۈرەمسىز؟ بۇ مەشغۇلاتنى ئەمەلدىن قالدۇرغىلى بولمايدۇ.",
+        "archive.cannotDeleteActive": "نۆۋەتتە ئىشلىتىلىۋاتقان ئارخىپنى ئۆچۈرگىلى بولمايدۇ",
+        "archive.activeBadge": "ئىشلىتىلىۋاتىدۇ",
+        "storage.backup.placeholder.label": "زاپاسلاش تەڭشىكى",
+        "storage.backup.placeholder.desc": "بۇ بەت ئېچىۋاتىدۇ، كەلگۈسىدە زاپاسلاش ۋە ئەسلىگە كەلتۈرۈش ئىقتىدارى تەمىنلىنىدۇ",
+        "storage.diskSummary": "دىسكا ئومۇمىي سىغىمى {total}، ئىشلىتىلگەن {used}، Luminalium ئىگىلەش {luminaliumSize}",
+        "notifications.placeholder.label": "ئۇقتۇرۇش تەڭشىكى",
+        "notifications.placeholder.desc": "بۇ بەت ئېچىۋاتىدۇ، كەلگۈسىدە ئۇقتۇرۇش ئىتتىرىش مۇناسىۋەتلىك تەڭشەكلىرى تەمىنلىنىدۇ",
+        "notifications.resourceMonitorInterval.label": "ئۈنۈم تەكشۈرۈش ئۇقتۇرۇش ئارىلىقى",
+        "notifications.resourceMonitorInterval.desc": "سىستېما مەنبە ئۈنۈمىنى تەكشۈرۈش ئۇقتۇرۇش ئارىلىق ۋاقتىنى تەڭشەڭ",
+        "notifications.interval.30s": "30 سېكۇنت",
+        "notifications.interval.5min": "5 مىنۇت",
+        "notifications.interval.10min": "10 مىنۇت",
+        "notifications.interval.30min": "30 مىنۇت",
+        "notifications.interval.45min": "45 مىنۇت",
+        "notifications.interval.1hour": "1 سائەت",
+        "notifications.interval.never": "ھەرگىز",
+        "notifications.timerNotifyEnabled.label": "ۋاقىت توشقاندا سىستېما ئۇقتۇرۇشى",
+        "notifications.timerNotifyEnabled.desc": "ۋاقىت توشقاندا سىستېما ئۇقتۇرۇشى ئەۋەتىلسۇنمۇ",
         "group.installedPlugins": "قاچىلانغان قىستۇرما",
         "plugins.none.label": "قىستۇرما يوق",
         "plugins.none.desc": "بۇ يەردە قاچىلانغان قىستۇرما تەڭشەكلىرى كۆرسىتىلىدۇ",
@@ -10767,6 +11548,396 @@
       });
     }
 
+    function switchStorageTab(tabId) {
+      const items = document.querySelectorAll('.pivot-item[data-pivot-group="storage"]');
+      items.forEach(el => {
+        el.classList.toggle('active', el.dataset.pivot === tabId);
+      });
+      const contents = document.querySelectorAll('.pivot-content[data-pivot-group="storage"]');
+      contents.forEach(el => {
+        el.classList.toggle('active', el.dataset.pivotContent === tabId);
+      });
+      if (tabId === 'storage') {
+        refreshStorageInfo();
+      }
+      if (tabId === 'archive') {
+        loadProfiles();
+      }
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 B';
+      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(1024));
+      const val = (bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0);
+      return val + ' ' + units[i];
+    }
+
+    function showStorageToast(message) {
+      let toast = document.getElementById('storage-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'storage-toast';
+        toast.className = 'storage-toast';
+        document.body.appendChild(toast);
+      }
+      toast.textContent = message;
+      toast.classList.add('visible');
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => {
+        toast.classList.remove('visible');
+      }, 3000);
+    }
+
+    async function refreshStorageInfo(force) {
+      if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.get_storage_info) return;
+
+      const refreshBtn = document.querySelector('#section-storage .settings-button[onclick="refreshStorageInfo(true)"]');
+      if (force && refreshBtn) {
+        refreshBtn.disabled = true;
+        refreshBtn.style.opacity = '0.6';
+      }
+
+      try {
+        const info = await window.pywebview.api.get_storage_info(!!force);
+        _applyStorageInfo(info);
+      } catch (e) {
+        console.error('Failed to refresh storage info:', e);
+      } finally {
+        if (refreshBtn) {
+          refreshBtn.disabled = false;
+          refreshBtn.style.opacity = '';
+        }
+      }
+    }
+
+    function _applyStorageInfo(info) {
+      if (!info || !info.disk) return;
+
+      const diskTotal = info.disk.total || 1;
+      const diskUsed = info.disk.used || 0;
+
+      const localSize = info.localLuminalium ? info.localLuminalium.size : 0;
+      const updateBakSize = info.updateBak ? info.updateBak.size : 0;
+      const appDirSize = info.appDir ? info.appDir.size : 0;
+      const updateCacheSizeCalc = info.updateCache ? info.updateCache.size : 0;
+      const luminaliumTotal = localSize + updateBakSize + appDirSize + updateCacheSizeCalc;
+
+      const usedPercent = (diskUsed / diskTotal) * 100;
+      const luminaliumPercent = (luminaliumTotal / diskTotal) * 100;
+
+      const usedBar = document.getElementById('storage-disk-bar-used');
+      const luminaliumBar = document.getElementById('storage-disk-bar-luminalium');
+      if (usedBar) usedBar.style.width = usedPercent + '%';
+      if (luminaliumBar) {
+        luminaliumBar.style.left = '0%';
+        luminaliumBar.style.width = luminaliumPercent + '%';
+      }
+
+      const summaryEl = document.getElementById('storage-disk-summary');
+      if (summaryEl) {
+        const template = getText('storage.diskSummary') || '磁盘总容量 {total}，已使用 {used}，Luminalium 占用 {luminaliumSize}';
+        summaryEl.textContent = template
+          .replace('{total}', formatBytes(diskTotal))
+          .replace('{used}', formatBytes(diskUsed))
+          .replace('{luminaliumSize}', formatBytes(luminaliumTotal));
+      }
+
+      const localSizeEl = document.getElementById('storage-local-size');
+      if (localSizeEl) localSizeEl.textContent = formatBytes(localSize);
+
+      const updateBakSizeEl = document.getElementById('storage-updatebak-size');
+      if (updateBakSizeEl) updateBakSizeEl.textContent = formatBytes(updateBakSize);
+
+      const appDirSizeEl = document.getElementById('storage-appdir-size');
+      if (appDirSizeEl) appDirSizeEl.textContent = formatBytes(appDirSize);
+
+      const updateCacheSizeEl = document.getElementById('storage-updatecache-size');
+      if (updateCacheSizeEl) updateCacheSizeEl.textContent = formatBytes(updateCacheSizeCalc);
+
+      const cleanupBakItem = document.getElementById('storage-cleanup-updatebak');
+      if (cleanupBakItem) {
+        const btn = cleanupBakItem.querySelector('.storage-cleanup-btn');
+        if (btn && info.updateBak && !info.updateBak.exists) {
+          btn.disabled = true;
+          btn.style.opacity = '0.4';
+        } else if (btn) {
+          btn.disabled = false;
+          btn.style.opacity = '';
+        }
+      }
+
+      const cleanupCacheItem = document.getElementById('storage-cleanup-updatecache');
+      if (cleanupCacheItem) {
+        const btn = cleanupCacheItem.querySelector('.storage-cleanup-btn');
+        if (btn && info.updateCache && !info.updateCache.exists) {
+          btn.disabled = true;
+          btn.style.opacity = '0.4';
+        } else if (btn) {
+          btn.disabled = false;
+          btn.style.opacity = '';
+        }
+      }
+
+      const updatedAtEl = document.getElementById('storage-updated-at');
+      if (updatedAtEl && info.updatedAt) {
+        const d = new Date(info.updatedAt * 1000);
+        const timeStr = d.toLocaleString();
+        const template = getText('storage.updatedAt') || '上次更新: {time}';
+        updatedAtEl.textContent = template.replace('{time}', timeStr);
+      }
+    }
+
+    async function loadProfiles() {
+      if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.list_profiles) return;
+      try {
+        const result = await window.pywebview.api.list_profiles();
+        _renderProfiles(result);
+      } catch (e) {
+        console.error('Failed to load profiles:', e);
+      }
+    }
+
+    function _renderProfiles(data) {
+      const listEl = document.getElementById('archive-profile-list');
+      if (!listEl) return;
+
+      const profiles = data.profiles || [];
+      const activeName = data.active || 'default';
+      const activeText = getText('archive.activeBadge') || '使用中';
+      const defaultActiveDesc = getText('archive.defaultDesc') || '当前正在使用的配置';
+      const defaultInactiveDesc = getText('archive.defaultInactiveDesc') || '初始配置';
+
+      let html = '';
+
+      const defaultIsActive = activeName === 'default';
+      html += '<div class="archive-profile-item">';
+      html += '  <div class="archive-profile-info">';
+      html += '    <div class="archive-profile-name">' + (getText('archive.default') || '默认档案') + '</div>';
+      html += '    <div class="archive-profile-meta">' + (defaultIsActive ? defaultActiveDesc : defaultInactiveDesc) + '</div>';
+      html += '  </div>';
+      if (defaultIsActive) {
+        html += '  <span class="archive-profile-badge">' + activeText + '</span>';
+      } else {
+        html += '  <div class="archive-profile-actions">';
+        html += '    <button class="settings-button" onclick="switchProfile(\'default\')">' + (getText('archive.switch') || '切换') + '</button>';
+        html += '  </div>';
+      }
+      html += '</div>';
+
+      for (const p of profiles) {
+        const isActive = p.name === activeName;
+        html += '<div class="archive-profile-item" data-profile="' + p.name + '">';
+        html += '  <div class="archive-profile-info">';
+        html += '    <div class="archive-profile-name">' + p.name + '</div>';
+        html += '    <div class="archive-profile-meta">' + new Date(p.mtime * 1000).toLocaleString() + '</div>';
+        html += '  </div>';
+        if (isActive) {
+          html += '  <span class="archive-profile-badge">' + activeText + '</span>';
+        } else {
+          html += '  <div class="archive-profile-actions">';
+          html += '    <button class="settings-button" onclick="switchProfile(\'' + p.name.replace(/'/g, "\\'") + '\')">' + (getText('archive.switch') || '切换') + '</button>';
+          html += '    <button class="settings-button" onclick="renameProfileDialog(\'' + p.name.replace(/'/g, "\\'") + '\')">' + (getText('archive.rename') || '重命名') + '</button>';
+          html += '    <button class="settings-button" onclick="deleteProfile(\'' + p.name.replace(/'/g, "\\'") + '\')">' + (getText('archive.delete') || '删除') + '</button>';
+          html += '  </div>';
+        }
+        html += '</div>';
+      }
+
+      listEl.innerHTML = html;
+    }
+
+    function createProfileDialog() {
+      const overlay = document.createElement('div');
+      overlay.className = 'archive-dialog-overlay';
+      overlay.id = 'archive-dialog-overlay';
+
+      const dialog = document.createElement('div');
+      dialog.className = 'archive-dialog';
+
+      const title = document.createElement('div');
+      title.className = 'archive-dialog-title';
+      title.textContent = getText('archive.createTitle') || '新建档案';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = getText('archive.namePlaceholder') || '输入档案名称';
+      input.id = 'archive-dialog-input';
+
+      const btns = document.createElement('div');
+      btns.className = 'archive-dialog-btns';
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'settings-button';
+      cancelBtn.textContent = getText('archive.cancel') || '取消';
+      cancelBtn.onclick = () => overlay.remove();
+
+      const confirmBtn = document.createElement('button');
+      confirmBtn.className = 'settings-button btn-primary';
+      confirmBtn.textContent = getText('archive.create') || '新建';
+      confirmBtn.onclick = async () => {
+        const name = input.value.trim();
+        if (!name) return;
+        try {
+          const result = await window.pywebview.api.create_profile(name);
+          if (result.success) {
+            overlay.remove();
+            loadProfiles();
+          } else if (result.error === 'profile_exists') {
+            input.style.borderColor = '#e5523c';
+          }
+        } catch (e) {
+          console.error('Create profile failed:', e);
+        }
+      };
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') confirmBtn.click();
+        if (e.key === 'Escape') overlay.remove();
+      });
+
+      btns.appendChild(cancelBtn);
+      btns.appendChild(confirmBtn);
+      dialog.appendChild(title);
+      dialog.appendChild(input);
+      dialog.appendChild(btns);
+      overlay.appendChild(dialog);
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.remove();
+      });
+      document.body.appendChild(overlay);
+      input.focus();
+    }
+
+    function renameProfileDialog(oldName) {
+      const overlay = document.createElement('div');
+      overlay.className = 'archive-dialog-overlay';
+      overlay.id = 'archive-dialog-overlay';
+
+      const dialog = document.createElement('div');
+      dialog.className = 'archive-dialog';
+
+      const title = document.createElement('div');
+      title.className = 'archive-dialog-title';
+      title.textContent = getText('archive.renameTitle') || '重命名档案';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = oldName;
+      input.id = 'archive-dialog-input';
+
+      const btns = document.createElement('div');
+      btns.className = 'archive-dialog-btns';
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'settings-button';
+      cancelBtn.textContent = getText('archive.cancel') || '取消';
+      cancelBtn.onclick = () => overlay.remove();
+
+      const confirmBtn = document.createElement('button');
+      confirmBtn.className = 'settings-button btn-primary';
+      confirmBtn.textContent = getText('archive.rename') || '重命名';
+      confirmBtn.onclick = async () => {
+        const newName = input.value.trim();
+        if (!newName || newName === oldName) return;
+        try {
+          const result = await window.pywebview.api.rename_profile(oldName, newName);
+          if (result.success) {
+            overlay.remove();
+            loadProfiles();
+          } else if (result.error === 'name_exists') {
+            input.style.borderColor = '#e5523c';
+          }
+        } catch (e) {
+          console.error('Rename profile failed:', e);
+        }
+      };
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') confirmBtn.click();
+        if (e.key === 'Escape') overlay.remove();
+      });
+
+      btns.appendChild(cancelBtn);
+      btns.appendChild(confirmBtn);
+      dialog.appendChild(title);
+      dialog.appendChild(input);
+      dialog.appendChild(btns);
+      overlay.appendChild(dialog);
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.remove();
+      });
+      document.body.appendChild(overlay);
+      input.focus();
+      input.select();
+    }
+
+    async function switchProfile(name) {
+      if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.switch_profile) return;
+      const confirmMsg = (getText('archive.switchConfirm') || '切换到档案「{name}」？下次启动时生效。').replace('{name}', name);
+      if (!confirm(confirmMsg)) return;
+      try {
+        const result = await window.pywebview.api.switch_profile(name);
+        if (result.success) {
+          loadProfiles();
+          showStorageToast(getText('archive.switchSuccess') || '档案已切换，重启后生效');
+        }
+      } catch (e) {
+        console.error('Switch profile failed:', e);
+      }
+    }
+
+    async function deleteProfile(name) {
+      if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.delete_profile) return;
+      const confirmMsg = (getText('archive.deleteConfirm') || '确定要删除档案「{name}」吗？此操作不可撤销。').replace('{name}', name);
+      if (!confirm(confirmMsg)) return;
+      try {
+        const result = await window.pywebview.api.delete_profile(name);
+        if (result.success) {
+          loadProfiles();
+        } else if (result.error === 'cannot_delete_active') {
+          showStorageToast(getText('archive.cannotDeleteActive') || '无法删除当前使用的档案');
+        }
+      } catch (e) {
+        console.error('Delete profile failed:', e);
+      }
+    }
+
+    async function cleanDirectory(target) {
+      const confirmMsg = getText('storage.cleanup.confirm') || '确定要清理吗？此操作不可撤销。';
+      if (!confirm(confirmMsg)) return;
+
+      const btn = target === 'update_bak'
+        ? document.querySelector('#storage-cleanup-updatebak .storage-cleanup-btn')
+        : document.querySelector('#storage-cleanup-updatecache .storage-cleanup-btn');
+      if (btn) {
+        btn.classList.add('cleaning');
+        btn.textContent = '...';
+      }
+
+      try {
+        if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.clean_directory) return;
+        const result = await window.pywebview.api.clean_directory(target);
+        if (result.success) {
+          const successMsg = (getText('storage.cleanup.success') || '已释放 {size}')
+            .replace('{size}', formatBytes(result.freed));
+          showStorageToast(successMsg);
+        } else {
+          const failMsg = getText('storage.cleanup.fail') || '清理失败';
+          showStorageToast(failMsg + (result.error ? ': ' + result.error : ''));
+        }
+        refreshStorageInfo(true);
+      } catch (e) {
+        console.error('Clean directory failed:', e);
+        showStorageToast(getText('storage.cleanup.fail') || '清理失败');
+      } finally {
+        if (btn) {
+          btn.classList.remove('cleaning');
+          btn.textContent = getText('storage.cleanup.btn') || '清理';
+        }
+      }
+    }
+
     const ThemeSystem = {
       applyTheme: (themeId, mode) => {
         const id = themeId || "default";
@@ -11034,6 +12205,14 @@
         window.pywebview.api.save_setting("Overlay", "OverlayScreen", value);
       }
       updateTaskbarPreview();
+    }
+
+    function setResourceMonitorInterval(value) {
+      if (!settings.Notifications) settings.Notifications = {};
+      settings.Notifications.ResourceMonitorInterval = value;
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+        window.pywebview.api.save_setting("Notifications", "ResourceMonitorInterval", value);
+      }
     }
 
     function updateToolbarIndicatorPosition() {
@@ -11440,6 +12619,9 @@
           sections.forEach(function (sec) {
             sec.classList.toggle("active", sec.id === "section-" + key);
           });
+          if (key === "storage") {
+            setTimeout(refreshStorageInfo, 100);
+          }
           if (title) {
             const textKey = "section." + key;
             const text = getText(textKey);
@@ -12156,7 +13338,6 @@
         setSwitch("Overlay", "StatusBarShowVolume");
         setSwitch("Overlay", "StatusBarShowNetwork");
         setSwitch("Overlay", "StatusBarShowMusic");
-        setSwitch("Overlay", "StatusBarShowMusicProgress");
         setSwitch("Toolbar", "ShowSpotlight");
         setSwitch("Toolbar", "ShowBoardInBoard");
         setSwitch("Toolbar", "ShowTimer");
@@ -12170,6 +13351,7 @@
         setSwitch("Update", "AutoCheck");
         setSwitch("Fonts", "CustomFont");
         setSwitch("Security", "EnablePassword");
+        setSwitch("Notifications", "TimerNotifyEnabled");
         renderCrashAutoHandleSelect();
         renderSystemBackdropSelect();
 
@@ -12207,6 +13389,14 @@
         if (clearModeEl) {
           clearModeEl.value = clearMode;
           refreshCustomSelect(clearModeEl);
+        }
+
+        // Resource Monitor Interval
+        const resInterval = settings.Notifications?.ResourceMonitorInterval ?? 300;
+        const resIntervalEl = document.getElementById("sel-Notifications-ResourceMonitorInterval");
+        if (resIntervalEl) {
+          resIntervalEl.value = String(resInterval);
+          refreshCustomSelect(resIntervalEl);
         }
 
         // Splash Mode
@@ -12430,8 +13620,7 @@
 
     function setSwitch(cat, key) {
       const defaultVal =
-        (cat === "Overlay" && key === "StatusBarShowMusicProgress")
-        || (cat === "Timer" && key === "EnableSoundEffects");
+        (cat === "Timer" && key === "EnableSoundEffects");
       const val = settings[cat]?.[key] ?? defaultVal;
       if (!settings[cat]) settings[cat] = {};
       if (!(key in settings[cat])) settings[cat][key] = val;

@@ -21,3 +21,6 @@ scripts/smtc_helper/bin/
 scripts/smtc_helper/obj/
 .workbuddy
 debug.log
+profiles/_active
+.gitignore
+profiles/Profile 2.json

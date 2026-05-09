@@ -83,30 +83,61 @@ class WindowsSystemAPI(SystemAPI):
         self._smtc_reader_thread = None
         self._smtc_output_queue = None
         self._smtc_request_id = 0
+        self._last_good_media_info = {
+            "title": "",
+            "artist": "",
+            "status": "Stopped",
+            "position_ms": 0,
+            "duration_ms": 0,
+            "artwork_data_url": "",
+        }
+        self._last_good_media_ts = 0.0
+        self._smtc_artwork_cache = {}
         atexit.register(self.close)
 
     def get_media_info(self):
-        now = time.monotonic()
-        if now < self._smtc_next_allowed:
-            return {
-                "title": "",
-                "artist": "",
-                "status": "Stopped",
-                "position_ms": 0,
-                "duration_ms": 0,
-            }
+        request_started_at = time.monotonic()
+        if request_started_at < self._smtc_next_allowed:
+            return self._fallback_media_info(request_started_at)
         try:
-            return self._get_media_info_from_worker()
+            info = self._get_media_info_from_worker()
+            received_at = time.monotonic()
+            if self._is_active_media(info):
+                self._last_good_media_info = dict(info)
+                self._last_good_media_ts = received_at
+                return info
+            # If helper briefly falls back to empty/stopped while playback is active,
+            # keep the last good payload to avoid UI flickering to "Stopped".
+            if self._last_good_media_ts and (received_at - self._last_good_media_ts) < 15.0:
+                return dict(self._last_good_media_info)
+            return info
         except Exception:
             self._restart_smtc_worker()
-            self._smtc_next_allowed = now + 5.0
-            return {
-                "title": "",
-                "artist": "",
-                "status": "Stopped",
-                "position_ms": 0,
-                "duration_ms": 0,
-            }
+            failed_at = time.monotonic()
+            self._smtc_next_allowed = failed_at + 5.0
+            return self._fallback_media_info(failed_at)
+
+    def _is_active_media(self, info):
+        status = str((info or {}).get("status", "") or "")
+        title = str((info or {}).get("title", "") or "").strip()
+        artist = str((info or {}).get("artist", "") or "").strip()
+        return (
+            status in {"Playing", "Paused", "Changing"}
+            or bool(title)
+            or bool(artist)
+        )
+
+    def _fallback_media_info(self, now):
+        if self._last_good_media_ts and (now - self._last_good_media_ts) < 15.0:
+            return dict(self._last_good_media_info)
+        return {
+            "title": "",
+            "artist": "",
+            "status": "Stopped",
+            "position_ms": 0,
+            "duration_ms": 0,
+            "artwork_data_url": "",
+        }
 
     def _get_media_info_from_worker(self):
         process, output_queue = self._ensure_smtc_worker()
@@ -116,22 +147,30 @@ class WindowsSystemAPI(SystemAPI):
                 raise RuntimeError("SMTC worker is not available")
             process.stdin.write(f"{request_id}\n")
             process.stdin.flush()
-        data = self._wait_for_smtc_response(request_id, output_queue, timeout=1.2)
+        # Artwork payloads can be large on the first fetch, so the helper needs
+        # a bit more time than plain metadata-only responses.
+        data = self._wait_for_smtc_response(request_id, output_queue, timeout=5.0)
         title = (data.get("title") or "").strip()
         artist = (data.get("artist") or "").strip()
-        display_title = title
-        if title and artist:
-            display_title = f"{title} - {artist}"
         position_ms = max(0, int(data.get("position_ms") or 0))
         duration_ms = max(0, int(data.get("duration_ms") or 0))
         if duration_ms and position_ms > duration_ms:
             position_ms = duration_ms
+
+        artwork_key = (data.get("artwork_key") or "").strip()
+        artwork_data_url = (data.get("artwork_data_url") or "").strip()
+        if artwork_data_url:
+            self._smtc_artwork_cache[artwork_key] = artwork_data_url
+        elif artwork_key and artwork_key in self._smtc_artwork_cache:
+            artwork_data_url = self._smtc_artwork_cache[artwork_key]
+
         return {
-            "title": display_title,
+            "title": title,
             "artist": artist,
             "status": data.get("status", "Stopped") or "Stopped",
             "position_ms": position_ms,
             "duration_ms": duration_ms,
+            "artwork_data_url": artwork_data_url,
         }
 
     def _ensure_smtc_worker(self):
@@ -144,7 +183,7 @@ class WindowsSystemAPI(SystemAPI):
                 return self._smtc_worker, self._smtc_output_queue
             self._stop_smtc_worker_locked()
             if not self._start_smtc_dotnet_worker_locked():
-                self._start_smtc_powershell_worker_locked()
+                raise RuntimeError("Failed to start SMTC helper worker")
             if not self._smtc_worker or not self._smtc_output_queue:
                 raise RuntimeError("Failed to start SMTC worker")
             return self._smtc_worker, self._smtc_output_queue
@@ -234,6 +273,8 @@ class WindowsSystemAPI(SystemAPI):
                 ["dotnet", "build", project_path, "-c", "Release", "-nologo"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 creationflags=creationflags,
                 startupinfo=startupinfo,
                 timeout=90,
@@ -247,10 +288,12 @@ class WindowsSystemAPI(SystemAPI):
 
     def _start_smtc_dotnet_worker_locked(self):
         helper_exe = self._resolve_smtc_helper_executable()
-        if self._smtc_helper_needs_rebuild(helper_exe):
-            built_helper_exe = self._build_smtc_helper_locked()
-            if built_helper_exe:
-                helper_exe = built_helper_exe
+        # Build first on every startup to keep helper in sync with latest source.
+        built_helper_exe = self._build_smtc_helper_locked()
+        if built_helper_exe:
+            helper_exe = built_helper_exe
+        elif self._smtc_helper_needs_rebuild(helper_exe):
+            return False
         if not helper_exe:
             return False
         try:
@@ -267,7 +310,7 @@ class WindowsSystemAPI(SystemAPI):
             command,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
             text=True,
             encoding="utf-8",
             errors="replace",
@@ -284,6 +327,12 @@ class WindowsSystemAPI(SystemAPI):
             daemon=True,
         )
         self._smtc_reader_thread.start()
+        self._smtc_stderr_thread = threading.Thread(
+            target=self._read_smtc_worker_stderr,
+            args=(process,),
+            daemon=True,
+        )
+        self._smtc_stderr_thread.start()
         return True
 
     def _start_smtc_powershell_worker_locked(self):
@@ -358,6 +407,16 @@ while (($requestId = [Console]::In.ReadLine()) -ne $null) {
             pass
         finally:
             output_queue.put(None)
+
+    def _read_smtc_worker_stderr(self, process):
+        try:
+            while process.stderr:
+                line = process.stderr.readline()
+                if not line:
+                    break
+                print(f"[SmtcHelper] {line.strip()}")
+        except Exception:
+            pass
 
     def _wait_for_smtc_response(self, request_id, output_queue, timeout):
         deadline = time.monotonic() + timeout

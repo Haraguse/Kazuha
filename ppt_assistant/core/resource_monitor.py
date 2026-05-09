@@ -51,8 +51,18 @@ class SystemResourceMonitor:
             except Exception as e:
                 print(f"[ResourceMonitor] Error during resource check: {e}")
 
-            # 等待下一个检测周期
-            time.sleep(self.CHECK_INTERVAL_SECONDS)
+            interval = self._get_check_interval()
+            if interval <= 0:
+                break
+
+            time.sleep(interval)
+
+    def _get_check_interval(self) -> int:
+        try:
+            from ppt_assistant.core.config import cfg
+            return int(cfg.resourceMonitorInterval.value)
+        except Exception:
+            return self.CHECK_INTERVAL_SECONDS
 
     def _check_resources(self) -> None:
         """检查系统资源占用"""
