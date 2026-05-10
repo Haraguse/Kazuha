@@ -1360,6 +1360,20 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             settings_path = os.path.join(base_dir, "settings.json")
         return settings_path
 
+    def _get_active_settings_path(self):
+        active_path = self._get_active_profile_path()
+        if os.path.exists(active_path):
+            try:
+                with open(active_path, "r", encoding="utf-8") as f:
+                    name = f.read().strip()
+                if name and name != "default":
+                    profile_path = os.path.join(self._get_profiles_dir(), name + ".json")
+                    if os.path.exists(profile_path):
+                        return profile_path
+            except Exception:
+                pass
+        return self._get_settings_path()
+
     def _get_settings_reset_marker_path(self):
         settings_path = self._get_settings_path()
         return os.path.join(os.path.dirname(settings_path), "settings.reset")
@@ -1388,7 +1402,7 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
 
     @Slot(result="QVariant")
     def get_quick_launch_apps(self):
-        settings_path = self._get_settings_path()
+        settings_path = self._get_active_settings_path()
         data = {}
         try:
             if os.path.exists(settings_path):
@@ -1419,7 +1433,7 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
         if not file_path:
             return self.get_quick_launch_apps()
         name = os.path.splitext(os.path.basename(file_path))[0]
-        settings_path = self._get_settings_path()
+        settings_path = self._get_active_settings_path()
         data = {}
         try:
             if os.path.exists(settings_path):
@@ -1449,7 +1463,7 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
     def rename_quick_launch_app(self, path, new_name):
         if not path or not new_name:
             return self.get_quick_launch_apps()
-        settings_path = self._get_settings_path()
+        settings_path = self._get_active_settings_path()
         data = {}
         try:
             if os.path.exists(settings_path):
@@ -1477,7 +1491,7 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
 
     @Slot(str, result="QVariant")
     def remove_quick_launch_app(self, path):
-        settings_path = self._get_settings_path()
+        settings_path = self._get_active_settings_path()
         data = {}
         try:
             if os.path.exists(settings_path):
@@ -1594,19 +1608,11 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
                 value = value.toPython()
         except Exception:
             pass
-        settings_path = os.environ.get("SETTINGS_PATH")
-        if not settings_path:
-            if getattr(sys, "frozen", False):
-                settings_path = os.path.join(
-                    os.path.dirname(sys.executable), "settings.json"
-                )
-            else:
-                base_dir = os.path.dirname(os.path.abspath(__file__))
-                settings_path = os.path.join(os.path.dirname(base_dir), "settings.json")
+        active_path = self._get_active_settings_path()
         try:
             data = {}
-            if os.path.exists(settings_path):
-                with open(settings_path, "r", encoding="utf-8") as f:
+            if os.path.exists(active_path):
+                with open(active_path, "r", encoding="utf-8") as f:
                     try:
                         data = json.load(f)
                     except JSONDecodeError:
@@ -1614,7 +1620,7 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             if category not in data:
                 data[category] = {}
             data[category][key] = value
-            with open(settings_path, "w", encoding="utf-8") as f:
+            with open(active_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
             self.settings = data
             # Hook for system integration settings
@@ -1639,13 +1645,7 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
 
     def _get_profiles_dir(self):
         settings_path = self._get_settings_path()
-        profiles_dir = os.path.join(os.path.dirname(settings_path), "profiles")
-        if not os.path.exists(profiles_dir):
-            try:
-                os.makedirs(profiles_dir)
-            except Exception:
-                pass
-        return profiles_dir
+        return os.path.dirname(settings_path)
 
     def _get_active_profile_path(self):
         return os.path.join(self._get_profiles_dir(), "_active")
@@ -1658,6 +1658,29 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
         if not name or name.startswith('_'):
             name = "profile_" + name.lstrip('_') if name.startswith('_') else "unnamed"
         return name[:64]
+
+    def _get_profiles_registry_path(self):
+        return os.path.join(self._get_profiles_dir(), "_profiles")
+
+    def _read_profiles_registry(self):
+        reg_path = self._get_profiles_registry_path()
+        try:
+            if os.path.exists(reg_path):
+                with open(reg_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if isinstance(data, list):
+                    return data
+        except Exception:
+            pass
+        return []
+
+    def _write_profiles_registry(self, names):
+        reg_path = self._get_profiles_registry_path()
+        try:
+            with open(reg_path, "w", encoding="utf-8") as f:
+                json.dump(sorted(set(names)), f, ensure_ascii=False)
+        except Exception:
+            pass
 
     @Slot(result="QVariant")
     def list_profiles(self):
@@ -1673,23 +1696,21 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
                 except Exception:
                     pass
 
-            if os.path.exists(profiles_dir):
-                for fname in os.listdir(profiles_dir):
-                    if fname.startswith('_') or not fname.endswith('.json'):
-                        continue
-                    pname = fname[:-5]
-                    fpath = os.path.join(profiles_dir, fname)
-                    try:
-                        mtime = os.path.getmtime(fpath)
-                        fsize = os.path.getsize(fpath)
-                        profiles.append({
-                            "name": pname,
-                            "active": pname == active_name,
-                            "mtime": mtime,
-                            "size": fsize,
-                        })
-                    except Exception:
-                        continue
+            for pname in self._read_profiles_registry():
+                fpath = os.path.join(profiles_dir, pname + ".json")
+                if not os.path.exists(fpath):
+                    continue
+                try:
+                    mtime = os.path.getmtime(fpath)
+                    fsize = os.path.getsize(fpath)
+                    profiles.append({
+                        "name": pname,
+                        "active": pname == active_name,
+                        "mtime": mtime,
+                        "size": fsize,
+                    })
+                except Exception:
+                    continue
             profiles.sort(key=lambda p: p["name"].lower())
         except Exception as e:
             print(f"Error listing profiles: {e}", file=sys.stderr)
@@ -1703,7 +1724,7 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
         if os.path.exists(profile_path):
             return {"success": False, "error": "profile_exists"}
         try:
-            settings_path = self._get_settings_path()
+            settings_path = self._get_active_settings_path()
             data = {}
             if os.path.exists(settings_path):
                 with open(settings_path, "r", encoding="utf-8") as f:
@@ -1715,6 +1736,10 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
                 data.pop(k, None)
             with open(profile_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
+            registry = self._read_profiles_registry()
+            if name not in registry:
+                registry.append(name)
+                self._write_profiles_registry(registry)
             return {"success": True, "name": name}
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -1722,67 +1747,30 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
     @Slot(str, result="QVariant")
     def switch_profile(self, name):
         name = self._sanitize_profile_name(name)
-        profiles_dir = self._get_profiles_dir()
-        settings_path = self._get_settings_path()
         active_path = self._get_active_profile_path()
 
         if name == "default":
             try:
-                if os.path.exists(settings_path):
-                    with open(settings_path, "r", encoding="utf-8") as f:
-                        current_data = json.load(f)
-                    current_name = "default"
-                    if os.path.exists(active_path):
-                        try:
-                            with open(active_path, "r", encoding="utf-8") as f:
-                                current_name = f.read().strip() or "default"
-                        except Exception:
-                            pass
-                    if current_name != "default":
-                        old_profile_path = os.path.join(profiles_dir, current_name + ".json")
-                        try:
-                            save_data = dict(current_data)
-                            for k in ("_restart_pending", "_open_settings_pending", "_quit_pending"):
-                                save_data.pop(k, None)
-                            with open(old_profile_path, "w", encoding="utf-8") as f:
-                                json.dump(save_data, f, indent=4, ensure_ascii=False)
-                        except Exception:
-                            pass
                 with open(active_path, "w", encoding="utf-8") as f:
                     f.write("default")
+                settings_path = self._get_settings_path()
+                if os.path.exists(settings_path):
+                    with open(settings_path, "r", encoding="utf-8") as f:
+                        self.settings = json.load(f)
                 return {"success": True, "name": "default"}
             except Exception as e:
                 return {"success": False, "error": str(e)}
 
+        profiles_dir = self._get_profiles_dir()
         profile_path = os.path.join(profiles_dir, name + ".json")
         if not os.path.exists(profile_path):
             return {"success": False, "error": "not_found"}
         try:
-            with open(settings_path, "r", encoding="utf-8") as f:
-                current_data = json.load(f)
-            current_name = "default"
-            if os.path.exists(active_path):
-                try:
-                    with open(active_path, "r", encoding="utf-8") as f:
-                        current_name = f.read().strip() or "default"
-                except Exception:
-                    pass
-            if current_name != "default":
-                old_profile_path = os.path.join(profiles_dir, current_name + ".json")
-                try:
-                    save_data = dict(current_data)
-                    for k in ("_restart_pending", "_open_settings_pending", "_quit_pending"):
-                        save_data.pop(k, None)
-                    with open(old_profile_path, "w", encoding="utf-8") as f:
-                        json.dump(save_data, f, indent=4, ensure_ascii=False)
-                except Exception:
-                    pass
             with open(profile_path, "r", encoding="utf-8") as f:
                 new_data = json.load(f)
-            with open(settings_path, "w", encoding="utf-8") as f:
-                json.dump(new_data, f, indent=4, ensure_ascii=False)
             with open(active_path, "w", encoding="utf-8") as f:
                 f.write(name)
+            self.settings = new_data
             return {"success": True, "name": name}
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -1806,6 +1794,10 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             return {"success": False, "error": "not_found"}
         try:
             os.remove(profile_path)
+            registry = self._read_profiles_registry()
+            if name in registry:
+                registry.remove(name)
+                self._write_profiles_registry(registry)
             return {"success": True}
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -1834,6 +1826,12 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             if active_name == old_name:
                 with open(active_path, "w", encoding="utf-8") as f:
                     f.write(new_name)
+            registry = self._read_profiles_registry()
+            if old_name in registry:
+                registry.remove(old_name)
+            if new_name not in registry:
+                registry.append(new_name)
+            self._write_profiles_registry(registry)
             return {"success": True, "name": new_name}
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -1937,86 +1935,64 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             traceback.print_exc(file=sys.stderr)
             return None
 
-    @Slot()
-    def restart_app(self):
-        settings_path = self._get_settings_path()
+    def _get_pending_action_path(self):
+        return os.path.join(self._get_profiles_dir(), "_pending_action")
+
+    def _write_runtime_flag(self, flags):
+        active_path = self._get_active_settings_path()
+        base_path = self._get_settings_path()
+        for path in (active_path, base_path):
+            try:
+                data = {}
+                if os.path.exists(path):
+                    with open(path, "r", encoding="utf-8") as f:
+                        try:
+                            data = json.load(f)
+                        except Exception:
+                            data = {}
+                for k, v in flags.items():
+                    if v is None:
+                        data.pop(k, None)
+                    else:
+                        data[k] = v
+                with open(path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=4, ensure_ascii=False)
+            except Exception:
+                pass
+        pending_path = self._get_pending_action_path()
         try:
             data = {}
-            if os.path.exists(settings_path):
-                with open(settings_path, "r", encoding="utf-8") as f:
+            if os.path.exists(pending_path):
+                with open(pending_path, "r", encoding="utf-8") as f:
                     try:
                         data = json.load(f)
-                    except JSONDecodeError:
+                    except Exception:
                         data = {}
-            data["_restart_pending"] = True
-            with open(settings_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
-        except Exception as e:
-            print(f"Error triggering restart: {e}", file=sys.stderr)
+            for k, v in flags.items():
+                if v is None:
+                    data.pop(k, None)
+                else:
+                    data[k] = v
+            with open(pending_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False)
+        except Exception:
+            pass
+
+    @Slot()
+    def restart_app(self):
+        self._write_runtime_flag({"_restart_pending": True})
 
     @Slot()
     def restart_and_open_settings(self):
-        settings_path = self._get_settings_path()
-        try:
-            data = {}
-            if os.path.exists(settings_path):
-                with open(settings_path, "r", encoding="utf-8") as f:
-                    try:
-                        data = json.load(f)
-                    except JSONDecodeError:
-                        data = {}
-            data.pop("_quit_pending", None)
-            data["_restart_pending"] = True
-            data["_open_settings_pending"] = True
-            with open(settings_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
-        except Exception as e:
-            print(f"Error triggering restart with settings open: {e}", file=sys.stderr)
+        self._write_runtime_flag({"_quit_pending": None, "_restart_pending": True, "_open_settings_pending": True})
 
     @Slot()
     def quit_app(self):
-        settings_path = self._get_settings_path()
-        try:
-            data = {}
-            if os.path.exists(settings_path):
-                with open(settings_path, "r", encoding="utf-8") as f:
-                    try:
-                        data = json.load(f)
-                    except JSONDecodeError:
-                        data = {}
-            data.pop("_restart_pending", None)
-            data.pop("_open_settings_pending", None)
-            data["_quit_pending"] = True
-            with open(settings_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
-        except Exception as e:
-            print(f"Error triggering quit: {e}", file=sys.stderr)
+        self._write_runtime_flag({"_restart_pending": None, "_open_settings_pending": None, "_quit_pending": True})
 
     @Slot()
     def clear_onboarding_pending_actions(self):
-        settings_path = self._get_settings_path()
-        try:
-            data = {}
-            if os.path.exists(settings_path):
-                with open(settings_path, "r", encoding="utf-8") as f:
-                    try:
-                        data = json.load(f)
-                    except JSONDecodeError:
-                        data = {}
-            changed = False
-            for key in (
-                "_restart_pending",
-                "_open_settings_pending",
-                "_quit_pending",
-            ):
-                if key in data:
-                    del data[key]
-                    changed = True
-            if changed:
-                with open(settings_path, "w", encoding="utf-8") as f:
-                    json.dump(data, f, indent=4, ensure_ascii=False)
-        except Exception as e:
-            print(f"Error clearing onboarding pending actions: {e}", file=sys.stderr)
+        self._write_runtime_flag({"_restart_pending": None, "_open_settings_pending": None, "_quit_pending": None})
 
     @Slot()
     def restart_from_crash_dialog(self):
@@ -2039,11 +2015,23 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
 
     @Slot()
     def reset_to_pre_onboarding_state(self):
-        settings_path = self._get_settings_path()
+        settings_path = self._get_active_settings_path()
+        base_path = self._get_settings_path()
         reset_marker = self._get_settings_reset_marker_path()
         try:
             if os.path.exists(settings_path):
                 os.remove(settings_path)
+            if base_path != settings_path and os.path.exists(base_path):
+                os.remove(base_path)
+            active_path = self._get_active_profile_path()
+            if os.path.exists(active_path):
+                os.remove(active_path)
+            reg_path = self._get_profiles_registry_path()
+            if os.path.exists(reg_path):
+                os.remove(reg_path)
+            pending_path = self._get_pending_action_path()
+            if os.path.exists(pending_path):
+                os.remove(pending_path)
         except Exception as e:
             print(f"Error deleting settings: {e}", file=sys.stderr)
         try:
@@ -3727,27 +3715,24 @@ def main():
                 base_dir = os.path.dirname(os.path.abspath(__file__))
                 settings_path = os.path.join(os.path.dirname(base_dir), "settings.json")
 
-        profiles_dir = os.path.join(os.path.dirname(settings_path), "profiles")
-        active_marker = os.path.join(profiles_dir, "_active")
+        settings_dir = os.path.dirname(settings_path)
+        active_marker = os.path.join(settings_dir, "_active")
+        active_settings_path = settings_path
         if os.path.exists(active_marker):
             try:
                 with open(active_marker, "r", encoding="utf-8") as _af:
                     _active_name = _af.read().strip()
                 if _active_name and _active_name != "default":
-                    _profile_path = os.path.join(profiles_dir, _active_name + ".json")
+                    _profile_path = os.path.join(settings_dir, _active_name + ".json")
                     if os.path.exists(_profile_path):
-                        with open(_profile_path, "r", encoding="utf-8") as _pf:
-                            _profile_data = json.load(_pf)
-                        if isinstance(_profile_data, dict):
-                            with open(settings_path, "w", encoding="utf-8") as _sf:
-                                json.dump(_profile_data, _sf, indent=4, ensure_ascii=False)
+                        active_settings_path = _profile_path
             except Exception:
                 pass
 
         api.settings = {}
-        if settings_path and os.path.exists(settings_path):
+        if os.path.exists(active_settings_path):
             try:
-                with open(settings_path, "r", encoding="utf-8") as f:
+                with open(active_settings_path, "r", encoding="utf-8") as f:
                     api.settings = json.load(f)
             except Exception:
                 pass

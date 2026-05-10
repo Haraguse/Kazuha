@@ -2837,66 +2837,6 @@
       margin-top: 8px;
     }
 
-    .archive-dialog-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.4);
-      z-index: 10000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .archive-dialog {
-      background: var(--bg-surface);
-      border-radius: 16px;
-      padding: 24px;
-      min-width: 320px;
-      max-width: 400px;
-      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
-    }
-
-    .archive-dialog-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: 16px;
-    }
-
-    .archive-dialog input {
-      width: 100%;
-      padding: 10px 14px;
-      border: 1px solid var(--divider);
-      border-radius: 8px;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      font-size: 14px;
-      font-family: inherit;
-      outline: none;
-      box-sizing: border-box;
-    }
-
-    .archive-dialog input:focus {
-      border-color: var(--accent-blue);
-    }
-
-    .archive-dialog-btns {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      margin-top: 16px;
-    }
-
-    .archive-dialog-btns .settings-button {
-      padding: 8px 20px;
-    }
-
-    .archive-dialog-btns .btn-primary {
-      background: var(--accent-blue);
-      color: #fff;
-      border-color: var(--accent-blue);
-    }
-
     .storage-toast {
       position: fixed;
       bottom: 24px;
@@ -5503,6 +5443,33 @@
       white-space: pre-wrap;
     }
 
+    .modal-input {
+      display: none;
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text-primary);
+      background: var(--bg-app);
+      border: 1px solid var(--divider);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
+
+    .modal-input.visible {
+      display: block;
+    }
+
+    .modal-input:focus {
+      border-color: var(--accent);
+    }
+
+    .modal-input.modal-input-error {
+      border-color: #e5523c;
+    }
+
     .modal-footer {
       display: flex;
       justify-content: flex-end;
@@ -7988,8 +7955,10 @@
         "archive.renameTitle": "重命名档案",
         "archive.delete": "删除",
         "archive.cancel": "取消",
-        "archive.switchConfirm": "切换到档案「{name}」？下次启动时生效。",
-        "archive.switchSuccess": "档案已切换，重启后生效",
+        "archive.switchTitle": "切换档案",
+        "archive.switchConfirm": "切换到档案「{name}」？切换后需要重启应用才能生效。",
+        "archive.switchYes": "切换并重启",
+        "archive.switchNo": "取消",
         "archive.deleteConfirm": "确定要删除档案「{name}」吗？此操作不可撤销。",
         "archive.cannotDeleteActive": "无法删除当前使用的档案",
         "archive.activeBadge": "使用中",
@@ -8397,8 +8366,10 @@
         "archive.renameTitle": "重新命名檔案",
         "archive.delete": "刪除",
         "archive.cancel": "取消",
-        "archive.switchConfirm": "切換到檔案「{name}」？下次啟動時生效。",
-        "archive.switchSuccess": "檔案已切換，重啟後生效",
+        "archive.switchTitle": "切換檔案",
+        "archive.switchConfirm": "切換到檔案「{name}」？切換後需要重啟應用才能生效。",
+        "archive.switchYes": "切換並重啟",
+        "archive.switchNo": "取消",
         "archive.deleteConfirm": "確定要刪除檔案「{name}」嗎？此操作不可撤銷。",
         "archive.cannotDeleteActive": "無法刪除目前使用的檔案",
         "archive.activeBadge": "使用中",
@@ -8773,8 +8744,10 @@
         "archive.renameTitle": "改名檔案",
         "archive.delete": "刪除",
         "archive.cancel": "取消",
-        "archive.switchConfirm": "切換到檔案「{name}」？下次啟動時生效。",
-        "archive.switchSuccess": "檔案已切換，重啟後生效",
+        "archive.switchTitle": "切換檔案",
+        "archive.switchConfirm": "切換到檔案「{name}」？切換後需要重啟應用先至生效。",
+        "archive.switchYes": "切換並重啟",
+        "archive.switchNo": "取消",
         "archive.deleteConfirm": "確定要刪除檔案「{name}」？呢個操作唔可以撤銷。",
         "archive.cannotDeleteActive": "無法刪除目前使用嘅檔案",
         "archive.activeBadge": "使用中",
@@ -9150,8 +9123,10 @@
         "archive.renameTitle": "プロファイル名を変更",
         "archive.delete": "削除",
         "archive.cancel": "キャンセル",
-        "archive.switchConfirm": "プロファイル「{name}」に切り替えますか？次回起動時に適用されます。",
-        "archive.switchSuccess": "プロファイルを切り替えました。再起動後に適用されます",
+        "archive.switchTitle": "プロファイル切替",
+        "archive.switchConfirm": "プロファイル「{name}」に切り替えますか？適用には再起動が必要です。",
+        "archive.switchYes": "切替して再起動",
+        "archive.switchNo": "キャンセル",
         "archive.deleteConfirm": "プロファイル「{name}」を削除しますか？この操作は元に戻せません。",
         "archive.cannotDeleteActive": "現在使用中のプロファイルは削除できません",
         "archive.activeBadge": "使用中",
@@ -9529,8 +9504,10 @@
         "archive.renameTitle": "Rename Profile",
         "archive.delete": "Delete",
         "archive.cancel": "Cancel",
-        "archive.switchConfirm": "Switch to profile \"{name}\"? It will take effect on next startup.",
-        "archive.switchSuccess": "Profile switched. Restart to apply.",
+        "archive.switchTitle": "Switch Profile",
+        "archive.switchConfirm": "Switch to profile \"{name}\"? The app needs to restart to apply the change.",
+        "archive.switchYes": "Switch & Restart",
+        "archive.switchNo": "Cancel",
         "archive.deleteConfirm": "Delete profile \"{name}\"? This action cannot be undone.",
         "archive.cannotDeleteActive": "Cannot delete the active profile",
         "archive.activeBadge": "Active",
@@ -10114,8 +10091,10 @@
         "archive.renameTitle": "ئارخىپ نامىنى ئۆزگەرتىش",
         "archive.delete": "ئۆچۈرۈش",
         "archive.cancel": "بىكار قىلىش",
-        "archive.switchConfirm": "«{name}» ئارخىپىغا ئالماشتۇرامسىز؟ كېيىنكى قېتىم قوزغالغاندا كۈچكە كىرىدۇ.",
-        "archive.switchSuccess": "ئارخىپ ئالماشتۇرۇلدى، قايتا قوزغاتقاندىن كېيىن كۈچكە كىرىدۇ",
+        "archive.switchTitle": "ئارخىپ ئالماشتۇرۇش",
+        "archive.switchConfirm": "«{name}» ئارخىپىغا ئالماشتۇرامسىز؟ كۈچكە كىرگۈزۈش ئۈچۈن قايتا قوزغىتىش كېرەك.",
+        "archive.switchYes": "ئالماشتۇرۇش ۋە قايتا قوزغىتىش",
+        "archive.switchNo": "بىكار قىلىش",
         "archive.deleteConfirm": "«{name}» ئارخىپىنى ئۆچۈرەمسىز؟ بۇ مەشغۇلاتنى ئەمەلدىن قالدۇرغىلى بولمايدۇ.",
         "archive.cannotDeleteActive": "نۆۋەتتە ئىشلىتىلىۋاتقان ئارخىپنى ئۆچۈرگىلى بولمايدۇ",
         "archive.activeBadge": "ئىشلىتىلىۋاتىدۇ",
@@ -11748,143 +11727,108 @@
     }
 
     function createProfileDialog() {
-      const overlay = document.createElement('div');
-      overlay.className = 'archive-dialog-overlay';
-      overlay.id = 'archive-dialog-overlay';
-
-      const dialog = document.createElement('div');
-      dialog.className = 'archive-dialog';
-
-      const title = document.createElement('div');
-      title.className = 'archive-dialog-title';
-      title.textContent = getText('archive.createTitle') || '新建档案';
-
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.placeholder = getText('archive.namePlaceholder') || '输入档案名称';
-      input.id = 'archive-dialog-input';
-
-      const btns = document.createElement('div');
-      btns.className = 'archive-dialog-btns';
-
-      const cancelBtn = document.createElement('button');
-      cancelBtn.className = 'settings-button';
-      cancelBtn.textContent = getText('archive.cancel') || '取消';
-      cancelBtn.onclick = () => overlay.remove();
-
-      const confirmBtn = document.createElement('button');
-      confirmBtn.className = 'settings-button btn-primary';
-      confirmBtn.textContent = getText('archive.create') || '新建';
-      confirmBtn.onclick = async () => {
-        const name = input.value.trim();
-        if (!name) return;
-        try {
-          const result = await window.pywebview.api.create_profile(name);
-          if (result.success) {
-            overlay.remove();
-            loadProfiles();
-          } else if (result.error === 'profile_exists') {
-            input.style.borderColor = '#e5523c';
-          }
-        } catch (e) {
-          console.error('Create profile failed:', e);
-        }
-      };
-
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') confirmBtn.click();
-        if (e.key === 'Escape') overlay.remove();
-      });
-
-      btns.appendChild(cancelBtn);
-      btns.appendChild(confirmBtn);
-      dialog.appendChild(title);
-      dialog.appendChild(input);
-      dialog.appendChild(btns);
-      overlay.appendChild(dialog);
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) overlay.remove();
-      });
-      document.body.appendChild(overlay);
-      input.focus();
+      showModal(
+        getText('archive.createTitle') || '新建档案',
+        '',
+        [
+          { label: getText('archive.cancel') || '取消', onClick: () => {} },
+          { label: getText('archive.create') || '新建', primary: true, onClick: () => {
+            const inputEl = document.getElementById('generic-modal-input');
+            const name = inputEl.value.trim();
+            if (!name) {
+              inputEl.classList.add('modal-input-error');
+              return false;
+            }
+            (async () => {
+              try {
+                const result = await window.pywebview.api.create_profile(name);
+                if (result.success) {
+                  closeGenericModal();
+                  loadProfiles();
+                } else if (result.error === 'profile_exists') {
+                  inputEl.classList.add('modal-input-error');
+                }
+              } catch (e) {
+                console.error('Create profile failed:', e);
+              }
+            })();
+            return false;
+          }}
+        ],
+        { input: { placeholder: getText('archive.namePlaceholder') || '输入档案名称' } }
+      );
     }
 
     function renameProfileDialog(oldName) {
-      const overlay = document.createElement('div');
-      overlay.className = 'archive-dialog-overlay';
-      overlay.id = 'archive-dialog-overlay';
-
-      const dialog = document.createElement('div');
-      dialog.className = 'archive-dialog';
-
-      const title = document.createElement('div');
-      title.className = 'archive-dialog-title';
-      title.textContent = getText('archive.renameTitle') || '重命名档案';
-
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.value = oldName;
-      input.id = 'archive-dialog-input';
-
-      const btns = document.createElement('div');
-      btns.className = 'archive-dialog-btns';
-
-      const cancelBtn = document.createElement('button');
-      cancelBtn.className = 'settings-button';
-      cancelBtn.textContent = getText('archive.cancel') || '取消';
-      cancelBtn.onclick = () => overlay.remove();
-
-      const confirmBtn = document.createElement('button');
-      confirmBtn.className = 'settings-button btn-primary';
-      confirmBtn.textContent = getText('archive.rename') || '重命名';
-      confirmBtn.onclick = async () => {
-        const newName = input.value.trim();
-        if (!newName || newName === oldName) return;
-        try {
-          const result = await window.pywebview.api.rename_profile(oldName, newName);
-          if (result.success) {
-            overlay.remove();
-            loadProfiles();
-          } else if (result.error === 'name_exists') {
-            input.style.borderColor = '#e5523c';
-          }
-        } catch (e) {
-          console.error('Rename profile failed:', e);
-        }
-      };
-
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') confirmBtn.click();
-        if (e.key === 'Escape') overlay.remove();
-      });
-
-      btns.appendChild(cancelBtn);
-      btns.appendChild(confirmBtn);
-      dialog.appendChild(title);
-      dialog.appendChild(input);
-      dialog.appendChild(btns);
-      overlay.appendChild(dialog);
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) overlay.remove();
-      });
-      document.body.appendChild(overlay);
-      input.focus();
-      input.select();
-    }
+      showModal(
+        getText('archive.renameTitle') || '重命名档案',
+        '',
+        [
+          { label: getText('archive.cancel') || '取消', onClick: () => {} },
+          { label: getText('archive.rename') || '重命名', primary: true, onClick: () => {
+            const inputEl = document.getElementById('generic-modal-input');
+            const newName = inputEl.value.trim();
+            if (!newName || newName === oldName) return false;
+            (async () => {
+              try {
+                const result = await window.pywebview.api.rename_profile(oldName, newName);
+                if (result.success) {
+                  closeGenericModal();
+                  loadProfiles();
+                } else if (result.error === 'name_exists') {
+                  inputEl.classList.add('modal-input-error');
+                }
+              } catch (e) {
+                console.error('Rename profile failed:', e);
+              }
+            })();
+            return false;
+          }}
+        ],
+        { input: { value: oldName, placeholder: getText('archive.namePlaceholder') || '输入档案名称' } }
+      );
+      }
 
     async function switchProfile(name) {
       if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.switch_profile) return;
-      const confirmMsg = (getText('archive.switchConfirm') || '切换到档案「{name}」？下次启动时生效。').replace('{name}', name);
-      if (!confirm(confirmMsg)) return;
-      try {
-        const result = await window.pywebview.api.switch_profile(name);
-        if (result.success) {
-          loadProfiles();
-          showStorageToast(getText('archive.switchSuccess') || '档案已切换，重启后生效');
-        }
-      } catch (e) {
-        console.error('Switch profile failed:', e);
-      }
+      const displayName = name === 'default' ? (getText('archive.default') || '默认档案') : name;
+      const confirmTitle = getText('archive.switchTitle') || '切换档案';
+      const confirmText = (getText('archive.switchConfirm') || '切换到档案「{name}」？切换后需要重启应用才能生效。').replace('{name}', displayName);
+      const confirmYes = getText('archive.switchYes') || '切换并重启';
+      const confirmNo = getText('archive.switchNo') || '取消';
+
+      showModal(
+        confirmTitle,
+        confirmText,
+        [
+          { label: confirmNo, onClick: () => {} },
+          {
+            label: confirmYes, primary: true, onClick: async () => {
+              try {
+                const result = await window.pywebview.api.switch_profile(name);
+                if (result.success) {
+                  loadProfiles();
+                  if (window.pywebview.api.get_settings) {
+                    window.pywebview.api.get_settings().then(function (res) {
+                      if (res && Object.keys(res).length > 0) {
+                        settings = res;
+                        const lang = settings.General && settings.General.Language;
+                        if (lang) currentLanguage = lang;
+                        applySettingsToUI();
+                      }
+                    });
+                  }
+                  if (window.pywebview && window.pywebview.api && window.pywebview.api.restart_app) {
+                    window.pywebview.api.restart_app();
+                  }
+                }
+              } catch (e) {
+                console.error('Switch profile failed:', e);
+              }
+            }
+          }
+        ]
+      );
     }
 
     async function deleteProfile(name) {
@@ -15595,6 +15539,7 @@
       const modal = document.getElementById("generic-modal");
       const titleEl = document.getElementById("generic-modal-title");
       const textEl = document.getElementById("generic-modal-text");
+      const inputEl = document.getElementById("generic-modal-input");
       const footerEl = document.getElementById("generic-modal-footer");
       const dialogEl = modal ? modal.querySelector(".modal-dialog") : null;
 
@@ -15608,16 +15553,42 @@
         dialogEl.classList.add(options.dialogClass);
       }
 
+      if (options && options.input) {
+        inputEl.value = options.input.value || "";
+        inputEl.placeholder = options.input.placeholder || "";
+        inputEl.classList.add("visible");
+        inputEl.classList.remove("modal-input-error");
+        setTimeout(() => inputEl.focus(), 100);
+      } else {
+        inputEl.classList.remove("visible");
+        inputEl.value = "";
+      }
+
       buttons.forEach(btn => {
         const button = document.createElement("button");
         button.className = "modal-btn " + (btn.primary ? "modal-btn-confirm" : "modal-btn-secondary");
         button.textContent = btn.label;
         button.onclick = () => {
-          if (btn.onClick) btn.onClick();
+          if (btn.onClick) {
+            const result = btn.onClick();
+            if (result === false) return;
+          }
           closeGenericModal();
         };
         footerEl.appendChild(button);
       });
+
+      if (options && options.input) {
+        inputEl.onkeydown = (e) => {
+          if (e.key === 'Enter') {
+            const primaryBtn = footerEl.querySelector('.modal-btn-confirm');
+            if (primaryBtn) primaryBtn.click();
+          }
+          if (e.key === 'Escape') closeGenericModal();
+        };
+      } else {
+        inputEl.onkeydown = null;
+      }
 
       modal.classList.add("active");
     }
@@ -15933,6 +15904,7 @@
       <div class="modal-title" id="generic-modal-title"></div>
       <div class="modal-island">
         <div class="modal-text" id="generic-modal-text"></div>
+        <input type="text" class="modal-input" id="generic-modal-input" />
       </div>
       <div class="modal-footer" id="generic-modal-footer"></div>
     </div>

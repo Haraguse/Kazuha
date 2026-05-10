@@ -61,9 +61,9 @@ class AcrylicRoundMenu(RoundMenu):
     def _update_acrylic_color(self):
         if sys.platform == "win32":
             if isDarkTheme():
-                self.windowEffect.setAcrylicEffect(self.winId(), "20202000", True)
+                self.windowEffect.setAcrylicEffect(self.winId(), "20202050", True)
             else:
-                self.windowEffect.setAcrylicEffect(self.winId(), "F2F2F200", True)
+                self.windowEffect.setAcrylicEffect(self.winId(), "F2F2F250", True)
 
 
 def _hex_to_rgb(value: str):

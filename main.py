@@ -136,7 +136,7 @@ from ppt_assistant.ui.overlay import create_overlay_window
 from ppt_assistant.ui.tray import SystemTray, is_system_tray_supported
 from ppt_assistant.core.config import (
     cfg,
-    SETTINGS_PATH,
+    SETTINGS_PATH as _SETTINGS_PATH_ORIG,
     PLUGINS_DIR,
     reload_cfg,
     _apply_theme_and_color,
@@ -144,6 +144,23 @@ from ppt_assistant.core.config import (
     FIRST_RUN,
     ROOT_DIR,
 )
+
+def _get_active_settings_path():
+    settings_dir = os.path.dirname(_SETTINGS_PATH_ORIG)
+    active_marker = os.path.join(settings_dir, "_active")
+    if os.path.exists(active_marker):
+        try:
+            with open(active_marker, "r", encoding="utf-8") as f:
+                name = f.read().strip()
+            if name and name != "default":
+                profile_path = os.path.join(settings_dir, name + ".json")
+                if os.path.exists(profile_path):
+                    return profile_path
+        except Exception:
+            pass
+    return _SETTINGS_PATH_ORIG
+
+SETTINGS_PATH = _get_active_settings_path()
 from ppt_assistant.core.timer_manager import TimerManager
 from ppt_assistant.core.i18n import t
 from ppt_assistant.core.app_icon import load_app_icon
@@ -185,7 +202,7 @@ SPLASH_I18N = {
         "loading_settings": "加载设置",
         "loading_timer": "加载计时器",
         "init_tray": "创建托盘图标",
-        "finalizing": "完成初始化",
+        "finalizing": "正在完成启动后操作",
         "watermark.1": "开发中版本",
         "watermark.2": "技术预览版",
         "watermark.3": "Release Preview",
@@ -202,7 +219,7 @@ SPLASH_I18N = {
         "loading_settings": "載入設定",
         "loading_timer": "載入計時器",
         "init_tray": "建立系統匣圖示",
-        "finalizing": "完成初始化",
+        "finalizing": "正在完成啓動後操作",
         "watermark.1": "開發中版本",
         "watermark.2": "技術預覽版",
         "watermark.3": "Release Preview",
@@ -219,7 +236,7 @@ SPLASH_I18N = {
         "loading_settings": "載入設定",
         "loading_timer": "載入計時器",
         "init_tray": "整緊托盤圖示",
-        "finalizing": "搞掂",
+        "finalizing": "正喺完成啟動後操作",
         "watermark.1": "開發中版本",
         "watermark.2": "技術預覽版",
         "watermark.3": "Release Preview",
@@ -236,7 +253,7 @@ SPLASH_I18N = {
         "loading_settings": "設定を読み込み中",
         "loading_timer": "タイマーを読み込み中",
         "init_tray": "トレイアイコンを作成中",
-        "finalizing": "初期化完了",
+        "finalizing": "起動後の操作を実行中",
         "watermark.1": "開発中バージョン",
         "watermark.2": "テクニカルプレビュー",
         "watermark.3": "Release Preview",
@@ -253,7 +270,7 @@ SPLASH_I18N = {
         "loading_settings": "Loading settings",
         "loading_timer": "Loading timer",
         "init_tray": "Creating system tray",
-        "finalizing": "Finalizing",
+        "finalizing": "Completing post-startup operations",
         "watermark.1": "In-Development",
         "watermark.2": "Technical Preview",
         "watermark.3": "Release Preview",
@@ -1212,7 +1229,7 @@ class StartupSplash(QWidget):
         if hasattr(self, "_progress"):
             self._progress.setValue(100)
         if hasattr(self, "_percent_label"):
-            self._percent_label.setText("初始化完成 100%")
+            self._percent_label.setText("正在完成启动后操作")
         if hasattr(self, "_spinner"):
             self._spinner.stop()
         QTimer.singleShot(250, self.close)
@@ -2284,6 +2301,24 @@ class PPTAssistantApp:
             self._settings_mtime = 0
             self.restart()
             return
+
+        pending_path = os.path.join(os.path.dirname(SETTINGS_PATH), "_pending_action")
+        if os.path.exists(pending_path):
+            try:
+                with open(pending_path, "r", encoding="utf-8") as f:
+                    pending_data = json.load(f)
+                if pending_data.get("_quit_pending"):
+                    os.remove(pending_path)
+                    self._prepare_shutdown(restarting=False)
+                    self.app.quit()
+                    return
+                if pending_data.get("_restart_pending"):
+                    os.remove(pending_path)
+                    self.restart()
+                    return
+            except Exception:
+                pass
+
         if not os.path.exists(SETTINGS_PATH):
             return
         mtime = os.path.getmtime(SETTINGS_PATH)

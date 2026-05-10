@@ -247,8 +247,9 @@ if not os.path.exists(PLUGINS_DIR):
 FIRST_RUN = not os.path.exists(SETTINGS_PATH)
 
 def _apply_active_profile():
-    profiles_dir = os.path.join(os.path.dirname(SETTINGS_PATH), "profiles")
-    active_marker = os.path.join(profiles_dir, "_active")
+    global SETTINGS_PATH
+    settings_dir = os.path.dirname(SETTINGS_PATH)
+    active_marker = os.path.join(settings_dir, "_active")
     if not os.path.exists(active_marker):
         return
     try:
@@ -256,23 +257,10 @@ def _apply_active_profile():
             profile_name = f.read().strip()
         if not profile_name or profile_name == "default":
             return
-        profile_path = os.path.join(profiles_dir, profile_name + ".json")
+        profile_path = os.path.join(settings_dir, profile_name + ".json")
         if not os.path.exists(profile_path):
             return
-        with open(profile_path, "r", encoding="utf-8") as f:
-            profile_data = json.load(f)
-        if not isinstance(profile_data, dict):
-            return
-        current_data = {}
-        if os.path.exists(SETTINGS_PATH):
-            try:
-                with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
-                    current_data = json.load(f)
-            except Exception:
-                current_data = {}
-        if current_data != profile_data:
-            with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
-                json.dump(profile_data, f, indent=4, ensure_ascii=False)
+        SETTINGS_PATH = profile_path
     except Exception:
         pass
 
