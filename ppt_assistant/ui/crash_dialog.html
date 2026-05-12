@@ -243,11 +243,6 @@
       z-index: 1;
     }
 
-    :root[data-system-backdrop="true"],
-    :root[data-system-backdrop="true"] body {
-      background: transparent;
-    }
-
     * {
       box-sizing: border-box;
       margin: 0;
@@ -569,16 +564,6 @@
       document.documentElement.setAttribute("data-theme-id", themeId);
     }
 
-    function applySystemBackdropDocument() {
-      const enabled = !!(settings.General && settings.General.SystemBackdropEnabled);
-      const supported = !!window.__SYSTEM_BACKDROP_SUPPORTED;
-      document.documentElement.setAttribute("data-system-backdrop", enabled ? "true" : "false");
-      document.documentElement.setAttribute(
-        "data-system-backdrop-mode",
-        enabled ? (supported ? "system" : "fallback") : "off"
-      );
-    }
-
     function getDefaultFontStack(lang) {
       if (lang === "zh-TW") {
         return "\"Google Sans Flex\", \"MiSans Japanese VF\", \"MiSans TC VF\", \"Segoe UI\", system-ui, -apple-system, sans-serif";
@@ -678,7 +663,6 @@
         logEl.textContent = data.text;
       }
       applyTheme(data && data.theme);
-      applySystemBackdropDocument();
       applyLanguageFont();
 
       if (data && data.accentColor && !(settings.Appearance && settings.Appearance.ThemeId)) {

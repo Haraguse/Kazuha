@@ -168,6 +168,8 @@
     }
 
     .container {
+      width: 100%;
+      min-width: 0;
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -185,6 +187,8 @@
     }
 
     .content-container {
+      width: 100%;
+      min-width: 0;
       flex: 1;
       overflow-y: auto;
       display: flex;
@@ -659,8 +663,8 @@
         "dialog.crash.title": "程序崩溃了 (´；ω；`)",
         "dialog.crash.confirm": "关闭",
         "dialog.crash.cancel": "复制错误",
-        "dialog.multiInstance.title": "荧素万演 正在运行",
-        "dialog.multiInstance.text": "荧素万演的另一个实例已经在后台运行。通常您可以在系统托盘区域找到它。\n如果您无法找到，可能是出现了一些问题，您可以尝试通过尝试以下的选项来解决此问题。",
+        "dialog.multiInstance.title": "荧素万演正在运行",
+        "dialog.multiInstance.text": "荧素万演的另一个实例已经在后台运行。您可在系统托盘区域点击图标打开「设置」进行配置。\n通常情况下，如是程序没有故障或没有设置错误，\n荧素万演在非兼容模式情况下不会使主界面常驻于屏幕，其主界面只在进行放映时才会显示。\n若是如此都无法找到，可能是出现了一些问题，您可以尝试启动新实例或重启实例来解决问题。",
         "dialog.multiInstance.restartOld.title": "重新启动实例",
         "dialog.multiInstance.restartOld.desc": "结束旧实例并启动此新实例",
         "dialog.multiInstance.continueNew.title": "仍然启动",
@@ -694,7 +698,7 @@
         "dialog.crash.confirm": "關閉",
         "dialog.crash.cancel": "複製錯誤",
         "dialog.multiInstance.title": "Luminalium 已在執行",
-        "dialog.multiInstance.text": "Luminalium 的另一個實例已經在背景執行。通常您可以在系統匣區域找到它。\n如果您無法找到視窗，可能它被最小化或隱藏了。",
+        "dialog.multiInstance.text": "Luminalium 的另一個實例已經在背景執行。您可在系統匣區域點擊圖標打開「設定」進行配置。\n通常情況下，如是程式沒有故障或沒有設定錯誤，\nLuminalium 在非兼容模式下執行時，主介面只在投影片放映時會顯示。\n若是如此都无法找到，可能是出現了一些問題，您可以嘗試啟動新實例或重新啟動實例。",
         "dialog.multiInstance.restartOld.title": "重新啟動實例",
         "dialog.multiInstance.restartOld.desc": "結束舊行程並啟動此新實例",
         "dialog.multiInstance.continueNew.title": "仍然啟動",
@@ -762,7 +766,7 @@
         "dialog.crash.confirm": "閉じる",
         "dialog.crash.cancel": "エラーをコピー",
         "dialog.multiInstance.title": "Luminalium が実行中です",
-        "dialog.multiInstance.text": "Luminalium の別のインスタンスがバックグラウンドですでに実行されています。通常、システムトレイ領域で見つけることができます。\nウィンドウが見つからない場合は、最小化されているか非表示になっている可能性があります。",
+        "dialog.multiInstance.text": "ルマイナリウムの別のインスタンスがすでにバックグラウンドで動作しています。システムトレイのアイコンをクリックして「設定」を開き、設定を行うことができます。\n通常、プログラムに不具合や設定ミスがなければ、\nルマイナリウムは非互換モードではメイン画面を常駐させず、メイン画面はスライドショーの場合のみ表示されます。\nそれでも見つからない場合は、何らかの問題が発生している可能性があります。その場合は、新しいインスタンスを起動するか、インスタンスを再起動して問題を解決してください。",
         "dialog.multiInstance.restartOld.title": "再起動",
         "dialog.multiInstance.restartOld.desc": "古いプロセスを終了し、新しいインスタンスを起動します",
         "dialog.multiInstance.continueNew.title": "強制起動",
@@ -796,7 +800,7 @@
         "dialog.crash.confirm": "Close",
         "dialog.crash.cancel": "Copy error",
         "dialog.multiInstance.title": "Luminalium is already running",
-        "dialog.multiInstance.text": "Another instance of Luminalium is already running in the background. You can usually find it in the system tray area.\nIf you cannot see the window, it might be minimized or hidden.",
+        "dialog.multiInstance.text": "Another instance of Luminalium is already running in the background.",
         "dialog.multiInstance.restartOld.title": "Restart Instance",
         "dialog.multiInstance.restartOld.desc": "Terminate the old process and start this new instance",
         "dialog.multiInstance.continueNew.title": "Launch Anyway",

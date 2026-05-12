@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQml 2.15
 import QtQuick.Window 2.15
+import QtGraphicalEffects 1.15
 import KazuhaBoard 1.0
 
 Rectangle {
@@ -1197,7 +1198,7 @@ Rectangle {
                 ? toolbar.y - height - 12
                 : toolbar.y + (toolbar.height - height) / 2
         width: 260
-        height: 120
+        height: 190
         visible: false
         z: 100
         radius: 12
@@ -1274,6 +1275,83 @@ Rectangle {
                 text: canvas ? Math.round(canvas.eraserWidth) : 20
                 color: darkBackground ? "#AAA" : "#666"
                 font.pixelSize: 11
+            }
+
+            Rectangle {
+                width: parent.width
+                height: 1
+                color: darkBackground ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.08)
+            }
+
+            Text {
+                text: slideClearText
+                color: darkBackground ? "#AAA" : "#666"
+                font.pixelSize: 12
+            }
+
+            Rectangle {
+                id: clearSliderContainer
+                width: parent.width
+                height: 44
+                radius: 22
+                color: darkBackground ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06)
+
+                Text {
+                    anchors.centerIn: parent
+                    text: slideClearHintText
+                    color: darkBackground ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.4)
+                    font.pixelSize: 13
+                    opacity: 1.0 - (clearThumb.x / (parent.width - clearThumb.width - 4))
+                }
+
+                Rectangle {
+                    id: clearThumb
+                    width: 40
+                    height: 40
+                    radius: 20
+                    color: darkBackground ? "#FFFFFF" : "#FFFFFF"
+                    y: 2
+                    x: 2
+
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: 20
+                        height: 20
+                        color: "transparent"
+
+                        Image {
+                            id: clearThumbIcon
+                            source: iconsDir + "Clear.svg"
+                            width: 20
+                            height: 20
+                            anchors.centerIn: parent
+                            sourceSize: Qt.size(20, 20)
+                            visible: false
+                        }
+
+                        ColorOverlay {
+                            anchors.fill: clearThumbIcon
+                            source: clearThumbIcon
+                            color: "#333333"
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        drag.target: parent
+                        drag.axis: Drag.XAxis
+                        drag.minimumX: 2
+                        drag.maximumX: clearSliderContainer.width - clearThumb.width - 2
+
+                        onReleased: {
+                            if (clearThumb.x > (clearSliderContainer.width - clearThumb.width - 2) * 0.8) {
+                                if (canvas) canvas.clear()
+                                eraserPopup.close()
+                            }
+                            clearThumb.x = 2
+                        }
+                    }
+                }
             }
         }
     } // end eraserPopup

@@ -142,7 +142,7 @@ class OnboardingPlugin(AssistantPlugin):
             defer_load = wv._should_defer_initial_load(html_path, title, True)
             theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
             window = wv.MainWindow(
-                title, html_path, api, 960, 720, theme_mode, False, defer_load
+                title, html_path, api, 960, 720, theme_mode, True, defer_load, frameless=True
             )
         finally:
             if previous_preview is None:

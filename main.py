@@ -241,7 +241,7 @@ SPLASH_I18N = {
         "watermark.2": "技術預覽版",
         "watermark.3": "Release Preview",
         "watermark.4": "重新評估版本",
-        "dev_watermark": "{type}\n品質唔包，出事唔好屌我 （{version}）",
+        "dev_watermark": "{type}\n品質唔包（{version}）",
     },
     "ja-JP": {
         "initializing": "初期化中",
@@ -1293,11 +1293,13 @@ class IndeterminateSpinner(QWidget):
 def show_webview_dialog(
     title,
     text,
-    confirm_text="纭",
-    cancel_text="鍙栨秷",
+    confirm_text="确认",
+    cancel_text="取消",
     is_error=False,
     hide_cancel=False,
     code=None,
+    width=650,
+    height=500,
 ):
     from ppt_assistant.ui.dialog_runtime import show_webview_dialog_in_process
 
@@ -1309,6 +1311,8 @@ def show_webview_dialog(
         is_error=is_error,
         hide_cancel=hide_cancel,
         code=code,
+        width=width,
+        height=height,
     )
 
 
@@ -1612,7 +1616,7 @@ def _handle_multi_instance(app: QApplication):
     }
     window_title = _WINDOW_TITLES.get(lang, _WINDOW_TITLES["zh-CN"])
 
-    proc = show_webview_dialog(title=window_title, text="", code="multi_instance")
+    proc = show_webview_dialog(title=window_title, text="", code="multi_instance", width=738, height=577)
     stdout, _ = proc.communicate()
 
     if 'DIALOG_VALUE:"RESTART_OLD"' in stdout:

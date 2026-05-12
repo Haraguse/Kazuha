@@ -55,7 +55,7 @@ class AcrylicRoundMenu(RoundMenu):
         super().showEvent(e)
         self._update_acrylic_color()
 
-    def exec_(self, pos, ani=True, aniType=MenuAnimationType.NONE):
+    def exec_(self, pos, ani=True, aniType=MenuAnimationType.FADE_IN_PULL_UP):
         RoundMenu.exec(self, pos, ani, aniType)
 
     def _update_acrylic_color(self):
@@ -942,7 +942,7 @@ class SystemTray(QObject):
     def _show_panel(self):
         if self._use_native_menu:
             return
-        self._fallback_menu.exec_(QCursor.pos(), ani=True, aniType=MenuAnimationType.NONE)
+        self._fallback_menu.exec_(QCursor.pos(), ani=True)
 
     def _on_activated(self, reason):
         if reason in (QSystemTrayIcon.Trigger, QSystemTrayIcon.Context):

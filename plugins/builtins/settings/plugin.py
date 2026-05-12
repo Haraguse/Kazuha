@@ -162,7 +162,7 @@ class SettingsPlugin(AssistantPlugin):
         theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
         defer_load = wv._should_defer_initial_load(html_path, "Settings", True)
         window = wv.MainWindow(
-            "Settings", html_path, api, 1256, 734, theme_mode, True, defer_load
+            "Settings", html_path, api, 1256, 734, theme_mode, True, defer_load, frameless=True
         )
         window.setMinimumWidth(1099)
         window.destroyed.connect(self._on_window_destroyed)

@@ -82,17 +82,6 @@ class Config(QConfig):
         OptionsValidator(["ShowAnalyzer", "Exit", "RestartSilent", "Toast"]),
         restart=False,
     )
-    systemBackdropEnabled = ConfigItem(
-        "General", "SystemBackdropEnabled", False, BoolValidator()
-    )
-    systemBackdropType = OptionsConfigItem(
-        "General",
-        "SystemBackdropType",
-        "Opaque",
-        OptionsValidator(["Opaque", "Mica", "Acrylic", "MicaAlt"]),
-        restart=False,
-    )
-
     showClear = ConfigItem("Toolbar", "ShowClear", True, BoolValidator())
     showSpotlight = ConfigItem("Toolbar", "ShowSpotlight", True, BoolValidator())
     showBoardInBoard = ConfigItem("Toolbar", "ShowBoardInBoard", True, BoolValidator())

@@ -204,6 +204,8 @@ def show_webview_dialog_in_process(
     code=None,
     input_type=None,
     placeholder="",
+    width=650,
+    height=500,
 ):
     app = QApplication.instance()
     if app is None:
@@ -243,10 +245,12 @@ def show_webview_dialog_in_process(
         dialog_data.get("title", "Dialog"),
         html_path,
         api,
-        650,
-        500,
+        width,
+        height,
         theme_mode,
+        custom_border=True,
         defer_load=False,
+        frameless=True,
     )
     window.setAttribute(Qt.WA_DeleteOnClose, True)
     window.setWindowModality(Qt.ApplicationModal)

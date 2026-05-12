@@ -468,6 +468,8 @@ _TRANSLATIONS = {
         "toolbar.eraser_size": "橡皮粗细",
         "toolbar.eraser_point": "掠区擦除",
         "toolbar.eraser_stroke": "笔画擦除",
+        "toolbar.slide_clear": "滑动清屏",
+        "toolbar.slide_clear_hint": "滑动以清空屏幕",
         "dialog.save_strokes_title": "提示",
         "dialog.save_strokes_text": "是否保留本次笔迹？",
         "dialog.save_strokes_yes": "保留",
@@ -488,6 +490,8 @@ _TRANSLATIONS = {
         "toolbar.eraser_size": "橡皮粗細",
         "toolbar.eraser_point": "掠區擦除",
         "toolbar.eraser_stroke": "筆畫擦除",
+        "toolbar.slide_clear": "滑動清屏",
+        "toolbar.slide_clear_hint": "滑動以清空螢幕",
         "dialog.save_strokes_title": "提示",
         "dialog.save_strokes_text": "是否保留本次筆跡？",
         "dialog.save_strokes_yes": "保留",
@@ -508,6 +512,8 @@ _TRANSLATIONS = {
         "toolbar.eraser_size": "橡皮粗細",
         "toolbar.eraser_point": "掠區擦除",
         "toolbar.eraser_stroke": "筆畫擦除",
+        "toolbar.slide_clear": "滑動清屏",
+        "toolbar.slide_clear_hint": "滑動以清空螢幕",
         "dialog.save_strokes_title": "提你一提",
         "dialog.save_strokes_text": "要唔要留低呢堆筆跡？",
         "dialog.save_strokes_yes": "留低",
@@ -528,6 +534,8 @@ _TRANSLATIONS = {
         "toolbar.eraser_size": "Eraser Size",
         "toolbar.eraser_point": "Point Eraser",
         "toolbar.eraser_stroke": "Stroke Eraser",
+        "toolbar.slide_clear": "Slide to Clear",
+        "toolbar.slide_clear_hint": "Slide to clear screen",
         "dialog.save_strokes_title": "Tip",
         "dialog.save_strokes_text": "Keep current strokes?",
         "dialog.save_strokes_yes": "Keep",
@@ -548,6 +556,8 @@ _TRANSLATIONS = {
         "toolbar.eraser_size": "消しゴムの太さ",
         "toolbar.eraser_point": "部分消しゴム",
         "toolbar.eraser_stroke": "ストローク消しゴム",
+        "toolbar.slide_clear": "スライドで消去",
+        "toolbar.slide_clear_hint": "スライドして画面をクリア",
         "dialog.save_strokes_title": "ヒント",
         "dialog.save_strokes_text": "今回の筆跡を保存しますか？",
         "dialog.save_strokes_yes": "保存する",
@@ -1192,6 +1202,12 @@ class BoardWindow(QQuickView):
         self.rootContext().setContextProperty("penSizeText", _t("toolbar.pen_size"))
         self.rootContext().setContextProperty(
             "eraserSizeText", _t("toolbar.eraser_size")
+        )
+        self.rootContext().setContextProperty(
+            "slideClearText", _t("toolbar.slide_clear")
+        )
+        self.rootContext().setContextProperty(
+            "slideClearHintText", _t("toolbar.slide_clear_hint")
         )
 
         # Colors

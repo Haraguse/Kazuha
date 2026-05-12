@@ -1267,79 +1267,6 @@
       overflow: hidden;
     }
 
-    :root[data-system-backdrop="true"],
-    :root[data-system-backdrop="true"] body {
-      background: transparent !important;
-    }
-
-    :root[data-system-backdrop-mode="system"] .sidebar,
-    :root[data-system-backdrop-mode="system"] .sidebar-mini {
-      background: rgba(255, 255, 255, 0.12) !important;
-      border: 1px solid rgba(255, 255, 255, 0.16) !important;
-      box-shadow: none !important;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-    }
-
-    :root[data-system-backdrop-mode="system"][data-theme="dark"] .sidebar,
-    :root[data-system-backdrop-mode="system"][data-theme="dark"] .sidebar-mini {
-      background: rgba(16, 16, 16, 0.20) !important;
-      border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    }
-
-    :root[data-system-backdrop-mode="fallback"] .sidebar,
-    :root[data-system-backdrop-mode="fallback"] .sidebar-mini {
-      background: rgba(255, 255, 255, 0.32) !important;
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-    }
-
-    :root[data-system-backdrop-mode="fallback"][data-theme="dark"] .sidebar,
-    :root[data-system-backdrop-mode="fallback"][data-theme="dark"] .sidebar-mini {
-      background: rgba(16, 16, 16, 0.55) !important;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-    }
-
-    :root[data-system-backdrop-mode="system"] .content,
-    :root[data-system-backdrop-mode="fallback"] .content {
-      background: rgba(255, 255, 255, 0.86) !important;
-    }
-
-    :root[data-system-backdrop-mode="system"][data-theme="dark"] .content,
-    :root[data-system-backdrop-mode="fallback"][data-theme="dark"] .content {
-      background: rgba(20, 20, 20, 0.82) !important;
-    }
-
-    :root[data-system-backdrop-mode="system"] .content {
-      background: rgba(255, 255, 255, 0.14) !important;
-      border: 1px solid rgba(255, 255, 255, 0.14) !important;
-      box-shadow: none !important;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-    }
-
-    :root[data-system-backdrop-mode="system"][data-theme="dark"] .content {
-      background: rgba(16, 16, 16, 0.24) !important;
-      border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    }
-
-    :root[data-system-backdrop-mode="system"] .settings-group {
-      background: rgba(255, 255, 255, 0.28) !important;
-      border-color: rgba(255, 255, 255, 0.16) !important;
-      box-shadow: none !important;
-    }
-
-    :root[data-system-backdrop-mode="system"][data-theme="dark"] .settings-group {
-      background: rgba(22, 22, 22, 0.42) !important;
-      border-color: rgba(255, 255, 255, 0.08) !important;
-    }
-
-    :root[data-system-backdrop-mode="system"] .content-blur-overlay {
-      display: none !important;
-      opacity: 0 !important;
-    }
-
     :root[data-disable-animations="true"] *,
     :root[data-disable-animations="true"] *::before,
     :root[data-disable-animations="true"] *::after {
@@ -4623,6 +4550,14 @@
       opacity: 0;
     }
 
+    :root[data-frameless="true"] .restart-island {
+      top: 40px;
+    }
+
+    :root[data-frameless="true"][data-maximized="true"] .restart-island {
+      top: 48px;
+    }
+
     .restart-island.visible {
       transform: translateY(0);
       pointer-events: auto;
@@ -6360,28 +6295,6 @@
                   onclick="event.stopPropagation(); toggleCrashAutoHandleEnabled();"></div>
               </div>
             </div>
-            <div class="settings-item" onclick="toggleSystemBackdropEnabled()">
-              <div class="item-info">
-                <span class="item-label"><span data-i18n="general.systemBackdrop.label">系统材质效果</span><span
-                    class="beta-badge">Beta</span></span>
-                <span class="item-desc" data-i18n="general.systemBackdrop.desc">为设置页和计时器窗口的标题栏与边框启用 Windows
-                  材质效果，不影响内容区</span>
-                <span class="item-desc" data-i18n="general.systemBackdrop.requirements">需要 Windows 11</span>
-                <span class="item-desc"
-                  data-i18n="general.systemBackdrop.notice">此功能仍处于测试状态！如果你没有排障需求就不要打开！问题比你想象的多得多！</span>
-              </div>
-              <div class="item-state">
-                <select id="sel-General-SystemBackdropType" class="styled-select"
-                  onchange="setSystemBackdropType(this.value)">
-                  <option value="Opaque" data-i18n="general.systemBackdrop.type.opaque">不透明</option>
-                  <option value="Mica" data-i18n="general.systemBackdrop.type.mica">Mica</option>
-                  <option value="Acrylic" data-i18n="general.systemBackdrop.type.acrylic">Acrylic</option>
-                  <option value="MicaAlt" data-i18n="general.systemBackdrop.type.micaAlt">Mica Alt</option>
-                </select>
-                <div class="switch" id="sw-General-SystemBackdropEnabled"
-                  onclick="event.stopPropagation(); toggleSystemBackdropEnabled();"></div>
-              </div>
-            </div>
             <div class="settings-item" id="item-PPT-PageTurnRateLimit">
               <div class="item-info">
                 <span class="item-label" data-i18n="interaction.pageTurnRateLimit.label">翻页频率上限</span>
@@ -8100,14 +8013,6 @@
         "general.crashAutoHandle.exit": "立即退出应用",
         "general.crashAutoHandle.restartSilent": "后台重启（不显示启动画面）",
         "general.crashAutoHandle.toast": "仅发送 Windows 通知",
-        "general.systemBackdrop.label": "系统材质效果",
-        "general.systemBackdrop.desc": "为设置页和计时器窗口的标题栏与边框启用 Windows 材质效果，不影响内容区",
-        "general.systemBackdrop.requirements": "需要 Windows 11，且已启用透明效果（Windows 设置 > 个性化 > 颜色 > 透明效果 > 开启）",
-        "general.systemBackdrop.notice": "此功能仍处于测试状态！如果你没有排障需求就不要打开！问题比你想象的多得多！",
-        "general.systemBackdrop.type.opaque": "不透明",
-        "general.systemBackdrop.type.mica": "云母",
-        "general.systemBackdrop.type.acrylic": "亚克力",
-        "general.systemBackdrop.type.micaAlt": "云母变体",
         "general.splashMode.label": "启动画面",
         "general.splashMode.desc": "控制启动画面的显示时机；可对开机自启或指定时段单独隐藏",
         "general.splashMode.always": "每次都显示",
@@ -8502,13 +8407,6 @@
         "general.crashAutoHandle.exit": "立即退出應用程式",
         "general.crashAutoHandle.restartSilent": "背景重啟（不顯示啟動畫面）",
         "general.crashAutoHandle.toast": "僅發送 Windows 通知",
-        "general.systemBackdrop.label": "系統材質效果",
-        "general.systemBackdrop.desc": "在設定與計時器視窗的非內容區使用 Windows 材質",
-        "general.systemBackdrop.requirements": "需要 Windows 11",
-        "general.systemBackdrop.type.opaque": "不透明",
-        "general.systemBackdrop.type.mica": "Mica",
-        "general.systemBackdrop.type.acrylic": "Acrylic",
-        "general.systemBackdrop.type.micaAlt": "Mica Alt",
         "general.splashMode.label": "啟動畫面",
         "general.splashMode.always": "每次都顯示",
         "general.splashMode.never": "不顯示",
@@ -8880,13 +8778,6 @@
         "general.crashAutoHandle.exit": "即刻退出程式",
         "general.crashAutoHandle.restartSilent": "背景重啟（唔顯示啟動畫面）",
         "general.crashAutoHandle.toast": "淨係發 Windows 通知",
-        "general.systemBackdrop.label": "系統材質效果",
-        "general.systemBackdrop.desc": "喺設定同計時器視窗嘅非內容區使用 Windows 材質",
-        "general.systemBackdrop.requirements": "需要 Windows 11",
-        "general.systemBackdrop.type.opaque": "不透明",
-        "general.systemBackdrop.type.mica": "Mica",
-        "general.systemBackdrop.type.acrylic": "Acrylic",
-        "general.systemBackdrop.type.micaAlt": "Mica Alt",
         "general.splashMode.label": "啟動畫面",
         "general.splashMode.always": "每次都顯示",
         "general.splashMode.never": "唔顯示",
@@ -9259,13 +9150,6 @@
         "general.crashAutoHandle.exit": "直ちに終了",
         "general.crashAutoHandle.restartSilent": "バックグラウンド再起動（スプラッシュなし）",
         "general.crashAutoHandle.toast": "Windows 通知のみ",
-        "general.systemBackdrop.label": "システム素材効果",
-        "general.systemBackdrop.desc": "設定とタイマーの非コンテンツ領域で Windows の素材を使用",
-        "general.systemBackdrop.requirements": "Windows 11 が必要です",
-        "general.systemBackdrop.type.opaque": "不透明",
-        "general.systemBackdrop.type.mica": "マイカ",
-        "general.systemBackdrop.type.acrylic": "Acrylic",
-        "general.systemBackdrop.type.micaAlt": "Mica Alt",
         "general.splashMode.label": "スプラッシュ画面",
         "general.splashMode.always": "常に表示",
         "general.splashMode.never": "表示しない",
@@ -9634,13 +9518,6 @@
         "general.crashAutoHandle.exit": "Exit immediately",
         "general.crashAutoHandle.restartSilent": "Restart in background (no splash)",
         "general.crashAutoHandle.toast": "Only show a Windows notification",
-        "general.systemBackdrop.label": "System material effects",
-        "general.systemBackdrop.desc": "Use Windows materials in non-content areas of Settings and Timer",
-        "general.systemBackdrop.requirements": "Requires Windows 11",
-        "general.systemBackdrop.type.opaque": "Opaque",
-        "general.systemBackdrop.type.mica": "Mica",
-        "general.systemBackdrop.type.acrylic": "Acrylic",
-        "general.systemBackdrop.type.micaAlt": "Mica Alt",
         "general.splashMode.label": "Startup Splash",
         "general.splashMode.always": "Always show",
         "general.splashMode.never": "Never show",
@@ -9847,13 +9724,6 @@
         "general.crashAutoHandle.exit": "Exit immediately",
         "general.crashAutoHandle.restartSilent": "Restart in background (no splash)",
         "general.crashAutoHandle.toast": "Only show a Windows notification",
-        "general.systemBackdrop.label": "System material effects",
-        "general.systemBackdrop.desc": "Use Windows materials in non-content areas of Settings and Timer",
-        "general.systemBackdrop.requirements": "Requires Windows 11",
-        "general.systemBackdrop.type.opaque": "Opaque",
-        "general.systemBackdrop.type.mica": "Mica",
-        "general.systemBackdrop.type.acrylic": "Acrylic",
-        "general.systemBackdrop.type.micaAlt": "Mica Alt",
         "general.splashMode.label": "Startup Splash",
         "general.splashMode.always": "Always show",
         "general.splashMode.never": "Never show",
@@ -12504,16 +12374,6 @@
       if (typeof initSearch === 'function') initSearch();
     }
 
-    function applySystemBackdropDocument() {
-      const enabled = !!settings.General?.SystemBackdropEnabled;
-      const supported = !!window.__SYSTEM_BACKDROP_SUPPORTED;
-      document.documentElement.setAttribute("data-system-backdrop", enabled ? "true" : "false");
-      document.documentElement.setAttribute(
-        "data-system-backdrop-mode",
-        enabled ? (supported ? "system" : "fallback") : "off"
-      );
-    }
-
     function applyAnimationPreference() {
       const disabled = !!settings.General?.DisableAnimations;
       document.documentElement.setAttribute("data-disable-animations", disabled ? "true" : "false");
@@ -12674,7 +12534,7 @@
     ]);
 
     let settings = window.initialSettings || {
-      General: { RunAtStartup: false, AutoShowOverlay: true, DisableAnimations: false, CompatibilityMode: false, Language: "zh-CN", SystemBackdropEnabled: false, SystemBackdropType: "Opaque" },
+      General: { RunAtStartup: false, AutoShowOverlay: true, DisableAnimations: false, CompatibilityMode: false, Language: "zh-CN" },
       PPT: { AutoHandleInk: true },
       Overlay: { ShowStatusBar: true, ClearMode: "slide" },
       Toolbar: { ShowClear: true, ShowToolbarText: true },
@@ -13266,12 +13126,10 @@
         if (lang) currentLanguage = lang;
         applyAnimationPreference();
         applyI18n();
-        applySystemBackdropDocument();
 
         setSwitch("General", "RunAtStartup");
         setSwitch("General", "DisableAnimations");
         setSwitch("General", "CrashAutoHandleEnabled");
-        setSwitch("General", "SystemBackdropEnabled");
         setSwitch("General", "CompatibilityMode");
         setSwitch("General", "AutoShowOverlay");
         setSwitch("PPT", "AutoHandleInk");
@@ -13297,7 +13155,6 @@
         setSwitch("Security", "EnablePassword");
         setSwitch("Notifications", "TimerNotifyEnabled");
         renderCrashAutoHandleSelect();
-        renderSystemBackdropSelect();
 
         const disabledTools = (settings.Toolbar && settings.Toolbar.DisabledTools) || [];
         ['select', 'pen', 'eraser', 'prev', 'next'].forEach(toolId => {
@@ -13804,101 +13661,6 @@
         }
       }
       renderCrashAutoHandleSelect();
-    }
-
-    function getSystemBackdropEnabled() {
-      return !!settings.General?.SystemBackdropEnabled;
-    }
-
-    function renderSystemBackdropSelect() {
-      if (!settings.General) settings.General = {};
-      const enabled = !!settings.General.SystemBackdropEnabled;
-      const sel = document.getElementById("sel-General-SystemBackdropType");
-      if (!sel) return;
-
-      const enabledOptions = [
-        { value: "Mica", key: "general.systemBackdrop.type.mica", fallback: "Mica" },
-        { value: "Acrylic", key: "general.systemBackdrop.type.acrylic", fallback: "Acrylic" },
-        { value: "MicaAlt", key: "general.systemBackdrop.type.micaAlt", fallback: "Mica Alt" }
-      ];
-      const disabledOptions = [
-        { value: "Opaque", key: "general.systemBackdrop.type.opaque", fallback: "Opaque" }
-      ];
-      const options = enabled ? enabledOptions : disabledOptions;
-
-      const current = settings.General.SystemBackdropType || (enabled ? "Mica" : "Opaque");
-      let selected = current;
-      if (enabled) {
-        const valid = enabledOptions.map(opt => opt.value);
-        if (!valid.includes(selected)) selected = "Mica";
-      } else {
-        selected = "Opaque";
-      }
-
-      if (settings.General.SystemBackdropType !== selected) {
-        settings.General.SystemBackdropType = selected;
-        if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
-          window.pywebview.api.save_setting("General", "SystemBackdropType", selected);
-        }
-      }
-
-      sel.innerHTML = "";
-      options.forEach(opt => {
-        const option = document.createElement("option");
-        option.value = opt.value;
-        option.setAttribute("data-i18n", opt.key);
-        option.textContent = getText(opt.key) || opt.fallback;
-        sel.appendChild(option);
-      });
-      sel.value = selected;
-      sel.disabled = !enabled;
-
-      if (sel.nextSibling && sel.nextSibling.classList.contains("custom-select-container")) {
-        sel.nextSibling.remove();
-      }
-      sel.removeAttribute("data-converted");
-      sel.style.display = "";
-      convertNativeSelectsToCustom();
-
-      const container = sel.nextSibling;
-      if (container && container.classList.contains("custom-select-container")) {
-        container.classList.toggle("disabled", sel.disabled);
-      }
-    }
-
-    function toggleSystemBackdropEnabled() {
-      if (!settings.General) settings.General = {};
-      const next = !settings.General.SystemBackdropEnabled;
-      settings.General.SystemBackdropEnabled = next;
-      if (!next) {
-        settings.General.SystemBackdropType = "Opaque";
-      } else if (!["Mica", "Acrylic", "MicaAlt"].includes(settings.General.SystemBackdropType)) {
-        settings.General.SystemBackdropType = "Mica";
-      }
-      setSwitch("General", "SystemBackdropEnabled");
-      if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
-        window.pywebview.api.save_setting("General", "SystemBackdropEnabled", next);
-        window.pywebview.api.save_setting("General", "SystemBackdropType", settings.General.SystemBackdropType);
-      }
-      applySystemBackdropDocument();
-      renderSystemBackdropSelect();
-    }
-
-    function setSystemBackdropType(value) {
-      if (!settings.General) settings.General = {};
-      if (!getSystemBackdropEnabled()) {
-        renderSystemBackdropSelect();
-        return;
-      }
-      const valid = ["Mica", "Acrylic", "MicaAlt"];
-      if (!valid.includes(value)) value = "Mica";
-      if (settings.General.SystemBackdropType !== value) {
-        settings.General.SystemBackdropType = value;
-        if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
-          window.pywebview.api.save_setting("General", "SystemBackdropType", value);
-        }
-      }
-      renderSystemBackdropSelect();
     }
 
     function toggleSecurityPassword() {
@@ -15917,6 +15679,7 @@
     </svg>
     <span data-i18n="restart.island.text">需要重新启动</span>
   </div>
-</body>
+
+  </body>
 
 </html>

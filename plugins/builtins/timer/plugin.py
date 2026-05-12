@@ -330,6 +330,7 @@ class TimerPlugin(AssistantPlugin):
             theme_mode,
             True,
             defer_load,
+            frameless=True,
         )
         window.destroyed.connect(self._on_window_destroyed)
 

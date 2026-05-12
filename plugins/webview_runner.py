@@ -41,6 +41,7 @@ from PySide6.QtCore import (
     QCoreApplication,
     QStandardPaths,
     QPoint,
+    QEvent,
 )
 from PySide6.QtGui import QColor, QImage, QGuiApplication, QIcon
 from ppt_assistant.core.icon_helper import get_file_icon_base64
@@ -56,8 +57,6 @@ DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19
 DWMWA_BORDER_COLOR = 34
 DWMWA_CAPTION_COLOR = 35
 DWMWA_TEXT_COLOR = 36
-DWMWA_SYSTEMBACKDROP_TYPE = 38
-_DWM_COLOR_NONE = 0xFFFFFFFE
 _DWM_COLOR_DEFAULT = 0xFFFFFFFF
 _EXISTING_WINDOW_NOTIFY_MESSAGE = 0
 _SHARED_PROFILE = None
@@ -71,20 +70,6 @@ if sys.platform == "win32":
         )
     except Exception:
         _EXISTING_WINDOW_NOTIFY_MESSAGE = 0
-
-DWMSBT_AUTO = 0
-DWMSBT_NONE = 1
-DWMSBT_MAINWINDOW = 2
-DWMSBT_TRANSIENTWINDOW = 3
-DWMSBT_TABBEDWINDOW = 4
-
-
-def _supports_system_backdrop():
-    try:
-        return sys.getwindowsversion().build >= 22000
-    except Exception:
-        return False
-
 
 def _safe_set_widget_attr(widget, attr, enabled):
     if attr is None:
@@ -293,7 +278,7 @@ def _resolve_theme_dark(theme_mode):
     return False
 
 
-def _apply_window_theme(hwnd, is_dark, backdrop_type=None):
+def _apply_window_theme(hwnd, is_dark):
     if not hwnd:
         return
     try:
@@ -310,12 +295,7 @@ def _apply_window_theme(hwnd, is_dark, backdrop_type=None):
             ctypes.byref(val),
             ctypes.sizeof(val),
         )
-        use_system_caption = backdrop_type is not None and backdrop_type != DWMSBT_NONE
-        if use_system_caption:
-            border = ctypes.c_int(_DWM_COLOR_DEFAULT)
-            caption = ctypes.c_int(_DWM_COLOR_DEFAULT)
-            text = ctypes.c_int(_DWM_COLOR_DEFAULT)
-        elif is_dark:
+        if is_dark:
             border = ctypes.c_int(0x00202020)
             caption = ctypes.c_int(0x00202020)
             text = ctypes.c_int(0x00FFFFFF)
@@ -340,29 +320,6 @@ def _apply_window_theme(hwnd, is_dark, backdrop_type=None):
         pass
 
 
-def _resolve_system_backdrop_type(settings, window_tag):
-    if window_tag not in ("settings", "timer", "crash"):
-        return None
-    if not _supports_system_backdrop():
-        return DWMSBT_NONE
-    if not isinstance(settings, dict):
-        return DWMSBT_NONE
-    general = (
-        settings.get("General") if isinstance(settings.get("General"), dict) else {}
-    )
-    enabled = bool(general.get("SystemBackdropEnabled"))
-    if not enabled:
-        return DWMSBT_NONE
-    type_value = str(general.get("SystemBackdropType", "Mica"))
-    mapping = {
-        "Mica": DWMSBT_MAINWINDOW,
-        "Acrylic": DWMSBT_TRANSIENTWINDOW,
-        "MicaAlt": DWMSBT_TABBEDWINDOW,
-        "Opaque": DWMSBT_NONE,
-    }
-    return mapping.get(type_value, DWMSBT_MAINWINDOW)
-
-
 def _animations_disabled(settings) -> bool:
     if not isinstance(settings, dict):
         return False
@@ -370,71 +327,6 @@ def _animations_disabled(settings) -> bool:
     if not isinstance(general, dict):
         return False
     return bool(general.get("DisableAnimations"))
-
-
-def _apply_system_backdrop(hwnd, backdrop_type):
-    if not hwnd or backdrop_type is None:
-        return
-    try:
-        dwmapi = ctypes.windll.dwmapi
-        val = ctypes.c_int(int(backdrop_type))
-        dwmapi.DwmSetWindowAttribute(
-            hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ctypes.byref(val), ctypes.sizeof(val)
-        )
-        class MARGINS(ctypes.Structure):
-            _fields_ = [
-                ("cxLeftWidth", ctypes.c_int),
-                ("cxRightWidth", ctypes.c_int),
-                ("cyTopHeight", ctypes.c_int),
-                ("cyBottomHeight", ctypes.c_int),
-            ]
-
-        margins = (
-            MARGINS(-1, -1, -1, -1)
-            if backdrop_type != DWMSBT_NONE
-            else MARGINS(0, 0, 0, 0)
-        )
-        dwmapi.DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(margins))
-    except Exception:
-        pass
-
-
-def _force_dwm_redraw(hwnd):
-    if not hwnd:
-        return
-    try:
-        user32 = ctypes.windll.user32
-        SWP_NOMOVE = 0x0002
-        SWP_NOSIZE = 0x0001
-        SWP_NOZORDER = 0x0004
-        SWP_NOACTIVATE = 0x0010
-        SWP_FRAMECHANGED = 0x0020
-        user32.SetWindowPos(
-            hwnd,
-            0,
-            0,
-            0,
-            0,
-            0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
-        )
-        try:
-            ctypes.windll.dwmapi.DwmFlush()
-        except Exception:
-            pass
-        RDW_INVALIDATE = 0x0001
-        RDW_ERASE = 0x0004
-        RDW_UPDATENOW = 0x0100
-        RDW_FRAME = 0x0400
-        RDW_ALLCHILDREN = 0x0080
-        user32.RedrawWindow(
-            hwnd,
-            None,
-            None,
-            RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW | RDW_FRAME | RDW_ALLCHILDREN,
-        )
-    except Exception:
-        pass
 
 
 def _maybe_add_vxkex_path():
@@ -946,6 +838,67 @@ class Api(QObject):
     def set_window(self, window):
         self._window = window
 
+    @Slot()
+    def start_window_drag(self):
+        try:
+            if self._window:
+                hwnd = int(self._window.winId())
+                ctypes.windll.user32.ReleaseCapture()
+                ctypes.windll.user32.SendMessageW(hwnd, 0x0112, 0xF012, 0)
+        except Exception:
+            pass
+
+    @Slot()
+    def minimize_window(self):
+        try:
+            if self._window:
+                hwnd = int(self._window.winId())
+                ctypes.windll.user32.SendMessageW(hwnd, 0x0112, 0xF020, 0)
+        except Exception:
+            pass
+
+    @Slot()
+    def toggle_maximize(self):
+        try:
+            if self._window:
+                hwnd = int(self._window.winId())
+                if self._window.isMaximized():
+                    ctypes.windll.user32.SendMessageW(hwnd, 0x0112, 0xF120, 0)
+                else:
+                    ctypes.windll.user32.SendMessageW(hwnd, 0x0112, 0xF030, 0)
+        except Exception:
+            pass
+
+    @Slot()
+    def close_window(self):
+        try:
+            if self._window:
+                self._window.close()
+        except Exception:
+            pass
+
+    @Slot(result=str)
+    def get_window_title(self):
+        try:
+            if self._window:
+                return self._window.windowTitle()
+        except Exception:
+            pass
+        return ""
+
+    @Slot(result=str)
+    def get_window_icon_path(self):
+        try:
+            ico_path = _resolve_logo_ico_path()
+            if ico_path:
+                return ico_path.replace("\\", "/")
+            svg_path = _resolve_logo_svg_path()
+            if svg_path:
+                return svg_path.replace("\\", "/")
+        except Exception:
+            pass
+        return ""
+
     def set_in_process(self, enabled=True):
         self._in_process = bool(enabled)
 
@@ -1174,18 +1127,12 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             js = f"if (typeof updateTheme === 'function') updateTheme({json.dumps(theme_mode)}, {json.dumps(theme_id)})"
             self._window.page().runJavaScript(js)
             try:
-                backdrop_type = _resolve_system_backdrop_type(
-                    getattr(self, "settings", {}), getattr(self._window, "_window_tag", "")
-                )
                 _apply_window_theme(
                     int(self._window.winId()),
                     _resolve_theme_dark(theme_mode),
-                    backdrop_type,
                 )
             except Exception:
                 pass
-            if hasattr(self._window, "apply_backdrop_settings"):
-                self._window.apply_backdrop_settings()
 
     @Slot(int)
     def update_timer(self, total_seconds):
@@ -1634,12 +1581,6 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
 
             if category == "Appearance" and key in ("ThemeMode", "ThemeId"):
                 self.update_settings(data)
-            if category == "General" and key in (
-                "SystemBackdropEnabled",
-                "SystemBackdropType",
-            ):
-                if self._window and hasattr(self._window, "apply_backdrop_settings"):
-                    self._window.apply_backdrop_settings()
         except Exception as e:
             print(f"Error saving settings: {e}", file=sys.stderr)
 
@@ -2707,20 +2648,26 @@ class MainWindow(QWebEngineView):
         theme_mode="auto",
         custom_border=False,
         defer_load=False,
+        frameless=False,
     ):
         super().__init__()
         self.setPage(QWebEnginePage(_get_shared_profile(), self))
         self.setWindowTitle(title)
         self.resize(width, height)
 
-        # 确保窗口可调整大小 - 设置基础窗口标志
-        self.setWindowFlag(Qt.Window, True)
-        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
-        self.setWindowFlag(Qt.WindowMinMaxButtonsHint, True)
+        self._frameless = frameless
+
+        if frameless:
+            self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
+        else:
+            self.setWindowFlag(Qt.Window, True)
+            self.setWindowFlag(Qt.WindowCloseButtonHint, True)
+            self.setWindowFlag(Qt.WindowMinMaxButtonsHint, True)
 
         try:
             if "Onboarding" in str(title):
-                self.setWindowFlag(Qt.WindowMaximizeButtonHint, False)
+                if not frameless:
+                    self.setWindowFlag(Qt.WindowMaximizeButtonHint, False)
             self._center_on_screen()
         except Exception:
             self._center_on_screen()
@@ -2742,7 +2689,12 @@ class MainWindow(QWebEngineView):
         self._render_crash_count = 0
         self._max_reload_attempts = 3
         self._crash_recovery_timer = None
+        self._aero_enabled = False
         self._disable_animations = _animations_disabled(getattr(api, "settings", {}))
+        self.api = api
+        self.api.set_window(self)
+        self.windowTitleChanged.connect(self._on_window_title_changed)
+        self.winId()
         self._apply_page_background()
         settings = self.page().settings()
         allow_gpu = (not _is_windows7()) and (not _is_virtual_gpu())
@@ -2763,9 +2715,6 @@ class MainWindow(QWebEngineView):
         settings.setAttribute(QWebEngineSettings.WebAttribute.AutoLoadImages, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, False)
         _configure_profile(self.page().profile())
-        self.api = api
-        self.api.set_window(self)
-        self._apply_page_background()
         self.channel = QWebChannel()
         self.channel.registerObject("api", api)
         self.page().setWebChannel(self.channel)
@@ -2804,43 +2753,6 @@ class MainWindow(QWebEngineView):
         )
         motion_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         self.page().scripts().insert(motion_script)
-        supports_backdrop = _supports_system_backdrop()
-        support_script = QWebEngineScript()
-        support_script.setSourceCode(
-            f"window.__SYSTEM_BACKDROP_SUPPORTED = {json.dumps(supports_backdrop)};"
-        )
-        support_script.setInjectionPoint(
-            QWebEngineScript.InjectionPoint.DocumentCreation
-        )
-        support_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
-        self.page().scripts().insert(support_script)
-        try:
-            general = (
-                api.settings.get("General", {})
-                if isinstance(api.settings, dict)
-                else {}
-            )
-        except Exception:
-            general = {}
-        enabled = bool(general.get("SystemBackdropEnabled")) and self._window_tag in (
-            "settings",
-            "timer",
-        )
-        mode = "off"
-        if enabled:
-            mode = "system" if supports_backdrop else "fallback"
-        backdrop_attr_script = QWebEngineScript()
-        backdrop_attr_script.setSourceCode(
-            "try {"
-            f"document.documentElement.setAttribute('data-system-backdrop', '{'true' if enabled else 'false'}');"
-            f"document.documentElement.setAttribute('data-system-backdrop-mode', '{mode}');"
-            "} catch (e) {}"
-        )
-        backdrop_attr_script.setInjectionPoint(
-            QWebEngineScript.InjectionPoint.DocumentCreation
-        )
-        backdrop_attr_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
-        self.page().scripts().insert(backdrop_attr_script)
         preview_flag = os.environ.get("ONBOARDING_PREVIEW", "").lower() == "true"
         preview_script = QWebEngineScript()
         preview_script.setSourceCode(
@@ -2869,9 +2781,16 @@ class MainWindow(QWebEngineView):
         else:
             self.load(target_url)
         self.loadFinished.connect(
-            lambda *_: (self._apply_page_background(), self._schedule_backdrop_apply())
+            lambda *_: (
+                self._apply_page_background(),
+                self._apply_backdrop(),
+                QTimer.singleShot(300, self._force_refresh),
+                self._inject_title_bar_html() if self._frameless else None,
+                self._inject_title_bar_js() if self._frameless else None,
+                self._push_maximized_state() if self._frameless else None,
+            )
         )
-        self._schedule_backdrop_apply()
+        self._apply_backdrop()
 
         self.renderProcessTerminated.connect(self._on_render_process_terminated)
 
@@ -3085,26 +3004,30 @@ class MainWindow(QWebEngineView):
             self.page().setBackgroundColor(Qt.transparent)
             return
 
+        if self._frameless:
+            try:
+                self.setAutoFillBackground(True)
+                palette = self.palette()
+                is_dark = _resolve_theme_dark(self._theme_mode)
+                bg_color = QColor(24, 24, 24) if is_dark else QColor(255, 255, 255)
+                palette.setColor(self.backgroundRole(), bg_color)
+                self.setPalette(palette)
+            except Exception:
+                pass
+            _safe_set_widget_attr(self, getattr(Qt, "WA_OpaquePaintEvent", None), True)
+            _safe_set_widget_attr(self, Qt.WA_TranslucentBackground, False)
+            _safe_set_widget_attr(self, getattr(Qt, "WA_NoSystemBackground", None), False)
+            is_dark = _resolve_theme_dark(self._theme_mode)
+            if is_dark:
+                self.page().setBackgroundColor(QColor(24, 24, 24))
+            else:
+                self.page().setBackgroundColor(QColor(255, 255, 255))
+            return
+
         settings = {}
         api = getattr(self, "api", None)
         if api is not None:
             settings = getattr(api, "settings", {}) or {}
-        backdrop_type = _resolve_system_backdrop_type(
-            settings, getattr(self, "_window_tag", "")
-        )
-        if backdrop_type is not None and backdrop_type != DWMSBT_NONE:
-            try:
-                self.setAutoFillBackground(False)
-                palette = self.palette()
-                palette.setColor(self.backgroundRole(), Qt.transparent)
-                self.setPalette(palette)
-            except Exception:
-                pass
-            _safe_set_widget_attr(self, getattr(Qt, "WA_OpaquePaintEvent", None), False)
-            _safe_set_widget_attr(self, Qt.WA_TranslucentBackground, True)
-            _safe_set_widget_attr(self, getattr(Qt, "WA_NoSystemBackground", None), True)
-            self.page().setBackgroundColor(Qt.transparent)
-            return
 
         try:
             self.setAutoFillBackground(True)
@@ -3124,45 +3047,101 @@ class MainWindow(QWebEngineView):
         else:
             self.page().setBackgroundColor(QColor(255, 255, 255))
 
-    def _is_system_backdrop_enabled(self):
-        settings = {}
-        api = getattr(self, "api", None)
-        if api is not None:
-            settings = getattr(api, "settings", {}) or {}
-        backdrop_type = _resolve_system_backdrop_type(
-            settings, getattr(self, "_window_tag", "")
-        )
-        return backdrop_type is not None and backdrop_type != DWMSBT_NONE
-
-    def _force_webview_transparent(self):
-        try:
-            self.setStyleSheet("background: transparent;")
-        except Exception:
-            pass
-        try:
-            self.page().setBackgroundColor(Qt.transparent)
-        except Exception:
-            pass
-        try:
-            self.page().runJavaScript(
-                "try{"
-                "if(document.documentElement){document.documentElement.style.background='transparent';}"
-                "if(document.body){document.body.style.background='transparent';}"
-                "}catch(e){}"
-            )
-        except Exception:
-            pass
-
-    def _force_webview_repaint(self):
-        try:
-            z = self.page().zoomFactor()
-            self.page().setZoomFactor(z + 0.001)
-            QTimer.singleShot(0, lambda: self.page().setZoomFactor(z))
-        except Exception:
-            pass
-
     def _inject_custom_border(self):
-        css = """
+        if self._frameless:
+            css = """\
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+body {
+    box-sizing: border-box;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+}
+.title-bar {
+    display: none;
+}
+:root[data-frameless="true"] .title-bar {
+    display: flex;
+    align-items: center;
+    height: 32px;
+    background: var(--bg-app);
+    user-select: none;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 100;
+}
+:root[data-frameless="true"][data-maximized="true"] .title-bar {
+    height: 40px;
+}
+.title-bar-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 12px;
+    margin-right: 8px;
+    color: var(--text-primary);
+    opacity: 0.7;
+    z-index: 1;
+}
+.title-bar-icon img {
+    width: 16px;
+    height: 16px;
+}
+.title-bar-title {
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-primary);
+    opacity: 0.8;
+    cursor: default;
+    pointer-events: none;
+}
+.title-bar-controls {
+    display: flex;
+    margin-left: auto;
+    height: 100%;
+}
+.title-bar-btn {
+    width: 46px;
+    height: 100%;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-primary);
+    border-radius: 0;
+    padding: 0;
+    transition: background 0.1s;
+    -webkit-app-region: no-drag;
+}
+.title-bar-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+:root[data-theme="dark"] .title-bar-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+.title-bar-btn .title-bar-icon-glyph {
+    font-family: "Segoe MDL2 Assets", "Segoe Fluent Icons", sans-serif;
+    font-size: 10px;
+    line-height: 1;
+}
+.title-bar-close:hover {
+    background: #e81123;
+    color: #fff;
+}
+"""
+        else:
+            css = """
 html, body {
     height: 100%;
 }
@@ -3172,10 +3151,6 @@ body {
     border-radius: 12px;
     overflow: hidden;
 }
-:root[data-system-backdrop="true"] body {
-    border: none;
-    border-radius: 0;
-}
 """
         js = f"""
 (function() {{
@@ -3183,14 +3158,76 @@ body {
     style.textContent = {json.dumps(css)};
     if (document.documentElement) {{
         document.documentElement.appendChild(style);
+        document.documentElement.setAttribute('data-frameless', '{str(self._frameless).lower()}');
     }}
 }})();
 """
         script = QWebEngineScript()
         script.setSourceCode(js)
-        script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
+        script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentReady)
         script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         self.page().scripts().insert(script)
+
+    def _inject_title_bar_html(self):
+        if not self._frameless:
+            return
+        title_bar_html = (
+            '<div class="title-bar" id="title-bar">'
+            '<div class="title-bar-icon" id="title-bar-icon"></div>'
+            '<div class="title-bar-title" id="title-bar-text"></div>'
+            '<div class="title-bar-controls">'
+            '<button class="title-bar-btn" id="btn-minimize" title="\u6700\u5c0f\u5316" onclick="window.pywebview.api.minimize_window()">'
+            '<span class="title-bar-icon-glyph">\uE921</span>'
+            '</button>'
+            '<button class="title-bar-btn" id="btn-maximize" title="\u6700\u5927\u5316" onclick="window.pywebview.api.toggle_maximize()">'
+            '<span class="title-bar-icon-glyph">\uE922</span>'
+            '</button>'
+            '<button class="title-bar-btn title-bar-close" id="btn-close" title="\u5173\u95ed" onclick="window.pywebview.api.close_window()">'
+            '<span class="title-bar-icon-glyph">\uE8BB</span>'
+            '</button>'
+            '</div>'
+            '</div>'
+        )
+        js = (
+            "(function(){"
+            "var tb=document.getElementById('title-bar');"
+            "if(!tb){"
+            "var d=document.createElement('div');"
+            "d.innerHTML=" + json.dumps(title_bar_html) + ";"
+            "var el=d.firstChild;"
+            "document.body.insertBefore(el,document.body.firstChild);"
+            "}"
+            "})()"
+        )
+        self.page().runJavaScript(js)
+
+    def _inject_title_bar_js(self):
+        if not self._frameless:
+            return
+        js = (
+            "(function(){"
+            "function loadTitleBarInfo(){"
+            "try{"
+            "window.pywebview.api.get_window_title().then(function(t){"
+            "var el=document.getElementById('title-bar-text');"
+            "if(el&&t)el.textContent=t;"
+            "});"
+            "window.pywebview.api.get_window_icon_path().then(function(p){"
+            "var el=document.getElementById('title-bar-icon');"
+            "if(el&&p){"
+            "var img=document.createElement('img');"
+            "img.src='file:///'+p;"
+            "img.alt='';"
+            "el.appendChild(img);"
+            "}"
+            "});"
+            "}catch(e){}"
+            "}"
+            "if(window.pywebview&&window.pywebview.api){loadTitleBarInfo();}"
+            "else{window.addEventListener('pywebviewready',loadTitleBarInfo);}"
+            "})()"
+        )
+        self.page().runJavaScript(js)
 
     def _detect_window_tag(self, url, title):
         try:
@@ -3228,13 +3265,15 @@ body {
             self.setAttribute(Qt.WA_TranslucentBackground)
             self.resize(340, 400)
 
-            # Move to top-right corner
             screen = QApplication.primaryScreen()
             if screen:
                 geo = screen.availableGeometry()
                 x = geo.x() + geo.width() - 340 - 20
                 y = geo.y() + 20
                 self.move(x, y)
+
+            if self._frameless:
+                self._set_custom_title_bar_visible(False)
         else:
             self.setWindowFlags(Qt.Window)
             self.setAttribute(Qt.WA_TranslucentBackground, False)
@@ -3260,8 +3299,24 @@ body {
             self._pre_mini_was_maximized = False
             self._pre_mini_was_fullscreen = False
 
+            if self._frameless:
+                self._set_custom_title_bar_visible(True)
+
         self._apply_page_background()
         self.show()
+
+    def _set_custom_title_bar_visible(self, visible):
+        display = "flex" if visible else "none"
+        js = (
+            "(function(){"
+            "var tb=document.getElementById('title-bar');"
+            "if(tb)tb.style.display=" + json.dumps(display) + ";"
+            "})()"
+        )
+        try:
+            self.page().runJavaScript(js)
+        except Exception:
+            pass
 
     def start_window_drag(self):
         # Reliable drag entrypoint for frameless mini windows.
@@ -3342,34 +3397,86 @@ body {
                     return True, 0
 
                 if msg.message == 0x0084:  # WM_NCHITTEST
-                    if getattr(self, "_mini_mode", False) and not self.isMaximized() and not self.isFullScreen():
+                    if getattr(self, "_mini_mode", False) or self._frameless:
                         from PySide6.QtGui import QCursor
                         pos = self.mapFromGlobal(QCursor.pos())
                         x, y = pos.x(), pos.y()
                         w, h = self.width(), self.height()
-                        
-                        border = 8
-                        is_left = x < border
-                        is_right = x > w - border
-                        is_top = y < border
-                        is_bottom = y > h - border
-                        
-                        if is_top and is_left:
-                            return True, 13
-                        elif is_top and is_right:
-                            return True, 14
-                        elif is_bottom and is_left:
-                            return True, 16
-                        elif is_bottom and is_right:
-                            return True, 17
-                        elif is_left:
-                            return True, 10
-                        elif is_right:
-                            return True, 11
-                        elif is_top:
-                            return True, 12
-                        elif is_bottom:
-                            return True, 15
+
+                        title_bar_h = 40 if self.isMaximized() else 32
+                        btn_area_left = w - 138
+
+                        if y < title_bar_h and x < btn_area_left:
+                            return True, 2  # HTCAPTION
+
+                        if not self.isMaximized() and not self.isFullScreen():
+                            border = 8
+                            is_left = x < border
+                            is_right = x > w - border
+                            is_top = y < border
+                            is_bottom = y > h - border
+
+                            if is_top and is_left:
+                                return True, 13
+                            elif is_top and is_right:
+                                return True, 14
+                            elif is_bottom and is_left:
+                                return True, 16
+                            elif is_bottom and is_right:
+                                return True, 17
+                            elif is_left:
+                                return True, 10
+                            elif is_right:
+                                return True, 11
+                            elif is_top:
+                                return True, 12
+                            elif is_bottom:
+                                return True, 15
+
+                if msg.message == 0x0083:  # WM_NCCALCSIZE
+                    if self._frameless and msg.wParam:
+                        class RECT(ctypes.Structure):
+                            _fields_ = [
+                                ("left", ctypes.c_long),
+                                ("top", ctypes.c_long),
+                                ("right", ctypes.c_long),
+                                ("bottom", ctypes.c_long),
+                            ]
+
+                        class NCCALCSIZE_PARAMS(ctypes.Structure):
+                            _fields_ = [
+                                ("rgrc", RECT * 3),
+                                ("lppos", ctypes.c_void_p),
+                            ]
+
+                        params = NCCALCSIZE_PARAMS.from_address(msg.lParam)
+                        monitor = ctypes.windll.user32.MonitorFromWindow(
+                            msg.hWnd, 1
+                        )
+                        if monitor:
+                            class MONITORINFO(ctypes.Structure):
+                                _fields_ = [
+                                    ("cbSize", ctypes.c_uint),
+                                    ("rcMonitor", RECT),
+                                    ("rcWork", RECT),
+                                    ("dwFlags", ctypes.c_uint),
+                                ]
+
+                            mi = MONITORINFO()
+                            mi.cbSize = ctypes.sizeof(MONITORINFO)
+                            if ctypes.windll.user32.GetMonitorInfoW(
+                                monitor, ctypes.byref(mi)
+                            ):
+                                new_w = params.rgrc[0].right - params.rgrc[0].left
+                                new_h = params.rgrc[0].bottom - params.rgrc[0].top
+                                mon_w = mi.rcMonitor.right - mi.rcMonitor.left
+                                mon_h = mi.rcMonitor.bottom - mi.rcMonitor.top
+                                if new_w >= mon_w and new_h >= mon_h:
+                                    params.rgrc[0].left = mi.rcWork.left
+                                    params.rgrc[0].top = mi.rcWork.top
+                                    params.rgrc[0].right = mi.rcWork.right
+                                    params.rgrc[0].bottom = mi.rcWork.bottom
+                        return True, 0
         except Exception:
             pass
         return super().nativeEvent(eventType, message)
@@ -3382,46 +3489,12 @@ body {
             getattr(self.api, "settings", {}),
             getattr(self, "_window_tag", ""),
         )
-        try:
-            _force_dwm_redraw(int(self.winId()))
-        except Exception:
-            pass
-        if self._is_system_backdrop_enabled():
-            self._force_webview_transparent()
-            self._force_webview_repaint()
         self.update()
 
     def _force_refresh(self):
-        if self._mini_mode or self.isMaximized() or self.isFullScreen():
+        if self._mini_mode:
             return
-        w, h = self.width(), self.height()
-        if w <= 10 or h <= 10:
-            return
-
-        # Nudge both size and position
-        self.resize(w + 1, h + 1)
-        orig_pos = self.pos()
-        self.move(orig_pos.x(), orig_pos.y() + 1)
-
-        def _restore():
-            self.resize(w, h)
-            self.move(orig_pos)
-            _force_dwm_redraw(int(self.winId()))
-            self._force_webview_repaint()
-
-        QTimer.singleShot(200, _restore)
-
-    def _hard_resize_nudge(self):
-        if self._mini_mode or self.isMaximized() or self.isFullScreen():
-            return
-        if self._did_hard_refresh:
-            return
-        self._force_refresh()
-        self._did_hard_refresh = True
-
-    def _schedule_backdrop_apply(self):
-        for delay in (0, 200, 800):
-            QTimer.singleShot(delay, self._apply_backdrop)
+        self.update()
 
     def update_theme_mode(self, theme_mode):
         self._theme_mode = theme_mode
@@ -3432,17 +3505,7 @@ body {
                 root.setProperty(
                     "darkMode", bool(_resolve_theme_dark(self._theme_mode))
                 )
-        self._schedule_backdrop_apply()
-
-    def apply_backdrop_settings(self):
-        self._apply_page_background()
-        if self._loading_overlay is not None:
-            root = self._loading_overlay.rootObject()
-            if root is not None:
-                root.setProperty(
-                    "darkMode", bool(_resolve_theme_dark(self._theme_mode))
-                )
-        self._schedule_backdrop_apply()
+        self._apply_backdrop()
 
     def apply_animation_preference(self, disabled):
         self._disable_animations = bool(disabled)
@@ -3473,6 +3536,7 @@ body {
 
     def showEvent(self, event):
         super().showEvent(event)
+        self._aero_enabled = False
         if self._pending_url is not None:
             self.load(self._pending_url)
             self._pending_url = None
@@ -3492,12 +3556,77 @@ body {
             except Exception:
                 pass
         self._apply_page_background()
-        self._schedule_backdrop_apply()
-        if self._is_system_backdrop_enabled():
-            # Consolidate refreshes to a single robust nudge
-            QTimer.singleShot(300, self._hard_resize_nudge)
-            QTimer.singleShot(500, self._force_webview_transparent)
-            QTimer.singleShot(600, self._force_webview_repaint)
+        self._apply_backdrop()
+        if self._frameless:
+            QTimer.singleShot(0, self._enable_frameless_aero)
+
+    def _enable_frameless_aero(self):
+        if self._aero_enabled:
+            return
+        self._aero_enabled = True
+        try:
+            hwnd = int(self.winId())
+            user32 = ctypes.windll.user32
+            dwmapi = ctypes.windll.dwmapi
+
+            GWL_STYLE = -16
+            style = user32.GetWindowLongW(hwnd, GWL_STYLE)
+            style |= 0x00040000  # WS_THICKFRAME
+            style |= 0x00C00000  # WS_CAPTION
+            style |= 0x00010000  # WS_MAXIMIZEBOX
+            style |= 0x00020000  # WS_MINIMIZEBOX
+            user32.SetWindowLongW(hwnd, GWL_STYLE, style)
+
+            class MARGINS(ctypes.Structure):
+                _fields_ = [
+                    ("cxLeftWidth", ctypes.c_int),
+                    ("cxRightWidth", ctypes.c_int),
+                    ("cyTopHeight", ctypes.c_int),
+                    ("cyBottomHeight", ctypes.c_int),
+                ]
+
+            margins = MARGINS(1, 1, 1, 1)
+            dwmapi.DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(margins))
+
+            SWP_FRAMECHANGED = 0x0020
+            SWP_NOMOVE = 0x0002
+            SWP_NOSIZE = 0x0001
+            SWP_NOZORDER = 0x0004
+            SWP_NOOWNERZORDER = 0x0200
+            flags = SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER
+            user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, flags)
+        except Exception:
+            pass
+
+    def _on_window_title_changed(self, title):
+        try:
+            self.page().runJavaScript(
+                "try{var e=document.getElementById('title-bar-text');if(e)e.textContent="
+                + json.dumps(title)
+                + "}catch(e){}"
+            )
+        except Exception:
+            pass
+
+    def changeEvent(self, event):
+        if event.type() == QEvent.Type.WindowStateChange:
+            self._push_maximized_state()
+        super().changeEvent(event)
+
+    def _push_maximized_state(self):
+        try:
+            maximized = "true" if self.isMaximized() else "false"
+            icon_text = json.dumps("\uE923" if self.isMaximized() else "\uE922")
+            self.page().runJavaScript(
+                "try{"
+                "document.documentElement.setAttribute('data-maximized','" + maximized + "');"
+                "var b=document.getElementById('btn-maximize');"
+                "if(b){var s=b.querySelector('.title-bar-icon-glyph');"
+                "if(s)s.textContent=" + icon_text + ";}"
+                "}catch(e){}"
+            )
+        except Exception:
+            pass
 
     def moveEvent(self, event):
         super().moveEvent(event)
@@ -3556,14 +3685,7 @@ def apply_win11_aesthetics(window, theme_mode=None, settings=None, window_tag=""
         dwmapi.DwmSetWindowAttribute(
             hwnd, 33, ctypes.byref(corner_preference), ctypes.sizeof(corner_preference)
         )
-        backdrop_type = _resolve_system_backdrop_type(settings, window_tag)
-        _apply_window_theme(hwnd, _resolve_theme_dark(theme_mode), backdrop_type)
-        _apply_system_backdrop(hwnd, backdrop_type)
-        if backdrop_type is not None and backdrop_type != DWMSBT_NONE:
-            border = ctypes.c_int(_DWM_COLOR_NONE)
-            dwmapi.DwmSetWindowAttribute(
-                hwnd, DWMWA_BORDER_COLOR, ctypes.byref(border), ctypes.sizeof(border)
-            )
+        _apply_window_theme(hwnd, _resolve_theme_dark(theme_mode))
         icon_path = _resolve_logo_ico_path()
         if icon_path and os.path.exists(icon_path):
             user32 = ctypes.windll.user32
@@ -3754,7 +3876,7 @@ def main():
         ]
         defer_load = _should_defer_initial_load(url, title, defer_load)
         window = MainWindow(
-            title, url, api, width, height, theme_mode, custom_border, defer_load
+            title, url, api, width, height, theme_mode, custom_border, defer_load, frameless=custom_border
         )
         if title == "Settings":
             window.setMinimumWidth(1099)
