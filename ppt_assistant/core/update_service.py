@@ -57,6 +57,23 @@ def _is_truthy(value) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _parse_version(version: str) -> tuple:
+    parts = version.strip().lstrip("v").split(".")
+    result = []
+    for p in parts:
+        try:
+            result.append(int(p))
+        except ValueError:
+            result.append(0)
+    while len(result) < 4:
+        result.append(0)
+    return tuple(result)
+
+
+def _is_newer(remote: str, current: str) -> bool:
+    return _parse_version(remote) > _parse_version(current)
+
+
 async def check_update_impl(force: bool = False):
     if is_dev_env():
         return {"available": False, "reason": "DEV_MODE"}
@@ -90,9 +107,8 @@ async def check_update_impl(force: bool = False):
                             except:
                                 pass
                         
-                        # Compare versions (simplified, assume tag is like v1.0.0)
                         clean_ver = version.lstrip("v")
-                        if clean_ver != current_version or force:
+                        if force or _is_newer(clean_ver, current_version):
                             return {
                                 "available": True,
                                 "version": clean_ver,
@@ -232,12 +248,22 @@ async def handle_changelog(request):
     return web.json_response({"changelog": "No changelog available."})
 
 async def handle_open_settings(request):
-    # This will be called by a new instance to tell the running instance to open settings
-    # We can trigger it by writing to a file or using a callback
-    # For now, let's write to a flag file that the main app can poll
     open_flag = APP_DIR / "_internal" / ".open_settings"
     open_flag.parent.mkdir(exist_ok=True)
     open_flag.touch()
+    return web.json_response({"status": "ok"})
+
+async def handle_protocol_url(request):
+    url = request.query.get("url", "")
+    if not url:
+        return web.json_response({"error": "Missing url param"}, status=400)
+    protocol_flag = APP_DIR / "_internal" / ".protocol_url"
+    protocol_flag.parent.mkdir(exist_ok=True)
+    try:
+        with open(protocol_flag, "w", encoding="utf-8") as f:
+            f.write(url)
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500)
     return web.json_response({"status": "ok"})
 
 def start_update_server(port: int = 28423):
@@ -263,6 +289,7 @@ def start_update_server(port: int = 28423):
     app.router.add_get('/api/update/progress', handle_progress)
     app.router.add_get('/api/update/changelog', handle_changelog)
     app.router.add_get('/api/update/open_settings', handle_open_settings)
+    app.router.add_get('/api/protocol/handle', handle_protocol_url)
     
     runner = web.AppRunner(app)
     

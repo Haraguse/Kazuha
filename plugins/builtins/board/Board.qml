@@ -1,7 +1,6 @@
 import QtQuick 2.15
 import QtQml 2.15
 import QtQuick.Window 2.15
-import QtGraphicalEffects 1.15
 import KazuhaBoard 1.0
 
 Rectangle {
@@ -1329,10 +1328,20 @@ Rectangle {
                             visible: false
                         }
 
-                        ColorOverlay {
+                        ShaderEffect {
                             anchors.fill: clearThumbIcon
-                            source: clearThumbIcon
-                            color: "#333333"
+                            property variant source: clearThumbIcon
+                            property color overlayColor: "#333333"
+
+                            fragmentShader: "
+                                varying highp vec2 qt_TexCoord0;
+                                uniform sampler2D source;
+                                uniform highp vec4 overlayColor;
+                                void main() {
+                                    highp vec4 tex = texture2D(source, qt_TexCoord0);
+                                    gl_FragColor = vec4(overlayColor.rgb, tex.a);
+                                }
+                            "
                         }
                     }
 

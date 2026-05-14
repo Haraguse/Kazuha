@@ -24,3 +24,4 @@ debug.log
 profiles/_active
 .gitignore
 profiles/Profile 2.json
+_backups/_registry

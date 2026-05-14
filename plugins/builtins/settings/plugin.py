@@ -233,7 +233,6 @@ class SettingsPlugin(AssistantPlugin):
             traceback.print_exc()
 
     def quit_app_for_update(self):
-        """由更新流程调用，通知主程序完整退出，便于 updater 接管文件替换。"""
         try:
             if self._context is None:
                 return False
@@ -245,3 +244,13 @@ class SettingsPlugin(AssistantPlugin):
         except Exception:
             pass
         return False
+
+    def navigate_to_section(self, section_key: str, retries: int = 8):
+        try:
+            if self._window is not None:
+                self._window.page().runJavaScript(
+                    f"if(typeof navigateToSection === 'function') {{ navigateToSection('{section_key}'); 'OK'; }} else {{ 'WAIT'; }}",
+                    lambda result: QTimer.singleShot(400, lambda: self.navigate_to_section(section_key, retries - 1)) if result == 'WAIT' and retries > 0 else None
+                )
+        except Exception:
+            pass

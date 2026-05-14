@@ -12,19 +12,67 @@ def register_url_protocol():
         key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
         winreg.SetValue(key, "", winreg.REG_SZ, "URL:Luminalium Protocol")
         winreg.SetValueEx(key, "URL Protocol", 0, winreg.REG_SZ, "")
-        
+
         icon_key = winreg.CreateKey(key, "DefaultIcon")
-        exe_path = os.path.abspath(sys.executable if getattr(sys, "frozen", False) else __file__)
-        winreg.SetValue(icon_key, "", winreg.REG_SZ, f'"{exe_path}",0')
-        
+        if getattr(sys, "frozen", False):
+            exe_path = os.path.abspath(sys.executable)
+            winreg.SetValue(icon_key, "", winreg.REG_SZ, f'"{exe_path}",0')
+            cmd_str = f'"{exe_path}" "%1"'
+        else:
+            main_py = os.path.abspath(__file__)
+            python_exe = os.path.abspath(sys.executable)
+            winreg.SetValue(icon_key, "", winreg.REG_SZ, f'"{python_exe}",0')
+            cmd_str = f'"{python_exe}" "{main_py}" "%1"'
+
         cmd_key = winreg.CreateKey(key, r"shell\open\command")
-        winreg.SetValue(cmd_key, "", winreg.REG_SZ, f'"{exe_path}" "%1"')
-        
+        winreg.SetValue(cmd_key, "", winreg.REG_SZ, cmd_str)
+
         winreg.CloseKey(cmd_key)
         winreg.CloseKey(icon_key)
         winreg.CloseKey(key)
     except Exception as e:
         print(f"Failed to register URL protocol: {e}")
+
+
+def unregister_url_protocol():
+    if sys.platform != "win32":
+        return
+    try:
+        import winreg
+        key_path = r"Software\Classes\luminalium"
+        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, key_path + r"\shell\open\command")
+        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, key_path + r"\shell\open")
+        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, key_path + r"\shell")
+        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, key_path + r"\DefaultIcon")
+        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, key_path)
+        print("[Protocol] URL protocol unregistered successfully")
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        print(f"Failed to unregister URL protocol: {e}")
+
+
+def parse_luminalium_url(url: str) -> dict | None:
+    if not url or not url.startswith("luminalium://"):
+        return None
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        path = parsed.path.strip("/")
+        parts = [p for p in path.split("/") if p]
+        host = parsed.hostname or ""
+        if host == "app" and len(parts) >= 1:
+            if parts[0] == "settings":
+                page = parts[1] if len(parts) >= 2 else "main"
+                return {"action": "settings", "page": page}
+        elif host == "intergrate" and len(parts) >= 1:
+            target = parts[0]
+            if target in ("timer", "board"):
+                return {"action": target}
+    except Exception:
+        pass
+    return None
+
 
 # Nuitka standalone detection and compatibility
 if hasattr(sys, "nuitka_binary"):
@@ -119,7 +167,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QProgressBar,
 )
-from PySide6.QtCore import Qt, QTimer, Slot, QPoint, QCoreApplication, QEvent, QObject
+from PySide6.QtCore import Qt, QTimer, Slot, QPoint, QCoreApplication, QEvent, QObject, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QRect
 from PySide6.QtGui import (
     QFontDatabase,
     QFont,
@@ -760,6 +808,10 @@ class StartupSplash(QWidget):
         self._pixmap = None
         self._progress_value = 0
         self._status_text = ""
+        self._base_geometry = None
+        self._fade_anim = None
+        self._scale_anim = None
+        self._anim_group = None
 
         icon = load_app_icon()
         if not icon.isNull():
@@ -1182,6 +1234,85 @@ class StartupSplash(QWidget):
         y = screen_geo.y() + (screen_geo.height() - h) // 2
         self.move(x, y)
 
+    def _get_scaled_geometry(self, scale: float):
+        if self._base_geometry is None:
+            return self.geometry()
+        bg = self._base_geometry
+        new_w = int(bg.width() * scale)
+        new_h = int(bg.height() * scale)
+        dx = (bg.width() - new_w) // 2
+        dy = (bg.height() - new_h) // 2
+        return QRect(bg.x() + dx, bg.y() + dy, new_w, new_h)
+
+    def _relax_size_constraint(self):
+        self._saved_min_size = self.minimumSize()
+        self._saved_max_size = self.maximumSize()
+        self.setMinimumSize(1, 1)
+        self.setMaximumSize(16777215, 16777215)
+
+    def _restore_size_constraint(self):
+        if hasattr(self, "_saved_min_size") and hasattr(self, "_saved_max_size"):
+            self.setMinimumSize(self._saved_min_size)
+            self.setMaximumSize(self._saved_max_size)
+
+    def show(self):
+        self.setWindowOpacity(0.0)
+        super().show()
+        self._base_geometry = self.geometry()
+        self._relax_size_constraint()
+        scaled_geo = self._get_scaled_geometry(0.96)
+        self.setGeometry(scaled_geo)
+        QTimer.singleShot(50, self._play_fade_in)
+
+    def _play_fade_in(self):
+        if self._anim_group is not None:
+            self._anim_group.stop()
+            self._anim_group = None
+
+        self._fade_anim = QPropertyAnimation(self, b"windowOpacity")
+        self._fade_anim.setDuration(400)
+        self._fade_anim.setStartValue(0.0)
+        self._fade_anim.setEndValue(1.0)
+        self._fade_anim.setEasingCurve(QEasingCurve.OutCubic)
+
+        self._scale_anim = QPropertyAnimation(self, b"geometry")
+        self._scale_anim.setDuration(400)
+        self._scale_anim.setStartValue(self._get_scaled_geometry(0.96))
+        self._scale_anim.setEndValue(self._base_geometry)
+        self._scale_anim.setEasingCurve(QEasingCurve.OutCubic)
+
+        self._anim_group = QParallelAnimationGroup(self)
+        self._anim_group.addAnimation(self._fade_anim)
+        self._anim_group.addAnimation(self._scale_anim)
+        self._anim_group.finished.connect(self._restore_size_constraint)
+        self._anim_group.start()
+
+    def _play_fade_out(self, on_finished_callback=None):
+        if self._anim_group is not None:
+            self._anim_group.stop()
+            self._anim_group = None
+
+        self._relax_size_constraint()
+
+        self._fade_anim = QPropertyAnimation(self, b"windowOpacity")
+        self._fade_anim.setDuration(300)
+        self._fade_anim.setStartValue(1.0)
+        self._fade_anim.setEndValue(0.0)
+        self._fade_anim.setEasingCurve(QEasingCurve.InCubic)
+
+        self._scale_anim = QPropertyAnimation(self, b"geometry")
+        self._scale_anim.setDuration(300)
+        self._scale_anim.setStartValue(self._base_geometry)
+        self._scale_anim.setEndValue(self._get_scaled_geometry(0.96))
+        self._scale_anim.setEasingCurve(QEasingCurve.InCubic)
+
+        self._anim_group = QParallelAnimationGroup(self)
+        self._anim_group.addAnimation(self._fade_anim)
+        self._anim_group.addAnimation(self._scale_anim)
+        if on_finished_callback:
+            self._anim_group.finished.connect(on_finished_callback)
+        self._anim_group.start()
+
     def set_progress(self, value, text_key="initializing"):
         value = min(max(value, 0), 100)
 
@@ -1223,7 +1354,7 @@ class StartupSplash(QWidget):
             self._progress_value = 100
             self._status_text = "100%"
             self.update()
-            QTimer.singleShot(250, self.close)
+            self._play_fade_out(self.close)
             return
 
         if hasattr(self, "_progress"):
@@ -1232,7 +1363,7 @@ class StartupSplash(QWidget):
             self._percent_label.setText("正在完成启动后操作")
         if hasattr(self, "_spinner"):
             self._spinner.stop()
-        QTimer.singleShot(250, self.close)
+        self._play_fade_out(self.close)
 
 
 class IndeterminateSpinner(QWidget):
@@ -1607,10 +1738,10 @@ def _handle_multi_instance(app: QApplication):
 
     lang = _get_current_language()
     _WINDOW_TITLES = {
-        "zh-CN": "荧素万演 已在运行",
+        "zh-CN": "荧素万演已在运行",
         "zh-TW": "Luminalium 已在執行",
         "yue-HK": "Luminalium 喺度跑緊",
-        "ja-JP": "ルマイナリウム が実行中です",
+        "ja-JP": "ルマイナリウムが実行中です",
         "en-US": "Luminalium is already running",
         "ug-CN": "Luminalium ئىجرا قىلىنىۋاتىدۇ",
     }
@@ -1660,6 +1791,7 @@ class PPTAssistantApp:
         self._onboarding_restart_started = False
         self._resource_monitor = None
         self._open_settings_after_startup = False
+        self._pending_protocol_url = None
 
         # Flag watcher for external settings requests
         self._flag_timer = QTimer(self.app)
@@ -1678,8 +1810,45 @@ class PPTAssistantApp:
                 flag_file.unlink()
                 if hasattr(self, "settings_plugin"):
                     self.settings_plugin.execute()
-                    # Open the Update tab
                     QTimer.singleShot(500, lambda: self._switch_to_update_tab())
+        except Exception:
+            pass
+        try:
+            app_dir = Path(sys.executable).parent if getattr(sys, "frozen", False) else Path(__file__).parent
+            protocol_flag = app_dir / "_internal" / ".protocol_url"
+            if protocol_flag.exists():
+                url = protocol_flag.read_text(encoding="utf-8").strip()
+                protocol_flag.unlink()
+                if url:
+                    self.handle_protocol_url(url)
+        except Exception:
+            pass
+
+    def handle_protocol_url(self, url: str):
+        route = parse_luminalium_url(url)
+        if route is None:
+            print(f"[Protocol] Unrecognized URL: {url}")
+            return
+        action = route.get("action")
+        if action == "settings":
+            page = route.get("page", "main")
+            if hasattr(self, "settings_plugin"):
+                self.settings_plugin.execute()
+                QTimer.singleShot(500, lambda: self._navigate_settings_page(page))
+        elif action == "timer":
+            if hasattr(self, "timer_plugin"):
+                self.timer_plugin.execute()
+        elif action == "board":
+            if hasattr(self, "board_plugin"):
+                self.board_plugin.execute()
+
+    def _navigate_settings_page(self, page: str, retries=8):
+        try:
+            if hasattr(self.settings_plugin, "_window") and self.settings_plugin._window:
+                self.settings_plugin._window.page().runJavaScript(
+                    f"if(typeof navigateToSection === 'function') {{ navigateToSection('{page}'); 'OK'; }} else {{ 'WAIT'; }}",
+                    lambda result: QTimer.singleShot(400, lambda: self._navigate_settings_page(page, retries - 1)) if result == 'WAIT' and retries > 0 else None
+                )
         except Exception:
             pass
 
@@ -1758,8 +1927,6 @@ class PPTAssistantApp:
             pass
 
         self._open_settings_after_startup = self._consume_open_settings_pending_flag() or self._open_settings_after_startup
-
-        # Step 6: Tray (UI)
         yield 80, "init_tray"
         print("[Main] Initializing tray...", flush=True)
         if _should_enable_system_tray():
@@ -1811,8 +1978,15 @@ class PPTAssistantApp:
             
         if getattr(self, "_open_settings_after_startup", False) and hasattr(self, "settings_plugin"):
             QTimer.singleShot(200, self.settings_plugin.execute)
-            if _should_open_settings:
-                QTimer.singleShot(800, lambda: self._switch_to_update_tab())
+            protocol_url = getattr(self, "_pending_protocol_url", None)
+            if protocol_url:
+                route = parse_luminalium_url(protocol_url)
+                if route and route.get("page") == "update":
+                    QTimer.singleShot(800, lambda: self._switch_to_update_tab())
+
+        if getattr(self, "_pending_protocol_url", None):
+            url = self._pending_protocol_url
+            QTimer.singleShot(600, lambda: self.handle_protocol_url(url))
 
     def _perform_init_step(self):
         try:
@@ -2696,20 +2870,25 @@ if __name__ == "__main__":
 
     _ensure_user_dirs()
     
-    # Handle custom protocol early
-    _should_open_settings = False
+    _pending_protocol_url = None
     for arg in sys.argv:
-        if arg.startswith("luminalium://settings/update"):
-            _should_open_settings = True
+        route = parse_luminalium_url(arg)
+        if route is not None:
+            _pending_protocol_url = arg
             try:
+                from urllib.parse import quote
                 import urllib.request
-                urllib.request.urlopen("http://127.0.0.1:28423/api/update/open_settings", timeout=1)
-                sys.exit(0) # Already running instance will handle it
+                encoded_url = quote(arg, safe='')
+                urllib.request.urlopen(
+                    f"http://127.0.0.1:28423/api/protocol/handle?url={encoded_url}", timeout=1
+                )
+                sys.exit(0)
             except Exception:
                 pass
             break
             
-    register_url_protocol()
+    if cfg.registerUrlProtocol.value:
+        register_url_protocol()
     _check_post_update()
     _apply_graphics_settings()
     # Use Desktop OpenGL for better compatibility with Qt6
@@ -2786,8 +2965,13 @@ if __name__ == "__main__":
     print("[Main] Creating PPTAssistantApp...", flush=True)
     app_instance = PPTAssistantApp(app, splash)
     
-    if _should_open_settings:
-        app_instance._open_settings_after_startup = True
+    if _pending_protocol_url:
+        app_instance._pending_protocol_url = _pending_protocol_url
+        route = parse_luminalium_url(_pending_protocol_url)
+        if route and route.get("action") == "settings":
+            app_instance._open_settings_after_startup = True
+            if route.get("page") == "update":
+                app_instance._open_settings_after_startup = True
         
     print("[Main] PPTAssistantApp created.", flush=True)
     crash_handler.set_app_instance(app_instance)

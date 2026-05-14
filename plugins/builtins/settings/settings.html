@@ -2764,6 +2764,115 @@
       margin-top: 8px;
     }
 
+    .backup-list {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--divider);
+      border-radius: 12px;
+      background: var(--bg-surface);
+      overflow: hidden;
+    }
+
+    .backup-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      color: var(--text-secondary);
+      font-size: 14px;
+      opacity: 0.6;
+      gap: 8px;
+    }
+
+    .backup-empty::before {
+      content: '';
+      width: 40px;
+      height: 40px;
+      background: var(--text-secondary);
+      opacity: 0.2;
+      border-radius: 50%;
+      mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-6h2v6h-2zm0-8V7h2v2h-2z"/></svg>');
+      -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-6h2v6h-2zm0-8V7h2v2h-2z"/></svg>');
+      mask-size: contain;
+      -webkit-mask-size: contain;
+    }
+
+    .backup-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--divider);
+      transition: background 0.15s;
+    }
+
+    .backup-item:hover {
+      background: var(--item-hover);
+    }
+
+    .backup-item:last-child {
+      border-bottom: none;
+    }
+
+    .backup-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .backup-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+
+    .backup-meta {
+      font-size: 13px;
+      color: var(--text-secondary);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 10px;
+    }
+
+    .backup-meta-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .backup-meta-sep {
+      color: var(--divider);
+      user-select: none;
+    }
+
+    .backup-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+      margin-left: 16px;
+    }
+
+    .backup-source-badge {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(50, 117, 245, 0.08);
+      color: var(--accent-blue);
+    }
+
+    .backup-create-btn {
+      padding: 8px 24px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 10px;
+    }
+
     .storage-toast {
       position: fixed;
       bottom: 24px;
@@ -5369,6 +5478,9 @@
       border-radius: 12px;
       border: 1px solid var(--divider);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
     .modal-text {
@@ -5376,6 +5488,10 @@
       line-height: 1.6;
       color: var(--text-primary);
       white-space: pre-wrap;
+    }
+
+    .modal-text:empty {
+      display: none;
     }
 
     .modal-input {
@@ -5403,6 +5519,10 @@
 
     .modal-input.modal-input-error {
       border-color: #e5523c;
+    }
+
+    #generic-modal-custom {
+      display: none;
     }
 
     .modal-footer {
@@ -5462,6 +5582,10 @@
       min-width: 140px;
       display: inline-block;
       vertical-align: middle;
+    }
+
+    .modal-island .custom-select-container {
+      width: 100%;
     }
 
     .custom-select-toggle {
@@ -6273,6 +6397,14 @@
               </div>
               <div class="switch" id="sw-General-RunAtStartup"></div>
             </div>
+            <div class="settings-item" onclick="toggleSwitch('General', 'RegisterUrlProtocol')">
+              <div class="item-info">
+                <span class="item-label" data-i18n="general.registerUrlProtocol.label">注册 URL 协议</span>
+                <span class="item-desc"
+                  data-i18n="general.registerUrlProtocol.desc">允许第三方应用通过 luminalium:// 链接打开设置、计时器和小黑板等功能</span>
+              </div>
+              <div class="switch" id="sw-General-RegisterUrlProtocol"></div>
+            </div>
             <div class="settings-item" onclick="toggleSwitch('General', 'DisableAnimations')">
               <div class="item-info">
                 <span class="item-label" data-i18n="general.disableAnimations.label">禁用界面动画</span>
@@ -7018,10 +7150,18 @@
 
           <div class="pivot-content" data-pivot-group="storage" data-pivot-content="backup">
             <div class="settings-group">
-              <div class="settings-item">
+              <div class="settings-item" style="flex-direction: column; align-items: stretch; gap: 16px;">
                 <div class="item-info">
-                  <span class="item-label" data-i18n="storage.backup.placeholder.label">备份设置</span>
-                  <span class="item-desc" data-i18n="storage.backup.placeholder.desc">此页面正在开发中，未来将提供备份与恢复功能</span>
+                  <span class="item-label" data-i18n="backup.label">配置备份</span>
+                  <span class="item-desc" data-i18n="backup.desc">备份档案配置，可将备份恢复到任意档案</span>
+                </div>
+                <div id="backup-list" class="backup-list">
+                  <div class="backup-empty" id="backup-empty-hint">
+                    <span data-i18n="backup.empty">暂无备份</span>
+                  </div>
+                </div>
+                <div style="display: flex; justify-content: flex-end;">
+                  <button class="settings-button backup-create-btn" onclick="createBackupDialog()" data-i18n="backup.create">新建备份</button>
                 </div>
               </div>
             </div>
@@ -7525,15 +7665,6 @@
               </div>
             </div>
 
-            <div class="update-carbon-notice" id="update-carbon-notice">
-              <svg class="notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M11 20A7 7 0 0 1 4 13C4 8 11 4 20 4c0 9-4 16-9 16Z"></path>
-                <path d="M12 20c0-4 3.5-7.5 8-8"></path>
-              </svg>
-              <span data-i18n="update.status.hint">Luminalium 的更新皆在为减少碳排放做出行动</span>
-            </div>
-
             <!-- Pivot Tabs -->
             <div class="pivot-container">
               <div class="pivot-item active" data-pivot-group="update" data-pivot="changelog"
@@ -7875,8 +8006,27 @@
         "archive.deleteConfirm": "确定要删除档案「{name}」吗？此操作不可撤销。",
         "archive.cannotDeleteActive": "无法删除当前使用的档案",
         "archive.activeBadge": "使用中",
-        "storage.backup.placeholder.label": "备份设置",
-        "storage.backup.placeholder.desc": "此页面正在开发中，未来将提供备份与恢复功能",
+        "backup.label": "配置备份",
+        "backup.desc": "备份档案配置，可将备份恢复到任意档案",
+        "backup.empty": "暂无备份",
+        "backup.create": "新建备份",
+        "backup.createTitle": "新建备份",
+        "backup.namePlaceholder": "输入备份名称",
+        "backup.notePlaceholder": "备注（可选）",
+        "backup.selectProfile": "选择要备份的档案",
+        "backup.restore": "恢复",
+        "backup.restoreTitle": "恢复备份",
+        "backup.restoreToProfile": "选择要恢复到的档案",
+        "backup.restoreConfirm": "将备份「{name}」恢复到指定档案？该档案的当前配置将被覆盖。",
+        "backup.restoreSuccess": "备份已恢复",
+        "backup.restoreFail": "恢复失败",
+        "backup.rename": "重命名",
+        "backup.renameTitle": "重命名备份",
+        "backup.delete": "删除",
+        "backup.deleteConfirm": "确定要删除备份「{name}」吗？此操作不可撤销。",
+        "backup.deleteFail": "删除失败",
+        "backup.cancel": "取消",
+        "backup.profileNotFound": "档案不存在",
         "storage.diskSummary": "磁盘总容量 {total}，已使用 {used}，Luminalium 占用 {luminaliumSize}",
         "notifications.placeholder.label": "通知设置",
         "notifications.placeholder.desc": "此页面正在开发中，未来将提供通知推送相关设置",
@@ -8005,6 +8155,8 @@
         "appearance.theme.monet.color.text": "文字",
         "general.runAtStartup.label": "开机自启",
         "general.runAtStartup.desc": "在 Windows 登录后自动启动 荧素万演，仅对当前用户生效",
+        "general.registerUrlProtocol.label": "注册 URL 协议",
+        "general.registerUrlProtocol.desc": "允许第三方应用通过 luminalium:// 链接打开设置、计时器和小黑板等功能",
         "general.disableAnimations.label": "禁用界面动画",
         "general.disableAnimations.desc": "关闭全局过渡、缩放与滚动动画；开启后各界面会直接切换到最终状态",
         "general.crashAutoHandle.label": "异常退出处理",
@@ -8097,7 +8249,7 @@
         "interaction.clearMode.restart": "对此项的更改将在重新启动后生效",
         "interaction.clearMode.slide": "滑动清屏",
         "interaction.clearMode.button": "独立按钮清屏",
-        "restart.island.text": "需要重新启动",
+        "restart.island.text": "存在需要重新启动的设置项更改",
         "restart.confirm.title": "重启应用",
         "restart.confirm.text": "部分设置需要重启才能生效。是否立即重启？",
         "restart.confirm.yes": "立即重启",
@@ -8278,8 +8430,27 @@
         "archive.deleteConfirm": "確定要刪除檔案「{name}」嗎？此操作不可撤銷。",
         "archive.cannotDeleteActive": "無法刪除目前使用的檔案",
         "archive.activeBadge": "使用中",
-        "storage.backup.placeholder.label": "備份設定",
-        "storage.backup.placeholder.desc": "此頁面正在開發中，未來將提供備份與復原功能",
+        "backup.label": "配置備份",
+        "backup.desc": "備份檔案配置，可將備份復原到任意檔案",
+        "backup.empty": "暫無備份",
+        "backup.create": "新建備份",
+        "backup.createTitle": "新建備份",
+        "backup.namePlaceholder": "輸入備份名稱",
+        "backup.notePlaceholder": "備註（選填）",
+        "backup.selectProfile": "選擇要備份的檔案",
+        "backup.restore": "復原",
+        "backup.restoreTitle": "復原備份",
+        "backup.restoreToProfile": "選擇要復原到的檔案",
+        "backup.restoreConfirm": "將備份「{name}」復原到指定檔案？該檔案的目前配置將被覆蓋。",
+        "backup.restoreSuccess": "備份已復原",
+        "backup.restoreFail": "復原失敗",
+        "backup.rename": "重新命名",
+        "backup.renameTitle": "重新命名備份",
+        "backup.delete": "刪除",
+        "backup.deleteConfirm": "確定要刪除備份「{name}」嗎？此操作不可撤銷。",
+        "backup.deleteFail": "刪除失敗",
+        "backup.cancel": "取消",
+        "backup.profileNotFound": "檔案不存在",
         "storage.diskSummary": "磁碟總容量 {total}，已使用 {used}，Luminalium 佔用 {luminaliumSize}",
         "notifications.placeholder.label": "通知設定",
         "notifications.placeholder.desc": "此頁面正在開發中，未來將提供通知推送相關設定",
@@ -8401,6 +8572,8 @@
         "appearance.theme.monet.color.surface": "表面",
         "appearance.theme.monet.color.text": "文字",
         "general.runAtStartup.label": "開機自啟",
+        "general.registerUrlProtocol.label": "註冊 URL 通訊協定",
+        "general.registerUrlProtocol.desc": "允許第三方應用透過 luminalium:// 連結開啟設定、計時器和小黑板等功能",
         "general.crashAutoHandle.label": "異常結束處理",
         "general.crashAutoHandle.desc": "設定程式異常時的處理方式",
         "general.crashAutoHandle.analyzer": "開啟當機詳情",
@@ -8486,7 +8659,7 @@
         "interaction.clearMode.restart": "對此項的更改將在重新啟動後生效",
         "interaction.clearMode.slide": "滑動清屏",
         "interaction.clearMode.button": "獨立按鈕清屏",
-        "restart.island.text": "需要重新啟動",
+        "restart.island.text": "存在需要重新啟動的設定项更改",
         "restart.confirm.title": "重啟應用程式",
         "restart.confirm.text": "部分設定需要重啟才能生效。是否立即重啟？",
         "restart.confirm.yes": "立即重啟",
@@ -8649,8 +8822,27 @@
         "archive.deleteConfirm": "確定要刪除檔案「{name}」？呢個操作唔可以撤銷。",
         "archive.cannotDeleteActive": "無法刪除目前使用嘅檔案",
         "archive.activeBadge": "使用中",
-        "storage.backup.placeholder.label": "備份設定",
-        "storage.backup.placeholder.desc": "呢個頁面起緊，遲啲會提供備份同復原功能",
+        "backup.label": "配置備份",
+        "backup.desc": "備份檔案配置，可以將備份復原到任何檔案",
+        "backup.empty": "暫時冇備份",
+        "backup.create": "新建備份",
+        "backup.createTitle": "新建備份",
+        "backup.namePlaceholder": "輸入備份名稱",
+        "backup.notePlaceholder": "備註（選填）",
+        "backup.selectProfile": "揀要備份嘅檔案",
+        "backup.restore": "復原",
+        "backup.restoreTitle": "復原備份",
+        "backup.restoreToProfile": "揀要復原到嘅檔案",
+        "backup.restoreConfirm": "將備份「{name}」復原到指定檔案？嗰個檔案嘅目前配置會被覆蓋。",
+        "backup.restoreSuccess": "備份已復原",
+        "backup.restoreFail": "復原失敗",
+        "backup.rename": "改名",
+        "backup.renameTitle": "改名備份",
+        "backup.delete": "刪除",
+        "backup.deleteConfirm": "確定要刪除備份「{name}」？呢個操作唔可以撤銷。",
+        "backup.deleteFail": "刪除失敗",
+        "backup.cancel": "取消",
+        "backup.profileNotFound": "檔案唔存在",
         "storage.diskSummary": "磁碟總容量 {total}，已使用 {used}，Luminalium 佔用 {luminaliumSize}",
         "notifications.placeholder.label": "通知設定",
         "notifications.placeholder.desc": "呢個頁面起緊，遲啲會提供通知推送相關設定",
@@ -8772,6 +8964,8 @@
         "appearance.theme.monet.color.surface": "表面",
         "appearance.theme.monet.color.text": "文字",
         "general.runAtStartup.label": "開機自啟",
+        "general.registerUrlProtocol.label": "註冊 URL 協定",
+        "general.registerUrlProtocol.desc": "畀第三方應用透過 luminalium:// 連結開啟設定、計時器同小黑板等功能",
         "general.crashAutoHandle.label": "異常退出處理",
         "general.crashAutoHandle.desc": "設定程式異常時嘅處理方式",
         "general.crashAutoHandle.analyzer": "打開當機詳情",
@@ -9021,8 +9215,27 @@
         "archive.deleteConfirm": "プロファイル「{name}」を削除しますか？この操作は元に戻せません。",
         "archive.cannotDeleteActive": "現在使用中のプロファイルは削除できません",
         "archive.activeBadge": "使用中",
-        "storage.backup.placeholder.label": "バックアップ設定",
-        "storage.backup.placeholder.desc": "このページは開発中であり、将来的にバックアップと復元機能を提供します",
+        "backup.label": "設定バックアップ",
+        "backup.desc": "プロファイル設定をバックアップし、任意のプロファイルに復元できます",
+        "backup.empty": "バックアップなし",
+        "backup.create": "新規バックアップ",
+        "backup.createTitle": "新規バックアップ",
+        "backup.namePlaceholder": "バックアップ名を入力",
+        "backup.notePlaceholder": "メモ（任意）",
+        "backup.selectProfile": "バックアップするプロファイルを選択",
+        "backup.restore": "復元",
+        "backup.restoreTitle": "バックアップを復元",
+        "backup.restoreToProfile": "復元先のプロファイルを選択",
+        "backup.restoreConfirm": "バックアップ「{name}」を指定プロファイルに復元しますか？現在の設定が上書きされます。",
+        "backup.restoreSuccess": "バックアップを復元しました",
+        "backup.restoreFail": "復元に失敗しました",
+        "backup.rename": "名前変更",
+        "backup.renameTitle": "バックアップ名を変更",
+        "backup.delete": "削除",
+        "backup.deleteConfirm": "バックアップ「{name}」を削除しますか？この操作は元に戻せません。",
+        "backup.deleteFail": "削除に失敗しました",
+        "backup.cancel": "キャンセル",
+        "backup.profileNotFound": "プロファイルが見つかりません",
         "storage.diskSummary": "ディスク総容量 {total}、使用済み {used}、Luminalium 使用量 {luminaliumSize}",
         "notifications.placeholder.label": "通知設定",
         "notifications.placeholder.desc": "このページは開発中であり、将来的に通知プッシュ関連の設定を提供します",
@@ -9144,6 +9357,8 @@
         "appearance.theme.monet.color.surface": "サーフェス",
         "appearance.theme.monet.color.text": "テキスト",
         "general.runAtStartup.label": "起動時に自動実行",
+        "general.registerUrlProtocol.label": "URL プロトコルの登録",
+        "general.registerUrlProtocol.desc": "サードパーティアプリが luminalium:// リンクで設定・タイマー・小黒板などを開けるようにします",
         "general.crashAutoHandle.label": "クラッシュ時の動作",
         "general.crashAutoHandle.desc": "異常終了時の処理を選択します",
         "general.crashAutoHandle.analyzer": "クラッシュ詳細を開く",
@@ -9230,7 +9445,7 @@
         "interaction.clearMode.restart": "この変更を適用するには再起動が必要です",
         "interaction.clearMode.slide": "スライドしてクリア",
         "interaction.clearMode.button": "独立ボタン",
-        "restart.island.text": "再起動が必要です",
+        "restart.island.text": "再起動が必要な設定項目の変更があります",
         "restart.confirm.title": "アプリを再起動",
         "restart.confirm.text": "一部の設定を適用するには再起動が必要です。今すぐ再起動しますか？",
         "restart.confirm.yes": "今すぐ再起動",
@@ -9395,8 +9610,27 @@
         "archive.deleteConfirm": "Delete profile \"{name}\"? This action cannot be undone.",
         "archive.cannotDeleteActive": "Cannot delete the active profile",
         "archive.activeBadge": "Active",
-        "storage.backup.placeholder.label": "Backup Settings",
-        "storage.backup.placeholder.desc": "This page is under development and will provide backup and restore features in the future",
+        "backup.label": "Configuration Backup",
+        "backup.desc": "Back up profile configurations and restore backups to any profile",
+        "backup.empty": "No backups yet",
+        "backup.create": "New Backup",
+        "backup.createTitle": "Create New Backup",
+        "backup.namePlaceholder": "Enter backup name",
+        "backup.notePlaceholder": "Note (optional)",
+        "backup.selectProfile": "Select profile to back up",
+        "backup.restore": "Restore",
+        "backup.restoreTitle": "Restore Backup",
+        "backup.restoreToProfile": "Select target profile to restore to",
+        "backup.restoreConfirm": "Restore backup \"{name}\" to the selected profile? The current configuration of that profile will be overwritten.",
+        "backup.restoreSuccess": "Backup restored successfully",
+        "backup.restoreFail": "Restore failed",
+        "backup.rename": "Rename",
+        "backup.renameTitle": "Rename Backup",
+        "backup.delete": "Delete",
+        "backup.deleteConfirm": "Delete backup \"{name}\"? This action cannot be undone.",
+        "backup.deleteFail": "Delete failed",
+        "backup.cancel": "Cancel",
+        "backup.profileNotFound": "Profile not found",
         "storage.diskSummary": "Disk total {total}, used {used}, Luminalium usage {luminaliumSize}",
         "notifications.placeholder.label": "Notification Settings",
         "notifications.placeholder.desc": "This page is under development and will provide notification push related settings in the future",
@@ -9510,6 +9744,8 @@
         "appearance.theme.monet.color.surface": "Surface",
         "appearance.theme.monet.color.text": "Text",
         "general.runAtStartup.label": "Run at startup",
+        "general.registerUrlProtocol.label": "Register URL Protocol",
+        "general.registerUrlProtocol.desc": "Allow third-party apps to open settings, timer, and board via luminalium:// links",
         "general.disableAnimations.label": "Disable UI animations",
         "general.disableAnimations.desc": "Turn off global transitions, scaling, and scroll animations so each screen jumps straight to its final state",
         "general.crashAutoHandle.label": "Crash Response",
@@ -9716,6 +9952,8 @@
         "appearance.theme.monet.color.surface": "Surface",
         "appearance.theme.monet.color.text": "Text",
         "general.runAtStartup.label": "Run at startup",
+        "general.registerUrlProtocol.label": "Register URL Protocol",
+        "general.registerUrlProtocol.desc": "Allow third-party apps to open settings, timer, and board via luminalium:// links",
         "general.disableAnimations.label": "Disable UI animations",
         "general.disableAnimations.desc": "Turn off global transitions, scaling, and scroll animations so each screen jumps straight to its final state",
         "general.crashAutoHandle.label": "Crash Response",
@@ -9968,8 +10206,27 @@
         "archive.deleteConfirm": "«{name}» ئارخىپىنى ئۆچۈرەمسىز؟ بۇ مەشغۇلاتنى ئەمەلدىن قالدۇرغىلى بولمايدۇ.",
         "archive.cannotDeleteActive": "نۆۋەتتە ئىشلىتىلىۋاتقان ئارخىپنى ئۆچۈرگىلى بولمايدۇ",
         "archive.activeBadge": "ئىشلىتىلىۋاتىدۇ",
-        "storage.backup.placeholder.label": "زاپاسلاش تەڭشىكى",
-        "storage.backup.placeholder.desc": "بۇ بەت ئېچىۋاتىدۇ، كەلگۈسىدە زاپاسلاش ۋە ئەسلىگە كەلتۈرۈش ئىقتىدارى تەمىنلىنىدۇ",
+        "backup.label": "سەپلىمە زاپاسلاش",
+        "backup.desc": "ئارخىپ سەپلىمىسىنى زاپاسلاپ، زاپاس نۇسخىنى خالىغان ئارخىپقا ئەسلىگە كەلتۈرگىلى بولىدۇ",
+        "backup.empty": "زاپاس نۇسخا يوق",
+        "backup.create": "يېڭى زاپاسلاش",
+        "backup.createTitle": "يېڭى زاپاسلاش قۇرۇش",
+        "backup.namePlaceholder": "زاپاسلاش نامىنى كىرگۈزۈڭ",
+        "backup.notePlaceholder": "ئىزاھات (ئىختىيارىي)",
+        "backup.selectProfile": "زاپاسلايدىغان ئارخىپنى تاللاڭ",
+        "backup.restore": "ئەسلىگە كەلتۈرۈش",
+        "backup.restoreTitle": "زاپاس نۇسخىنى ئەسلىگە كەلتۈرۈش",
+        "backup.restoreToProfile": "ئەسلىگە كەلتۈرىدىغان ئارخىپنى تاللاڭ",
+        "backup.restoreConfirm": "زاپاس نۇسخا «{name}» نى بەلگىلەنگەن ئارخىپقا ئەسلىگە كەلتۈرەمسىز؟ شۇ ئارخىپنىڭ نۆۋەتتىكى سەپلىمىسى قاپلىنىدۇ.",
+        "backup.restoreSuccess": "زاپاس نۇسخا ئەسلىگە كەلتۈرۈلدى",
+        "backup.restoreFail": "ئەسلىگە كەلتۈرۈش مەغلۇپ بولدى",
+        "backup.rename": "ئۆزگەرتىش",
+        "backup.renameTitle": "زاپاسلاش نامىنى ئۆزگەرتىش",
+        "backup.delete": "ئۆچۈرۈش",
+        "backup.deleteConfirm": "زاپاس نۇسخا «{name}» نى ئۆچۈرەمسىز؟ بۇ مەشغۇلاتنى ئەمەلدىن قالدۇرغىلى بولمايدۇ.",
+        "backup.deleteFail": "ئۆچۈرۈش مەغلۇپ بولدى",
+        "backup.cancel": "بىكار قىلىش",
+        "backup.profileNotFound": "ئارخىپ تېپىلمىدى",
         "storage.diskSummary": "دىسكا ئومۇمىي سىغىمى {total}، ئىشلىتىلگەن {used}، Luminalium ئىگىلەش {luminaliumSize}",
         "notifications.placeholder.label": "ئۇقتۇرۇش تەڭشىكى",
         "notifications.placeholder.desc": "بۇ بەت ئېچىۋاتىدۇ، كەلگۈسىدە ئۇقتۇرۇش ئىتتىرىش مۇناسىۋەتلىك تەڭشەكلىرى تەمىنلىنىدۇ",
@@ -11412,6 +11669,9 @@
       if (tabId === 'archive') {
         loadProfiles();
       }
+      if (tabId === 'backup') {
+        loadBackups();
+      }
     }
 
     function formatBytes(bytes) {
@@ -11714,6 +11974,247 @@
         }
       } catch (e) {
         console.error('Delete profile failed:', e);
+      }
+    }
+
+    async function loadBackups() {
+      if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.list_backups) return;
+      try {
+        const result = await window.pywebview.api.list_backups();
+        _renderBackups(result);
+      } catch (e) {
+        console.error('Failed to load backups:', e);
+      }
+    }
+
+    function _renderBackups(data) {
+      const listEl = document.getElementById('backup-list');
+      if (!listEl) return;
+
+      const backups = data.backups || [];
+      if (backups.length === 0) {
+        listEl.innerHTML = '<div class="backup-empty"><span>' + (getText('backup.empty') || '暂无备份') + '</span></div>';
+        return;
+      }
+
+      let html = '';
+      for (const b of backups) {
+        const sourceLabel = b.sourceProfile === 'default'
+          ? (getText('archive.default') || '默认档案')
+          : b.sourceProfile;
+        const timeStr = new Date(b.mtime * 1000).toLocaleString();
+        const sizeStr = formatBytes(b.size || 0);
+
+        html += '<div class="backup-item" data-backup="' + b.name + '">';
+        html += '<div class="backup-info">';
+        html += '<div class="backup-name">' + b.name + '</div>';
+        html += '<div class="backup-meta">';
+        html += '<span class="backup-meta-tag">' + timeStr + '</span>';
+        html += '<span class="backup-meta-sep">·</span>';
+        html += '<span class="backup-meta-tag">' + sizeStr + '</span>';
+        html += '<span class="backup-meta-sep">·</span>';
+        html += '<span class="backup-source-badge">' + sourceLabel + '</span>';
+        if (b.note) {
+          html += '<span class="backup-meta-sep">·</span>';
+          html += '<span class="backup-meta-tag">' + b.note + '</span>';
+        }
+        html += '</div>';
+        html += '</div>';
+        html += '<div class="backup-actions">';
+        html += '<button class="settings-button" onclick="restoreBackupDialog(\'' + b.name.replace(/'/g, "\\'") + '\')">' + (getText('backup.restore') || '恢复') + '</button>';
+        html += '<button class="settings-button" onclick="renameBackupDialog(\'' + b.name.replace(/'/g, "\\'") + '\')">' + (getText('backup.rename') || '重命名') + '</button>';
+        html += '<button class="settings-button" onclick="deleteBackup(\'' + b.name.replace(/'/g, "\\'") + '\')">' + (getText('backup.delete') || '删除') + '</button>';
+        html += '</div>';
+        html += '</div>';
+      }
+      listEl.innerHTML = html;
+    }
+
+    async function _getProfileOptions() {
+      let profiles = [{ name: 'default' }];
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.list_profiles) {
+        try {
+          const result = await window.pywebview.api.list_profiles();
+          if (result && result.profiles) {
+            profiles = [{ name: 'default' }, ...result.profiles.map(p => ({ name: p.name }))];
+          }
+        } catch (e) {
+          console.error('Failed to load profiles for backup:', e);
+        }
+      }
+      return profiles;
+    }
+
+    function createBackupDialog() {
+      (async () => {
+        const profiles = await _getProfileOptions();
+        const defaultLabel = getText('archive.default') || '默认档案';
+
+        let selectHtml = '<select class="styled-select" id="backup-source-select" style="width:100%;">';
+        for (const p of profiles) {
+          const label = p.name === 'default' ? defaultLabel : p.name;
+          selectHtml += '<option value="' + p.name + '">' + label + '</option>';
+        }
+        selectHtml += '</select>';
+
+        const customContent =
+          '<div style="font-size:13px;color:var(--text-secondary);">' + (getText('backup.selectProfile') || '选择要备份的档案') + '</div>' +
+          selectHtml +
+          '<input type="text" class="modal-input visible" id="backup-note-input" placeholder="' + (getText('backup.notePlaceholder') || '备注（可选）') + '" />';
+
+        showModal(
+          getText('backup.createTitle') || '新建备份',
+          '',
+          [
+            { label: getText('backup.cancel') || '取消', onClick: () => {} },
+            { label: getText('backup.createTitle') || '新建备份', primary: true, onClick: () => {
+              const inputEl = document.getElementById('generic-modal-input');
+              const name = inputEl.value.trim();
+              if (!name) {
+                inputEl.classList.add('modal-input-error');
+                return false;
+              }
+              const selectEl = document.getElementById('backup-source-select');
+              const profileName = selectEl ? selectEl.value : 'default';
+              const noteEl = document.getElementById('backup-note-input');
+              const note = noteEl ? noteEl.value.trim() : '';
+              (async () => {
+                try {
+                  const result = await window.pywebview.api.create_backup(profileName, name, note);
+                  if (result.success) {
+                    closeGenericModal();
+                    loadBackups();
+                  } else if (result.error === 'backup_exists') {
+                    inputEl.classList.add('modal-input-error');
+                  } else if (result.error === 'profile_not_found') {
+                    showStorageToast(getText('backup.profileNotFound') || '档案不存在');
+                  }
+                } catch (e) {
+                  console.error('Create backup failed:', e);
+                }
+              })();
+              return false;
+            }}
+          ],
+          {
+            input: { placeholder: getText('backup.namePlaceholder') || '输入备份名称' },
+            dialogClass: 'backup-dialog',
+            customContent: customContent
+          }
+        );
+
+        convertNativeSelectsToCustom();
+      })();
+    }
+
+    function restoreBackupDialog(backupName) {
+      (async () => {
+        const profiles = await _getProfileOptions();
+        const defaultLabel = getText('archive.default') || '默认档案';
+
+        let selectHtml = '<select class="styled-select" id="backup-restore-target" style="width:100%;">';
+        for (const p of profiles) {
+          const label = p.name === 'default' ? defaultLabel : p.name;
+          selectHtml += '<option value="' + p.name + '">' + label + '</option>';
+        }
+        selectHtml += '</select>';
+
+        const confirmText = (getText('backup.restoreConfirm') || '将备份「{name}」恢复到指定档案？该档案的当前配置将被覆盖。').replace('{name}', backupName);
+
+        const customContent =
+          '<div class="modal-text">' + confirmText + '</div>' +
+          '<div style="font-size:13px;color:var(--text-secondary);">' + (getText('backup.restoreToProfile') || '选择要恢复到的档案') + '</div>' +
+          selectHtml;
+
+        showModal(
+          getText('backup.restoreTitle') || '恢复备份',
+          '',
+          [
+            { label: getText('backup.cancel') || '取消', onClick: () => {} },
+            { label: getText('backup.restore') || '恢复', primary: true, onClick: () => {
+              const selectEl = document.getElementById('backup-restore-target');
+              const targetProfile = selectEl ? selectEl.value : 'default';
+              (async () => {
+                try {
+                  const result = await window.pywebview.api.restore_backup(backupName, targetProfile);
+                  if (result.success) {
+                    closeGenericModal();
+                    showStorageToast(getText('backup.restoreSuccess') || '备份已恢复');
+                    loadBackups();
+                    loadProfiles();
+                    if (window.pywebview && window.pywebview.api && window.pywebview.api.get_settings) {
+                      window.pywebview.api.get_settings().then(function (res) {
+                        if (res && Object.keys(res).length > 0) {
+                          settings = res;
+                          const lang = settings.General && settings.General.Language;
+                          if (lang) currentLanguage = lang;
+                          applySettingsToUI();
+                        }
+                      });
+                    }
+                  } else {
+                    showStorageToast((getText('backup.restoreFail') || '恢复失败') + (result.error ? ': ' + result.error : ''));
+                  }
+                } catch (e) {
+                  console.error('Restore backup failed:', e);
+                }
+              })();
+              return false;
+            }}
+          ],
+          {
+            dialogClass: 'backup-dialog',
+            customContent: customContent
+          }
+        );
+
+        convertNativeSelectsToCustom();
+      })();
+    }
+
+    function renameBackupDialog(oldName) {
+      showModal(
+        getText('backup.renameTitle') || '重命名备份',
+        '',
+        [
+          { label: getText('backup.cancel') || '取消', onClick: () => {} },
+          { label: getText('backup.rename') || '重命名', primary: true, onClick: () => {
+            const inputEl = document.getElementById('generic-modal-input');
+            const newName = inputEl.value.trim();
+            if (!newName || newName === oldName) return false;
+            (async () => {
+              try {
+                const result = await window.pywebview.api.rename_backup(oldName, newName);
+                if (result.success) {
+                  closeGenericModal();
+                  loadBackups();
+                } else if (result.error === 'name_exists') {
+                  inputEl.classList.add('modal-input-error');
+                }
+              } catch (e) {
+                console.error('Rename backup failed:', e);
+              }
+            })();
+            return false;
+          }}
+        ],
+        { input: { value: oldName, placeholder: getText('backup.namePlaceholder') || '输入备份名称' } }
+      );
+    }
+
+    async function deleteBackup(name) {
+      if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.delete_backup) return;
+      const confirmMsg = (getText('backup.deleteConfirm') || '确定要删除备份「{name}」吗？此操作不可撤销。').replace('{name}', name);
+      if (!confirm(confirmMsg)) return;
+      try {
+        const result = await window.pywebview.api.delete_backup(name);
+        if (result.success) {
+          loadBackups();
+        } else {
+          showStorageToast((getText('backup.deleteFail') || '删除失败') + (result.error ? ': ' + result.error : ''));
+        }
+      } catch (e) {
+        console.error('Delete backup failed:', e);
       }
     }
 
@@ -13128,6 +13629,7 @@
         applyI18n();
 
         setSwitch("General", "RunAtStartup");
+        setSwitch("General", "RegisterUrlProtocol");
         setSwitch("General", "DisableAnimations");
         setSwitch("General", "CrashAutoHandleEnabled");
         setSwitch("General", "CompatibilityMode");
@@ -13294,7 +13796,7 @@
             const build = v.build != null ? v.build : "";
             const el = document.getElementById("app-version");
             if (el) {
-              el.textContent = `Version ${version} (${codeName}) Build ${build}`;
+              el.textContent = `${version} (Codename ${codeName})`;
             }
             const sidebarVersion = document.getElementById("sidebar-about-version");
             if (sidebarVersion) {
@@ -14905,7 +15407,7 @@
              this.setState('error');
              this.setActions('retry');
              this.updateStatusBar(
-               getText("update.devMode") || "已检测到新版本，开发模式禁止自动更新",
+               getText("update.devMode") || "已检测到新版本，开发模式禁止更新",
                `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                  <circle cx="12" cy="12" r="10"></circle>
                  <line x1="12" y1="8" x2="12" y2="12"></line>
@@ -15245,12 +15747,10 @@
     // Hide update (back to 2-island)
     function hideUpdate() {
       const layout = document.getElementById('layout');
-      // backBtn and divider visibility is now handled by CSS via .three-island class
       const title = document.getElementById("section-title");
 
       if (layout) layout.classList.remove('three-island');
 
-      // Restore About text
       const aboutItem = document.querySelector('.sidebar-item[data-section="about"]');
       if (aboutItem) {
         const span = aboutItem.querySelector('span');
@@ -15260,8 +15760,6 @@
         }
       }
 
-      // Always return to 'main' (General) as requested.
-      // Use the existing nav click logic first, then force a fallback if needed.
       const mainItem = document.querySelector('.sidebar-item[data-section="main"]');
       if (mainItem) {
         mainItem.click();
@@ -15285,6 +15783,24 @@
         }
       }
     }
+
+    function navigateToSection(sectionKey) {
+      const layout = document.getElementById('layout');
+      if (layout) layout.classList.remove('three-island');
+      const validSections = ['main','theme','fonts','board-in-board','plugins','storage','notifications','window','about','update'];
+      if (!validSections.includes(sectionKey)) sectionKey = 'main';
+      if (sectionKey === 'update') {
+        showUpdate();
+        return;
+      }
+      const sidebarItem = document.querySelector('.sidebar-item[data-section="' + sectionKey + '"]');
+      if (sidebarItem) {
+        sidebarItem.click();
+      } else {
+        const mainItem = document.querySelector('.sidebar-item[data-section="main"]');
+        if (mainItem) mainItem.click();
+      }
+    }
     // --- Restart Notification & Generic Modal ---
     let isRestartPending = false;
 
@@ -15304,6 +15820,7 @@
       const inputEl = document.getElementById("generic-modal-input");
       const footerEl = document.getElementById("generic-modal-footer");
       const dialogEl = modal ? modal.querySelector(".modal-dialog") : null;
+      const customEl = document.getElementById("generic-modal-custom");
 
       if (!modal || !titleEl || !textEl || !footerEl || !dialogEl) return;
 
@@ -15313,6 +15830,16 @@
       dialogEl.className = "modal-dialog";
       if (options && options.dialogClass) {
         dialogEl.classList.add(options.dialogClass);
+      }
+
+      if (customEl) {
+        if (options && options.customContent) {
+          customEl.innerHTML = options.customContent;
+          customEl.style.display = "block";
+        } else {
+          customEl.innerHTML = "";
+          customEl.style.display = "none";
+        }
       }
 
       if (options && options.input) {
@@ -15358,6 +15885,11 @@
     function closeGenericModal() {
       const modal = document.getElementById("generic-modal");
       if (modal) modal.classList.remove("active");
+      const customEl = document.getElementById("generic-modal-custom");
+      if (customEl) {
+        customEl.innerHTML = "";
+        customEl.style.display = "none";
+      }
     }
 
     function triggerRestart() {
@@ -15667,6 +16199,7 @@
       <div class="modal-island">
         <div class="modal-text" id="generic-modal-text"></div>
         <input type="text" class="modal-input" id="generic-modal-input" />
+        <div id="generic-modal-custom"></div>
       </div>
       <div class="modal-footer" id="generic-modal-footer"></div>
     </div>

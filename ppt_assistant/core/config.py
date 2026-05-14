@@ -160,6 +160,12 @@ class Config(QConfig):
         True if sys.platform != "win32" else False,
         BoolValidator(),
     )
+    registerUrlProtocol = ConfigItem(
+        "General",
+        "RegisterUrlProtocol",
+        True if sys.platform == "win32" else False,
+        BoolValidator(),
+    )
 
     overlayScreen = ConfigItem("Overlay", "OverlayScreen", "Auto", restart=False)
 
@@ -316,6 +322,20 @@ def _on_run_at_startup_changed(enabled):
     _save_cfg()
 
 
+def _on_register_url_protocol_changed():
+    _save_cfg()
+    try:
+        enabled = cfg.registerUrlProtocol.value
+        if enabled:
+            from main import register_url_protocol
+            register_url_protocol()
+        else:
+            from main import unregister_url_protocol
+            unregister_url_protocol()
+    except Exception as e:
+        print(f"Error changing URL protocol registration: {e}")
+
+
 def _apply_theme_and_color(theme_value):
     if isinstance(theme_value, Theme):
         qconfig.theme = theme_value
@@ -400,6 +420,7 @@ def _bind_auto_save():
     cfg.disabledTools.valueChanged.connect(lambda *_: _save_cfg())
     cfg.resourceMonitorInterval.valueChanged.connect(lambda *_: _save_cfg())
     cfg.timerNotifyEnabled.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.registerUrlProtocol.valueChanged.connect(lambda *_: _on_register_url_protocol_changed())
     # cfg.toolbarLayout.valueChanged.connect(lambda *_: _save_cfg())
 
 

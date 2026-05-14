@@ -355,6 +355,14 @@ def _is_windows7():
         return False
 
 
+def _is_win11():
+    try:
+        v = sys.getwindowsversion()
+        return v.major >= 10 and v.build >= 22000
+    except Exception:
+        return False
+
+
 def _get_screen_refresh_rate():
     try:
         import ctypes
@@ -1789,6 +1797,176 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             pass
         return {"name": "default"}
 
+    def _get_backups_dir(self):
+        profiles_dir = self._get_profiles_dir()
+        backups_dir = os.path.join(profiles_dir, "_backups")
+        os.makedirs(backups_dir, exist_ok=True)
+        return backups_dir
+
+    def _get_backups_registry_path(self):
+        return os.path.join(self._get_backups_dir(), "_registry")
+
+    def _read_backups_registry(self):
+        reg_path = self._get_backups_registry_path()
+        try:
+            if os.path.exists(reg_path):
+                with open(reg_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if isinstance(data, list):
+                    return data
+        except Exception:
+            pass
+        return []
+
+    def _write_backups_registry(self, names):
+        reg_path = self._get_backups_registry_path()
+        try:
+            with open(reg_path, "w", encoding="utf-8") as f:
+                json.dump(sorted(set(names)), f, ensure_ascii=False)
+        except Exception:
+            pass
+
+    @Slot(result="QVariant")
+    def list_backups(self):
+        backups_dir = self._get_backups_dir()
+        backups = []
+        try:
+            for bname in self._read_backups_registry():
+                bpath = os.path.join(backups_dir, bname + ".json")
+                if not os.path.exists(bpath):
+                    continue
+                try:
+                    mtime = os.path.getmtime(bpath)
+                    fsize = os.path.getsize(bpath)
+                    meta = {}
+                    meta_path = os.path.join(backups_dir, bname + ".meta")
+                    if os.path.exists(meta_path):
+                        with open(meta_path, "r", encoding="utf-8") as mf:
+                            meta = json.load(mf)
+                    backups.append({
+                        "name": bname,
+                        "mtime": mtime,
+                        "size": fsize,
+                        "sourceProfile": meta.get("sourceProfile", ""),
+                        "note": meta.get("note", ""),
+                    })
+                except Exception:
+                    continue
+            backups.sort(key=lambda b: b["mtime"], reverse=True)
+        except Exception as e:
+            print(f"Error listing backups: {e}", file=sys.stderr)
+        return {"backups": backups}
+
+    @Slot(str, str, str, result="QVariant")
+    def create_backup(self, profile_name, backup_name, note=""):
+        import shutil as _shutil
+        import time as _time
+        backup_name = self._sanitize_profile_name(backup_name)
+        backups_dir = self._get_backups_dir()
+        backup_path = os.path.join(backups_dir, backup_name + ".json")
+        meta_path = os.path.join(backups_dir, backup_name + ".meta")
+        if os.path.exists(backup_path):
+            return {"success": False, "error": "backup_exists"}
+        try:
+            if profile_name == "default":
+                source_path = self._get_settings_path()
+            else:
+                source_path = os.path.join(self._get_profiles_dir(), profile_name + ".json")
+            if not os.path.exists(source_path):
+                return {"success": False, "error": "profile_not_found"}
+            _shutil.copy2(source_path, backup_path)
+            meta = {
+                "sourceProfile": profile_name,
+                "note": note,
+                "createdAt": _time.time(),
+            }
+            with open(meta_path, "w", encoding="utf-8") as f:
+                json.dump(meta, f, indent=2, ensure_ascii=False)
+            registry = self._read_backups_registry()
+            if backup_name not in registry:
+                registry.append(backup_name)
+                self._write_backups_registry(registry)
+            return {"success": True, "name": backup_name}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @Slot(str, str, result="QVariant")
+    def restore_backup(self, backup_name, target_profile):
+        backups_dir = self._get_backups_dir()
+        backup_path = os.path.join(backups_dir, backup_name + ".json")
+        if not os.path.exists(backup_path):
+            return {"success": False, "error": "backup_not_found"}
+        try:
+            with open(backup_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            for k in ("_restart_pending", "_open_settings_pending", "_quit_pending"):
+                data.pop(k, None)
+            if target_profile == "default":
+                target_path = self._get_settings_path()
+            else:
+                target_path = os.path.join(self._get_profiles_dir(), target_profile + ".json")
+            with open(target_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+            active_name = "default"
+            active_path = self._get_active_profile_path()
+            if os.path.exists(active_path):
+                try:
+                    with open(active_path, "r", encoding="utf-8") as f:
+                        active_name = f.read().strip() or "default"
+                except Exception:
+                    pass
+            if target_profile == active_name:
+                self.settings = data
+            return {"success": True, "targetProfile": target_profile}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @Slot(str, result="QVariant")
+    def delete_backup(self, backup_name):
+        backups_dir = self._get_backups_dir()
+        backup_path = os.path.join(backups_dir, backup_name + ".json")
+        meta_path = os.path.join(backups_dir, backup_name + ".meta")
+        if not os.path.exists(backup_path):
+            return {"success": False, "error": "not_found"}
+        try:
+            os.remove(backup_path)
+            if os.path.exists(meta_path):
+                os.remove(meta_path)
+            registry = self._read_backups_registry()
+            if backup_name in registry:
+                registry.remove(backup_name)
+                self._write_backups_registry(registry)
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @Slot(str, str, result="QVariant")
+    def rename_backup(self, old_name, new_name):
+        old_name = self._sanitize_profile_name(old_name)
+        new_name = self._sanitize_profile_name(new_name)
+        backups_dir = self._get_backups_dir()
+        old_path = os.path.join(backups_dir, old_name + ".json")
+        old_meta = os.path.join(backups_dir, old_name + ".meta")
+        new_path = os.path.join(backups_dir, new_name + ".json")
+        new_meta = os.path.join(backups_dir, new_name + ".meta")
+        if not os.path.exists(old_path):
+            return {"success": False, "error": "not_found"}
+        if os.path.exists(new_path):
+            return {"success": False, "error": "name_exists"}
+        try:
+            os.rename(old_path, new_path)
+            if os.path.exists(old_meta):
+                os.rename(old_meta, new_meta)
+            registry = self._read_backups_registry()
+            if old_name in registry:
+                registry.remove(old_name)
+            if new_name not in registry:
+                registry.append(new_name)
+            self._write_backups_registry(registry)
+            return {"success": True, "name": new_name}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     @Slot(result=str)
     def import_settings(self):
         """Import settings from a user-selected JSON file"""
@@ -3078,6 +3256,11 @@ body {
 }
 :root[data-frameless="true"][data-maximized="true"] .title-bar {
     height: 40px;
+    margin: -7px -7px 0 -7px;
+    padding-right: 7px;
+}
+:root[data-frameless="true"][data-maximized="true"] body {
+    padding: 7px 7px 7px 7px;
 }
 .title-bar-icon {
     display: flex;
@@ -3131,13 +3314,16 @@ body {
     background: rgba(255, 255, 255, 0.08);
 }
 .title-bar-btn .title-bar-icon-glyph {
-    font-family: "Segoe MDL2 Assets", "Segoe Fluent Icons", sans-serif;
+    font-family: "Segoe MDL2 Assets", sans-serif;
     font-size: 10px;
     line-height: 1;
 }
+:root[data-os="win11"] .title-bar-btn .title-bar-icon-glyph {
+    font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif;
+}
 .title-bar-close:hover {
-    background: #e81123;
-    color: #fff;
+    background: #C42B1C !important;
+    color: #fff !important;
 }
 """
         else:
@@ -3152,6 +3338,7 @@ body {
     overflow: hidden;
 }
 """
+        os_tag = "win11" if (sys.platform == "win32" and _is_win11()) else "win10"
         js = f"""
 (function() {{
     const style = document.createElement('style');
@@ -3159,6 +3346,7 @@ body {
     if (document.documentElement) {{
         document.documentElement.appendChild(style);
         document.documentElement.setAttribute('data-frameless', '{str(self._frameless).lower()}');
+        document.documentElement.setAttribute('data-os', '{os_tag}');
     }}
 }})();
 """

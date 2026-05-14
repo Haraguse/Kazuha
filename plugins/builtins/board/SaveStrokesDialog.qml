@@ -1,7 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import Qt5Compat.GraphicalEffects
 
 Rectangle {
     id: root
@@ -120,44 +119,44 @@ Rectangle {
                 wrapMode: Text.Wrap
             }
 
-            // Card shadow — matches HTML: light: "0 2px 12px rgba(0,0,0,0.03)", dark: "0 4px 24px rgba(0,0,0,0.15)"
-            DropShadow {
-                anchors.fill: contentCard
-                source: contentCard
-                horizontalOffset: 0
-                verticalOffset: darkMode ? 4 : 2
-                radius: darkMode ? 24 : 12
-                samples: darkMode ? 49 : 25
-                color: root.cardShadow
-                cached: true
-            }
-
-            Rectangle {
-                id: contentCard
+            Item {
+                id: cardContainer
                 anchors.top: titleLabel.bottom
                 anchors.topMargin: 10
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: footer.top
                 anchors.bottomMargin: 16
-                radius: 12
-                color: root.bgApp
-                border.width: 1
-                border.color: root.divider
 
-                Text {
-                    id: textContent
+                Rectangle {
+                    id: cardShadow
                     anchors.fill: parent
-                    anchors.margins: 24
-                    text: root.messageText
-                    // HTML version uses text-primary (not secondary) for .text-content
-                    color: root.textPrimary
-                    font.family: root.fontFamily
-                    font.pixelSize: 14
-                    lineHeight: 1.6
-                    lineHeightMode: Text.ProportionalHeight
-                    wrapMode: Text.Wrap
-                    verticalAlignment: Text.AlignVCenter
+                    anchors.topMargin: darkMode ? 4 : 2
+                    radius: 12
+                    color: root.cardShadow
+                }
+
+                Rectangle {
+                    id: contentCard
+                    anchors.fill: parent
+                    radius: 12
+                    color: root.bgApp
+                    border.width: 1
+                    border.color: root.divider
+
+                    Text {
+                        id: textContent
+                        anchors.fill: parent
+                        anchors.margins: 24
+                        text: root.messageText
+                        color: root.textPrimary
+                        font.family: root.fontFamily
+                        font.pixelSize: 14
+                        lineHeight: 1.6
+                        lineHeightMode: Text.ProportionalHeight
+                        wrapMode: Text.Wrap
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
             }
 
