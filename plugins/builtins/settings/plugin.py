@@ -131,10 +131,15 @@ class SettingsPlugin(AssistantPlugin):
     def _launch_external_window(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
         html_path = os.path.join(base_dir, "settings.html")
-        cmd = _build_webview_runner_command(html_path, "Settings", 1256, 734, True)
+        use_native = self._get_use_native_title_bar()
+        cmd = _build_webview_runner_command(html_path, "Settings", 1256, 734, not use_native)
         env = _build_linux_webview_env()
         self.process = subprocess.Popen(cmd, env=env, close_fds=True)
         return self.process
+
+    def _get_use_native_title_bar(self):
+        settings = self._load_json_file(SETTINGS_PATH)
+        return settings.get("General", {}).get("UseNativeTitleBar", False)
 
     def _ensure_window(self):
         if self._window is not None:
@@ -161,8 +166,10 @@ class SettingsPlugin(AssistantPlugin):
 
         theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
         defer_load = wv._should_defer_initial_load(html_path, "Settings", True)
+        use_native = api.settings.get("General", {}).get("UseNativeTitleBar", False)
+        frameless = not use_native
         window = wv.MainWindow(
-            "Settings", html_path, api, 1256, 734, theme_mode, True, defer_load, frameless=True
+            "Settings", html_path, api, 1256, 734, theme_mode, frameless, defer_load, frameless=frameless
         )
         window.setMinimumWidth(1099)
         window.destroyed.connect(self._on_window_destroyed)

@@ -651,6 +651,7 @@ class LinuxQmlOverlayWindow(QWidget):
             "toolbarOpacity": cfg.toolbarOpacity.value,
             "sidePageOpacity": cfg.sidePageOpacity.value,
             "strictEdgeAlignment": cfg.strictEdgeAlignment.value,
+            "toolbarAutoHalfCollapse": cfg.toolbarAutoHalfCollapse.value,
             "texts": _tool_text_map(),
             "apps": apps_list,
             "disabledTools": cfg.disabledTools.value,
@@ -822,6 +823,7 @@ class LinuxQmlOverlayWindow(QWidget):
         cfg.toolbarOpacity.valueChanged.connect(lambda *_: self.update_config())
         cfg.sidePageOpacity.valueChanged.connect(lambda *_: self.update_config())
         cfg.strictEdgeAlignment.valueChanged.connect(lambda *_: self.update_config())
+        cfg.toolbarAutoHalfCollapse.valueChanged.connect(lambda *_: self.update_config())
         cfg.disabledTools.valueChanged.connect(lambda *_: self.update_config())
         cfg.flipperPosition.valueChanged.connect(lambda *_: self.update_config())
         cfg.compatibilityMode.valueChanged.connect(lambda *_: self.update_config())

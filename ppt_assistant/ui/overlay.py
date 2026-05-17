@@ -556,6 +556,7 @@ class OverlayWindow(QWebEngineView):
         self._background_thumbnail_timer = None
         self._pending_thumbnails = []
         self._cached_thumbnails = set()
+        self._zorder_timer = None
 
         if self._wayland_compatible_mode:
             self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
@@ -567,12 +568,19 @@ class OverlayWindow(QWebEngineView):
                 "using conservative window flags and opaque background."
             )
         else:
-            self.setWindowFlags(
-                Qt.FramelessWindowHint
-                | Qt.WindowDoesNotAcceptFocus
-                | Qt.Tool
-                | Qt.WindowStaysOnTopHint
-            )
+            if cfg.allowRecording.value:
+                self.setWindowFlags(
+                    Qt.FramelessWindowHint
+                    | Qt.Window
+                    | Qt.WindowStaysOnTopHint
+                )
+            else:
+                self.setWindowFlags(
+                    Qt.FramelessWindowHint
+                    | Qt.WindowDoesNotAcceptFocus
+                    | Qt.Tool
+                    | Qt.WindowStaysOnTopHint
+                )
             self.setAttribute(Qt.WA_TranslucentBackground)
             self.setAttribute(Qt.WA_NoSystemBackground)
 
@@ -843,23 +851,28 @@ class OverlayWindow(QWebEngineView):
         self.reset_tool_state_ui()
         self.update_theme()
         self.update_config()
+        self._apply_zorder_timer()
 
     def _ensure_topmost(self):
         if sys.platform != "win32":
-            print("[Overlay] Not on Windows, skipping topmost")
             return
         try:
             user32 = ctypes.windll.user32
             hwnd = int(self.winId())
-            print(f"[Overlay] _ensure_topmost: hwnd={hwnd}")
             if not hwnd:
-                print("[Overlay] No hwnd, cannot set topmost")
                 return
             HWND_TOPMOST = -1
             SWP_NOMOVE = 0x0002
             SWP_NOSIZE = 0x0001
             SWP_NOACTIVATE = 0x0010
             SWP_SHOWWINDOW = 0x0040
+
+            if cfg.uiAccessTopmost.value:
+                GWL_EXSTYLE = -20
+                WS_EX_TOPMOST = 0x00000008
+                current_style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+                user32.SetWindowLongW(hwnd, GWL_EXSTYLE, current_style | WS_EX_TOPMOST)
+
             result = user32.SetWindowPos(
                 hwnd,
                 HWND_TOPMOST,
@@ -869,9 +882,19 @@ class OverlayWindow(QWebEngineView):
                 0,
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW,
             )
-            print(f"[Overlay] SetWindowPos result: {result}")
         except Exception as e:
             print(f"[Overlay] Error in _ensure_topmost: {e}")
+
+    def _apply_zorder_timer(self):
+        interval = cfg.zOrderCheckInterval.value
+        if interval > 0:
+            if self._zorder_timer is None:
+                self._zorder_timer = QTimer(self)
+                self._zorder_timer.timeout.connect(self._ensure_topmost)
+            self._zorder_timer.start(interval)
+        else:
+            if self._zorder_timer is not None:
+                self._zorder_timer.stop()
 
     def _on_render_process_terminated(self, status, exit_code):
         self._restore_linux_webengine_env_override()
@@ -1308,6 +1331,10 @@ class OverlayWindow(QWebEngineView):
             "toolbarOpacity": cfg.toolbarOpacity.value,
             "sidePageOpacity": cfg.sidePageOpacity.value,
             "strictEdgeAlignment": cfg.strictEdgeAlignment.value,
+            "toolbarAutoHalfCollapse": cfg.toolbarAutoHalfCollapse.value,
+            "uiAccessTopmost": cfg.uiAccessTopmost.value,
+            "allowRecording": cfg.allowRecording.value,
+            "zOrderCheckInterval": cfg.zOrderCheckInterval.value,
             "texts": trans_map,
             "apps": apps_list,
             "disabledTools": cfg.disabledTools.value,
@@ -1422,6 +1449,10 @@ class OverlayWindow(QWebEngineView):
         cfg.toolbarOpacity.valueChanged.connect(lambda *_: self.update_config())
         cfg.sidePageOpacity.valueChanged.connect(lambda *_: self.update_config())
         cfg.strictEdgeAlignment.valueChanged.connect(lambda *_: self.update_config())
+        cfg.toolbarAutoHalfCollapse.valueChanged.connect(lambda *_: self.update_config())
+        cfg.uiAccessTopmost.valueChanged.connect(lambda *_: self._ensure_topmost())
+        cfg.allowRecording.valueChanged.connect(lambda *_: self.update_config())
+        cfg.zOrderCheckInterval.valueChanged.connect(lambda *_: self._apply_zorder_timer())
         cfg.disabledTools.valueChanged.connect(lambda *_: self.update_config())
 
     def showEvent(self, event):
@@ -1444,6 +1475,12 @@ class OverlayWindow(QWebEngineView):
             except Exception:
                 pass
             self._crash_recovery_timer = None
+        if self._zorder_timer is not None:
+            try:
+                self._zorder_timer.stop()
+            except Exception:
+                pass
+            self._zorder_timer = None
         if self.status_timer is not None:
             try:
                 self.status_timer.stop()
@@ -1511,6 +1548,12 @@ class OverlayWindow(QWebEngineView):
         self._stop_smtc = True
         if self._smtc_thread:
             self._smtc_thread.join(timeout=1.0)
+        if self._zorder_timer is not None:
+            try:
+                self._zorder_timer.stop()
+            except Exception:
+                pass
+            self._zorder_timer = None
 
     def update_geometry(self, rect, screen_or_metadata):
         # screen_or_metadata can be a QScreen object or a metadata dict

@@ -3271,10 +3271,36 @@ body {
     color: var(--text-primary);
     opacity: 0.7;
     z-index: 1;
+    cursor: pointer;
+    position: relative;
+    -webkit-app-region: no-drag;
 }
 .title-bar-icon img {
     width: 16px;
     height: 16px;
+}
+.title-bar-icon-close-toast {
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: nowrap;
+    background: rgba(30, 30, 30, 0.92);
+    color: #fff;
+    font-size: 12px;
+    padding: 5px 14px;
+    border-radius: 6px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 200;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+:root[data-theme="dark"] .title-bar-icon-close-toast {
+    background: rgba(60, 60, 60, 0.94);
+}
+.title-bar-icon-close-toast.show {
+    opacity: 1;
 }
 .title-bar-title {
     position: absolute;
@@ -3361,7 +3387,9 @@ body {
             return
         title_bar_html = (
             '<div class="title-bar" id="title-bar">'
-            '<div class="title-bar-icon" id="title-bar-icon"></div>'
+            '<div class="title-bar-icon" id="title-bar-icon">'
+            '<div class="title-bar-icon-close-toast" id="title-bar-icon-close-toast">\u518d\u6b21\u70b9\u51fb\u6309\u94ae\u4ee5\u5173\u95ed\u7a97\u53e3</div>'
+            '</div>'
             '<div class="title-bar-title" id="title-bar-text"></div>'
             '<div class="title-bar-controls">'
             '<button class="title-bar-btn" id="btn-minimize" title="\u6700\u5c0f\u5316" onclick="window.pywebview.api.minimize_window()">'
@@ -3413,6 +3441,30 @@ body {
             "}"
             "if(window.pywebview&&window.pywebview.api){loadTitleBarInfo();}"
             "else{window.addEventListener('pywebviewready',loadTitleBarInfo);}"
+            "var _iconCloseTimer=null;"
+            "var _iconClosePending=false;"
+            "var _iconCloseIcon=document.getElementById('title-bar-icon');"
+            "var _iconCloseToast=document.getElementById('title-bar-icon-close-toast');"
+            "if(_iconCloseIcon&&_iconCloseToast){"
+            "_iconCloseIcon.addEventListener('click',function(e){"
+            "e.stopPropagation();"
+            "if(_iconClosePending){"
+            "clearTimeout(_iconCloseTimer);"
+            "_iconCloseTimer=null;"
+            "_iconClosePending=false;"
+            "_iconCloseToast.classList.remove('show');"
+            "window.pywebview.api.close_window();"
+            "}else{"
+            "_iconClosePending=true;"
+            "_iconCloseToast.classList.add('show');"
+            "_iconCloseTimer=setTimeout(function(){"
+            "_iconClosePending=false;"
+            "_iconCloseToast.classList.remove('show');"
+            "_iconCloseTimer=null;"
+            "},3000);"
+            "}"
+            "});"
+            "}"
             "})()"
         )
         self.page().runJavaScript(js)

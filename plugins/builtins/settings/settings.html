@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -2148,6 +2148,90 @@
       background: var(--item-hover);
     }
 
+    .version-card {
+      padding: 16px 20px !important;
+    }
+
+    .version-card-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .version-app-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      object-fit: contain;
+    }
+
+    .version-app-name {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-primary);
+      letter-spacing: 0.2px;
+    }
+
+    .version-card-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-inline-start: auto;
+    }
+
+    .version-card-right .item-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    #echo-cave-item {
+      cursor: pointer;
+      transition: background 0.15s ease;
+      user-select: none;
+    }
+
+    #echo-cave-item:active {
+      background: var(--item-hover);
+    }
+
+    .echo-cave-content {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      min-height: 20px;
+      word-break: break-word;
+    }
+
+    .echo-cave-content.loading {
+      opacity: 0.5;
+    }
+
+    .echo-cave-content.typewriting::after {
+      content: "|";
+      animation: echoCaveBlink 0.7s steps(1) infinite;
+      margin-left: 1px;
+      color: var(--accent-blue);
+      font-weight: 300;
+    }
+
+    @keyframes echoCaveBlink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    .btn-echo-copy {
+      font-size: 12px !important;
+      padding: 4px 12px !important;
+      min-width: 48px;
+      text-align: center;
+    }
+
+    #section-about > .settings-group {
+      margin-bottom: 12px;
+    }
+
     .item-info {
       display: flex;
       flex-direction: column;
@@ -2183,6 +2267,15 @@
       color: var(--text-secondary);
       line-height: 1.5;
       opacity: 0.85;
+    }
+
+    .item-hint {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      opacity: 0.6;
+      margin-top: 4px;
+      display: block;
     }
 
     .item-state {
@@ -2318,6 +2411,31 @@
 
     .version-expander-links a:active {
       transform: translateY(0);
+    }
+
+    .version-expander-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .version-expander-footer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .version-expander-credit {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      opacity: 0.7;
+      letter-spacing: 1px;
+    }
+
+    .version-sectl-logo {
+      height: 20px;
+      width: auto;
+      opacity: 0.6;
     }
 
     .credits-section {
@@ -6253,63 +6371,73 @@
       </div>
       <div class="sidebar-item active" data-section="main">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
-          <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
-          <path
-            d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
         </svg>
         <span data-i18n="nav.main">主程序</span>
       </div>
       <div class="sidebar-item" data-section="theme">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
-          <path d="M12 3a9 9 0 100 18 9 9 0 000-18z" />
-          <path d="M12 7a5 5 0 000 10V7z" />
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 2a10 10 0 0 1 0 20" />
+          <path d="M12 2a4.5 4.5 0 0 0 0 20" />
         </svg>
         <span data-i18n="nav.theme">个性化设置</span>
       </div>
       <div class="sidebar-item" data-section="fonts">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
-          <path d="M4 20h16" />
-          <path d="M10 18V6" />
-          <path d="M6 18h8" />
-          <path d="M7 6h10" />
+          <polyline points="4 7 4 4 20 4 20 7" />
+          <line x1="9" y1="20" x2="15" y2="20" />
+          <line x1="12" y1="4" x2="12" y2="20" />
         </svg>
         <span data-i18n="nav.fonts">字体</span>
       </div>
       <div class="sidebar-item" data-section="plugins">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
-          <path d="M4 5h16v2H4z" />
-          <path d="M4 11h10v2H4z" />
-          <path d="M4 17h7v2H4z" />
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+          <line x1="12" y1="22.08" x2="12" y2="12" />
         </svg>
         <span data-i18n="nav.plugins">插件</span>
       </div>
 
       <div class="sidebar-item" data-section="board-in-board">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
-          <rect x="3.5" y="4" width="7" height="7" rx="1.5" />
-          <rect x="13.5" y="4" width="7" height="7" rx="1.5" />
-          <rect x="3.5" y="14" width="7" height="7" rx="1.5" />
-          <path d="M17 14v7" />
-          <path d="M13.5 17.5h7" />
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
         </svg>
         <span data-i18n="nav.boardInBoard">内建功能</span>
       </div>
       <div class="sidebar-item" data-section="window">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
-          <path
-            d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-9-2h2V7h-2v10z" />
+          <rect x="2" y="3" width="20" height="14" rx="2" />
+          <line x1="8" y1="21" x2="16" y2="21" />
+          <line x1="12" y1="17" x2="12" y2="21" />
         </svg>
         <span data-i18n="nav.window">窗口</span>
       </div>
+      <div class="sidebar-item" data-section="statusbar">
+        <svg class="sidebar-icon" viewBox="0 0 24 24">
+          <rect x="2" y="15" width="20" height="7" rx="1" />
+          <line x1="6" y1="18" x2="10" y2="18" />
+          <line x1="14" y1="18" x2="18" y2="18" />
+        </svg>
+        <span data-i18n="nav.statusbar">状态栏</span>
+      </div>
       <div class="sidebar-item" data-section="storage">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
-          <path d="M20 13H4c-1.1 0-2 .9-2 2v4c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-4c0-1.1-.9-2-2-2zm0 6H4v-4h16v4zM20 3H4c-1.1 0-2 .9-2 2v4c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 6H4V5h16v4z" />
+          <ellipse cx="12" cy="5" rx="9" ry="3" />
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
         </svg>
         <span data-i18n="nav.storage">存储、档案和备份</span>
       </div>
       <div class="sidebar-item" data-section="notifications">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
-          <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
         <span data-i18n="nav.notifications">通知</span>
       </div>
@@ -6322,16 +6450,16 @@
       <div class="sidebar-item" data-section="about">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="10" />
-          <path d="M12 16v-4" />
-          <path d="M12 8h.01" />
+          <line x1="12" y1="16" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12.01" y2="8" />
         </svg>
         <span data-i18n="nav.about">关于</span>
         <span class="sidebar-version" id="sidebar-about-version"></span>
       </div>
       <div class="sidebar-item" data-section="debug" id="nav-debug" style="display:none;">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
-          <path
-            d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.77 3.77z" />
+          <polyline points="4 17 10 11 4 5" />
+          <line x1="12" y1="19" x2="20" y2="19" />
         </svg>
         <span data-i18n="nav.debug">调试</span>
       </div>
@@ -6950,6 +7078,13 @@
               </div>
               <div class="switch" id="sw-Toolbar-ShowTimer"></div>
             </div>
+            <div class="settings-item" onclick="toggleSwitch('Overlay', 'ToolbarAutoHalfCollapse')">
+              <div class="item-info">
+                <span class="item-label" data-i18n="overlay.toolbarAutoHalfCollapse.label">工具栏自动半收起</span>
+                <span class="item-desc" data-i18n="overlay.toolbarAutoHalfCollapse.desc">开启后，长时间不操作工具栏将自动半透明收起至屏幕边缘，点按即可恢复原位</span>
+              </div>
+              <div class="switch" id="sw-Overlay-ToolbarAutoHalfCollapse"></div>
+            </div>
             <div class="settings-item">
               <div class="item-info">
                 <span class="item-label" data-i18n="overlay.toolbarOpacity.label">工具栏透明度</span>
@@ -7224,6 +7359,14 @@
               </div>
               <div class="switch" id="sw-PPT-AutoHandleInk"></div>
             </div>
+            <div class="settings-item" onclick="toggleSwitch('General', 'UseNativeTitleBar')">
+              <div class="item-info">
+                <span class="item-label" data-i18n="general.useNativeTitleBar.label">使用原生窗口标题栏</span>
+                <span class="item-desc" data-i18n="general.useNativeTitleBar.desc">开启后所有窗口将使用系统原生标题栏，关闭则使用自绘标题栏。更改后重启应用生效</span>
+                <span class="item-hint" data-i18n="general.useNativeTitleBar.hint">通常情况下，系统标题栏具有更好的兼容性</span>
+              </div>
+              <div class="switch" id="sw-General-UseNativeTitleBar"></div>
+            </div>
             <div class="settings-item"
               style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 40px; padding: 24px 20px;">
               <div style="flex: 1 1 360px; max-width: 480px; display: flex; flex-direction: column; gap: 12px;">
@@ -7347,6 +7490,53 @@
           </div>
           <div class="group-title" data-i18n="group.overlayUi">顶层窗口</div>
           <div class="settings-group">
+            <div class="settings-item" onclick="toggleSwitch('Overlay', 'StrictEdgeAlignment')">
+              <div class="item-info">
+                <span class="item-label" data-i18n="overlay.strictEdgeAlignment.label">严格贴边对齐</span>
+                <span class="item-desc" data-i18n="overlay.strictEdgeAlignment.desc">移除贴边时的额外预留，让工具栏和翻页栏更紧贴屏幕边缘</span>
+              </div>
+              <div class="switch" id="sw-Overlay-StrictEdgeAlignment"></div>
+            </div>
+            <div class="settings-item" onclick="toggleSwitch('Overlay', 'UIAccessTopmost')">
+              <div class="item-info">
+                <span class="item-label" data-i18n="overlay.uiAccessTopmost.label">UIAccess 置顶</span>
+                <span class="item-desc"
+                  data-i18n="overlay.uiAccessTopmost.desc">使用 UIAccess 权限将悬浮窗置顶于所有窗口之上，包括系统级窗口；需以管理员身份运行才可生效</span>
+              </div>
+              <div class="switch" id="sw-Overlay-UIAccessTopmost"></div>
+            </div>
+            <div class="settings-item" onclick="toggleSwitch('Overlay', 'AllowRecording')">
+              <div class="item-info">
+                <span class="item-label" data-i18n="overlay.allowRecording.label">允许录屏捕获</span>
+                <span class="item-desc"
+                  data-i18n="overlay.allowRecording.desc">启用后，将调整窗口属性以便被录屏软件录制。这会导致悬浮窗显示在任务栏中且只会在一个虚拟桌面上显示，如您没有录制窗口的需求，请勿开启此选项</span>
+              </div>
+              <div class="switch" id="sw-Overlay-AllowRecording"></div>
+            </div>
+            <div class="settings-item">
+              <div class="item-info">
+                <span class="item-label" data-i18n="overlay.zorderCheckInterval.label">窗口层级检测频率</span>
+                <span class="item-desc"
+                  data-i18n="overlay.zorderCheckInterval.desc">设置检测悬浮窗 Z 序（层级关系）并强制置顶的轮询间隔，值越小响应越快但 CPU 占用越高</span>
+              </div>
+              <div class="item-state">
+                <select class="styled-select" id="sel-Overlay-ZOrderCheckInterval"
+                  onchange="setZOrderCheckInterval(this.value)">
+                  <option value="50" data-i18n="overlay.zorderCheckInterval.veryFast">极快 (50ms)</option>
+                  <option value="100" data-i18n="overlay.zorderCheckInterval.fast">快速 (100ms)</option>
+                  <option value="200" data-i18n="overlay.zorderCheckInterval.normal" selected>正常 (200ms)</option>
+                  <option value="500" data-i18n="overlay.zorderCheckInterval.slow">较慢 (500ms)</option>
+                  <option value="1000" data-i18n="overlay.zorderCheckInterval.verySlow">慢速 (1000ms)</option>
+                </select>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="section" id="section-statusbar">
+          <div class="group-title" data-i18n="group.statusbar">状态栏</div>
+          <div class="settings-group">
             <div class="settings-item" onclick="toggleSwitch('Overlay', 'ShowStatusBar')">
               <div class="item-info">
                 <span class="item-label" data-i18n="interaction.showStatusBar.label">顶部状态栏</span>
@@ -7357,7 +7547,7 @@
             <div class="settings-item" onclick="toggleSwitch('Overlay', 'StatusBarShowTime')">
               <div class="item-info">
                 <span class="item-label" data-i18n="interaction.statusBarShowTime.label">显示时间</span>
-                <span class="item-desc" data-i18n="interaction.statusBarShowTime.desc">在状态栏左侧显示时间和日期；关闭后“显示秒”不会生效</span>
+                <span class="item-desc" data-i18n="interaction.statusBarShowTime.desc">在状态栏左侧显示时间和日期；关闭后"显示秒"不会生效</span>
               </div>
               <div class="switch" id="sw-Overlay-StatusBarShowTime"></div>
             </div>
@@ -7365,7 +7555,7 @@
               <div class="item-info">
                 <span class="item-label" data-i18n="interaction.statusBarShowSeconds.label">显示秒</span>
                 <span class="item-desc"
-                  data-i18n="interaction.statusBarShowSeconds.desc">为状态栏时间追加秒数，仅在已开启“显示时间”时生效</span>
+                  data-i18n="interaction.statusBarShowSeconds.desc">为状态栏时间追加秒数，仅在已开启"显示时间"时生效</span>
               </div>
               <div class="switch" id="sw-Overlay-StatusBarShowSeconds"></div>
             </div>
@@ -7399,14 +7589,6 @@
               </div>
               <div class="switch" id="sw-Overlay-StatusBarShowMusic"></div>
             </div>
-            <div class="settings-item" onclick="toggleSwitch('Overlay', 'StrictEdgeAlignment')">
-              <div class="item-info">
-                <span class="item-label" data-i18n="overlay.strictEdgeAlignment.label">严格贴边对齐</span>
-                <span class="item-desc" data-i18n="overlay.strictEdgeAlignment.desc">移除贴边时的额外预留，让工具栏和翻页栏更紧贴屏幕边缘</span>
-              </div>
-              <div class="switch" id="sw-Overlay-StrictEdgeAlignment"></div>
-            </div>
-
           </div>
         </div>
 
@@ -7430,15 +7612,18 @@
             </div>
           </div>
           <div class="settings-group">
-            <div class="settings-item" id="version-item">
-              <div class="item-info">
-                <span class="item-label" data-i18n="about.version.label">软件版本</span>
-                <span class="item-desc" id="app-version"></span>
+            <div class="settings-item version-card" id="version-item">
+              <div class="version-card-left">
+                <img class="version-app-icon" src="../../../icons/logo.svg" alt="App Icon">
+                <span class="version-app-name">Luminalium</span>
               </div>
-              <div class="item-state">
-                <svg class="chevron" viewBox="0 0 24 24">
-                  <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
-                </svg>
+              <div class="version-card-right">
+                <span class="item-desc" id="app-version"></span>
+                <div class="item-state">
+                  <svg class="chevron" viewBox="0 0 24 24">
+                    <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                  </svg>
+                </div>
               </div>
             </div>
             <div class="version-expander" id="version-expander">
@@ -7446,14 +7631,43 @@
                 <div class="version-expander-text" data-i18n="about.version.copyright">
                   COPYRIGHT 2025-2026 SECTL 丨本程序根据 GNU General Public License 3 获得许可
                 </div>
-                <div class="version-expander-links">
-                  <a href="https://github.com/SECTL/Luminalium" target="_blank" rel="noopener noreferrer"
-                    data-i18n="about.version.github">GitHub 仓库地址</a>
-                  <a href="https://qm.qq.com/q/q4mW6OdOmI" target="_blank" rel="noopener noreferrer"
-                    data-i18n="about.version.qq">QQ群</a>
+                <div class="version-expander-row">
+                  <div class="version-expander-links">
+                    <a href="https://github.com/SECTL/Luminalium" target="_blank" rel="noopener noreferrer"
+                      data-i18n="about.version.github">GitHub 仓库地址</a>
+                    <a href="https://qm.qq.com/q/q4mW6OdOmI" target="_blank" rel="noopener noreferrer"
+                      data-i18n="about.version.qq">QQ群</a>
+                  </div>
+                  <div class="version-expander-footer">
+                    <span class="version-expander-credit">思拓创联 荣誉出品</span>
+                    <img class="version-sectl-logo" src="../../../icons/SECTL-LOGO.svg" alt="SECTL">
+                  </div>
                 </div>
               </div>
             </div>
+            <div class="settings-item" onclick="showUpdate()">
+              <div class="item-info">
+                <span class="item-label" data-i18n="about.checkUpdate.label">检查更新</span>
+              </div>
+              <div class="item-state">
+                <svg class="chevron" viewBox="0 0 24 24">
+                  <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div class="settings-group">
+            <div class="settings-item" id="echo-cave-item" style="cursor:pointer;user-select:none;">
+              <div class="item-info">
+                <span class="item-label" data-i18n="about.echoCave.label">回声洞</span>
+                <span class="item-desc echo-cave-content" id="echo-cave-content" data-i18n="about.echoCave.hint">点击卡片获取回声洞句子</span>
+              </div>
+              <div class="item-state">
+                <button class="btn btn-confirm btn-echo-copy" id="echo-cave-copy" type="button" data-i18n="about.echoCave.copy" style="display:none;">复制</button>
+              </div>
+            </div>
+          </div>
+          <div class="settings-group">
             <div class="settings-item" id="credits-item">
               <div class="item-info">
                 <span class="item-label" data-i18n="about.credits.label">鸣谢</span>
@@ -7517,16 +7731,6 @@
                     感谢 原口正来 先生的立项<br>
                   </div>
                 </div>
-              </div>
-            </div>
-            <div class="settings-item" onclick="showUpdate()">
-              <div class="item-info">
-                <span class="item-label" data-i18n="about.checkUpdate.label">检查更新</span>
-              </div>
-              <div class="item-state">
-                <svg class="chevron" viewBox="0 0 24 24">
-                  <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
-                </svg>
               </div>
             </div>
           </div>
@@ -7935,6 +8139,7 @@
         "nav.overlay": "放映",
         "nav.about": "关于",
         "nav.window": "窗口",
+        "nav.statusbar": "状态栏",
         "nav.storage": "存储、档案和备份",
         "nav.notifications": "通知",
         "nav.plugins": "工具栏",
@@ -7948,6 +8153,7 @@
         "section.fonts": "全局应用字体",
         "section.overlay": "放映",
         "section.window": "窗口",
+        "section.statusbar": "状态栏",
         "section.storage": "存储、档案和备份",
         "section.notifications": "通知",
         "section.plugins": "工具栏",
@@ -8050,6 +8256,7 @@
         "group.fonts": "全局应用字体",
         "group.presentation": "放映",
         "group.overlayUi": "顶层窗口",
+        "group.statusbar": "状态栏",
         "group.toolbar.display": "工具栏显示",
         "group.timer": "计时器",
         "group.installedPlugins": "已安装插件",
@@ -8157,6 +8364,9 @@
         "general.runAtStartup.desc": "在 Windows 登录后自动启动 荧素万演，仅对当前用户生效",
         "general.registerUrlProtocol.label": "注册 URL 协议",
         "general.registerUrlProtocol.desc": "允许第三方应用通过 luminalium:// 链接打开设置、计时器和小黑板等功能",
+        "general.useNativeTitleBar.label": "使用原生窗口标题栏",
+        "general.useNativeTitleBar.desc": "开启后所有窗口将使用系统原生标题栏，关闭则使用自绘标题栏。更改后重启应用生效",
+        "general.useNativeTitleBar.hint": "通常情况下，系统标题栏具有更好的兼容性",
         "general.disableAnimations.label": "禁用界面动画",
         "general.disableAnimations.desc": "关闭全局过渡、缩放与滚动动画；开启后各界面会直接切换到最终状态",
         "general.crashAutoHandle.label": "异常退出处理",
@@ -8241,6 +8451,19 @@
         "overlay.sidePageOpacity.desc": "单独调整两侧翻页栏背景透明度；开启“同步”后此项会被隐藏",
         "overlay.strictEdgeAlignment.label": "严格贴边对齐",
         "overlay.strictEdgeAlignment.desc": "移除贴边时的额外预留，让工具栏和翻页栏更紧贴屏幕边缘",
+        "overlay.toolbarAutoHalfCollapse.label": "工具栏自动半收起",
+        "overlay.toolbarAutoHalfCollapse.desc": "开启后，长时间不操作工具栏将自动半透明收起至屏幕边缘，点按即可恢复原位",
+        "overlay.uiAccessTopmost.label": "UIAccess 置顶",
+        "overlay.uiAccessTopmost.desc": "使用 UIAccess 权限将悬浮窗置顶于所有窗口之上，包括系统级窗口；需以管理员身份运行才可生效",
+        "overlay.allowRecording.label": "允许录屏捕获",
+        "overlay.allowRecording.desc": "启用后，将调整窗口属性以便被录屏软件录制。这会导致悬浮窗显示在任务栏中且只会在一个虚拟桌面上显示，如您没有录制窗口的需求，请勿开启此选项",
+        "overlay.zorderCheckInterval.label": "窗口层级检测频率",
+        "overlay.zorderCheckInterval.desc": "设置检测悬浮窗 Z 序（层级关系）并强制置顶的轮询间隔，值越小响应越快但 CPU 占用越高",
+        "overlay.zorderCheckInterval.veryFast": "极快 (50ms)",
+        "overlay.zorderCheckInterval.fast": "快速 (100ms)",
+        "overlay.zorderCheckInterval.normal": "正常 (200ms)",
+        "overlay.zorderCheckInterval.slow": "较慢 (500ms)",
+        "overlay.zorderCheckInterval.verySlow": "慢速 (1000ms)",
         "overlay.rebuild.label": "重建顶层窗口",
         "overlay.rebuild.desc": "重新创建顶层效果窗口以应用所有变更",
         "overlay.rebuild.action": "立即重建",
@@ -8335,6 +8558,13 @@
         "about.credits.viewAllContributors": "查看完整贡献人员",
         "about.credits.libraries": "第三方库",
         "about.checkUpdate.label": "检查更新",
+        "about.echoCave.label": "回声洞",
+        "about.echoCave.hint": "点击卡片获取回声洞句子",
+        "about.echoCave.loading": "获取中...",
+        "about.echoCave.copy": "复制",
+        "about.echoCave.copied": "已复制",
+        "about.echoCave.empty": "暂无回声洞",
+        "about.echoCave.error": "获取失败，请稍后重试",
         "debug.createDialog.label": "创建 Dialog",
         "debug.createDialog.desc": "测试 Dialog",
         "debug.triggerCrash.label": "触发测试崩溃",
@@ -8372,6 +8602,7 @@
         "section.fonts": "全域字型",
         "section.overlay": "放映",
         "section.window": "視窗",
+        "section.statusbar": "狀態欄",
         "section.storage": "存儲、檔案和備份",
         "section.notifications": "通知",
         "section.plugins": "工具列",
@@ -8468,6 +8699,7 @@
         "group.fonts": "全域字型",
         "group.presentation": "放映",
         "group.overlayUi": "頂層視窗",
+        "group.statusbar": "狀態欄",
         "group.toolbar.display": "工具列顯示",
         "group.timer": "計時器",
         "group.installedPlugins": "已安裝插件",
@@ -8574,6 +8806,9 @@
         "general.runAtStartup.label": "開機自啟",
         "general.registerUrlProtocol.label": "註冊 URL 通訊協定",
         "general.registerUrlProtocol.desc": "允許第三方應用透過 luminalium:// 連結開啟設定、計時器和小黑板等功能",
+        "general.useNativeTitleBar.label": "使用原生視窗標題列",
+        "general.useNativeTitleBar.desc": "開啟後所有視窗將使用系統原生標題列，關閉則使用自繪標題列。變更後重啟應用生效",
+        "general.useNativeTitleBar.hint": "通常情況下，系統標題列具有更好的相容性",
         "general.crashAutoHandle.label": "異常結束處理",
         "general.crashAutoHandle.desc": "設定程式異常時的處理方式",
         "general.crashAutoHandle.analyzer": "開啟當機詳情",
@@ -8651,6 +8886,19 @@
         "overlay.sidePageOpacity.desc": "調整兩側翻頁欄背景的不透明度",
         "overlay.strictEdgeAlignment.label": "嚴格貼邊對齐",
         "overlay.strictEdgeAlignment.desc": "啟用後工具列和翻頁欄將嚴格貼近螢幕邊緣",
+        "overlay.toolbarAutoHalfCollapse.label": "工具列自動半收起",
+        "overlay.toolbarAutoHalfCollapse.desc": "開啟後，長時間不操作工具列將自動半透明收起至螢幕邊緣，點按即可恢復原位",
+        "overlay.uiAccessTopmost.label": "UIAccess 置頂",
+        "overlay.uiAccessTopmost.desc": "使用 UIAccess 權限將懸浮窗置頂於所有視窗之上，包括系統級視窗；需以管理員身份執行才可生效",
+        "overlay.allowRecording.label": "允許錄屏擷取",
+        "overlay.allowRecording.desc": "啟用後，將調整視窗屬性以便被錄屏軟體錄製。這會導致懸浮窗顯示在工作列中且只會在一個虛擬桌面上顯示，如您沒有錄製視窗的需求，請勿開啟此選項",
+        "overlay.zorderCheckInterval.label": "視窗層級檢測頻率",
+        "overlay.zorderCheckInterval.desc": "設定檢測懸浮窗 Z 序（層級關係）並強制置頂的輪詢間隔，值越小回應越快但 CPU 佔用越高",
+        "overlay.zorderCheckInterval.veryFast": "極快 (50ms)",
+        "overlay.zorderCheckInterval.fast": "快速 (100ms)",
+        "overlay.zorderCheckInterval.normal": "正常 (200ms)",
+        "overlay.zorderCheckInterval.slow": "較慢 (500ms)",
+        "overlay.zorderCheckInterval.verySlow": "慢速 (1000ms)",
         "overlay.rebuild.label": "重建頂層視窗",
         "overlay.rebuild.desc": "重新建立頂層效果視窗以套用所有變更",
         "overlay.rebuild.action": "立即重建",
@@ -8729,6 +8977,13 @@
         "about.credits.viewAllContributors": "查看完整貢獻人員",
         "about.credits.libraries": "第三方庫",
         "about.checkUpdate.label": "檢查更新",
+        "about.echoCave.label": "回聲洞",
+        "about.echoCave.hint": "點擊卡片獲取回聲洞句子",
+        "about.echoCave.loading": "獲取中...",
+        "about.echoCave.copy": "複製",
+        "about.echoCave.copied": "已複製",
+        "about.echoCave.empty": "暫無回聲洞",
+        "about.echoCave.error": "獲取失敗，請稍後重試",
         "debug.createDialog.label": "建立 Dialog",
         "debug.createDialog.desc": "測試全新的 Dialog 設計風格",
         "debug.triggerCrash.label": "觸發測試當機",
@@ -8753,6 +9008,7 @@
         "nav.overlay": "放映",
         "nav.about": "關於",
         "nav.window": "視窗",
+        "nav.statusbar": "狀態欄",
         "nav.storage": "存儲、檔案同備份",
         "nav.notifications": "通知",
         "nav.plugins": "工具列",
@@ -8765,6 +9021,7 @@
         "section.fonts": "全域字型",
         "section.overlay": "放映",
         "section.window": "視窗",
+        "section.statusbar": "狀態欄",
         "section.storage": "存儲、檔案同備份",
         "section.notifications": "通知",
         "section.plugins": "工具列",
@@ -8860,6 +9117,7 @@
         "group.fonts": "全域字型",
         "group.presentation": "放映",
         "group.overlayUi": "頂層視窗",
+        "group.statusbar": "狀態欄",
         "group.toolbar.display": "工具列顯示",
         "group.timer": "計時器",
         "group.installedPlugins": "已安裝插件",
@@ -8966,6 +9224,9 @@
         "general.runAtStartup.label": "開機自啟",
         "general.registerUrlProtocol.label": "註冊 URL 協定",
         "general.registerUrlProtocol.desc": "畀第三方應用透過 luminalium:// 連結開啟設定、計時器同小黑板等功能",
+        "general.useNativeTitleBar.label": "用原生視窗標題列",
+        "general.useNativeTitleBar.desc": "開咗之後所有視窗會用系統原生標題列，閂咗就用自繪標題列。改完要重啟應用先生效",
+        "general.useNativeTitleBar.hint": "通常情況下，系統標題列有更好嘅相容性",
         "general.crashAutoHandle.label": "異常退出處理",
         "general.crashAutoHandle.desc": "設定程式異常時嘅處理方式",
         "general.crashAutoHandle.analyzer": "打開當機詳情",
@@ -9042,6 +9303,8 @@
         "overlay.syncOpacity.desc": "揀咗就會同步較埋兩邊翻頁欄嘅透明度",
         "overlay.sidePageOpacity.label": "兩邊翻頁欄透明度",
         "overlay.sidePageOpacity.desc": "較兩邊翻頁欄背景有幾透",
+        "overlay.toolbarAutoHalfCollapse.label": "工具列自動半收起",
+        "overlay.toolbarAutoHalfCollapse.desc": "開咗之後，長時間唔搞工具列就會自動半透明收埋去螢幕邊，撳一下就會彈返原位",
         "overlay.rebuild.label": "重建頂層窗口",
         "overlay.rebuild.desc": "重建頂層效果窗套用變更",
         "overlay.rebuild.action": "即刻重建",
@@ -9120,6 +9383,13 @@
         "about.credits.viewAllContributors": "查看完整貢獻人員",
         "about.credits.libraries": "第三方庫",
         "about.checkUpdate.label": "檢查更新",
+        "about.echoCave.label": "回聲洞",
+        "about.echoCave.hint": "㩒卡片獲取回聲洞句子",
+        "about.echoCave.loading": "獲取中...",
+        "about.echoCave.copy": "複製",
+        "about.echoCave.copied": "已複製",
+        "about.echoCave.empty": "暫無回聲洞",
+        "about.echoCave.error": "獲取失敗，請稍後再試",
         "debug.createDialog.label": "建立 Dialog",
         "debug.createDialog.desc": "測試 Dialog",
         "debug.triggerCrash.label": "觸發測試崩潰",
@@ -9144,6 +9414,7 @@
         "nav.overlay": "プレゼン",
         "nav.about": "情報",
         "nav.window": "ウィンドウ",
+        "nav.statusbar": "ステータスバー",
         "nav.plugins": "ツールバー",
         "nav.pluginSettings": "プラグイン設定",
         "nav.boardInBoard": "内蔵機能",
@@ -9157,6 +9428,7 @@
         "section.fonts": "グローバルフォント",
         "section.overlay": "プレゼン",
         "section.window": "ウィンドウ",
+        "section.statusbar": "ステータスバー",
         "section.storage": "ストレージ、アーカイブ、バックアップ",
         "section.notifications": "通知",
         "section.plugins": "ツールバー",
@@ -9253,6 +9525,7 @@
         "group.fonts": "グローバルフォント",
         "group.presentation": "プレゼン",
         "group.overlayUi": "オーバーレイ UI",
+        "group.statusbar": "ステータスバー",
         "group.toolbar.display": "ツールバー表示",
         "group.timer": "タイマー",
         "group.installedPlugins": "インストール済みプラグイン",
@@ -9359,6 +9632,9 @@
         "general.runAtStartup.label": "起動時に自動実行",
         "general.registerUrlProtocol.label": "URL プロトコルの登録",
         "general.registerUrlProtocol.desc": "サードパーティアプリが luminalium:// リンクで設定・タイマー・小黒板などを開けるようにします",
+        "general.useNativeTitleBar.label": "ネイティブタイトルバーを使用",
+        "general.useNativeTitleBar.desc": "有効にするとすべてのウィンドウにシステムのネイティブタイトルバーを使用し、無効にすると独自描画のタイトルバーを使用します。変更後はアプリを再起動してください",
+        "general.useNativeTitleBar.hint": "通常、システムタイトルバーの方が互換性に優れています",
         "general.crashAutoHandle.label": "クラッシュ時の動作",
         "general.crashAutoHandle.desc": "異常終了時の処理を選択します",
         "general.crashAutoHandle.analyzer": "クラッシュ詳細を開く",
@@ -9437,6 +9713,19 @@
         "overlay.sidePageOpacity.desc": "両側のページめくりバー背景の不透明度を調整します",
         "overlay.strictEdgeAlignment.label": "厳密な端の配置",
         "overlay.strictEdgeAlignment.desc": "有効にすると、ツールバーとページめくりバーが画面の端に厳密に配置されます",
+        "overlay.toolbarAutoHalfCollapse.label": "ツールバー自動半格納",
+        "overlay.toolbarAutoHalfCollapse.desc": "有効にすると、長時間操作がない場合にツールバーが半透明で画面端に格納され、タップで元の位置に戻ります",
+        "overlay.uiAccessTopmost.label": "UIAccess 最前面表示",
+        "overlay.uiAccessTopmost.desc": "UIAccess 権限を使用してオーバーレイをすべてのウィンドウ（システムレベル含む）の最前面に表示します。管理者権限で実行する必要があります",
+        "overlay.allowRecording.label": "画面キャプチャを許可",
+        "overlay.allowRecording.desc": "有効にすると、ウィンドウ属性を調整して録画ソフトでキャプチャできるようにします。これによりオーバーレイがタスクバーに表示され、1つの仮想デスクトップにのみ表示されます。録画の必要がない場合は、このオプションを有効にしないでください",
+        "overlay.zorderCheckInterval.label": "ウィンドウ階層検出頻度",
+        "overlay.zorderCheckInterval.desc": "オーバーレイの Z オーダー（階層関係）を検出して強制的に最前面にするポーリング間隔を設定します。値が小さいほど応答は速くなりますが、CPU 使用率が高くなります",
+        "overlay.zorderCheckInterval.veryFast": "極めて高速 (50ms)",
+        "overlay.zorderCheckInterval.fast": "高速 (100ms)",
+        "overlay.zorderCheckInterval.normal": "標準 (200ms)",
+        "overlay.zorderCheckInterval.slow": "低速 (500ms)",
+        "overlay.zorderCheckInterval.verySlow": "超低速 (1000ms)",
         "overlay.rebuild.label": "オーバーレイを再作成",
         "overlay.rebuild.desc": "すべての変更を反映するために再作成します",
         "overlay.rebuild.action": "今すぐ再作成",
@@ -9515,6 +9804,13 @@
         "about.credits.viewAllContributors": "すべてのコントリビューターを見る",
         "about.credits.libraries": "サードパーティライブラリ",
         "about.checkUpdate.label": "更新を確認",
+        "about.echoCave.label": "エコーケイブ",
+        "about.echoCave.hint": "カードをクリックしてエコー文を取得",
+        "about.echoCave.loading": "取得中...",
+        "about.echoCave.copy": "コピー",
+        "about.echoCave.copied": "コピーしました",
+        "about.echoCave.empty": "エコー文がありません",
+        "about.echoCave.error": "取得に失敗しました。後でもう一度お試しください",
         "debug.createDialog.label": "Dialog を作成",
         "debug.createDialog.desc": "新しい Dialog デザインをテストします",
         "debug.triggerCrash.label": "テストクラッシュを発生",
@@ -9539,6 +9835,7 @@
         "nav.overlay": "Presentation",
         "nav.about": "About",
         "nav.window": "Window",
+        "nav.statusbar": "Status Bar",
         "nav.plugins": "Toolbar",
         "nav.pluginSettings": "Plugin Settings",
         "nav.boardInBoard": "Built-in Features",
@@ -9552,6 +9849,7 @@
         "section.fonts": "Global Fonts",
         "section.overlay": "Presentation",
         "section.window": "Window",
+        "section.statusbar": "Status Bar",
         "section.storage": "Storage, Archive & Backup",
         "section.notifications": "Notifications",
         "section.plugins": "Toolbar",
@@ -9648,6 +9946,7 @@
         "group.fonts": "Global Fonts",
         "group.presentation": "Presentation",
         "group.overlayUi": "Overlay UI",
+        "group.statusbar": "Status Bar",
         "group.toolbar.display": "Toolbar Display",
         "group.timer": "Timer",
         "group.installedPlugins": "Installed Plugins",
@@ -9746,6 +10045,9 @@
         "general.runAtStartup.label": "Run at startup",
         "general.registerUrlProtocol.label": "Register URL Protocol",
         "general.registerUrlProtocol.desc": "Allow third-party apps to open settings, timer, and board via luminalium:// links",
+        "general.useNativeTitleBar.label": "Use Native Title Bar",
+        "general.useNativeTitleBar.desc": "When enabled, all webview windows will use the system native title bar instead of the custom-drawn one. Restart the app for changes to take effect",
+        "general.useNativeTitleBar.hint": "In most cases, the native title bar offers better compatibility",
         "general.disableAnimations.label": "Disable UI animations",
         "general.disableAnimations.desc": "Turn off global transitions, scaling, and scroll animations so each screen jumps straight to its final state",
         "general.crashAutoHandle.label": "Crash Response",
@@ -9830,6 +10132,7 @@
         "nav.overlay": "Presentation",
         "nav.about": "About",
         "nav.window": "Window",
+        "nav.statusbar": "Status Bar",
         "nav.plugins": "Toolbar",
         "nav.pluginSettings": "Plugin Settings",
         "nav.boardInBoard": "Built-in Features",
@@ -9843,6 +10146,7 @@
         "section.fonts": "Global Fonts",
         "section.overlay": "Presentation",
         "section.window": "Window",
+        "section.statusbar": "Status Bar",
         "section.plugins": "Toolbar",
         "section.plugin-settings": "Plugin Settings",
         "section.board-in-board": "Built-in Features",
@@ -9856,6 +10160,7 @@
         "group.fonts": "Global Fonts",
         "group.presentation": "Presentation",
         "group.overlayUi": "Overlay UI",
+        "group.statusbar": "Status Bar",
         "group.toolbar.display": "Toolbar Display",
         "group.timer": "Timer",
         "group.installedPlugins": "Installed Plugins",
@@ -9954,6 +10259,9 @@
         "general.runAtStartup.label": "Run at startup",
         "general.registerUrlProtocol.label": "Register URL Protocol",
         "general.registerUrlProtocol.desc": "Allow third-party apps to open settings, timer, and board via luminalium:// links",
+        "general.useNativeTitleBar.label": "Use Native Title Bar",
+        "general.useNativeTitleBar.desc": "When enabled, all webview windows will use the system native title bar instead of the custom-drawn one. Restart the app for changes to take effect",
+        "general.useNativeTitleBar.hint": "In most cases, the native title bar offers better compatibility",
         "general.disableAnimations.label": "Disable UI animations",
         "general.disableAnimations.desc": "Turn off global transitions, scaling, and scroll animations so each screen jumps straight to its final state",
         "general.crashAutoHandle.label": "Crash Response",
@@ -10042,6 +10350,19 @@
         "overlay.sidePageOpacity.desc": "Adjust the opacity of side page flippers background",
         "overlay.strictEdgeAlignment.label": "Strict Edge Alignment",
         "overlay.strictEdgeAlignment.desc": "When enabled, toolbar and page flippers will align strictly with screen edges",
+        "overlay.toolbarAutoHalfCollapse.label": "Auto Half-Collapse Toolbar",
+        "overlay.toolbarAutoHalfCollapse.desc": "When enabled, the toolbar will automatically become semi-transparent and retract to the screen edge after inactivity. Tap to restore.",
+        "overlay.uiAccessTopmost.label": "UIAccess Topmost",
+        "overlay.uiAccessTopmost.desc": "Use UIAccess privilege to keep the overlay above all windows including system-level windows; requires administrator privileges to take effect",
+        "overlay.allowRecording.label": "Allow Screen Capture",
+        "overlay.allowRecording.desc": "When enabled, adjusts window properties to allow recording by screen capture software. This will cause the overlay to appear in the taskbar and only show on one virtual desktop. Do not enable this if you don't need to record the overlay",
+        "overlay.zorderCheckInterval.label": "Window Z-Order Check Interval",
+        "overlay.zorderCheckInterval.desc": "Set polling interval for detecting overlay Z-order (hierarchy) and forcing topmost position. Lower values mean faster response but higher CPU usage",
+        "overlay.zorderCheckInterval.veryFast": "Very Fast (50ms)",
+        "overlay.zorderCheckInterval.fast": "Fast (100ms)",
+        "overlay.zorderCheckInterval.normal": "Normal (200ms)",
+        "overlay.zorderCheckInterval.slow": "Slow (500ms)",
+        "overlay.zorderCheckInterval.verySlow": "Very Slow (1000ms)",
         "overlay.rebuild.label": "Rebuild Overlay",
         "overlay.rebuild.desc": "Recreate the overlay to apply all changes",
         "overlay.rebuild.action": "Rebuild Now",
@@ -10120,6 +10441,13 @@
         "about.credits.viewAllContributors": "View all contributors",
         "about.credits.libraries": "Third-party Libraries",
         "about.checkUpdate.label": "Check for updates",
+        "about.echoCave.label": "Echo Cave",
+        "about.echoCave.hint": "Click the card to get an echo cave sentence",
+        "about.echoCave.loading": "Loading...",
+        "about.echoCave.copy": "Copy",
+        "about.echoCave.copied": "Copied",
+        "about.echoCave.empty": "No echo cave sentences available",
+        "about.echoCave.error": "Failed to fetch, please try again later",
         "debug.createDialog.label": "Create Dialog",
         "debug.createDialog.desc": "Test the new Dialog design style",
         "debug.triggerCrash.label": "Trigger test crash",
@@ -10143,6 +10471,7 @@
         "nav.fonts": "خەت نۇسخىسى",
         "nav.overlay": "قەۋەت كۆزنەك",
         "nav.window": "كۆزنەك",
+        "nav.statusbar": "ھالەت بالدىقى",
         "nav.storage": "ساقلاش، ئارخىپ ۋە زاپاسلاش",
         "nav.notifications": "ئۇقتۇرۇش",
         "nav.plugins": "قىستۇرما",
@@ -10155,6 +10484,7 @@
         "section.fonts": "خەت نۇسخىسى",
         "section.overlay": "قەۋەت كۆزنەك",
         "section.window": "كۆزنەك",
+        "section.statusbar": "ھالەت بالدىقى",
         "section.storage": "ساقلاش، ئارخىپ ۋە زاپاسلاش",
         "section.notifications": "ئۇقتۇرۇش",
         "section.pluginSettings": "قىستۇرما تەڭشەك",
@@ -10162,6 +10492,7 @@
         "group.appearance": "كۆرۈنۈش",
         "group.storage": "ساقلاش، ئارخىپ ۋە زاپاسلاش",
         "group.notifications": "ئۇقتۇرۇش",
+        "group.statusbar": "ھالەت بالدىقى",
         "storage.pivot.storage": "ساقلاش",
         "storage.pivot.archive": "ئارخىپ",
         "storage.pivot.backup": "زاپاسلاش",
@@ -12615,6 +12946,20 @@
       updateToolbarIndicatorPosition();
     }
 
+    function setZOrderCheckInterval(value) {
+      const sel = document.getElementById("sel-Overlay-ZOrderCheckInterval");
+      if (sel && sel.value !== value) {
+        sel.value = value;
+        refreshCustomSelect(sel);
+      }
+
+      if (!settings.Overlay) settings.Overlay = {};
+      settings.Overlay.ZOrderCheckInterval = parseInt(value);
+      if (!isHydratingSettingsUI && window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+        window.pywebview.api.save_setting("Overlay", "ZOrderCheckInterval", parseInt(value));
+      }
+    }
+
     function setFlipperPosition(pos) {
       const sel = document.getElementById("sel-Overlay-FlipperPosition");
       if (sel && sel.value !== pos) {
@@ -13630,6 +13975,7 @@
 
         setSwitch("General", "RunAtStartup");
         setSwitch("General", "RegisterUrlProtocol");
+        setSwitch("General", "UseNativeTitleBar");
         setSwitch("General", "DisableAnimations");
         setSwitch("General", "CrashAutoHandleEnabled");
         setSwitch("General", "CompatibilityMode");
@@ -13678,6 +14024,7 @@
         initRange("Overlay", "SidePageOpacity", 1.0, "", 2);
         initRange("PPT", "PageTurnRateLimit", 2, "", 0);
         setSwitch("Overlay", "SyncOpacity");
+        setSwitch("Overlay", "ToolbarAutoHalfCollapse");
         handleSyncOpacityToggle();
 
         renderFontSelects();
@@ -14358,6 +14705,10 @@
       }
 
       if (cat === "General" && key === "DisableAnimations") {
+        showRestartIsland();
+      }
+
+      if (cat === "General" && key === "UseNativeTitleBar") {
         showRestartIsland();
       }
 
@@ -15135,6 +15486,86 @@
         creditsItem.addEventListener('click', () => {
           const isActive = creditsExpander.classList.toggle('active');
           creditsItem.classList.toggle('active', isActive);
+        });
+      }
+
+      const echoCaveItem = document.getElementById('echo-cave-item');
+      const echoCaveContent = document.getElementById('echo-cave-content');
+      const echoCaveCopy = document.getElementById('echo-cave-copy');
+      let currentEchoText = '';
+      let echoCaveAbort = null;
+
+      function typewriteText(el, text, speed = 50) {
+        if (echoCaveAbort) {
+          echoCaveAbort();
+          echoCaveAbort = null;
+        }
+        let cancelled = false;
+        echoCaveAbort = () => { cancelled = true; };
+        el.classList.add('typewriting');
+        el.textContent = '';
+        let i = 0;
+        return new Promise((resolve) => {
+          function tick() {
+            if (cancelled) {
+              el.classList.remove('typewriting');
+              resolve(false);
+              return;
+            }
+            if (i < text.length) {
+              el.textContent += text[i];
+              i++;
+              setTimeout(tick, speed);
+            } else {
+              el.classList.remove('typewriting');
+              resolve(true);
+            }
+          }
+          tick();
+        });
+      }
+
+      if (echoCaveItem) {
+        echoCaveItem.addEventListener('click', async (e) => {
+          if (e.target === echoCaveCopy || echoCaveCopy.contains(e.target)) return;
+          if (echoCaveAbort) {
+            echoCaveAbort();
+            echoCaveAbort = null;
+          }
+          echoCaveContent.textContent = getText('about.echoCave.loading') || '获取中...';
+          echoCaveContent.classList.add('loading');
+          echoCaveCopy.style.display = 'none';
+          try {
+            const res = await fetch('http://127.0.0.1:28423/api/echo-cave?mode=random&limit=1');
+            const data = await res.json();
+            if (data.success && data.documents && data.documents.length > 0) {
+              currentEchoText = data.documents[0].content;
+              echoCaveContent.classList.remove('loading');
+              await typewriteText(echoCaveContent, currentEchoText, 50);
+              echoCaveCopy.style.display = '';
+            } else {
+              echoCaveContent.textContent = getText('about.echoCave.empty') || '暂无回声洞';
+              echoCaveContent.classList.remove('loading');
+            }
+          } catch {
+            echoCaveContent.textContent = getText('about.echoCave.error') || '获取失败，请稍后重试';
+            echoCaveContent.classList.remove('loading');
+          }
+        });
+      }
+
+      if (echoCaveCopy) {
+        echoCaveCopy.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (currentEchoText) {
+            navigator.clipboard.writeText(currentEchoText).then(() => {
+              const originalText = echoCaveCopy.textContent;
+              echoCaveCopy.textContent = getText('about.echoCave.copied') || '已复制';
+              setTimeout(() => {
+                echoCaveCopy.textContent = originalText;
+              }, 1500);
+            });
+          }
         });
       }
     })();

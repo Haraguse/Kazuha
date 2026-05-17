@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import os
 import json
 import webview
@@ -590,11 +590,11 @@ class Api:
         theme_mode = self.settings.get("Appearance", {}).get("ThemeMode", "Light")
         theme_lower = str(theme_mode).lower()
         if theme_lower == "dark":
-            accent = "#E1EBFF"
+            accent = "#C5D5F8"
         elif theme_lower == "auto":
-            accent = "#3275F5"
+            accent = "#5B8DEF"
         else:
-            accent = "#3275F5"
+            accent = "#5B8DEF"
 
         dialog_data = {
             "code": "test_dialog",
@@ -618,9 +618,9 @@ class Api:
         theme_mode = self.settings.get("Appearance", {}).get("ThemeMode", "Light")
         theme_lower = str(theme_mode).lower()
         if theme_lower == "dark":
-            accent = "#E1EBFF"
+            accent = "#C5D5F8"
         else:
-            accent = "#3275F5"
+            accent = "#5B8DEF"
 
         dialog_data = {
             "code": "font_warning",
@@ -805,7 +805,7 @@ def main():
             settings_path = os.path.join(base_dir, "settings.json")
 
         default_theme = "auto"
-        default_accent = "#3275F5"
+        default_accent = "#5B8DEF"
         settings = {}
 
         if os.path.exists(settings_path):
@@ -816,9 +816,9 @@ def main():
                         settings.get("Appearance", {}).get("ThemeMode", "Auto").lower()
                     )
                     if default_theme == "dark":
-                        default_accent = "#E1EBFF"
+                        default_accent = "#C5D5F8"
                     else:
-                        default_accent = "#3275F5"
+                        default_accent = "#5B8DEF"
             except:
                 settings = {}
 

@@ -266,6 +266,26 @@ async def handle_protocol_url(request):
         return web.json_response({"error": str(e)}, status=500)
     return web.json_response({"status": "ok"})
 
+ECHO_CAVE_BASE = "https://appwrite.sectl.cn/api/echo-cave"
+
+async def handle_echo_cave_proxy(request):
+    params = []
+    for key in ("mode", "limit", "id", "mine", "author", "count", "leaderboard"):
+        val = request.query.get(key)
+        if val is not None:
+            params.append(f"{key}={val}")
+    query_string = "&".join(params)
+    url = f"{ECHO_CAVE_BASE}?{query_string}" if query_string else ECHO_CAVE_BASE
+    try:
+        async with ClientSession() as session:
+            async with session.get(url, timeout=10) as resp:
+                data = await resp.json()
+                return web.json_response(data, status=resp.status)
+    except asyncio.TimeoutError:
+        return web.json_response({"success": False, "error": "timeout"}, status=504)
+    except Exception as e:
+        return web.json_response({"success": False, "error": str(e)}, status=502)
+
 def start_update_server(port: int = 28423):
     init_db()
     
@@ -290,6 +310,7 @@ def start_update_server(port: int = 28423):
     app.router.add_get('/api/update/changelog', handle_changelog)
     app.router.add_get('/api/update/open_settings', handle_open_settings)
     app.router.add_get('/api/protocol/handle', handle_protocol_url)
+    app.router.add_get('/api/echo-cave', handle_echo_cave_proxy)
     
     runner = web.AppRunner(app)
     

@@ -34,7 +34,7 @@
             --bg-surface: #ffffff;
             --text-primary: #1a1c1e;
             --text-secondary: #5e6368;
-            --accent-color: #3275F5;
+            --accent-color: #5B8DEF;
             --divider: rgba(0, 0, 0, 0.08);
             --item-hover: rgba(0, 0, 0, 0.05);
             --shadow-main: 0 4px 12px rgba(0, 0, 0, 0.06);
@@ -95,7 +95,7 @@
             --bg-surface: #1E1E1E;
             --text-primary: #E5E5E5;
             --text-secondary: #909090;
-            --accent-color: #4A85F6;
+            --accent-color: #7BA4F5;
             --divider: rgba(255, 255, 255, 0.08);
             --item-hover: rgba(255, 255, 255, 0.05);
             --shadow-main: 0 8px 32px rgba(0, 0, 0, 0.3);
@@ -920,14 +920,14 @@
             letter-spacing: 0.02em;
             min-width: 60px;
             text-align: center;
-            color: #4A85F6;
+            color: #7BA4F5;
         }
 
         #timer-label {
             font-size: 11px;
             font-weight: 500;
             opacity: 0.7;
-            color: #4A85F6;
+            color: #7BA4F5;
         }
 
         /* Digit animation for status bar */
@@ -2166,6 +2166,31 @@
             transform: translateY(-50%) translateX(-6px);
         }
 
+        /* Toolbar Half-Collapse (Auto-Hide) */
+        #toolbar-container.half-collapsed #toolbar {
+            transition: transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.5s ease;
+        }
+
+        #toolbar-container.pos-bottom.half-collapsed #toolbar {
+            transform: translateY(calc(100% - 14px)) scale(0.95);
+            opacity: 0.35;
+        }
+
+        #toolbar-container.pos-top.half-collapsed #toolbar {
+            transform: translateY(calc(-100% + 14px)) scale(0.95);
+            opacity: 0.35;
+        }
+
+        #toolbar-container.pos-left.half-collapsed #toolbar {
+            transform: translateX(calc(-100% + 14px)) scale(0.95);
+            opacity: 0.35;
+        }
+
+        #toolbar-container.pos-right.half-collapsed #toolbar {
+            transform: translateX(calc(100% - 14px)) scale(0.95);
+            opacity: 0.35;
+        }
+
     </style>
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script>
@@ -2677,6 +2702,14 @@
             applyAnimationPreference();
             
             applyOpacity();
+            
+            halfCollapseEnabled = config.toolbarAutoHalfCollapse || false;
+            if (halfCollapseEnabled) {
+                resetHalfCollapseTimer();
+            } else {
+                stopHalfCollapseTimer();
+                document.getElementById('toolbar-container').classList.remove('half-collapsed');
+            }
             
             toggleStatusBar(config.showStatusBar);
 
@@ -3931,16 +3964,60 @@
             const container = document.getElementById('toolbar-container');
             if (collapsed) {
                 container.classList.add('collapsed');
+                container.classList.remove('half-collapsed');
+                stopHalfCollapseTimer();
             } else {
                 container.classList.remove('collapsed');
+                resetHalfCollapseTimer();
             }
             
             scheduleMaskUpdate();
         }
 
+        let halfCollapseTimer = null;
+        let halfCollapseEnabled = false;
+
+        function stopHalfCollapseTimer() {
+            if (halfCollapseTimer) {
+                clearTimeout(halfCollapseTimer);
+                halfCollapseTimer = null;
+            }
+        }
+
+        function resetHalfCollapseTimer() {
+            stopHalfCollapseTimer();
+            const container = document.getElementById('toolbar-container');
+            if (container.classList.contains('half-collapsed')) {
+                container.classList.remove('half-collapsed');
+                scheduleMaskUpdate();
+            }
+            if (!halfCollapseEnabled || isToolbarCollapsed) return;
+            halfCollapseTimer = setTimeout(() => {
+                const c = document.getElementById('toolbar-container');
+                if (!isToolbarCollapsed && !c.classList.contains('half-collapsed')) {
+                    c.classList.add('half-collapsed');
+                    scheduleMaskUpdate();
+                }
+            }, 3000);
+        }
+
+        function onToolbarInteraction() {
+            if (!halfCollapseEnabled) return;
+            const container = document.getElementById('toolbar-container');
+            if (container.classList.contains('half-collapsed')) {
+                container.classList.remove('half-collapsed');
+                scheduleMaskUpdate();
+            }
+            resetHalfCollapseTimer();
+        }
+
         // Gestures
         const toolbarEl = document.getElementById('toolbar');
         const handleEl = document.getElementById('toolbar-handle');
+
+        toolbarEl.addEventListener('mouseenter', () => onToolbarInteraction());
+        toolbarEl.addEventListener('click', () => onToolbarInteraction());
+        toolbarEl.addEventListener('touchstart', () => onToolbarInteraction(), {passive: true});
         
         // Handle Click
         handleEl.addEventListener('click', (e) => {

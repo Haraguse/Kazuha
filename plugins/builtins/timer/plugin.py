@@ -255,12 +255,14 @@ class TimerPlugin(AssistantPlugin):
                 else "false",
             }
         )
+        settings = self._load_json_file(SETTINGS_PATH)
+        use_native = settings.get("General", {}).get("UseNativeTitleBar", False)
         cmd = _build_webview_runner_command(
             html_path,
             "Luminalium Timer Plugin",
             width,
             height,
-            True,
+            not use_native,
         )
         process = subprocess.Popen(
             cmd,
@@ -321,6 +323,7 @@ class TimerPlugin(AssistantPlugin):
         defer_load = wv._should_defer_initial_load(
             html_path, "Luminalium Timer Plugin", True
         )
+        use_native = api.settings.get("General", {}).get("UseNativeTitleBar", False)
         window = wv.MainWindow(
             "Luminalium Timer Plugin",
             html_path,
@@ -328,9 +331,9 @@ class TimerPlugin(AssistantPlugin):
             width,
             height,
             theme_mode,
-            True,
+            not use_native,
             defer_load,
-            frameless=True,
+            frameless=not use_native,
         )
         window.destroyed.connect(self._on_window_destroyed)
 

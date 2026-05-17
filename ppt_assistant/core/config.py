@@ -149,6 +149,22 @@ class Config(QConfig):
     strictEdgeAlignment = ConfigItem(
         "Overlay", "StrictEdgeAlignment", False, BoolValidator(), restart=False
     )
+    toolbarAutoHalfCollapse = ConfigItem(
+        "Overlay", "ToolbarAutoHalfCollapse", False, BoolValidator(), restart=False
+    )
+    uiAccessTopmost = ConfigItem(
+        "Overlay", "UIAccessTopmost", False, BoolValidator(), restart=False
+    )
+    allowRecording = ConfigItem(
+        "Overlay", "AllowRecording", False, BoolValidator(), restart=True
+    )
+    zOrderCheckInterval = OptionsConfigItem(
+        "Overlay",
+        "ZOrderCheckInterval",
+        200,
+        OptionsValidator([50, 100, 200, 500, 1000]),
+        restart=False,
+    )
 
     autoHandleInk = ConfigItem("PPT", "AutoHandleInk", True, BoolValidator())
     pageTurnRateLimit = RangeConfigItem(
@@ -165,6 +181,9 @@ class Config(QConfig):
         "RegisterUrlProtocol",
         True if sys.platform == "win32" else False,
         BoolValidator(),
+    )
+    useNativeTitleBar = ConfigItem(
+        "General", "UseNativeTitleBar", False, BoolValidator(), restart=True
     )
 
     overlayScreen = ConfigItem("Overlay", "OverlayScreen", "Auto", restart=False)
@@ -410,6 +429,11 @@ def _bind_auto_save():
     cfg.toolbarOpacity.valueChanged.connect(lambda *_: _save_cfg())
     cfg.sidePageOpacity.valueChanged.connect(lambda *_: _save_cfg())
     cfg.syncOpacity.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.strictEdgeAlignment.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.toolbarAutoHalfCollapse.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.uiAccessTopmost.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.allowRecording.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.zOrderCheckInterval.valueChanged.connect(lambda *_: _save_cfg())
     cfg.autoHandleInk.valueChanged.connect(lambda *_: _save_cfg())
     cfg.pageTurnRateLimit.valueChanged.connect(lambda *_: _save_cfg())
     cfg.overlayScreen.valueChanged.connect(lambda *_: _save_cfg())
@@ -421,6 +445,7 @@ def _bind_auto_save():
     cfg.resourceMonitorInterval.valueChanged.connect(lambda *_: _save_cfg())
     cfg.timerNotifyEnabled.valueChanged.connect(lambda *_: _save_cfg())
     cfg.registerUrlProtocol.valueChanged.connect(lambda *_: _on_register_url_protocol_changed())
+    cfg.useNativeTitleBar.valueChanged.connect(lambda *_: _save_cfg())
     # cfg.toolbarLayout.valueChanged.connect(lambda *_: _save_cfg())
 
 
