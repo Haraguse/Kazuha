@@ -2,18 +2,20 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 using Windows.Media.Control;
+using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
 using System.Runtime.InteropServices.WindowsRuntime;
 
 internal static class Program
 {
-    private const int MaxArtworkBytes = 4 * 1024 * 1024;
+    private const int MaxArtworkBytes = 8 * 1024 * 1024;
 
     public static async Task Main()
     {
         Console.InputEncoding = Encoding.UTF8;
         Console.OutputEncoding = Encoding.UTF8;
 
+        var lastSource = "";
         var lastArtworkKey = "";
         var lastArtworkDataUrl = "";
 
@@ -29,10 +31,14 @@ internal static class Program
             {
                 var manager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
                 var snapshot = await ReadBestSessionAsync(
-                    manager, lastArtworkKey, lastArtworkDataUrl
+                    manager, lastSource, lastArtworkKey, lastArtworkDataUrl
                 );
                 if (snapshot is not null)
                 {
+                    if (!string.IsNullOrWhiteSpace(snapshot.Source))
+                    {
+                        lastSource = snapshot.Source;
+                    }
                     lastArtworkKey = snapshot.ArtworkKey ?? "";
                     if (!string.IsNullOrWhiteSpace(snapshot.ArtworkDataUrl))
                     {
@@ -54,6 +60,7 @@ internal static class Program
             }
             catch (Exception ex)
             {
+                lastSource = "";
                 lastArtworkKey = "";
                 lastArtworkDataUrl = "";
                 Console.Error.WriteLine($"[SmtcHelper] Main loop error: {ex.Message}");
@@ -75,6 +82,7 @@ internal static class Program
 
     private static async Task<SessionSnapshot?> ReadBestSessionAsync(
         GlobalSystemMediaTransportControlsSessionManager manager,
+        string lastSource,
         string lastArtworkKey,
         string lastArtworkDataUrl
     )
@@ -90,6 +98,7 @@ internal static class Program
                 var props = await session.TryGetMediaPropertiesAsync();
                 var playback = session.GetPlaybackInfo();
                 var timeline = session.GetTimelineProperties();
+                var source = session.SourceAppUserModelId ?? "";
                 var start = timeline.StartTime;
                 var duration = timeline.EndTime - start;
                 var position = timeline.Position - start;
@@ -110,24 +119,51 @@ internal static class Program
                 string artworkContentType = "";
                 if (props?.Thumbnail is not null)
                 {
-                    artworkBytes = await ReadThumbnailBytesAsync(props.Thumbnail);
-                    if (artworkBytes is not null && artworkBytes.Length > 0)
-                    {
-                        artworkContentType = await GetThumbnailContentTypeAsync(props.Thumbnail);
-                    }
+                    var thumbnailPayload = await ReadThumbnailAsync(props.Thumbnail);
+                    artworkBytes = thumbnailPayload.Bytes;
+                    artworkContentType = thumbnailPayload.ContentType;
                 }
 
+                var title = FirstNonEmpty(
+                    props?.Title,
+                    props?.Subtitle,
+                    props?.AlbumTitle,
+                    GetFriendlySourceName(source)
+                );
+                var artist = FirstNonEmpty(
+                    props?.Artist,
+                    props?.AlbumArtist,
+                    GetFirstGenre(props?.Genres)
+                );
+                var album = props?.AlbumTitle ?? "";
+                var subtitle = props?.Subtitle ?? "";
+                var albumArtist = props?.AlbumArtist ?? "";
+                var playbackType = props?.PlaybackType.ToString() ?? "";
+                var metadataScore = GetMetadataScore(
+                    title,
+                    artist,
+                    album,
+                    subtitle,
+                    albumArtist,
+                    artworkBytes
+                );
+
                 candidates.Add(new SessionCandidate(
-                    session.SourceAppUserModelId ?? "",
+                    source,
                     playback?.PlaybackStatus.ToString() ?? "",
-                    props?.Title ?? "",
-                    props?.Artist ?? "",
-                    props?.AlbumTitle ?? "",
+                    title,
+                    artist,
+                    album,
+                    subtitle,
+                    albumArtist,
+                    playbackType,
                     (long)position.TotalMilliseconds,
                     (long)duration.TotalMilliseconds,
                     artworkBytes,
                     artworkContentType,
-                    session.SourceAppUserModelId == currentSource
+                    source == currentSource,
+                    string.Equals(source, lastSource, StringComparison.OrdinalIgnoreCase),
+                    metadataScore
                 ));
             }
             catch (Exception ex)
@@ -139,6 +175,10 @@ internal static class Program
         var best = candidates
             .OrderBy(snapshot => RankStatus(snapshot.Status))
             .ThenByDescending(snapshot => snapshot.IsCurrent)
+            .ThenByDescending(snapshot => snapshot.IsLastSource)
+            .ThenByDescending(snapshot => snapshot.MetadataScore)
+            .ThenByDescending(snapshot => snapshot.ArtworkBytes is not null && snapshot.ArtworkBytes.Length > 0)
+            .ThenByDescending(snapshot => snapshot.DurationMs > 0)
             .ThenByDescending(snapshot => !string.IsNullOrWhiteSpace(snapshot.Title))
             .ThenByDescending(snapshot => !string.IsNullOrWhiteSpace(snapshot.Artist))
             .FirstOrDefault();
@@ -195,7 +235,7 @@ internal static class Program
         return $"{source}|{title}|{artist}|{album}";
     }
 
-    private static async Task<byte[]?> ReadThumbnailBytesAsync(IRandomAccessStreamReference thumbnail)
+    private static async Task<ThumbnailPayload> ReadThumbnailAsync(IRandomAccessStreamReference thumbnail)
     {
         try
         {
@@ -203,41 +243,33 @@ internal static class Program
             if (stream is null)
             {
                 Console.Error.WriteLine("[SmtcHelper] Thumbnail stream is null");
-                return null;
+                return ThumbnailPayload.Empty;
             }
-            
+
+            var contentType = NormalizeContentType(stream.ContentType);
             using var classicStream = stream.AsStreamForRead();
             using var ms = new MemoryStream();
             await classicStream.CopyToAsync(ms);
             var buffer = ms.ToArray();
-            
+
             if (buffer.Length > MaxArtworkBytes)
             {
                 Console.Error.WriteLine($"[SmtcHelper] Thumbnail too large: {buffer.Length} bytes");
-                return null;
+                return ThumbnailPayload.Empty;
             }
-            
-            return buffer;
+
+            if (string.IsNullOrWhiteSpace(contentType))
+            {
+                contentType = DetectContentType(buffer);
+            }
+
+            return await EnsureDisplaySafeThumbnailAsync(buffer, contentType);
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[SmtcHelper] ReadThumbnailBytesAsync failed: {ex.GetType().Name}: {ex.Message}");
-            return null;
+            Console.Error.WriteLine($"[SmtcHelper] ReadThumbnailAsync failed: {ex.GetType().Name}: {ex.Message}");
+            return ThumbnailPayload.Empty;
         }
-    }
-
-    private static async Task<string> GetThumbnailContentTypeAsync(IRandomAccessStreamReference thumbnail)
-    {
-        try
-        {
-            using var stream = await thumbnail.OpenReadAsync();
-            if (stream is not null && !string.IsNullOrWhiteSpace(stream.ContentType))
-            {
-                return stream.ContentType;
-            }
-        }
-        catch { }
-        return "";
     }
 
     private static string BuildDataUrl(byte[]? bytes, string contentType)
@@ -246,7 +278,8 @@ internal static class Program
         {
             return "";
         }
-        if (string.IsNullOrWhiteSpace(contentType) || !contentType.StartsWith("image/"))
+        contentType = NormalizeContentType(contentType);
+        if (string.IsNullOrWhiteSpace(contentType) || !contentType.StartsWith("image/", StringComparison.Ordinal))
         {
             var detected = DetectContentType(bytes);
             if (!string.IsNullOrWhiteSpace(detected))
@@ -254,15 +287,117 @@ internal static class Program
                 contentType = detected;
             }
         }
-        if (string.IsNullOrWhiteSpace(contentType) || !contentType.StartsWith("image/"))
+        contentType = NormalizeContentType(contentType);
+        if (string.IsNullOrWhiteSpace(contentType) || !contentType.StartsWith("image/", StringComparison.Ordinal))
         {
             return "";
         }
         return $"data:{contentType};base64,{Convert.ToBase64String(bytes)}";
     }
 
+    private static async Task<ThumbnailPayload> EnsureDisplaySafeThumbnailAsync(
+        byte[] bytes,
+        string contentType
+    )
+    {
+        contentType = NormalizeContentType(contentType);
+        if (IsBrowserFriendlyContentType(contentType))
+        {
+            return new ThumbnailPayload(bytes, contentType);
+        }
+
+        var pngBytes = await TryConvertToPngAsync(bytes);
+        if (pngBytes is not null && pngBytes.Length > 0)
+        {
+            return new ThumbnailPayload(pngBytes, "image/png");
+        }
+
+        return new ThumbnailPayload(bytes, contentType);
+    }
+
+    private static async Task<byte[]?> TryConvertToPngAsync(byte[] bytes)
+    {
+        try
+        {
+            using var input = new InMemoryRandomAccessStream();
+            await input.WriteAsync(bytes.AsBuffer());
+            input.Seek(0);
+
+            var decoder = await BitmapDecoder.CreateAsync(input);
+            var bitmap = await decoder.GetSoftwareBitmapAsync(
+                BitmapPixelFormat.Bgra8,
+                BitmapAlphaMode.Premultiplied
+            );
+
+            using var output = new InMemoryRandomAccessStream();
+            var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, output);
+            encoder.SetSoftwareBitmap(bitmap);
+            encoder.IsThumbnailGenerated = false;
+            await encoder.FlushAsync();
+            output.Seek(0);
+
+            using var classicStream = output.AsStreamForRead();
+            using var ms = new MemoryStream();
+            await classicStream.CopyToAsync(ms);
+            var converted = ms.ToArray();
+            if (converted.Length == 0 || converted.Length > MaxArtworkBytes)
+            {
+                return null;
+            }
+
+            return converted;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool IsBrowserFriendlyContentType(string contentType) => contentType switch
+    {
+        "image/png" => true,
+        "image/jpeg" => true,
+        "image/gif" => true,
+        "image/webp" => true,
+        "image/bmp" => true,
+        "image/svg+xml" => true,
+        _ => false
+    };
+
+    private static string NormalizeContentType(string? contentType)
+    {
+        if (string.IsNullOrWhiteSpace(contentType))
+        {
+            return "";
+        }
+
+        var normalized = contentType.Trim();
+        var separatorIndex = normalized.IndexOf(';');
+        if (separatorIndex >= 0)
+        {
+            normalized = normalized[..separatorIndex];
+        }
+
+        normalized = normalized.Trim().ToLowerInvariant();
+        return normalized switch
+        {
+            "application/octet-stream" => "",
+            "image/jpg" => "image/jpeg",
+            "image/jfif" => "image/jpeg",
+            "image/pjpeg" => "image/jpeg",
+            "image/x-png" => "image/png",
+            "image/x-ms-bmp" => "image/bmp",
+            "image/vnd.microsoft.icon" => "image/x-icon",
+            "image/svg" => "image/svg+xml",
+            _ => normalized
+        };
+    }
+
     private static string DetectContentType(byte[] bytes)
     {
+        if (bytes.Length == 0) return "";
+        if (LooksLikeSvg(bytes))
+            return "image/svg+xml";
         if (bytes.Length < 4) return "";
         if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47)
             return "image/png";
@@ -281,6 +416,8 @@ internal static class Program
             return "image/tiff";
         if (bytes[0] == 0x00 && bytes[1] == 0x00 && bytes[2] == 0x01 && bytes[3] == 0x00)
             return "image/x-icon";
+        if (bytes[0] == 0x00 && bytes[1] == 0x00 && bytes[2] == 0x02 && bytes[3] == 0x00)
+            return "image/x-icon";
         if (bytes.Length > 11
             && bytes[4] == 0x66 && bytes[5] == 0x74 && bytes[6] == 0x79 && bytes[7] == 0x70)
         {
@@ -288,6 +425,8 @@ internal static class Program
                 return "image/avif";
             if (bytes[8] == 0x68 && bytes[9] == 0x65 && bytes[10] == 0x69 && (bytes[11] == 0x63 || bytes[11] == 0x66 || bytes[11] == 0x78 || bytes[11] == 0x6D))
                 return "image/heic";
+            if (bytes[8] == 0x6D && bytes[9] == 0x69 && bytes[10] == 0x66 && bytes[11] == 0x31)
+                return "image/heif";
         }
         if (bytes[0] == 0xFF && bytes[1] == 0x0A)
             return "image/jxl";
@@ -297,6 +436,94 @@ internal static class Program
             && bytes[8] == 0x0D && bytes[9] == 0x0A && bytes[10] == 0x87 && bytes[11] == 0x0A)
             return "image/jxl";
         return "";
+    }
+
+    private static bool LooksLikeSvg(byte[] bytes)
+    {
+        var prefixLength = Math.Min(bytes.Length, 512);
+        var prefix = Encoding.UTF8.GetString(bytes, 0, prefixLength).TrimStart('\uFEFF', ' ', '\t', '\r', '\n');
+        return prefix.StartsWith("<svg", StringComparison.OrdinalIgnoreCase)
+            || prefix.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase) && prefix.Contains("<svg", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string FirstNonEmpty(params string?[] values)
+    {
+        foreach (var value in values)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                return value.Trim();
+            }
+        }
+
+        return "";
+    }
+
+    private static string GetFirstGenre(IReadOnlyList<string>? genres)
+    {
+        if (genres is null)
+        {
+            return "";
+        }
+
+        foreach (var genre in genres)
+        {
+            if (!string.IsNullOrWhiteSpace(genre))
+            {
+                return genre.Trim();
+            }
+        }
+
+        return "";
+    }
+
+    private static int GetMetadataScore(
+        string title,
+        string artist,
+        string album,
+        string subtitle,
+        string albumArtist,
+        byte[]? artworkBytes
+    )
+    {
+        var score = 0;
+        if (!string.IsNullOrWhiteSpace(title)) score += 8;
+        if (!string.IsNullOrWhiteSpace(artist)) score += 4;
+        if (!string.IsNullOrWhiteSpace(album)) score += 2;
+        if (!string.IsNullOrWhiteSpace(subtitle)) score += 2;
+        if (!string.IsNullOrWhiteSpace(albumArtist)) score += 1;
+        if (artworkBytes is not null && artworkBytes.Length > 0) score += 3;
+        return score;
+    }
+
+    private static string GetFriendlySourceName(string source)
+    {
+        if (string.IsNullOrWhiteSpace(source))
+        {
+            return "";
+        }
+
+        var normalized = source.Trim();
+        var bangIndex = normalized.IndexOf('!');
+        if (bangIndex > 0)
+        {
+            normalized = normalized[..bangIndex];
+        }
+
+        var slashIndex = normalized.LastIndexOf('\\');
+        if (slashIndex >= 0 && slashIndex < normalized.Length - 1)
+        {
+            normalized = normalized[(slashIndex + 1)..];
+        }
+
+        return normalized switch
+        {
+            "msedge.exe" => "Microsoft Edge",
+            "chrome.exe" => "Google Chrome",
+            "firefox.exe" => "Mozilla Firefox",
+            "ApplicationFrameHost.exe" => "Application Frame Host",
+            _ => normalized
+        };
     }
 
     private static void WriteJson(object payload)
@@ -324,9 +551,22 @@ internal sealed record SessionCandidate(
     string Title,
     string Artist,
     string Album,
+    string Subtitle,
+    string AlbumArtist,
+    string PlaybackType,
     long PositionMs,
     long DurationMs,
     byte[]? ArtworkBytes,
     string ArtworkContentType,
-    bool IsCurrent
+    bool IsCurrent,
+    bool IsLastSource,
+    int MetadataScore
 );
+
+internal sealed record ThumbnailPayload(
+    byte[]? Bytes,
+    string ContentType
+)
+{
+    public static ThumbnailPayload Empty { get; } = new(null, "");
+}

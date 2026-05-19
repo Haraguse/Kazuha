@@ -151,13 +151,19 @@ if sys.platform == "linux":
 
 if __name__ == "__main__":
     if "--webview-runner" in sys.argv:
-        # Minimal imports for webview runner
         idx = sys.argv.index("--webview-runner")
         import plugins.webview_runner as _wv
 
-        # Adjust sys.argv so argparse in webview_runner (if any) sees clean args
         sys.argv = ["webview_runner.py"] + sys.argv[idx + 1 :]
         _wv.main()
+        sys.exit(0)
+
+    if "--memory-cleaner" in sys.argv:
+        from ppt_assistant.core.memory_cleaner import run_memory_cleaner
+        parent_pid = int(os.environ.get("LUMINALIUM_PARENT_PID", "0"))
+        interval = int(os.environ.get("LUMINALIUM_MEMCLEAN_INTERVAL", "30"))
+        if parent_pid:
+            run_memory_cleaner(parent_pid, interval)
         sys.exit(0)
 
 from PySide6.QtWidgets import (
@@ -1557,7 +1563,7 @@ class CrashHandler:
             filtered_args = [
                 a
                 for a in sys.argv[1:]
-                if a not in ("--silent", "--webview-runner", "--dialog", "--crash-file")
+                if a not in ("--silent", "--webview-runner", "--dialog", "--crash-file", "--memory-cleaner")
             ]
             if "--silent" not in filtered_args:
                 filtered_args.append("--silent")
@@ -1569,7 +1575,7 @@ class CrashHandler:
 
             creationflags = (
                 0x08000000 | 0x00000008
-            )  # CREATE_NO_WINDOW | DETACHED_PROCESS
+            )
             env = os.environ.copy()
             env["LUMINALIUM_RESTART"] = "1"
             env["LUMINALIUM_RESTART_PID"] = str(os.getpid())
@@ -1577,8 +1583,6 @@ class CrashHandler:
             subprocess.Popen(cmd, env=env, creationflags=creationflags, close_fds=True)
         except Exception as e:
             print(f"Failed to restart silently: {e}", file=sys.stderr)
-
-    def _show_crash_toast(self):
         try:
             if (
                 self.app_instance is not None
@@ -1670,12 +1674,17 @@ def _handle_multi_instance(app: QApplication):
     )
     pids = []
     for p in psutil.process_iter(["pid", "cmdline"]):
-        pid = p.info.get("pid")
-        if pid in (current_pid, parent_pid):
+        try:
+            pid = p.info.get("pid")
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+        if pid in (None, 0, current_pid, parent_pid):
             continue
         cmd = p.info.get("cmdline") or []
 
         if "--webview-runner" in cmd:
+            continue
+        if "--memory-cleaner" in cmd:
             continue
         if cmd:
             launcher = os.path.basename(str(cmd[0])).lower()
@@ -1684,7 +1693,7 @@ def _handle_multi_instance(app: QApplication):
 
         try:
             proc_cwd = p.cwd()
-        except Exception:
+        except (Exception, psutil.NoSuchProcess, psutil.AccessDenied):
             proc_cwd = None
 
         for part in cmd:
@@ -1790,6 +1799,8 @@ class PPTAssistantApp:
         self._onboarding_wait_timer = None
         self._onboarding_restart_started = False
         self._resource_monitor = None
+        self._memory_cleaner_process = None
+        self._gc_timer = None
         self._open_settings_after_startup = False
         self._pending_protocol_url = None
 
@@ -1958,6 +1969,8 @@ class PPTAssistantApp:
             flush=True,
         )
         self._start_resource_monitor()
+        self._start_memory_cleaner()
+        self._setup_gc_timer()
         
         # Start Update Service
         try:
@@ -2171,7 +2184,6 @@ class PPTAssistantApp:
             print(f"[APP] Failed to start resource monitor: {e}")
 
     def _stop_resource_monitor(self):
-        """停止系统资源监测线程"""
         try:
             if self._resource_monitor is not None:
                 self._resource_monitor.stop()
@@ -2180,8 +2192,77 @@ class PPTAssistantApp:
         except Exception as e:
             print(f"[APP] Error stopping resource monitor: {e}")
 
+    def _start_memory_cleaner(self):
+        try:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            main_path = os.path.join(base_dir, "main.py")
+            env = os.environ.copy()
+            env["LUMINALIUM_PARENT_PID"] = str(os.getpid())
+            env["LUMINALIUM_MEMCLEAN_INTERVAL"] = "30"
+            creationflags = (
+                0x08000000 | 0x00000008
+            )
+            if getattr(sys, "frozen", False):
+                cmd = [sys.executable, "--memory-cleaner"]
+            else:
+                cmd = [sys.executable, main_path, "--memory-cleaner"]
+            self._memory_cleaner_process = subprocess.Popen(
+                cmd, env=env, creationflags=creationflags, close_fds=True
+            )
+            print("[APP] Memory cleaner process started", flush=True)
+        except Exception as e:
+            print(f"[APP] Failed to start memory cleaner: {e}", flush=True)
+
+    def _stop_memory_cleaner(self):
+        try:
+            proc = self._memory_cleaner_process
+            if proc is not None and proc.poll() is None:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=2.0)
+                except Exception:
+                    proc.kill()
+                print("[APP] Memory cleaner process stopped", flush=True)
+            self._memory_cleaner_process = None
+        except Exception as e:
+            print(f"[APP] Error stopping memory cleaner: {e}", flush=True)
+
+    def _setup_gc_timer(self):
+        try:
+            if self._gc_timer is not None:
+                return
+            import gc
+            self._gc_timer = QTimer(self.app)
+            self._gc_timer.setInterval(120000)
+            self._gc_timer.timeout.connect(self._on_gc_tick)
+            self._gc_timer.start()
+            print("[APP] GC timer started (120s interval)", flush=True)
+        except Exception as e:
+            print(f"[APP] Failed to setup GC timer: {e}", flush=True)
+
+    def _stop_gc_timer(self):
+        try:
+            if self._gc_timer is not None:
+                self._gc_timer.stop()
+                self._gc_timer.deleteLater()
+                self._gc_timer = None
+                print("[APP] GC timer stopped", flush=True)
+        except Exception as e:
+            print(f"[APP] Error stopping GC timer: {e}", flush=True)
+
+    def _on_gc_tick(self):
+        try:
+            import gc
+            gc.collect()
+            gc.collect(0)
+            gc.collect(1)
+            collected = gc.collect(2)
+            if collected > 0:
+                print(f"[APP] GC collected {collected} objects", flush=True)
+        except Exception as e:
+            print(f"[APP] GC tick error: {e}", flush=True)
+
     def _on_resource_alert(self, title: str, message: str):
-        """资源告警回调 - 显示托盘通知"""
         try:
             if hasattr(self, "tray") and self.tray:
                 self.tray.show_message(title, message)
@@ -2261,8 +2342,9 @@ class PPTAssistantApp:
 
     def _prepare_shutdown(self, restarting=False):
         try:
-            # Stop resource monitor
             self._stop_resource_monitor()
+            self._stop_memory_cleaner()
+            self._stop_gc_timer()
         except Exception:
             pass
         try:
@@ -2764,7 +2846,7 @@ class PPTAssistantApp:
             filtered_args = [
                 a
                 for a in sys.argv[1:]
-                if a not in ("--silent", "--webview-runner", "--dialog", "--crash-file")
+                if a not in ("--silent", "--webview-runner", "--dialog", "--crash-file", "--memory-cleaner")
             ]
             if getattr(sys, "frozen", False):
                 cmd = [sys.executable] + filtered_args

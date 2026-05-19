@@ -47,6 +47,12 @@ class AcrylicRoundMenu(RoundMenu):
 
         self.view.setStyleSheet("MenuActionListWidget { background: transparent; }")
 
+        # Disable touch events to prevent abnormal expansion on touch screens
+        self.setAttribute(Qt.WA_AcceptTouchEvents, False)
+        self.view.setAttribute(Qt.WA_AcceptTouchEvents, False)
+        if hasattr(self.view, 'viewport') and self.view.viewport():
+            self.view.viewport().setAttribute(Qt.WA_AcceptTouchEvents, False)
+
         _apply_app_font(self)
         if isinstance(self.view, MenuActionListWidget):
             _apply_app_font(self.view)
@@ -485,6 +491,9 @@ class ActionConfirmFlyoutView(FlyoutViewBase):
         super().__init__(parent)
         self.setObjectName("trayActionConfirmFlyoutView")
         self.setFixedWidth(332)
+        
+        # Disable touch events to prevent abnormal expansion on touch screens
+        self.setAttribute(Qt.WA_AcceptTouchEvents, False)
 
         text_secondary = (
             "rgba(255, 255, 255, 0.70)" if isDarkTheme() else "rgba(0, 0, 0, 0.60)"
@@ -521,6 +530,19 @@ class ActionConfirmFlyoutView(FlyoutViewBase):
         button_layout.addWidget(confirm_button)
 
         button_layout.addStretch(1)
+
+    def paintEvent(self, e):
+        # Override paintEvent to draw transparent background and a subtle border,
+        # allowing the acrylic effect on the Flyout to show through.
+        painter = QPainter(self)
+        painter.setRenderHints(QPainter.Antialiasing)
+        
+        painter.setBrush(Qt.transparent)
+        is_dark = isDarkTheme()
+        border_color = QColor(255, 255, 255, 20) if is_dark else QColor(0, 0, 0, 10)
+        painter.setPen(border_color)
+        
+        painter.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), 8, 8)
 
 
 class SystemTray(QObject):
@@ -748,6 +770,7 @@ class SystemTray(QObject):
     def _init_native_menu(self):
         old = self._native_menu
         self._native_menu = QMenu(parent=self._parent)
+        self._native_menu.setAttribute(Qt.WA_AcceptTouchEvents, False)
         self._native_menu.aboutToShow.connect(self._update_timer_text)
         _apply_app_font(self._native_menu)
 
@@ -883,6 +906,23 @@ class SystemTray(QObject):
         self._confirm_flyout = Flyout.make(view, anchor)
         self._confirm_flyout.view.setGraphicsEffect(None)
         self._confirm_flyout.hBoxLayout.setContentsMargins(0, 0, 0, 0)
+        
+        # Disable touch events to prevent abnormal expansion on touch screens
+        self._confirm_flyout.setAttribute(Qt.WA_AcceptTouchEvents, False)
+
+        # Make the flyout use acrylic background
+        self._confirm_flyout.setAttribute(Qt.WA_TranslucentBackground)
+        self._confirm_flyout.windowEffect = WindowEffect(self._confirm_flyout)
+        
+        if sys.platform == "win32":
+            if isDarkTheme():
+                self._confirm_flyout.windowEffect.setAcrylicEffect(self._confirm_flyout.winId(), "20202050", True)
+            else:
+                self._confirm_flyout.windowEffect.setAcrylicEffect(self._confirm_flyout.winId(), "F2F2F250", True)
+                
+        # Make the view transparent so acrylic shows through
+        view.setAttribute(Qt.WA_TranslucentBackground)
+        view.setStyleSheet("ActionConfirmFlyoutView { background: transparent; }")
 
         view.cancelled.connect(self._close_confirm_flyout)
         view.confirmed.connect(confirmed_slot)

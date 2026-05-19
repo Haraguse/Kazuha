@@ -601,6 +601,7 @@ class OverlayWindow(QWebEngineView):
             "position_ms": 0,
             "duration_ms": 0,
         }
+        self._last_sent_smtc_artwork_data_url = None
         self._smtc_thread = None
         self._stop_smtc = False
         self.status_timer = None
@@ -617,6 +618,7 @@ class OverlayWindow(QWebEngineView):
         self._render_crash_count = 0
         self._max_reload_attempts = 3
         self._crash_recovery_timer = None
+        self._memory_timer = None
 
     def update_accent_color(self, hex_color):
         if self.page():
@@ -675,6 +677,59 @@ class OverlayWindow(QWebEngineView):
             if os.path.exists(compat_path):
                 return compat_path
         return self._resolve_theme_path()
+
+    def _inject_theme_scripts(self):
+        try:
+            from PySide6.QtWebEngineCore import QWebEngineScript
+
+            try:
+                from plugins.webview_runner import _get_unified_theme_js
+            except ImportError:
+                _plugins_dir = os.path.join(ROOT_DIR, "plugins")
+                if _plugins_dir not in sys.path:
+                    sys.path.insert(0, _plugins_dir)
+                from plugins.webview_runner import _get_unified_theme_js
+
+            mode = cfg.themeMode.value
+            if isinstance(mode, Theme):
+                if mode == Theme.AUTO:
+                    is_dark = isDarkTheme()
+                else:
+                    is_dark = mode == Theme.DARK
+            else:
+                mode_str = str(mode).lower()
+                if mode_str == "dark":
+                    is_dark = True
+                elif mode_str == "light":
+                    is_dark = False
+                else:
+                    is_dark = isDarkTheme()
+
+            theme_id = cfg.themeId.value or "default"
+            settings_dict = {
+                "Appearance": {
+                    "ResolvedIsDark": is_dark,
+                    "ThemeId": theme_id,
+                    "ThemeMode": "Dark" if is_dark else "Light",
+                }
+            }
+            settings_json = json.dumps(settings_dict, ensure_ascii=False)
+
+            settings_script = QWebEngineScript()
+            settings_script.setSourceCode(f"window.initialSettings = {settings_json};")
+            settings_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
+            settings_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
+            self.page().scripts().insert(settings_script)
+
+            theme_script = QWebEngineScript()
+            theme_script.setSourceCode(_get_unified_theme_js())
+            theme_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
+            theme_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
+            self.page().scripts().insert(theme_script)
+
+            print("[Overlay] Theme scripts injected.", flush=True)
+        except Exception as e:
+            print(f"[Overlay] Failed to inject theme scripts: {e}", file=sys.stderr)
 
     def _ensure_runtime_initialized(self):
         if self._runtime_initialized:
@@ -740,6 +795,9 @@ class OverlayWindow(QWebEngineView):
         self.channel.registerObject("bridge", self.bridge)
         self.page().setWebChannel(self.channel)
         print("[Overlay] WebChannel ready.", flush=True)
+
+        self._inject_theme_scripts()
+
         self.loadFinished.connect(self._on_load_finished)
         self.renderProcessTerminated.connect(self._on_render_process_terminated)
 
@@ -1150,7 +1208,10 @@ class OverlayWindow(QWebEngineView):
         color_str = t_color.name()
 
         theme_id = cfg.themeId.value
-        js = f"if (typeof setTheme === 'function') setTheme({'false' if is_light else 'true'}, '{color_str}', '{theme_id}');"
+        js = (
+            f"if (typeof setTheme === 'function') setTheme({'false' if is_light else 'true'}, '{color_str}', '{theme_id}');"
+            f"if(typeof window.__applyUnifiedTheme==='function')window.__applyUnifiedTheme();"
+        )
         self._run_javascript(js)
 
     def _start_smtc_thread(self):
@@ -1216,8 +1277,11 @@ class OverlayWindow(QWebEngineView):
                 "smtc_artist": smtc_artist,
                 "smtc_position_ms": max(0, smtc_position_ms),
                 "smtc_duration_ms": max(0, smtc_duration_ms),
-                "smtc_artwork_data_url": smtc_artwork_data_url,
             }
+
+            if smtc_artwork_data_url != self._last_sent_smtc_artwork_data_url:
+                data["smtc_artwork_data_url"] = smtc_artwork_data_url
+                self._last_sent_smtc_artwork_data_url = smtc_artwork_data_url
 
             js = f"if(window.updateSystemStatus) window.updateSystemStatus({json.dumps(data)});"
             self._run_javascript(js)
@@ -1464,10 +1528,74 @@ class OverlayWindow(QWebEngineView):
         else:
             self.page().setBackgroundColor(Qt.transparent)
         self.update_theme()
+        self._start_memory_timer()
         print(f"[Overlay] After showEvent, window visible: {self.isVisible()}")
 
+    def _start_memory_timer(self):
+        try:
+            if self._memory_timer is not None:
+                return
+            from PySide6.QtCore import QTimer
+            self._memory_timer = QTimer(self)
+            self._memory_timer.setInterval(15000)
+            self._memory_timer.timeout.connect(self._on_memory_tick)
+            self._memory_timer.start()
+        except Exception:
+            pass
+
+    def _stop_memory_timer(self):
+        try:
+            if self._memory_timer is not None:
+                self._memory_timer.stop()
+                self._memory_timer.deleteLater()
+                self._memory_timer = None
+        except Exception:
+            pass
+
+    def _on_memory_tick(self):
+        try:
+            import gc
+            for _ in range(2):
+                gc.collect(0)
+                gc.collect(1)
+                gc.collect(2)
+
+            page = self.page()
+            if page is not None:
+                try:
+                    page.clearMemoryCaches()
+                except Exception:
+                    pass
+                profile = page.profile()
+                if profile is not None:
+                    try:
+                        profile.clearHttpCache()
+                    except Exception:
+                        pass
+
+            if sys.platform == "win32":
+                try:
+                    kernel32 = ctypes.windll.kernel32
+                    PROCESS_SET_QUOTA = 0x0100
+                    PROCESS_QUERY_INFORMATION = 0x0400
+                    handle = kernel32.OpenProcess(
+                        PROCESS_SET_QUOTA | PROCESS_QUERY_INFORMATION,
+                        False,
+                        os.getpid(),
+                    )
+                    if handle:
+                        try:
+                            for _ in range(3):
+                                kernel32.SetProcessWorkingSetSize(handle, -1, -1)
+                        finally:
+                            kernel32.CloseHandle(handle)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
     def closeEvent(self, event):
-        """Clean up resources when overlay window closes"""
+        self._stop_memory_timer()
         self._stop_smtc = True
         if self._crash_recovery_timer is not None:
             try:
@@ -1545,6 +1673,7 @@ class OverlayWindow(QWebEngineView):
         self._presentation_readonly = bool(presentation_readonly)
 
     def cleanup(self):
+        self._stop_memory_timer()
         self._stop_smtc = True
         if self._smtc_thread:
             self._smtc_thread.join(timeout=1.0)

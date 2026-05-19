@@ -17,8 +17,7 @@ if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 
-from PySide6.QtWidgets import QApplication, QFileDialog
-from PySide6.QtQuick import QQuickView
+from PySide6.QtWidgets import QApplication, QFileDialog, QWidget, QLabel, QVBoxLayout, QHBoxLayout, QGraphicsOpacityEffect, QPushButton
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import (
     QWebEngineScript,
@@ -43,7 +42,7 @@ from PySide6.QtCore import (
     QPoint,
     QEvent,
 )
-from PySide6.QtGui import QColor, QImage, QGuiApplication, QIcon
+from PySide6.QtGui import QColor, QImage, QGuiApplication, QIcon, QFont, QPixmap
 from ppt_assistant.core.icon_helper import get_file_icon_base64
 from ppt_assistant.core.platform_integration import (
     get_quick_launch_dialog_filter,
@@ -435,14 +434,31 @@ def _configure_profile(profile):
         if storage_root:
             profile.setPersistentStoragePath(storage_root)
         if cache_root:
-            # Keep cache process-local to avoid Chromium lock/contention issues.
             cache_path = os.path.join(cache_root, f"pid-{os.getpid()}")
             os.makedirs(cache_path, exist_ok=True)
             profile.setCachePath(cache_path)
             profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
-            profile.setHttpCacheMaximumSize(50 * 1024 * 1024)  # 50 MB
+            profile.setHttpCacheMaximumSize(20 * 1024 * 1024)
         else:
             profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.MemoryHttpCache)
+
+        try:
+            settings = profile.settings()
+            if settings is not None:
+                try:
+                    settings.setAttribute(
+                        QWebEngineSettings.WebAttribute.LocalStorageEnabled, True
+                    )
+                    settings.setDefaultTextEncoding("utf-8")
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        try:
+            profile.clearHttpCache()
+        except Exception:
+            pass
     except Exception:
         pass
     try:
@@ -522,10 +538,9 @@ def _should_defer_initial_load(url, title, explicit_defer=False):
 
 def _apply_chromium_flags():
     _maybe_add_vxkex_path()
-    # Configure for smooth GPU rendering
     flags = [
         "--enable-zero-copy",
-        "--enable-features=BackForwardCache,GpuRasterization,VaapiVideoDecoder",
+        "--enable-features=GpuRasterization",
         "--disable-frame-rate-limit",
         "--disable-gpu-vsync",
         "--disable-renderer-backgrounding",
@@ -538,9 +553,22 @@ def _apply_chromium_flags():
         "--disable-web-security",
         "--wm-window-animations-disabled",
         "--enable-gpu-rasterization",
-        "--enable-hardware-overlays",
         "--ignore-gpu-blocklist",
+        "--enable-low-end-device-mode",
+        "--renderer-process-limit=1",
+        "--max-decoded-image-size-bytes=10485760",
+        "--disk-cache-size=20971520",
+        "--max-active-webgl-contexts=1",
+        "--disable-features=BackForwardCache,VaapiVideoDecoder,MediaFoundationVideoCapture,HardwareMediaKeyHandling",
+        "--js-flags=--max-old-space-size=128",
+        "--num-raster-threads=2",
     ]
+
+    if sys.platform == "win32":
+        flags.extend([
+            "--gpu-memory-buffer-budget=134217728",
+            "--disable-gpu-shader-disk-cache",
+        ])
 
     if _is_virtual_gpu():
         flags.extend(
@@ -1132,7 +1160,7 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
         if self._window:
             if hasattr(self._window, "update_theme_mode"):
                 self._window.update_theme_mode(theme_mode)
-            js = f"if (typeof updateTheme === 'function') updateTheme({json.dumps(theme_mode)}, {json.dumps(theme_id)})"
+            js = f"if (typeof updateTheme === 'function') updateTheme({json.dumps(theme_mode)}, {json.dumps(theme_id)});if(typeof window.__applyUnifiedTheme==='function')window.__applyUnifiedTheme();"
             self._window.page().runJavaScript(js)
             try:
                 _apply_window_theme(
@@ -2815,6 +2843,982 @@ def _get_qwebchannel_js():
     return _QWEBCHANNEL_JS_CACHE
 
 
+def _get_unified_theme_js():
+    """Returns JavaScript that injects unified theme CSS variables
+    and sets data-theme/variant/id attributes from window.initialSettings.
+    All theme colors are controlled by webview_runner exclusively.
+    """
+    import json as _json
+
+    themes = {
+        "default": {
+            "light": {
+                "--bg-body": "transparent",
+                "--bg-app": "#f7f8f9",
+                "--bg-surface": "#ffffff",
+                "--bg-color": "#ffffff",
+                "--sidebar-bg": "#ffffff",
+                "--border-color": "rgba(0,0,0,0.08)",
+                "--text-primary": "#1a1c1e",
+                "--text-secondary": "#5e6368",
+                "--accent-blue": "#3275F5",
+                "--divider": "rgba(0,0,0,0.08)",
+                "--card-bg": "rgba(0,0,0,0.03)",
+                "--card-border": "rgba(0,0,0,0.02)",
+                "--item-hover": "rgba(0,0,0,0.05)",
+                "--shadow-color": "rgba(0,0,0,0.06)",
+                "--shadow-main": "0 4px 12px var(--shadow-color)",
+                "--logo-glow": "rgba(50,117,245,0.1)",
+                "--hyperos-g1": "#e0f2fe",
+                "--hyperos-g2": "#fef9c3",
+                "--hyperos-g3": "#fce7f3",
+                "--hyperos-g4": "#d1fae5",
+                "--hyperos-g5": "#ffffff",
+                "--font-stack": '"Google Sans Flex","MiSans VF","Segoe UI",system-ui,-apple-system,sans-serif',
+                "--font-weight-override": "400",
+                "--overlay-toolbar-bg": "#FFFFFF",
+                "--overlay-toolbar-border": "rgba(0,0,0,0.08)",
+                "--overlay-toolbar-line": "rgba(0,0,0,0.08)",
+                "--overlay-toolbar-shadow": "rgba(0,0,0,0.15)",
+                "--overlay-toolbar-fg": "#191919",
+                "--overlay-button-hover": "rgba(0,0,0,0.06)",
+                "--overlay-button-active": "rgba(0,0,0,0.12)",
+                "--overlay-status-bg": "rgba(0,0,0,0.25)",
+                "--overlay-status-fg": "#FFFFFF",
+                "--overlay-status-sep": "rgba(255,255,255,0.3)",
+                "--overlay-popup-bg": "#FFFFFF",
+                "--overlay-popup-border": "rgba(0,0,0,0.12)",
+                "--overlay-popup-fg": "#191919",
+                "--overlay-page-bg": "#FFFFFF",
+                "--overlay-page-border": "rgba(0,0,0,0.08)",
+                "--overlay-page-fg": "#191919",
+                "--overlay-page-hint": "rgba(0,0,0,0.5)",
+                "--overlay-page-hover": "rgba(0,0,0,0.05)",
+                "--overlay-page-shadow": "rgba(0,0,0,0.15)",
+                "--overlay-reload-mask": "rgba(0,0,0,0.43)",
+                "--overlay-reload-card": "rgba(30,30,30,0.86)",
+                "--overlay-reload-text": "rgba(255,255,255,0.92)",
+                "--overlay-dev-watermark": "rgba(255,255,255,0.47)",
+                "--text-inverse": "#FFFFFF",
+                "--ring-bg": "rgba(0,0,0,0.05)",
+                "--dialog-overlay": "rgba(0,0,0,0.4)",
+                "--dialog-icon-bg": "#F2F7FF",
+            },
+            "dark": {
+                "--bg-app": "#151515",
+                "--bg-surface": "#1E1E1E",
+                "--bg-color": "#1E1E1E",
+                "--sidebar-bg": "#1E1E1E",
+                "--border-color": "rgba(255,255,255,0.08)",
+                "--text-primary": "#E5E5E5",
+                "--text-secondary": "#909090",
+                "--accent-blue": "#4A85F6",
+                "--divider": "rgba(255,255,255,0.08)",
+                "--card-bg": "rgba(255,255,255,0.03)",
+                "--card-border": "rgba(255,255,255,0.02)",
+                "--item-hover": "rgba(255,255,255,0.05)",
+                "--shadow-color": "rgba(0,0,0,0.3)",
+                "--shadow-main": "0 8px 32px var(--shadow-color)",
+                "--logo-glow": "rgba(255,255,255,0.15)",
+                "--hyperos-g1": "#1e293b",
+                "--hyperos-g2": "#334155",
+                "--hyperos-g3": "#1e1b4b",
+                "--hyperos-g4": "#064e3b",
+                "--hyperos-g5": "#0f172a",
+                "--overlay-toolbar-bg": "#202020",
+                "--overlay-toolbar-border": "rgba(255,255,255,0.08)",
+                "--overlay-toolbar-line": "rgba(255,255,255,0.15)",
+                "--overlay-toolbar-shadow": "rgba(0,0,0,0.31)",
+                "--overlay-toolbar-fg": "#FFFFFF",
+                "--overlay-button-hover": "rgba(255,255,255,0.08)",
+                "--overlay-button-active": "rgba(255,255,255,0.15)",
+                "--overlay-status-bg": "rgba(0,0,0,0.25)",
+                "--overlay-status-fg": "#FFFFFF",
+                "--overlay-status-sep": "rgba(255,255,255,0.3)",
+                "--overlay-popup-bg": "#202020",
+                "--overlay-popup-border": "rgba(255,255,255,0.18)",
+                "--overlay-popup-fg": "#FFFFFF",
+                "--overlay-page-bg": "#202020",
+                "--overlay-page-border": "rgba(255,255,255,0.08)",
+                "--overlay-page-fg": "#FFFFFF",
+                "--overlay-page-hint": "rgba(255,255,255,0.6)",
+                "--overlay-page-hover": "rgba(255,255,255,0.08)",
+                "--overlay-page-shadow": "rgba(0,0,0,0.31)",
+                "--overlay-reload-mask": "rgba(0,0,0,0.43)",
+                "--overlay-reload-card": "rgba(30,30,30,0.86)",
+                "--overlay-reload-text": "rgba(255,255,255,0.92)",
+                "--overlay-dev-watermark": "rgba(255,255,255,0.47)",
+                "--text-inverse": "#FFFFFF",
+                "--ring-bg": "rgba(255,255,255,0.1)",
+                "--dialog-overlay": "rgba(0,0,0,0.6)",
+                "--dialog-icon-bg": "rgba(255,255,255,0.05)",
+            },
+        },
+        "material-you": {
+            "light": {
+                "--bg-app": "#F6F0FF",
+                "--bg-surface": "#FFF7FF",
+                "--bg-color": "#FFF7FF",
+                "--sidebar-bg": "#FFF7FF",
+                "--border-color": "rgba(42,26,61,0.1)",
+                "--text-primary": "#2B153E",
+                "--text-secondary": "#5F4B74",
+                "--accent-blue": "#7A3BDB",
+                "--divider": "rgba(42,26,61,0.1)",
+                "--card-bg": "rgba(122,59,219,0.1)",
+                "--card-border": "rgba(122,59,219,0.2)",
+                "--item-hover": "rgba(122,59,219,0.14)",
+                "--shadow-color": "rgba(122,59,219,0.18)",
+                "--shadow-main": "0 6px 22px var(--shadow-color)",
+                "--logo-glow": "rgba(122,59,219,0.24)",
+                "--hyperos-g1": "#F6F0FF",
+                "--hyperos-g2": "#EAD9FF",
+                "--hyperos-g3": "#F1E6FF",
+                "--hyperos-g4": "#C9A7FF",
+                "--hyperos-g5": "#FFF7FF",
+                "--overlay-toolbar-bg": "#FFF7FF",
+                "--overlay-toolbar-border": "rgba(42,26,61,0.1)",
+                "--overlay-toolbar-line": "rgba(42,26,61,0.1)",
+                "--overlay-toolbar-shadow": "rgba(42,26,61,0.2)",
+                "--overlay-toolbar-fg": "#2B153E",
+                "--overlay-button-hover": "rgba(122,59,219,0.14)",
+                "--overlay-button-active": "rgba(122,59,219,0.22)",
+                "--overlay-status-bg": "rgba(35,20,50,0.28)",
+                "--overlay-status-fg": "#FFFFFF",
+                "--overlay-status-sep": "rgba(255,255,255,0.32)",
+                "--overlay-popup-bg": "#FFF7FF",
+                "--overlay-popup-border": "rgba(42,26,61,0.14)",
+                "--overlay-popup-fg": "#2B153E",
+                "--overlay-page-bg": "#FFF7FF",
+                "--overlay-page-border": "rgba(42,26,61,0.14)",
+                "--overlay-page-fg": "#2B153E",
+                "--overlay-page-hint": "rgba(43,21,62,0.55)",
+                "--overlay-page-hover": "rgba(122,59,219,0.14)",
+                "--overlay-page-shadow": "rgba(42,26,61,0.2)",
+                "--overlay-reload-mask": "rgba(36,22,54,0.48)",
+                "--overlay-reload-card": "rgba(52,32,78,0.9)",
+                "--overlay-reload-text": "rgba(255,255,255,0.94)",
+                "--overlay-dev-watermark": "rgba(255,255,255,0.47)",
+                "--ring-bg": "rgba(122,59,219,0.16)",
+                "--dialog-overlay": "rgba(36,22,54,0.42)",
+                "--dialog-icon-bg": "rgba(122,59,219,0.16)",
+            },
+            "dark": {
+                "--bg-app": "#1C1329",
+                "--bg-surface": "#2A1D3B",
+                "--bg-color": "#2A1D3B",
+                "--sidebar-bg": "#2A1D3B",
+                "--border-color": "rgba(226,210,255,0.14)",
+                "--text-primary": "#F0E7FF",
+                "--text-secondary": "#D2C2EA",
+                "--accent-blue": "#CDA7FF",
+                "--divider": "rgba(226,210,255,0.14)",
+                "--card-bg": "rgba(205,167,255,0.18)",
+                "--card-border": "rgba(205,167,255,0.28)",
+                "--item-hover": "rgba(205,167,255,0.22)",
+                "--shadow-color": "rgba(0,0,0,0.5)",
+                "--shadow-main": "0 12px 34px var(--shadow-color)",
+                "--logo-glow": "rgba(205,167,255,0.28)",
+                "--hyperos-g1": "#1C1329",
+                "--hyperos-g2": "#2A1D3B",
+                "--hyperos-g3": "#3B2A55",
+                "--hyperos-g4": "#4A366A",
+                "--hyperos-g5": "#2A1D3B",
+                "--overlay-toolbar-bg": "#2A1D3B",
+                "--overlay-toolbar-border": "rgba(226,210,255,0.16)",
+                "--overlay-toolbar-line": "rgba(226,210,255,0.2)",
+                "--overlay-toolbar-shadow": "rgba(0,0,0,0.38)",
+                "--overlay-toolbar-fg": "#F0E7FF",
+                "--overlay-button-hover": "rgba(205,167,255,0.22)",
+                "--overlay-button-active": "rgba(205,167,255,0.3)",
+                "--overlay-status-bg": "rgba(0,0,0,0.3)",
+                "--overlay-status-fg": "#FFFFFF",
+                "--overlay-status-sep": "rgba(255,255,255,0.32)",
+                "--overlay-popup-bg": "#2A1D3B",
+                "--overlay-popup-border": "rgba(226,210,255,0.24)",
+                "--overlay-popup-fg": "#F0E7FF",
+                "--overlay-page-bg": "#2A1D3B",
+                "--overlay-page-border": "rgba(226,210,255,0.18)",
+                "--overlay-page-fg": "#F0E7FF",
+                "--overlay-page-hint": "rgba(226,210,255,0.68)",
+                "--overlay-page-hover": "rgba(205,167,255,0.22)",
+                "--overlay-page-shadow": "rgba(0,0,0,0.38)",
+                "--overlay-reload-mask": "rgba(0,0,0,0.48)",
+                "--overlay-reload-card": "rgba(49,31,74,0.92)",
+                "--overlay-reload-text": "rgba(255,255,255,0.94)",
+                "--overlay-dev-watermark": "rgba(255,255,255,0.47)",
+                "--text-inverse": "#1C1329",
+                "--ring-bg": "rgba(205,167,255,0.2)",
+                "--dialog-overlay": "rgba(0,0,0,0.62)",
+                "--dialog-icon-bg": "rgba(205,167,255,0.2)",
+            },
+        },
+        "red-sunrise": {
+            "light": {
+                "--bg-app": "#FFF5F3",
+                "--bg-surface": "#FFFFFF",
+                "--bg-color": "#FFFFFF",
+                "--sidebar-bg": "#FFFFFF",
+                "--border-color": "rgba(97,20,18,0.12)",
+                "--text-primary": "#3A0B0B",
+                "--text-secondary": "#7A3C35",
+                "--accent-blue": "#E5523C",
+                "--divider": "rgba(97,20,18,0.12)",
+                "--card-bg": "rgba(229,82,60,0.1)",
+                "--card-border": "rgba(229,82,60,0.2)",
+                "--item-hover": "rgba(229,82,60,0.14)",
+                "--shadow-color": "rgba(229,82,60,0.18)",
+                "--shadow-main": "0 6px 22px var(--shadow-color)",
+                "--logo-glow": "rgba(229,82,60,0.22)",
+                "--hyperos-g1": "#FFF1EC",
+                "--hyperos-g2": "#FFD6C8",
+                "--hyperos-g3": "#FFE7DB",
+                "--hyperos-g4": "#FFB8A4",
+                "--hyperos-g5": "#FFFFFF",
+                "--overlay-toolbar-bg": "#FFF7F4",
+                "--overlay-toolbar-border": "rgba(97,20,18,0.12)",
+                "--overlay-toolbar-line": "rgba(97,20,18,0.12)",
+                "--overlay-toolbar-shadow": "rgba(97,20,18,0.2)",
+                "--overlay-toolbar-fg": "#3A0B0B",
+                "--overlay-button-hover": "rgba(229,82,60,0.14)",
+                "--overlay-button-active": "rgba(229,82,60,0.22)",
+                "--overlay-status-bg": "rgba(56,18,12,0.28)",
+                "--overlay-status-fg": "#FFFFFF",
+                "--overlay-status-sep": "rgba(255,255,255,0.32)",
+                "--overlay-popup-bg": "#FFF7F4",
+                "--overlay-popup-border": "rgba(97,20,18,0.14)",
+                "--overlay-popup-fg": "#3A0B0B",
+                "--overlay-page-bg": "#FFF7F4",
+                "--overlay-page-border": "rgba(97,20,18,0.14)",
+                "--overlay-page-fg": "#3A0B0B",
+                "--overlay-page-hint": "rgba(58,11,11,0.55)",
+                "--overlay-page-hover": "rgba(229,82,60,0.14)",
+                "--overlay-page-shadow": "rgba(97,20,18,0.2)",
+                "--overlay-reload-mask": "rgba(54,18,12,0.48)",
+                "--overlay-reload-card": "rgba(64,26,20,0.9)",
+                "--overlay-reload-text": "rgba(255,255,255,0.94)",
+                "--overlay-dev-watermark": "rgba(255,255,255,0.47)",
+                "--ring-bg": "rgba(229,82,60,0.18)",
+                "--dialog-overlay": "rgba(56,18,12,0.42)",
+                "--dialog-icon-bg": "rgba(229,82,60,0.16)",
+            },
+            "dark": {
+                "--bg-app": "#1A0B0A",
+                "--bg-surface": "#2B1512",
+                "--bg-color": "#2B1512",
+                "--sidebar-bg": "#2B1512",
+                "--border-color": "rgba(255,210,200,0.14)",
+                "--text-primary": "#FFEDE8",
+                "--text-secondary": "#F1BEB3",
+                "--accent-blue": "#FF907B",
+                "--divider": "rgba(255,210,200,0.14)",
+                "--card-bg": "rgba(255,144,123,0.18)",
+                "--card-border": "rgba(255,144,123,0.28)",
+                "--item-hover": "rgba(255,144,123,0.22)",
+                "--shadow-color": "rgba(0,0,0,0.5)",
+                "--shadow-main": "0 12px 34px var(--shadow-color)",
+                "--logo-glow": "rgba(255,144,123,0.28)",
+                "--hyperos-g1": "#1A0B0A",
+                "--hyperos-g2": "#2B1512",
+                "--hyperos-g3": "#3C1D18",
+                "--hyperos-g4": "#4D241E",
+                "--hyperos-g5": "#2B1512",
+                "--overlay-toolbar-bg": "#2B1512",
+                "--overlay-toolbar-border": "rgba(255,210,200,0.18)",
+                "--overlay-toolbar-line": "rgba(255,210,200,0.22)",
+                "--overlay-toolbar-shadow": "rgba(0,0,0,0.38)",
+                "--overlay-toolbar-fg": "#FFEDE8",
+                "--overlay-button-hover": "rgba(255,144,123,0.22)",
+                "--overlay-button-active": "rgba(255,144,123,0.3)",
+                "--overlay-status-bg": "rgba(0,0,0,0.3)",
+                "--overlay-status-fg": "#FFFFFF",
+                "--overlay-status-sep": "rgba(255,255,255,0.32)",
+                "--overlay-popup-bg": "#2B1512",
+                "--overlay-popup-border": "rgba(255,210,200,0.24)",
+                "--overlay-popup-fg": "#FFEDE8",
+                "--overlay-page-bg": "#2B1512",
+                "--overlay-page-border": "rgba(255,210,200,0.2)",
+                "--overlay-page-fg": "#FFEDE8",
+                "--overlay-page-hint": "rgba(255,210,200,0.68)",
+                "--overlay-page-hover": "rgba(255,144,123,0.22)",
+                "--overlay-page-shadow": "rgba(0,0,0,0.38)",
+                "--overlay-reload-mask": "rgba(0,0,0,0.48)",
+                "--overlay-reload-card": "rgba(51,22,18,0.92)",
+                "--overlay-reload-text": "rgba(255,255,255,0.94)",
+                "--overlay-dev-watermark": "rgba(255,255,255,0.47)",
+                "--text-inverse": "#1A0B0A",
+                "--ring-bg": "rgba(255,144,123,0.22)",
+                "--dialog-overlay": "rgba(0,0,0,0.62)",
+                "--dialog-icon-bg": "rgba(255,144,123,0.2)",
+            },
+        },
+        "emptiness-color": {
+            "light": {
+                "--bg-app": "#F5F6F8",
+                "--bg-surface": "#FFFFFF",
+                "--bg-color": "#FFFFFF",
+                "--sidebar-bg": "#FFFFFF",
+                "--border-color": "rgba(27,31,35,0.08)",
+                "--text-primary": "#1B1F23",
+                "--text-secondary": "#5B636B",
+                "--accent-blue": "#6B7280",
+                "--divider": "rgba(27,31,35,0.08)",
+                "--card-bg": "rgba(27,31,35,0.03)",
+                "--card-border": "rgba(27,31,35,0.06)",
+                "--item-hover": "rgba(27,31,35,0.06)",
+                "--shadow-color": "rgba(27,31,35,0.08)",
+                "--shadow-main": "0 4px 12px var(--shadow-color)",
+                "--logo-glow": "rgba(27,31,35,0.08)",
+                "--hyperos-g1": "#F3F4F6",
+                "--hyperos-g2": "#E5E7EB",
+                "--hyperos-g3": "#F9FAFB",
+                "--hyperos-g4": "#D1D5DB",
+                "--hyperos-g5": "#FFFFFF",
+                "--overlay-toolbar-bg": "#FFFFFF",
+                "--overlay-toolbar-border": "rgba(27,31,35,0.08)",
+                "--overlay-toolbar-line": "rgba(27,31,35,0.08)",
+                "--overlay-toolbar-shadow": "rgba(27,31,35,0.16)",
+                "--overlay-toolbar-fg": "#1B1F23",
+                "--overlay-button-hover": "rgba(27,31,35,0.06)",
+                "--overlay-button-active": "rgba(27,31,35,0.12)",
+                "--overlay-status-bg": "rgba(27,31,35,0.26)",
+                "--overlay-status-fg": "#FFFFFF",
+                "--overlay-status-sep": "rgba(255,255,255,0.32)",
+                "--overlay-popup-bg": "#FFFFFF",
+                "--overlay-popup-border": "rgba(27,31,35,0.12)",
+                "--overlay-popup-fg": "#1B1F23",
+                "--overlay-page-bg": "#FFFFFF",
+                "--overlay-page-border": "rgba(27,31,35,0.12)",
+                "--overlay-page-fg": "#1B1F23",
+                "--overlay-page-hint": "rgba(27,31,35,0.5)",
+                "--overlay-page-hover": "rgba(27,31,35,0.06)",
+                "--overlay-page-shadow": "rgba(27,31,35,0.16)",
+                "--overlay-reload-mask": "rgba(27,31,35,0.43)",
+                "--overlay-reload-card": "rgba(30,30,30,0.86)",
+                "--overlay-reload-text": "rgba(255,255,255,0.92)",
+                "--overlay-dev-watermark": "rgba(255,255,255,0.47)",
+                "--ring-bg": "rgba(27,31,35,0.08)",
+                "--dialog-overlay": "rgba(27,31,35,0.38)",
+                "--dialog-icon-bg": "rgba(27,31,35,0.12)",
+            },
+            "dark": {
+                "--bg-app": "#101113",
+                "--bg-surface": "#1B1C1F",
+                "--bg-color": "#1B1C1F",
+                "--sidebar-bg": "#1B1C1F",
+                "--border-color": "rgba(230,233,238,0.12)",
+                "--text-primary": "#F1F3F5",
+                "--text-secondary": "#C3C7CC",
+                "--accent-blue": "#A1A6AD",
+                "--divider": "rgba(230,233,238,0.12)",
+                "--card-bg": "rgba(161,166,173,0.14)",
+                "--card-border": "rgba(161,166,173,0.22)",
+                "--item-hover": "rgba(161,166,173,0.2)",
+                "--shadow-color": "rgba(0,0,0,0.4)",
+                "--shadow-main": "0 10px 30px var(--shadow-color)",
+                "--logo-glow": "rgba(161,166,173,0.2)",
+                "--hyperos-g1": "#101113",
+                "--hyperos-g2": "#1B1C1F",
+                "--hyperos-g3": "#23252A",
+                "--hyperos-g4": "#2C2F36",
+                "--hyperos-g5": "#1B1C1F",
+                "--overlay-toolbar-bg": "#1B1C1F",
+                "--overlay-toolbar-border": "rgba(230,233,238,0.16)",
+                "--overlay-toolbar-line": "rgba(230,233,238,0.2)",
+                "--overlay-toolbar-shadow": "rgba(0,0,0,0.32)",
+                "--overlay-toolbar-fg": "#F1F3F5",
+                "--overlay-button-hover": "rgba(161,166,173,0.2)",
+                "--overlay-button-active": "rgba(161,166,173,0.28)",
+                "--overlay-status-bg": "rgba(0,0,0,0.28)",
+                "--overlay-status-fg": "#FFFFFF",
+                "--overlay-status-sep": "rgba(255,255,255,0.32)",
+                "--overlay-popup-bg": "#1B1C1F",
+                "--overlay-popup-border": "rgba(230,233,238,0.2)",
+                "--overlay-popup-fg": "#F1F3F5",
+                "--overlay-page-bg": "#1B1C1F",
+                "--overlay-page-border": "rgba(230,233,238,0.18)",
+                "--overlay-page-fg": "#F1F3F5",
+                "--overlay-page-hint": "rgba(230,233,238,0.62)",
+                "--overlay-page-hover": "rgba(161,166,173,0.2)",
+                "--overlay-page-shadow": "rgba(0,0,0,0.32)",
+                "--overlay-reload-mask": "rgba(0,0,0,0.46)",
+                "--overlay-reload-card": "rgba(26,27,30,0.9)",
+                "--overlay-reload-text": "rgba(255,255,255,0.94)",
+                "--overlay-dev-watermark": "rgba(255,255,255,0.47)",
+                "--text-inverse": "#101113",
+                "--ring-bg": "rgba(161,166,173,0.2)",
+                "--dialog-overlay": "rgba(0,0,0,0.6)",
+                "--dialog-icon-bg": "rgba(161,166,173,0.2)",
+            },
+        },
+        "mung-bean": {
+            "light": {
+                "--bg-app": "#F3FFF7",
+                "--bg-surface": "#FFFFFF",
+                "--bg-color": "#FFFFFF",
+                "--sidebar-bg": "#FFFFFF",
+                "--border-color": "rgba(18,63,44,0.1)",
+                "--text-primary": "#0F3D2A",
+                "--text-secondary": "#3F6B57",
+                "--accent-blue": "#45B97C",
+                "--divider": "rgba(18,63,44,0.1)",
+                "--card-bg": "rgba(69,185,124,0.1)",
+                "--card-border": "rgba(69,185,124,0.2)",
+                "--item-hover": "rgba(69,185,124,0.14)",
+                "--shadow-color": "rgba(69,185,124,0.18)",
+                "--shadow-main": "0 6px 22px var(--shadow-color)",
+                "--logo-glow": "rgba(69,185,124,0.22)",
+                "--hyperos-g1": "#ECFFF4",
+                "--hyperos-g2": "#CFF5DF",
+                "--hyperos-g3": "#E4FFF0",
+                "--hyperos-g4": "#B5EBCB",
+                "--hyperos-g5": "#FFFFFF",
+                "--overlay-toolbar-bg": "#FFFFFF",
+                "--overlay-toolbar-border": "rgba(18,63,44,0.1)",
+                "--overlay-toolbar-line": "rgba(18,63,44,0.1)",
+                "--overlay-toolbar-shadow": "rgba(18,63,44,0.2)",
+                "--overlay-toolbar-fg": "#0F3D2A",
+                "--overlay-button-hover": "rgba(69,185,124,0.14)",
+                "--overlay-button-active": "rgba(69,185,124,0.22)",
+                "--overlay-status-bg": "rgba(16,50,35,0.28)",
+                "--overlay-status-fg": "#FFFFFF",
+                "--overlay-status-sep": "rgba(255,255,255,0.32)",
+                "--overlay-popup-bg": "#FFFFFF",
+                "--overlay-popup-border": "rgba(18,63,44,0.14)",
+                "--overlay-popup-fg": "#0F3D2A",
+                "--overlay-page-bg": "#FFFFFF",
+                "--overlay-page-border": "rgba(18,63,44,0.14)",
+                "--overlay-page-fg": "#0F3D2A",
+                "--overlay-page-hint": "rgba(15,61,42,0.52)",
+                "--overlay-page-hover": "rgba(69,185,124,0.14)",
+                "--overlay-page-shadow": "rgba(18,63,44,0.2)",
+                "--overlay-reload-mask": "rgba(16,50,35,0.48)",
+                "--overlay-reload-card": "rgba(28,58,45,0.9)",
+                "--overlay-reload-text": "rgba(255,255,255,0.94)",
+                "--overlay-dev-watermark": "rgba(255,255,255,0.47)",
+                "--ring-bg": "rgba(69,185,124,0.18)",
+                "--dialog-overlay": "rgba(16,50,35,0.42)",
+                "--dialog-icon-bg": "rgba(69,185,124,0.16)",
+            },
+            "dark": {
+                "--bg-app": "#0D1A14",
+                "--bg-surface": "#16231C",
+                "--bg-color": "#16231C",
+                "--sidebar-bg": "#16231C",
+                "--border-color": "rgba(199,240,219,0.14)",
+                "--text-primary": "#E7FFF1",
+                "--text-secondary": "#B7E6CD",
+                "--accent-blue": "#7FE3B1",
+                "--divider": "rgba(199,240,219,0.14)",
+                "--card-bg": "rgba(127,227,177,0.18)",
+                "--card-border": "rgba(127,227,177,0.28)",
+                "--item-hover": "rgba(127,227,177,0.22)",
+                "--shadow-color": "rgba(0,0,0,0.5)",
+                "--shadow-main": "0 12px 34px var(--shadow-color)",
+                "--logo-glow": "rgba(127,227,177,0.26)",
+                "--hyperos-g1": "#0D1A14",
+                "--hyperos-g2": "#16231C",
+                "--hyperos-g3": "#1C2E25",
+                "--hyperos-g4": "#24392F",
+                "--hyperos-g5": "#16231C",
+                "--overlay-toolbar-bg": "#16231C",
+                "--overlay-toolbar-border": "rgba(199,240,219,0.18)",
+                "--overlay-toolbar-line": "rgba(199,240,219,0.22)",
+                "--overlay-toolbar-shadow": "rgba(0,0,0,0.36)",
+                "--overlay-toolbar-fg": "#E7FFF1",
+                "--overlay-button-hover": "rgba(127,227,177,0.22)",
+                "--overlay-button-active": "rgba(127,227,177,0.3)",
+                "--overlay-status-bg": "rgba(0,0,0,0.3)",
+                "--overlay-status-fg": "#FFFFFF",
+                "--overlay-status-sep": "rgba(255,255,255,0.32)",
+                "--overlay-popup-bg": "#16231C",
+                "--overlay-popup-border": "rgba(199,240,219,0.24)",
+                "--overlay-popup-fg": "#E7FFF1",
+                "--overlay-page-bg": "#16231C",
+                "--overlay-page-border": "rgba(199,240,219,0.2)",
+                "--overlay-page-fg": "#E7FFF1",
+                "--overlay-page-hint": "rgba(199,240,219,0.68)",
+                "--overlay-page-hover": "rgba(127,227,177,0.22)",
+                "--overlay-page-shadow": "rgba(0,0,0,0.36)",
+                "--overlay-reload-mask": "rgba(0,0,0,0.48)",
+                "--overlay-reload-card": "rgba(21,40,32,0.92)",
+                "--overlay-reload-text": "rgba(255,255,255,0.94)",
+                "--overlay-dev-watermark": "rgba(255,255,255,0.47)",
+                "--text-inverse": "#0D1A14",
+                "--ring-bg": "rgba(127,227,177,0.22)",
+                "--dialog-overlay": "rgba(0,0,0,0.62)",
+                "--dialog-icon-bg": "rgba(127,227,177,0.2)",
+            },
+        },
+        "orange-wish": {
+            "light": {
+                "--bg-app": "#FFF6EE",
+                "--bg-surface": "#FFFFFF",
+                "--bg-color": "#FFFFFF",
+                "--sidebar-bg": "#FFFFFF",
+                "--border-color": "rgba(80,40,12,0.12)",
+                "--text-primary": "#4A2A11",
+                "--text-secondary": "#7B5A3E",
+                "--accent-blue": "#FF8A3D",
+                "--divider": "rgba(80,40,12,0.12)",
+                "--card-bg": "rgba(255,138,61,0.1)",
+                "--card-border": "rgba(255,138,61,0.2)",
+                "--item-hover": "rgba(255,138,61,0.14)",
+                "--shadow-color": "rgba(255,138,61,0.18)",
+                "--shadow-main": "0 6px 22px var(--shadow-color)",
+                "--logo-glow": "rgba(255,138,61,0.24)",
+                "--hyperos-g1": "#FFF1E4",
+                "--hyperos-g2": "#FFD9BF",
+                "--hyperos-g3": "#FFEBDD",
+                "--hyperos-g4": "#FFC69B",
+                "--hyperos-g5": "#FFFFFF",
+                "--overlay-toolbar-bg": "#FFFFFF",
+                "--overlay-toolbar-border": "rgba(80,40,12,0.12)",
+                "--overlay-toolbar-line": "rgba(80,40,12,0.12)",
+                "--overlay-toolbar-shadow": "rgba(80,40,12,0.2)",
+                "--overlay-toolbar-fg": "#4A2A11",
+                "--overlay-button-hover": "rgba(255,138,61,0.14)",
+                "--overlay-button-active": "rgba(255,138,61,0.22)",
+                "--overlay-status-bg": "rgba(62,32,12,0.28)",
+                "--overlay-status-fg": "#FFFFFF",
+                "--overlay-status-sep": "rgba(255,255,255,0.32)",
+                "--overlay-popup-bg": "#FFFFFF",
+                "--overlay-popup-border": "rgba(80,40,12,0.14)",
+                "--overlay-popup-fg": "#4A2A11",
+                "--overlay-page-bg": "#FFFFFF",
+                "--overlay-page-border": "rgba(80,40,12,0.14)",
+                "--overlay-page-fg": "#4A2A11",
+                "--overlay-page-hint": "rgba(74,42,17,0.52)",
+                "--overlay-page-hover": "rgba(255,138,61,0.14)",
+                "--overlay-page-shadow": "rgba(80,40,12,0.2)",
+                "--overlay-reload-mask": "rgba(62,32,12,0.48)",
+                "--overlay-reload-card": "rgba(70,40,20,0.9)",
+                "--overlay-reload-text": "rgba(255,255,255,0.94)",
+                "--overlay-dev-watermark": "rgba(255,255,255,0.47)",
+                "--ring-bg": "rgba(255,138,61,0.18)",
+                "--dialog-overlay": "rgba(62,32,12,0.42)",
+                "--dialog-icon-bg": "rgba(255,138,61,0.16)",
+            },
+            "dark": {
+                "--bg-app": "#1C1108",
+                "--bg-surface": "#2A190D",
+                "--bg-color": "#2A190D",
+                "--sidebar-bg": "#2A190D",
+                "--border-color": "rgba(255,220,195,0.16)",
+                "--text-primary": "#FFEFE3",
+                "--text-secondary": "#F2C8A6",
+                "--accent-blue": "#FFB677",
+                "--divider": "rgba(255,220,195,0.16)",
+                "--card-bg": "rgba(255,182,119,0.2)",
+                "--card-border": "rgba(255,182,119,0.3)",
+                "--item-hover": "rgba(255,182,119,0.24)",
+                "--shadow-color": "rgba(0,0,0,0.5)",
+                "--shadow-main": "0 12px 34px var(--shadow-color)",
+                "--logo-glow": "rgba(255,182,119,0.28)",
+                "--hyperos-g1": "#1C1108",
+                "--hyperos-g2": "#2A190D",
+                "--hyperos-g3": "#3A2314",
+                "--hyperos-g4": "#4A2C19",
+                "--hyperos-g5": "#2A190D",
+                "--overlay-toolbar-bg": "#2A190D",
+                "--overlay-toolbar-border": "rgba(255,220,195,0.2)",
+                "--overlay-toolbar-line": "rgba(255,220,195,0.24)",
+                "--overlay-toolbar-shadow": "rgba(0,0,0,0.36)",
+                "--overlay-toolbar-fg": "#FFEFE3",
+                "--overlay-button-hover": "rgba(255,182,119,0.24)",
+                "--overlay-button-active": "rgba(255,182,119,0.32)",
+                "--overlay-status-bg": "rgba(0,0,0,0.3)",
+                "--overlay-status-fg": "#FFFFFF",
+                "--overlay-status-sep": "rgba(255,255,255,0.32)",
+                "--overlay-popup-bg": "#2A190D",
+                "--overlay-popup-border": "rgba(255,220,195,0.26)",
+                "--overlay-popup-fg": "#FFEFE3",
+                "--overlay-page-bg": "#2A190D",
+                "--overlay-page-border": "rgba(255,220,195,0.22)",
+                "--overlay-page-fg": "#FFEFE3",
+                "--overlay-page-hint": "rgba(255,220,195,0.7)",
+                "--overlay-page-hover": "rgba(255,182,119,0.24)",
+                "--overlay-page-shadow": "rgba(0,0,0,0.36)",
+                "--overlay-reload-mask": "rgba(0,0,0,0.48)",
+                "--overlay-reload-card": "rgba(46,28,16,0.92)",
+                "--overlay-reload-text": "rgba(255,255,255,0.94)",
+                "--overlay-dev-watermark": "rgba(255,255,255,0.47)",
+                "--text-inverse": "#1C1108",
+                "--ring-bg": "rgba(255,182,119,0.24)",
+                "--dialog-overlay": "rgba(0,0,0,0.62)",
+                "--dialog-icon-bg": "rgba(255,182,119,0.22)",
+            },
+        },
+        "year-of-horse": {
+            "light": {
+                "--bg-app": "#FFF0F0",
+                "--bg-surface": "#FFFFFF",
+                "--bg-color": "#FFFFFF",
+                "--sidebar-bg": "#FFFFFF",
+                "--border-color": "rgba(230,0,0,0.1)",
+                "--text-primary": "#990000",
+                "--text-secondary": "#CC3333",
+                "--accent-blue": "#E60000",
+                "--divider": "rgba(230,0,0,0.1)",
+                "--card-bg": "rgba(230,0,0,0.08)",
+                "--card-border": "rgba(230,0,0,0.15)",
+                "--item-hover": "rgba(230,0,0,0.12)",
+                "--shadow-color": "rgba(200,0,0,0.15)",
+                "--shadow-main": "0 6px 22px var(--shadow-color)",
+                "--logo-glow": "rgba(230,0,0,0.2)",
+                "--hyperos-g1": "#FFF0F0",
+                "--hyperos-g2": "#FFE0E0",
+                "--hyperos-g3": "#FFCCCC",
+                "--hyperos-g4": "#FF9999",
+                "--hyperos-g5": "#FFFFFF",
+                "--overlay-toolbar-bg": "#FFF0F0",
+                "--overlay-toolbar-border": "rgba(230,0,0,0.1)",
+                "--overlay-toolbar-line": "rgba(230,0,0,0.1)",
+                "--overlay-toolbar-shadow": "rgba(200,0,0,0.15)",
+                "--overlay-toolbar-fg": "#990000",
+                "--overlay-button-hover": "rgba(230,0,0,0.12)",
+                "--overlay-button-active": "rgba(230,0,0,0.2)",
+                "--overlay-status-bg": "rgba(200,0,0,0.3)",
+                "--overlay-status-fg": "#FFFFFF",
+                "--overlay-status-sep": "rgba(255,255,255,0.32)",
+                "--overlay-popup-bg": "#FFF0F0",
+                "--overlay-popup-border": "rgba(230,0,0,0.12)",
+                "--overlay-popup-fg": "#990000",
+                "--overlay-page-bg": "#FFF0F0",
+                "--overlay-page-border": "rgba(230,0,0,0.12)",
+                "--overlay-page-fg": "#990000",
+                "--overlay-page-hint": "rgba(200,0,0,0.5)",
+                "--overlay-page-hover": "rgba(230,0,0,0.12)",
+                "--overlay-page-shadow": "rgba(200,0,0,0.15)",
+                "--overlay-reload-mask": "rgba(80,10,10,0.48)",
+                "--overlay-reload-card": "rgba(200,0,0,0.9)",
+                "--overlay-reload-text": "rgba(255,255,255,0.94)",
+                "--overlay-dev-watermark": "rgba(200,0,0,0.47)",
+                "--ring-bg": "rgba(211,47,47,0.15)",
+                "--dialog-overlay": "rgba(50,10,10,0.6)",
+                "--dialog-icon-bg": "rgba(211,47,47,0.15)",
+            },
+            "dark": {
+                "--bg-app": "#2A0505",
+                "--bg-surface": "#451212",
+                "--bg-color": "#451212",
+                "--sidebar-bg": "#451212",
+                "--border-color": "rgba(255,69,0,0.3)",
+                "--text-primary": "#FFD700",
+                "--text-secondary": "#FFB300",
+                "--accent-blue": "#FF4500",
+                "--divider": "rgba(255,69,0,0.3)",
+                "--card-bg": "rgba(255,69,0,0.15)",
+                "--card-border": "rgba(255,69,0,0.25)",
+                "--item-hover": "rgba(255,69,0,0.22)",
+                "--shadow-color": "rgba(0,0,0,0.5)",
+                "--shadow-main": "0 12px 34px var(--shadow-color)",
+                "--logo-glow": "rgba(255,69,0,0.28)",
+                "--hyperos-g1": "#2A0505",
+                "--hyperos-g2": "#451212",
+                "--hyperos-g3": "#5E1A1A",
+                "--hyperos-g4": "#7A2222",
+                "--hyperos-g5": "#451212",
+                "--overlay-toolbar-bg": "#451212",
+                "--overlay-toolbar-border": "rgba(255,69,0,0.3)",
+                "--overlay-toolbar-line": "rgba(255,69,0,0.3)",
+                "--overlay-toolbar-shadow": "rgba(0,0,0,0.4)",
+                "--overlay-toolbar-fg": "#FFD700",
+                "--overlay-button-hover": "rgba(255,69,0,0.22)",
+                "--overlay-button-active": "rgba(255,69,0,0.3)",
+                "--overlay-status-bg": "rgba(255,213,79,0.8)",
+                "--overlay-status-fg": "#3E2723",
+                "--overlay-status-sep": "rgba(62,39,35,0.32)",
+                "--overlay-popup-bg": "#451212",
+                "--overlay-popup-border": "rgba(255,69,0,0.3)",
+                "--overlay-popup-fg": "#FFD700",
+                "--overlay-page-bg": "#451212",
+                "--overlay-page-border": "rgba(255,69,0,0.3)",
+                "--overlay-page-fg": "#FFD700",
+                "--overlay-page-hint": "rgba(255,215,0,0.68)",
+                "--overlay-page-hover": "rgba(255,69,0,0.22)",
+                "--overlay-page-shadow": "rgba(0,0,0,0.4)",
+                "--overlay-reload-mask": "rgba(0,0,0,0.5)",
+                "--overlay-reload-card": "rgba(51,22,18,0.92)",
+                "--overlay-reload-text": "rgba(255,255,255,0.94)",
+                "--overlay-dev-watermark": "rgba(255,255,255,0.47)",
+                "--text-inverse": "#2A0A0A",
+                "--ring-bg": "rgba(255,69,0,0.22)",
+                "--dialog-overlay": "rgba(0,0,0,0.62)",
+                "--dialog-icon-bg": "rgba(255,69,0,0.2)",
+            },
+        },
+    }
+
+    theme_json = _json.dumps(themes, ensure_ascii=False, separators=(",", ":"))
+    return f"""\n(function(){{var TD={theme_json};function AT(){{var r=document.documentElement;if(!r)return;var s=window.initialSettings||{{}};var a=s.Appearance||{{}};var d=a.ResolvedIsDark;var tid=a.ThemeId||'default';var v=d?'dark':'light';var b=TD['default'].light;for(var k in b)r.style.setProperty(k,b[k]);if(d){{var db=TD['default'].dark;for(var k in db)r.style.setProperty(k,db[k]);}}if(tid!=='default'&&TD[tid]&&TD[tid][v]){{var t=TD[tid][v];for(var k in t)r.style.setProperty(k,t[k]);}}r.style.setProperty('--accent-color','var(--accent-blue)');r.style.setProperty('--overlay-dialog-mask',d?'rgba(0,0,0,0.35)':'rgba(0,0,0,0.2)');r.style.setProperty('--overlay-dialog-shadow',d?'0 16px 40px rgba(0,0,0,0.45)':'0 12px 30px rgba(0,0,0,0.18)');r.style.setProperty('--overlay-dialog-bg','var(--overlay-popup-bg)');r.style.setProperty('--overlay-dialog-border','var(--overlay-popup-border)');r.style.setProperty('--overlay-dialog-title','var(--text-primary)');r.style.setProperty('--overlay-dialog-text','var(--text-secondary)');r.style.setProperty('--overlay-control-bg','var(--card-bg)');r.style.setProperty('--overlay-control-hover','var(--item-hover)');r.style.setProperty('--overlay-control-active','var(--overlay-button-active)');r.style.setProperty('--overlay-text-primary','var(--text-primary)');r.style.setProperty('--overlay-text-secondary','var(--text-secondary)');r.style.setProperty('--overlay-popup-shadow','none');r.style.setProperty('--overlay-thumb-bg',d?'var(--accent-blue)':'#FFFFFF');r.style.setProperty('--overlay-thumb-icon',d?'var(--bg-app)':'var(--accent-blue)');r.setAttribute('data-theme',d?'dark':'light');r.setAttribute('data-theme-variant',v);r.setAttribute('data-theme-id',tid);}}if(document.documentElement){{AT();}}else{{document.addEventListener('DOMContentLoaded',AT);}}window.__applyUnifiedTheme=AT;}})();"""
+
+
+class _LightweightLoadingOverlay(QWidget):
+    def __init__(self, parent=None, show_window_controls=False):
+        super().__init__(parent)
+        self.setWindowFlags(
+            Qt.FramelessWindowHint | Qt.Tool | Qt.WindowDoesNotAcceptFocus | Qt.WindowStaysOnTopHint
+        )
+        self._dark_mode = True
+        self._show_window_controls = show_window_controls
+        self._fade_anim = None
+        self._window_opacity = 1.0
+
+        self._title_label = QLabel(self)
+        self._title_label.setAlignment(Qt.AlignCenter)
+        self._title_label.setWordWrap(True)
+
+        self._brand_logo = QLabel(self)
+        self._brand_logo.setFixedSize(24, 24)
+        self._brand_logo.setAlignment(Qt.AlignCenter)
+
+        self._brand_text = QLabel("Luminalium", self)
+        self._brand_text.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+
+        self._btn_min = QPushButton("\uE921", self)
+        self._btn_max = QPushButton("\uE922", self)
+        self._btn_close = QPushButton("\uE8BB", self)
+        for btn in (self._btn_min, self._btn_max, self._btn_close):
+            btn.setFixedSize(46, 32)
+            btn.setFocusPolicy(Qt.NoFocus)
+            btn.setCursor(Qt.ArrowCursor)
+        self._btn_min.clicked.connect(self._on_minimize)
+        self._btn_max.clicked.connect(self._on_maximize)
+        self._btn_close.clicked.connect(self._on_close)
+        self._update_controls_visibility()
+
+        self._apply_theme()
+
+    def set_show_window_controls(self, show: bool):
+        self._show_window_controls = show
+        self._update_controls_visibility()
+        self._do_layout()
+
+    def _update_controls_visibility(self):
+        for btn in (self._btn_min, self._btn_max, self._btn_close):
+            btn.setVisible(self._show_window_controls)
+
+    def set_dark_mode(self, dark: bool):
+        self._dark_mode = dark
+        self._apply_theme()
+
+    def _apply_theme(self):
+        if self._dark_mode:
+            bg = "#141414"
+            title_color = "#F2F2F2"
+            brand_color = "#B8B8B8"
+            btn_color = "#C8C8C8"
+            btn_hover_bg = "#2A2A2A"
+            btn_close_hover = "#C42B1C"
+            btn_close_hover_fg = "#FFFFFF"
+        else:
+            bg = "#FFFFFF"
+            title_color = "#111111"
+            brand_color = "#444444"
+            btn_color = "#444444"
+            btn_hover_bg = "#E5E5E5"
+            btn_close_hover = "#C42B1C"
+            btn_close_hover_fg = "#FFFFFF"
+
+        self.setAutoFillBackground(True)
+        palette = self.palette()
+        palette.setColor(self.backgroundRole(), QColor(bg))
+        self.setPalette(palette)
+
+        h = max(1, self.height())
+        title_px = max(28, min(48, int(h * 0.07)))
+        brand_px = max(11, min(15, int(h * 0.02)))
+
+        font_family = "MiSans VF, Segoe UI, sans-serif"
+        title_font = QFont(font_family, title_px)
+        title_font.setWeight(QFont.DemiBold)
+        self._title_label.setFont(title_font)
+        self._title_label.setStyleSheet(
+            f"color: {title_color}; background: transparent; border: none;"
+        )
+
+        brand_font = QFont(font_family, brand_px)
+        brand_font.setWeight(QFont.Medium)
+        brand_font.setLetterSpacing(QFont.AbsoluteSpacing, 0.35)
+        self._brand_text.setFont(brand_font)
+        self._brand_text.setStyleSheet(
+            f"color: {brand_color}; background: transparent; border: none;"
+        )
+
+        btn_font = QFont("Segoe MDL2 Assets", 10)
+        for btn in (self._btn_min, self._btn_max, self._btn_close):
+            btn.setFont(btn_font)
+        btn_style = (
+            f"QPushButton {{ color: {btn_color}; background: transparent; border: none; }}"
+            f"QPushButton:hover {{ background: {btn_hover_bg}; }}"
+        )
+        close_style = (
+            f"QPushButton {{ color: {btn_color}; background: transparent; border: none; }}"
+            f"QPushButton:hover {{ background: {btn_close_hover}; color: {btn_close_hover_fg}; }}"
+        )
+        self._btn_min.setStyleSheet(btn_style)
+        self._btn_max.setStyleSheet(btn_style)
+        self._btn_close.setStyleSheet(close_style)
+
+    def set_title(self, text: str):
+        self._title_label.setText(text)
+
+    def set_logo(self, path: str):
+        if path and os.path.exists(path):
+            pixmap = QPixmap(path).scaled(
+                24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation
+            )
+            self._brand_logo.setPixmap(pixmap)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._do_layout()
+        self._apply_theme()
+
+    def _do_layout(self):
+        w = self.width()
+        h = self.height()
+        if w <= 0 or h <= 0:
+            return
+
+        if self._show_window_controls:
+            btn_w = 46
+            self._btn_close.move(w - btn_w, 0)
+            self._btn_max.move(w - btn_w * 2, 0)
+            self._btn_min.move(w - btn_w * 3, 0)
+
+        center_w = min(w * 0.74, 620)
+        x_center = (w - center_w) / 2
+
+        title_hint = self._title_label.sizeHint()
+        valign_offset = (h - title_hint.height()) / 2
+        self._title_label.setGeometry(
+            int(x_center), int(valign_offset), int(center_w),
+            title_hint.height()
+        )
+
+        brand_h = max(self._brand_logo.sizeHint().height(),
+                      self._brand_text.sizeHint().height())
+        brand_total_w = self._brand_logo.width() + 12 + self._brand_text.sizeHint().width()
+        brand_x = (w - brand_total_w) / 2
+        bottom_margin = max(22, h * 0.045)
+        brand_y = h - bottom_margin - brand_h
+
+        self._brand_logo.setGeometry(
+            int(brand_x), int(brand_y + (brand_h - self._brand_logo.height()) / 2),
+            24, 24
+        )
+        self._brand_text.setGeometry(
+            int(brand_x + 24 + 12),
+            int(brand_y + (brand_h - self._brand_text.sizeHint().height()) / 2),
+            int(self._brand_text.sizeHint().width()),
+            int(self._brand_text.sizeHint().height())
+        )
+
+    def _on_minimize(self):
+        try:
+            hwnd = self._get_owner_hwnd()
+            if hwnd:
+                ctypes.windll.user32.SendMessageW(hwnd, 0x0112, 0xF020, 0)
+            else:
+                for w in QGuiApplication.topLevelWindows():
+                    if w.isVisible() and w != self.windowHandle():
+                        w.showMinimized()
+                        break
+        except Exception:
+            pass
+
+    def _on_maximize(self):
+        try:
+            hwnd = self._get_owner_hwnd()
+            if hwnd:
+                style = ctypes.windll.user32.GetWindowLongW(hwnd, -16)
+                if style & 0x01000000:
+                    ctypes.windll.user32.SendMessageW(hwnd, 0x0112, 0xF120, 0)
+                    self._btn_max.setText("\uE922")
+                else:
+                    ctypes.windll.user32.SendMessageW(hwnd, 0x0112, 0xF030, 0)
+                    self._btn_max.setText("\uE923")
+            else:
+                for w in QGuiApplication.topLevelWindows():
+                    if w.isVisible() and w != self.windowHandle():
+                        if w.windowState() & Qt.WindowMaximized:
+                            w.showNormal()
+                            self._btn_max.setText("\uE922")
+                        else:
+                            w.showMaximized()
+                            self._btn_max.setText("\uE923")
+                        break
+        except Exception:
+            pass
+
+    def _on_close(self):
+        try:
+            hwnd = self._get_owner_hwnd()
+            if hwnd:
+                ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
+            else:
+                for w in QGuiApplication.topLevelWindows():
+                    if w.isVisible() and w != self.windowHandle():
+                        w.close()
+                        break
+        except Exception:
+            pass
+
+    def _get_owner_hwnd(self):
+        try:
+            if sys.platform != "win32":
+                return 0
+            own_hwnd = int(self.winId())
+            owner = ctypes.windll.user32.GetWindow(own_hwnd, 3)
+            if owner:
+                return owner
+            fw = ctypes.windll.user32.GetForegroundWindow()
+            if fw and fw != own_hwnd:
+                return fw
+            return 0
+        except Exception:
+            return 0
+
+    def fade_out(self, duration_ms=420):
+        try:
+            if self._fade_anim is not None:
+                try:
+                    self._fade_anim.stop()
+                    self._fade_anim.deleteLater()
+                except Exception:
+                    pass
+            from PySide6.QtCore import QPropertyAnimation, QEasingCurve
+
+            self._fade_anim = QPropertyAnimation(self, b"windowOpacity", self)
+            self._fade_anim.setDuration(duration_ms)
+            self._fade_anim.setStartValue(1.0)
+            self._fade_anim.setEndValue(0.0)
+            self._fade_anim.setEasingCurve(QEasingCurve.Type.InOutQuad)
+            self._fade_anim.finished.connect(self._on_fade_out_done)
+            self._fade_anim.start()
+        except Exception:
+            self.hide()
+
+    def _on_fade_out_done(self):
+        self.hide()
+        self.setWindowOpacity(1.0)
+
+    def show_faded(self):
+        if self._fade_anim is not None:
+            try:
+                self._fade_anim.stop()
+                self._fade_anim.deleteLater()
+            except Exception:
+                pass
+            self._fade_anim = None
+        self.setWindowOpacity(1.0)
+        self.show()
+        self.raise_()
+        self._do_layout()
+
+
 class MainWindow(QWebEngineView):
     def __init__(
         self,
@@ -2869,6 +3873,7 @@ class MainWindow(QWebEngineView):
         self._crash_recovery_timer = None
         self._aero_enabled = False
         self._disable_animations = _animations_disabled(getattr(api, "settings", {}))
+        self._memory_timer = None
         self.api = api
         self.api.set_window(self)
         self.windowTitleChanged.connect(self._on_window_title_changed)
@@ -2919,6 +3924,13 @@ class MainWindow(QWebEngineView):
         )
         settings_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         self.page().scripts().insert(settings_script)
+        theme_script = QWebEngineScript()
+        theme_script.setSourceCode(_get_unified_theme_js())
+        theme_script.setInjectionPoint(
+            QWebEngineScript.InjectionPoint.DocumentCreation
+        )
+        theme_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
+        self.page().scripts().insert(theme_script)
         motion_script = QWebEngineScript()
         motion_script.setSourceCode(
             "try {"
@@ -2973,62 +3985,102 @@ class MainWindow(QWebEngineView):
         self.renderProcessTerminated.connect(self._on_render_process_terminated)
 
     def _setup_loading_overlay(self, title):
-        qml_path = _resolve_window_loader_qml_path()
-        if not qml_path:
-            return
-        overlay = QQuickView()
-        overlay.setResizeMode(QQuickView.SizeRootObjectToView)
-        overlay.setColor(Qt.transparent)
-        overlay.setFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowDoesNotAcceptFocus)
         try:
-            overlay.setSource(QUrl.fromLocalFile(qml_path))
+            show_controls = self._frameless
+            overlay = _LightweightLoadingOverlay(show_window_controls=show_controls)
+            logo_path = _resolve_logo_svg_path()
+            overlay.set_title(
+                _resolve_window_loader_title(
+                    self._window_tag, title, getattr(self.api, "settings", {})
+                )
+            )
+            overlay.set_logo(logo_path)
+            overlay.set_dark_mode(bool(_resolve_theme_dark(self._theme_mode)))
+            self._loading_overlay = overlay
+            self._loading_overlay_hide_timer = QTimer(self)
+            self._loading_overlay_hide_timer.setSingleShot(True)
+            self._loading_overlay_hide_timer.timeout.connect(
+                self._hide_loading_overlay_window
+            )
+            self._sync_loading_overlay_geometry()
+            overlay.show_faded()
+            self._setup_memory_timer()
         except Exception as exc:
             print(f"[WebView] Failed to create loading overlay: {exc}", file=sys.stderr)
-            try:
-                overlay.deleteLater()
-            except Exception:
-                pass
-            return
-        if overlay.status() == QQuickView.Error:
-            try:
-                errors = "; ".join(str(err) for err in overlay.errors())
-                print(f"[WebView] Loading overlay QML error: {errors}", file=sys.stderr)
-            except Exception:
-                pass
-        root = overlay.rootObject()
-        if root is None:
-            try:
-                overlay.deleteLater()
-            except Exception:
-                pass
-            return
-        logo_path = _resolve_logo_svg_path()
-        font_path = _resolve_misans_font_path()
-        root.setProperty(
-            "screenTitle",
-            _resolve_window_loader_title(
-                self._window_tag, title, getattr(self.api, "settings", {})
-            ),
-        )
-        root.setProperty("brandText", "Luminalium")
-        root.setProperty(
-            "logoSource", QUrl.fromLocalFile(logo_path).toString() if logo_path else ""
-        )
-        root.setProperty(
-            "fontSource", QUrl.fromLocalFile(font_path).toString() if font_path else ""
-        )
-        root.setProperty("darkMode", bool(_resolve_theme_dark(self._theme_mode)))
-        root.setProperty("animationsEnabled", not self._disable_animations)
-        root.setProperty("loading", True)
-        self._loading_overlay = overlay
-        self._loading_overlay_hide_timer = QTimer(self)
-        self._loading_overlay_hide_timer.setSingleShot(True)
-        self._loading_overlay_hide_timer.timeout.connect(
-            self._hide_loading_overlay_window
-        )
-        self._sync_loading_overlay_geometry()
-        overlay.show()
-        self._raise_loading_overlay()
+
+    def _setup_memory_timer(self):
+        try:
+            if self._memory_timer is not None:
+                return
+            import gc
+            self._memory_timer = QTimer(self)
+            self._memory_timer.setInterval(15000)
+            self._memory_timer.timeout.connect(self._on_memory_tick)
+            self._memory_timer.start()
+        except Exception as e:
+            print(f"[WV] Failed to setup memory timer: {e}")
+
+    def _stop_memory_timer(self):
+        try:
+            if self._memory_timer is not None:
+                self._memory_timer.stop()
+                self._memory_timer.deleteLater()
+                self._memory_timer = None
+        except Exception:
+            pass
+
+    def _on_memory_tick(self):
+        try:
+            import gc
+
+            for _ in range(2):
+                gc.collect(0)
+                gc.collect(1)
+                gc.collect(2)
+
+            page = self.page()
+            if page is not None:
+                try:
+                    page.clearMemoryCaches()
+                except Exception:
+                    pass
+                profile = page.profile()
+                if profile is not None:
+                    try:
+                        profile.clearHttpCache()
+                        profile.clearAllVisitedLinks()
+                    except Exception:
+                        pass
+
+            if sys.platform == "win32":
+                try:
+                    kernel32 = ctypes.windll.kernel32
+                    PROCESS_SET_QUOTA = 0x0100
+                    PROCESS_QUERY_INFORMATION = 0x0400
+                    handle = kernel32.OpenProcess(
+                        PROCESS_SET_QUOTA | PROCESS_QUERY_INFORMATION,
+                        False,
+                        os.getpid(),
+                    )
+                    if handle:
+                        try:
+                            for _ in range(3):
+                                kernel32.SetProcessWorkingSetSize(handle, -1, -1)
+
+                            ntdll = ctypes.windll.ntdll
+                            class PWSE(ctypes.Structure):
+                                _fields_ = [("Flags", ctypes.c_ulonglong)]
+                            pwse = PWSE()
+                            pwse.Flags = 0
+                            ntdll.NtSetInformationProcess(
+                                handle, 0x25, ctypes.byref(pwse), ctypes.sizeof(pwse)
+                            )
+                        finally:
+                            kernel32.CloseHandle(handle)
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
     def _ensure_pending_load(self):
         if self._pending_url is None:
@@ -3042,19 +4094,11 @@ class MainWindow(QWebEngineView):
         if self._loading_overlay is None:
             return
         try:
-            top_left = self.mapToGlobal(QPoint(0, 0))
             overlay = self._loading_overlay
-            if self.windowHandle() is not None:
-                try:
-                    overlay.setTransientParent(self.windowHandle())
-                except Exception:
-                    pass
-                try:
-                    overlay.setScreen(self.windowHandle().screen())
-                except Exception:
-                    pass
-            overlay.setPosition(top_left)
-            overlay.resize(self.size())
+            geo = self.geometry()
+            top_left = self.mapToGlobal(QPoint(0, 0))
+            overlay.move(top_left)
+            overlay.resize(geo.width(), geo.height())
             self._raise_loading_overlay()
         except Exception:
             pass
@@ -3063,16 +4107,7 @@ class MainWindow(QWebEngineView):
         if self._loading_overlay is None:
             return
         try:
-            raise_method = getattr(self._loading_overlay, "raise_", None)
-            if callable(raise_method):
-                raise_method()
-                return
-        except Exception:
-            pass
-        try:
-            raise_method = getattr(self._loading_overlay, "raise", None)
-            if callable(raise_method):
-                raise_method()
+            self._loading_overlay.raise_()
         except Exception:
             pass
 
@@ -3082,15 +4117,12 @@ class MainWindow(QWebEngineView):
         if self._loading_overlay_hide_timer is not None:
             self._loading_overlay_hide_timer.stop()
         overlay = self._loading_overlay
-        root = overlay.rootObject()
-        if root is None:
-            return
         if loading:
+            overlay.set_dark_mode(bool(_resolve_theme_dark(self._theme_mode)))
             self._sync_loading_overlay_geometry()
-            overlay.show()
-            self._raise_loading_overlay()
-        root.setProperty("darkMode", bool(_resolve_theme_dark(self._theme_mode)))
-        root.setProperty("loading", bool(loading))
+            overlay.show_faded()
+        else:
+            overlay.fade_out()
         if not loading and self._loading_overlay_hide_timer is not None:
             self._loading_overlay_hide_timer.start(620)
 
@@ -3098,7 +4130,7 @@ class MainWindow(QWebEngineView):
         if self._loading_overlay is None:
             return
         try:
-            self._loading_overlay.hide()
+            self._loading_overlay.fade_out()
         except Exception:
             pass
 
@@ -3111,6 +4143,7 @@ class MainWindow(QWebEngineView):
         if not self._loading_overlay_enabled:
             return
         QTimer.singleShot(120, lambda: self._set_loading_overlay_visible(False))
+        QTimer.singleShot(500, self._on_memory_tick)
 
     def _on_render_process_terminated(self, status, exit_code):
         status_name = ""
@@ -3740,11 +4773,7 @@ body {
         self._theme_mode = theme_mode
         self._apply_page_background()
         if self._loading_overlay is not None:
-            root = self._loading_overlay.rootObject()
-            if root is not None:
-                root.setProperty(
-                    "darkMode", bool(_resolve_theme_dark(self._theme_mode))
-                )
+            self._loading_overlay.set_dark_mode(bool(_resolve_theme_dark(self._theme_mode)))
         self._apply_backdrop()
 
     def apply_animation_preference(self, disabled):
@@ -3767,12 +4796,7 @@ body {
         except Exception:
             pass
         if self._loading_overlay is not None:
-            try:
-                root = self._loading_overlay.rootObject()
-                if root is not None:
-                    root.setProperty("animationsEnabled", not self._disable_animations)
-            except Exception:
-                pass
+            pass
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -3789,8 +4813,7 @@ body {
         self._sync_loading_overlay_geometry()
         if self._loading_overlay is not None:
             try:
-                root = self._loading_overlay.rootObject()
-                if root is not None and bool(root.property("loading")):
+                if self._loading_overlay.isVisible():
                     self._loading_overlay.show()
                     self._raise_loading_overlay()
             except Exception:
@@ -3885,7 +4908,7 @@ body {
         super().hideEvent(event)
 
     def closeEvent(self, event):
-        """Clean up timers and resources when window closes"""
+        self._stop_memory_timer()
         if self._crash_recovery_timer is not None:
             try:
                 self._crash_recovery_timer.stop()
