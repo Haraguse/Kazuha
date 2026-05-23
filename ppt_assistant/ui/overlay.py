@@ -302,6 +302,9 @@ class InkPromptWindow(QWidget):
         if screen:
             self.setGeometry(screen.geometry())
 
+        from ppt_assistant.core.platform_integration import remove_window_border
+        remove_window_border(self.winId())
+
         # Semi-transparent black background
         self.bg_color = QColor(0, 0, 0, 140)
 

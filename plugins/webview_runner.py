@@ -2187,6 +2187,16 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
         except Exception as e:
             print(f"Error writing reset marker: {e}", file=sys.stderr)
 
+    @Slot(int)
+    def ensure_animation_smoothness(self, duration_ms):
+        try:
+            from PySide6.QtCore import QEventLoop, QTimer
+            loop = QEventLoop()
+            QTimer.singleShot(duration_ms, loop.quit)
+            loop.exec(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+        except Exception as e:
+            pass
+
     @Slot()
     def show_window(self):
         if self._window:
@@ -4980,6 +4990,13 @@ def main():
     if not icon.isNull():
         app.setWindowIcon(icon)
     os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
+
+    try:
+        from ppt_assistant.core.update_service import start_update_server
+        start_update_server(28423)
+    except Exception:
+        pass
+
     if "--dialog" in sys.argv or "--crash-file" in sys.argv:
         mode = "--dialog" if "--dialog" in sys.argv else "--crash-file"
         try:

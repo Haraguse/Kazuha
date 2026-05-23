@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -918,7 +918,7 @@
       padding: 12px;
       gap: 12px;
       overflow: hidden;
-      transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: gap 0.45s cubic-bezier(0.16, 1, 0.3, 1), padding 0.45s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .layout.dir-switch-rtl {
@@ -961,7 +961,11 @@
       padding: 12px 0;
       gap: 4px;
       flex-shrink: 0;
-      transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+      transition: width 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                  opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                  padding 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                  margin 0.45s cubic-bezier(0.16, 1, 0.3, 1);
       transform: translateX(-20px);
       pointer-events: none;
       overflow: hidden;
@@ -969,12 +973,11 @@
     }
 
     .layout.three-island .sidebar-mini {
-      width: 72px;
-      opacity: 1;
-      padding: 12px 6px;
-      transform: translateX(0);
-      pointer-events: auto;
-      margin-right: 0;
+      width: 0;
+      opacity: 0;
+      overflow: hidden;
+      padding: 0;
+      margin: 0;
     }
 
     .sidebar {
@@ -985,10 +988,10 @@
       flex-direction: column;
       gap: 4px;
       background: transparent;
-      /* border-radius: 16px; */
-      /* border: 1px solid var(--divider); */
-      /* box-shadow: var(--shadow-main); */
-      transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+      transition: width 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                  opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                  padding 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                  gap 0.45s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .sidebar-title {
@@ -1054,7 +1057,11 @@
     }
 
     .layout.three-island .sidebar {
-      transform: none;
+      width: 0;
+      padding: 0;
+      overflow: hidden;
+      opacity: 0;
+      gap: 0;
     }
 
     .sidebar-mini .nav-item {
@@ -1076,7 +1083,9 @@
 
     .layout.three-island .sidebar-mini .nav-item {
       opacity: 1;
-      transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1) 0.05s;
+      transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
+                  color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+                  background 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .sidebar-mini .nav-item:hover {
@@ -1238,6 +1247,43 @@
       opacity: 1;
     }
 
+    /* Sidebar slide-in staggered animation when returning from update */
+    .sidebar.sidebar-inserting .sidebar-item,
+    .sidebar.sidebar-inserting .search-container,
+    .sidebar.sidebar-inserting .sidebar-divider,
+    .sidebar.sidebar-inserting .sidebar-title {
+      opacity: 0 !important;
+      transform: translateX(-20px) !important;
+      transition: none !important;
+    }
+
+    .sidebar.sidebar-inserting-active .sidebar-item,
+    .sidebar.sidebar-inserting-active .search-container,
+    .sidebar.sidebar-inserting-active .sidebar-divider,
+    .sidebar.sidebar-inserting-active .sidebar-title {
+      opacity: 1 !important;
+      transform: translateX(0) !important;
+      transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+
+    /* Staggering based on nth-child */
+    .sidebar.sidebar-inserting-active > div:nth-child(1) { transition-delay: 0.00s !important; }
+    .sidebar.sidebar-inserting-active > div:nth-child(2) { transition-delay: 0.04s !important; }
+    .sidebar.sidebar-inserting-active > div:nth-child(3) { transition-delay: 0.08s !important; }
+    .sidebar.sidebar-inserting-active > div:nth-child(4) { transition-delay: 0.12s !important; }
+    .sidebar.sidebar-inserting-active > div:nth-child(5) { transition-delay: 0.16s !important; }
+    .sidebar.sidebar-inserting-active > div:nth-child(6) { transition-delay: 0.20s !important; }
+    .sidebar.sidebar-inserting-active > div:nth-child(7) { transition-delay: 0.24s !important; }
+    .sidebar.sidebar-inserting-active > div:nth-child(8) { transition-delay: 0.28s !important; }
+    .sidebar.sidebar-inserting-active > div:nth-child(9) { transition-delay: 0.32s !important; }
+    .sidebar.sidebar-inserting-active > div:nth-child(10) { transition-delay: 0.36s !important; }
+    .sidebar.sidebar-inserting-active > div:nth-child(11) { transition-delay: 0.40s !important; }
+    .sidebar.sidebar-inserting-active > div:nth-child(12) { transition-delay: 0.44s !important; }
+    .sidebar.sidebar-inserting-active > div:nth-child(13) { transition-delay: 0.48s !important; }
+    .sidebar.sidebar-inserting-active > div:nth-child(14) { transition-delay: 0.52s !important; }
+    .sidebar.sidebar-inserting-active > div:nth-child(15) { transition-delay: 0.56s !important; }
+
     .content {
       flex: 1;
       padding: 32px 48px;
@@ -1246,7 +1292,8 @@
       border-radius: 16px;
       border: 1px solid var(--divider);
       box-shadow: var(--shadow-main);
-      transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                  opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
 
@@ -1259,7 +1306,72 @@
       font-weight: 600;
       margin-bottom: 24px;
       color: var(--text-primary);
-      transition: opacity 0.15s, transform 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .page-title .title-separator {
+      color: var(--text-secondary);
+      font-weight: 400;
+      margin: 0 8px;
+      display: inline-block;
+      animation: titleSepEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .page-title .title-parent {
+      color: var(--text-secondary);
+      font-size: 28px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-block;
+      transition: color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: titleParentEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .page-title .title-parent:hover {
+      color: var(--text-primary);
+    }
+
+    .page-title .title-current {
+      color: var(--text-primary);
+      font-size: 28px;
+      font-weight: 600;
+      display: inline-block;
+      animation: titleCurrentEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.06s both;
+    }
+
+    @keyframes titleParentEnter {
+      from {
+        opacity: 0;
+        transform: translateX(-12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes titleSepEnter {
+      from {
+        opacity: 0;
+        transform: scale(0.5) translateX(-4px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateX(0);
+      }
+    }
+
+    @keyframes titleCurrentEnter {
+      from {
+        opacity: 0;
+        transform: translateX(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
     }
 
     .section {
@@ -1771,7 +1883,7 @@
       transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       padding: 8px 20px;
       box-shadow: none;
-      font-size: 13.5px;
+      font-size: 14px;
       font-weight: 500;
     }
 
@@ -1793,7 +1905,7 @@
       color: var(--text-primary);
       transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       padding: 8px 20px;
-      font-size: 13.5px;
+      font-size: 14px;
       font-weight: 500;
     }
 
@@ -1815,10 +1927,10 @@
     }
 
     .status-text {
-      font-size: 18px;
-      font-weight: 600;
+      font-size: 15px;
+      font-weight: 500;
       color: var(--text-primary);
-      letter-spacing: -0.01em;
+      letter-spacing: 0.2px;
     }
 
     .update-carbon-notice {
@@ -1831,7 +1943,7 @@
       border: 1px solid rgba(52, 199, 89, 0.18);
       border-radius: 8px;
       color: #34c759;
-      font-size: 12.5px;
+      font-size: 13px;
       line-height: 1.5;
     }
 
@@ -4003,7 +4115,8 @@
       gap: 10px;
       z-index: 9999;
       transform: translateY(-150%);
-      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+      transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
       cursor: pointer;
       border: 1px solid var(--border-color);
       font-size: 13px;
@@ -15377,84 +15490,170 @@
     function showUpdate() {
       const layout = document.getElementById('layout');
       const sections = document.querySelectorAll(".section");
-      // backBtn and divider visibility is now handled by CSS via .three-island class
       const title = document.getElementById("section-title");
-
-      layout.classList.add('three-island');
-
-      // JS visibility toggling removed in favor of CSS
-
-      // No longer need to disable items as they are hidden by CSS
-      // Just ensure 'about' is active if we want it to be highlighted, 
-      // or maybe we don't need to highlight anything specific if it's just update view.
-      // The user request says "return to 'General' (Main)". 
-      // But while in update view, what should be active?
-      // "Except About options... including search return directly to 'General'".
-      // It seems the user wants the sidebar to only show "Back" and "About".
-      // And "Back" should go to "General" (Main).
-
-      // Let's set About as active just in case, or leave it.
-      // The original code modified text of active item.
-      // Since we are hiding most items, we might not need that text modification anymore 
-      // unless the active item was 'about'.
-
       const aboutItem = document.querySelector('.sidebar-item[data-section="about"]');
+
+      const parentTitle = getText("nav.about") || "关于";
+      const currentTitle = getText("about.checkUpdate.label") || "检查更新";
+
       if (aboutItem) {
-        // Optional: select About item or deselect all?
-        // Usually update is a sub-function of About.
-        // Let's keep About active.
         document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
         aboutItem.classList.add('active');
-
-
       }
 
       sections.forEach(sec => sec.classList.remove('active'));
       document.getElementById('section-update').classList.add('active');
 
       if (title) {
-        title.textContent = getText("about.checkUpdate.label") || "Update";
-        title.style.display = 'block';
+        // Gracefully fade-out current title text before swapping
+        title.style.transition = 'opacity 0.14s cubic-bezier(0.16, 1, 0.3, 1), transform 0.14s cubic-bezier(0.16, 1, 0.3, 1)';
+        title.style.opacity = '0';
+        title.style.transform = 'translateX(8px)';
+        setTimeout(() => {
+          title.innerHTML = `<span class="title-parent" onclick="hideUpdate()">${parentTitle}</span><span class="title-separator">›</span><span class="title-current">${currentTitle}</span>`;
+          title.style.display = 'block';
+          // Clear inline styles so CSS animations on child spans take over
+          title.style.transition = '';
+          title.style.opacity = '';
+          title.style.transform = '';
+        }, 140);
+      }
+
+      const updateContent = document.querySelector('#section-update .update-content');
+      if (updateContent) {
+        updateContent.style.visibility = 'hidden';
+        updateContent.style.opacity = '0';
+        updateContent.style.transition = 'none';
+      }
+
+      layout.classList.add('three-island');
+
+      const revealUpdateContent = () => {
+        if (revealUpdateContent._done) return;
+        revealUpdateContent._done = true;
+        layout.removeEventListener('transitionend', revealUpdateContent);
+        if (updateContent) {
+          updateContent.style.transition = 'opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+          updateContent.style.visibility = '';
+          updateContent.style.opacity = '';
+        }
+      };
+
+      if (animationsDisabled()) {
+        revealUpdateContent();
+      } else {
+        layout.addEventListener('transitionend', revealUpdateContent, { once: true });
+        setTimeout(revealUpdateContent, 520);
       }
     }
 
-    // Hide update (back to 2-island)
     function hideUpdate() {
       const layout = document.getElementById('layout');
       const title = document.getElementById("section-title");
-
-      if (layout) layout.classList.remove('three-island');
-
       const aboutItem = document.querySelector('.sidebar-item[data-section="about"]');
-      if (aboutItem) {
-        const span = aboutItem.querySelector('span');
-        if (span) {
-          const aboutText = getText("nav.about") || "关于";
-          span.textContent = aboutText;
+
+      // Gracefully fade-out breadcrumb title before layout collapses
+      if (title) {
+        title.style.transition = 'opacity 0.14s cubic-bezier(0.16, 1, 0.3, 1), transform 0.14s cubic-bezier(0.16, 1, 0.3, 1)';
+        title.style.opacity = '0';
+        title.style.transform = 'translateX(-8px)';
+      }
+
+      const sidebar = document.querySelector('.sidebar');
+      if (sidebar) {
+        sidebar.classList.add('sidebar-inserting');
+        sidebar.style.overflow = 'hidden';
+      }
+
+      if (window.api && typeof api.ensure_animation_smoothness === 'function') {
+        api.ensure_animation_smoothness(600);
+      }
+
+      layout.classList.remove('three-island');
+
+      const onTransitionEnd = () => {
+        if (onTransitionEnd._done) return;
+        onTransitionEnd._done = true;
+        layout.removeEventListener('transitionend', onTransitionEnd);
+
+        if (sidebar) {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              sidebar.classList.remove('sidebar-inserting');
+              sidebar.classList.add('sidebar-inserting-active');
+              
+              // Clean up after stagger animation completes
+              setTimeout(() => {
+                sidebar.classList.remove('sidebar-inserting-active');
+                sidebar.style.overflow = '';
+              }, 800);
+            });
+          });
         }
-      }
 
-      const mainItem = document.querySelector('.sidebar-item[data-section="main"]');
-      if (mainItem) {
-        mainItem.click();
-      }
+        const aboutSection = document.getElementById('section-about');
 
-      const activeSection = document.querySelector('.section.active');
-      if (!activeSection || activeSection.id !== 'section-main') {
-        const sections = document.querySelectorAll(".section");
-        sections.forEach(sec => {
-          sec.classList.toggle('active', sec.id === 'section-main');
-        });
+        if (aboutSection) {
+          aboutSection.style.display = 'block';
+        }
 
-        const navItems = document.querySelectorAll(".sidebar-item");
-        navItems.forEach(item => {
-          item.classList.toggle('active', item.getAttribute('data-section') === 'main');
-        });
+        if (aboutItem) {
+          aboutItem.click();
+        }
+
+        if (aboutSection) {
+          aboutSection.style.animationPlayState = 'paused';
+        }
+
+        const activeSection = document.querySelector('.section.active');
+        if (!activeSection || activeSection.id !== 'section-about') {
+          const sections = document.querySelectorAll(".section");
+          sections.forEach(sec => {
+            sec.classList.toggle('active', sec.id === 'section-about');
+          });
+
+          const navItems = document.querySelectorAll(".sidebar-item");
+          navItems.forEach(item => {
+            item.classList.toggle('active', item.getAttribute('data-section') === 'about');
+          });
+        }
 
         if (title) {
-          title.style.display = 'block';
-          title.textContent = getText("section.main") || "主程序";
+          title.textContent = getText("section.about") || "关于";
+          // Fade the restored title in from the left (reverse of exit direction)
+          title.style.transition = '';
+          title.style.opacity = '0';
+          title.style.transform = 'translateX(-10px)';
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              title.style.transition = 'opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+              title.style.opacity = '';
+              title.style.transform = '';
+              setTimeout(() => { title.style.transition = ''; }, 420);
+            });
+          });
         }
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (aboutSection) {
+              aboutSection.style.animationPlayState = 'running';
+              setTimeout(() => {
+                aboutSection.style.display = '';
+                aboutSection.style.animationPlayState = '';
+              }, 350);
+            }
+          });
+        });
+      };
+
+      if (animationsDisabled()) {
+        onTransitionEnd();
+      } else {
+        layout.addEventListener('transitionend', onTransitionEnd, { once: true });
+        setTimeout(() => {
+          onTransitionEnd();
+        }, 500);
       }
     }
 

@@ -60,6 +60,8 @@ class AcrylicRoundMenu(RoundMenu):
     def showEvent(self, e):
         super().showEvent(e)
         self._update_acrylic_color()
+        from ppt_assistant.core.platform_integration import remove_window_border
+        remove_window_border(self.winId())
 
     def exec_(self, pos, ani=True, aniType=MenuAnimationType.FADE_IN_PULL_UP):
         RoundMenu.exec(self, pos, ani, aniType)
@@ -481,6 +483,8 @@ class TrayFlyoutAnchor(QWidget):
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.setFixedSize(1, 1)
         self.move(anchor_pos)
+        from ppt_assistant.core.platform_integration import remove_window_border
+        remove_window_border(self.winId())
 
 
 class ActionConfirmFlyoutView(FlyoutViewBase):
@@ -904,6 +908,8 @@ class SystemTray(QObject):
         view = ActionConfirmFlyoutView(title, body, confirm_text, anchor)
         self._confirm_anchor = anchor
         self._confirm_flyout = Flyout.make(view, anchor)
+        from ppt_assistant.core.platform_integration import remove_window_border
+        remove_window_border(self._confirm_flyout.winId())
         self._confirm_flyout.view.setGraphicsEffect(None)
         self._confirm_flyout.hBoxLayout.setContentsMargins(0, 0, 0, 0)
         

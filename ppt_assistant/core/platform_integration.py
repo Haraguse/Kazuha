@@ -95,3 +95,18 @@ def set_run_at_startup(enabled: bool) -> None:
                     pass
     except Exception:
         pass
+
+
+def remove_window_border(win_id) -> None:
+    """Remove the default 1px border added by Windows 11 DWM."""
+    if sys.platform != "win32" or not win_id:
+        return
+    try:
+        import ctypes
+        DWMWA_BORDER_COLOR = 34
+        val = ctypes.c_int(0xFFFFFFFE)  # DWMWA_COLOR_NONE
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            int(win_id), DWMWA_BORDER_COLOR, ctypes.byref(val), ctypes.sizeof(val)
+        )
+    except Exception:
+        pass
