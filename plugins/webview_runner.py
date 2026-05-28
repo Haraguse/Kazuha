@@ -28,6 +28,7 @@ from PySide6.QtWebEngineCore import (
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import (
     QObject,
+    Signal,
     Slot,
     QUrl,
     QFile,
@@ -859,6 +860,8 @@ def _pin_to_taskbar(enable):
 
 
 class Api(QObject):
+    storage_info_ready = Signal(dict)
+
     def __init__(self, window=None):
         super().__init__()
         self._window = window
@@ -870,9 +873,51 @@ class Api(QObject):
         self._logs_window = None
         self._logs_api = None
         self._storage_cache = None
+        self._dir_sizes_cache = {}
+        self._dir_sizes_cache_path = None
+        self.storage_info_ready.connect(self._on_storage_info_ready)
 
     def set_window(self, window):
         self._window = window
+
+    def _on_storage_info_ready(self, full):
+        self._storage_cache = full
+        if self._window:
+            page = self._window.page()
+            if page:
+                page.runJavaScript(f"window._onStorageFullInfo({json.dumps(full)})")
+
+    def _ensure_cache_dir(self):
+        profiles_dir = self._get_profiles_dir()
+        cache_dir = os.path.dirname(profiles_dir)
+        return cache_dir
+
+    def _get_cache_path(self):
+        if self._dir_sizes_cache_path is None:
+            cache_dir = self._ensure_cache_dir()
+            self._dir_sizes_cache_path = os.path.join(cache_dir, "_dir_sizes_cache.json")
+        return self._dir_sizes_cache_path
+
+    def _load_dir_sizes_cache(self):
+        path = self._get_cache_path()
+        try:
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if isinstance(data, dict):
+                    return data
+        except Exception:
+            pass
+        return {}
+
+    def _save_dir_sizes_cache(self, data):
+        path = self._get_cache_path()
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+        except Exception:
+            pass
 
     @Slot()
     def start_window_drag(self):
@@ -2632,22 +2677,62 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             return {}
 
     @staticmethod
-    def _get_dir_size(path):
+    def _get_dir_size(path, max_files=10000, skip_dirs=None):
         total = 0
+        file_count = [0]
+        skip = set(skip_dirs) if skip_dirs else set()
         if not os.path.exists(path):
             return 0
         try:
             for entry in os.scandir(path):
+                if max_files > 0 and file_count[0] >= max_files:
+                    break
                 try:
                     if entry.is_file(follow_symlinks=False):
                         total += entry.stat().st_size
+                        file_count[0] += 1
                     elif entry.is_dir(follow_symlinks=False):
-                        total += Api._get_dir_size(entry.path)
+                        if entry.name in skip:
+                            continue
+                        sub_total, sub_count = Api._get_dir_size_with_count(entry.path, max_files - file_count[0], skip)
+                        total += sub_total
+                        file_count[0] += sub_count
+                        if max_files > 0 and file_count[0] >= max_files:
+                            break
                 except (OSError, PermissionError):
                     pass
         except (OSError, PermissionError):
             pass
         return total
+
+    @staticmethod
+    def _get_dir_size_with_count(path, max_files=10000, skip_dirs=None):
+        total = 0
+        count = 0
+        skip = set(skip_dirs) if skip_dirs else set()
+        if not os.path.exists(path):
+            return 0, 0
+        try:
+            for entry in os.scandir(path):
+                if max_files > 0 and count >= max_files:
+                    break
+                try:
+                    if entry.is_file(follow_symlinks=False):
+                        total += entry.stat().st_size
+                        count += 1
+                    elif entry.is_dir(follow_symlinks=False):
+                        if entry.name in skip:
+                            continue
+                        sub_total, sub_count = Api._get_dir_size_with_count(entry.path, max_files - count, skip)
+                        total += sub_total
+                        count += sub_count
+                        if max_files > 0 and count >= max_files:
+                            break
+                except (OSError, PermissionError):
+                    pass
+        except (OSError, PermissionError):
+            pass
+        return total, count
 
     @staticmethod
     def _get_all_disks_info():
@@ -2698,9 +2783,7 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             if getattr(sys, "frozen", False):
                 app_dir = os.path.dirname(sys.executable)
             else:
-                app_dir = os.path.dirname(
-                    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-                )
+                app_dir = ROOT_DIR
 
             local_luminalium_path = os.path.join(local_app_data, "Luminalium")
             update_bak_path = os.path.join(app_dir, ".update_bak")
@@ -2708,36 +2791,90 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
 
             disk_info = self._get_all_disks_info()
 
-            local_luminalium_size = self._get_dir_size(local_luminalium_path)
-            update_bak_size = self._get_dir_size(update_bak_path)
-            app_dir_size = self._get_dir_size(app_dir)
-            update_cache_size = self._get_dir_size(update_cache_path)
+            # Load persistent cache
+            if not self._dir_sizes_cache:
+                self._dir_sizes_cache = self._load_dir_sizes_cache()
 
-            result = {
+            version_str = str(self.version if isinstance(self.version, str) else self.version.get("version", ""))
+            cache_key = f"{app_dir}|{version_str}"
+            cached_app_size = self._dir_sizes_cache.get(cache_key) if not force else None
+
+            skip = {"node_modules", ".git", "__pycache__", ".venv", "venv", ".mypy_cache", ".pytest_cache", ".idea", "target", "build", "dist", ".update_bak"}
+
+            partial = {
                 "localLuminalium": {
                     "path": local_luminalium_path,
-                    "size": local_luminalium_size,
+                    "size": 0,
                     "exists": os.path.exists(local_luminalium_path),
                 },
                 "updateBak": {
                     "path": update_bak_path,
-                    "size": update_bak_size,
+                    "size": 0,
                     "exists": os.path.exists(update_bak_path),
                 },
                 "appDir": {
                     "path": app_dir,
-                    "size": app_dir_size,
+                    "size": cached_app_size or 0,
                 },
                 "updateCache": {
                     "path": update_cache_path,
-                    "size": update_cache_size,
+                    "size": 0,
                     "exists": os.path.exists(update_cache_path),
                 },
                 "disk": disk_info,
+                "partial": True,
                 "updatedAt": time.time(),
             }
-            self._storage_cache = result
-            return result
+
+            def _worker():
+                try:
+                    local_size = Api._get_dir_size(local_luminalium_path, skip_dirs=skip)
+                    bak_size = Api._get_dir_size(update_bak_path)
+                    app_size = cached_app_size
+                    if app_size is None:
+                        app_size = Api._get_dir_size(app_dir, skip_dirs=skip) or 0
+                    cache_size = Api._get_dir_size(update_cache_path)
+
+                    full = {
+                        "localLuminalium": {
+                            "path": local_luminalium_path,
+                            "size": local_size,
+                            "exists": os.path.exists(local_luminalium_path),
+                        },
+                        "updateBak": {
+                            "path": update_bak_path,
+                            "size": bak_size,
+                            "exists": os.path.exists(update_bak_path),
+                        },
+                        "appDir": {
+                            "path": app_dir,
+                            "size": app_size or 0,
+                        },
+                        "updateCache": {
+                            "path": update_cache_path,
+                            "size": cache_size,
+                            "exists": os.path.exists(update_cache_path),
+                        },
+                        "disk": disk_info,
+                        "partial": False,
+                        "updatedAt": time.time(),
+                    }
+
+                    # Persistently cache app_dir size
+                    if cached_app_size is None and app_size:
+                        self._dir_sizes_cache[cache_key] = app_size
+                        self._save_dir_sizes_cache(self._dir_sizes_cache)
+
+                    # Emit signal — automatically delivered to main thread via Qt queued connection
+                    self.storage_info_ready.emit(full)
+                except Exception as e:
+                    print(f"Background storage info error: {e}")
+
+            import threading
+            t = threading.Thread(target=_worker, daemon=True)
+            t.start()
+
+            return partial
         except Exception as e:
             print(f"Storage info error: {e}")
             return self._storage_cache if self._storage_cache else {}
@@ -2750,9 +2887,7 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             if getattr(sys, "frozen", False):
                 app_dir = os.path.dirname(sys.executable)
             else:
-                app_dir = os.path.dirname(
-                    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-                )
+                app_dir = ROOT_DIR
 
             target_map = {
                 "update_bak": os.path.join(app_dir, ".update_bak"),

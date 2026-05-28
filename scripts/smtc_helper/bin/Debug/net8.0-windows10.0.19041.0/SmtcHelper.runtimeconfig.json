@@ -1,0 +1,19 @@
+{
+  "runtimeOptions": {
+    "tfm": "net8.0",
+    "framework": {
+      "name": "Microsoft.NETCore.App",
+      "version": "8.0.0"
+    },
+    "configProperties": {
+      "CSWINRT_ENABLE_DYNAMIC_OBJECTS_SUPPORT": true,
+      "CSWINRT_USE_EXCEPTION_RESOURCE_KEYS": false,
+      "CSWINRT_ENABLE_DEFAULT_CUSTOM_TYPE_MAPPINGS": true,
+      "CSWINRT_ENABLE_ICUSTOMPROPERTYPROVIDER_SUPPORT": true,
+      "CSWINRT_ENABLE_IREFERENCE_SUPPORT": true,
+      "CSWINRT_ENABLE_IDYNAMICINTERFACECASTABLE": true,
+      "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
+      "CSWINRT_USE_WINDOWS_UI_XAML_PROJECTIONS": false
+    }
+  }
+}

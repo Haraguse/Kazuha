@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "yEMBJE11ad0=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Evan Evan\\Documents\\Luminalium\\scripts\\smtc_helper\\SmtcHelper.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Evan Evan\\.nuget\\packages\\microsoft.windows.cswinrt\\2.1.5\\microsoft.windows.cswinrt.2.1.5.nupkg.sha512",
+    "C:\\Users\\Evan Evan\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.57\\microsoft.windows.sdk.net.ref.10.0.19041.57.nupkg.sha512"
+  ],
+  "logs": []
+}

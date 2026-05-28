@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -11389,6 +11389,9 @@
       try {
         const info = await window.pywebview.api.get_storage_info(!!force);
         _applyStorageInfo(info);
+        if (info.partial) {
+          showStorageToast(getText('storage.calculating') || '正在计算目录大小...');
+        }
       } catch (e) {
         console.error('Failed to refresh storage info:', e);
       } finally {
@@ -11398,6 +11401,11 @@
         }
       }
     }
+
+    window._onStorageFullInfo = function(info) {
+      _applyStorageInfo(info);
+      showStorageToast(getText('storage.completed') || '目录大小计算完成');
+    };
 
     function _applyStorageInfo(info) {
       if (!info || !info.disk) return;

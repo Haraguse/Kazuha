@@ -1,28 +1,22 @@
-Luminalium.Windows-x86-64-SingleFile.exe
-settings.json
-settings.json
-settings.json
-LuminaliumRemake.spec
-build_pyinstaller.py
-_pycache_/
-*.pyc
-ppt_assistant/core/__pycache__/ppt_monitor.cpython-313.pyc
-ppt_assistant/ui/__pycache__/overlay.cpython-313.pyc
-build_linux.py
-desktop.ini
-user/
-Luminalium.spec
-.codex_tmp/
-.dotnet_appdata/
-.dotnet_home/
-.dotnet_localappdata/
-.nuget/
-scripts/smtc_helper/bin/
-scripts/smtc_helper/obj/
-.workbuddy
-debug.log
-profiles/_active
-.gitignore
-profiles/Profile 2.json
-_backups/_registry
-.trae/rules/git-commit-message.md
+# Build outputs
+dist/
+build/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
