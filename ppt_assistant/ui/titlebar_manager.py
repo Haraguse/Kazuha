@@ -7,8 +7,7 @@ import ctypes
 import sys
 from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import Qt, QPoint, QRect, QSize, Signal, QTimer
-from PySide6.QtGui import QScreen, QGuiApplication
-from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtGui import QGuiApplication
 
 
 class WindowsWindowManager:
@@ -135,6 +134,12 @@ class FramelessWindowWithTitlebar(QWidget):
         # 设置窗口属性
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
         self.setAttribute(Qt.WA_StyledBackground, True)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if sys.platform == "win32":
+            from ppt_assistant.core.platform_integration import remove_window_border_delayed
+            remove_window_border_delayed(self)
 
     def get_hwnd(self):
         """获取Windows窗口句柄"""

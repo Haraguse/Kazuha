@@ -587,6 +587,10 @@ class OverlayWindow(QWebEngineView):
             self.setAttribute(Qt.WA_TranslucentBackground)
             self.setAttribute(Qt.WA_NoSystemBackground)
 
+        if sys.platform == "win32":
+            from ppt_assistant.core.platform_integration import remove_window_border_delayed
+            remove_window_border_delayed(self)
+
         self.monitor = None
         self._timer_manager = None
         self.plugins = []

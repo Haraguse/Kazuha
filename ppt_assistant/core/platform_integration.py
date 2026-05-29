@@ -103,10 +103,44 @@ def remove_window_border(win_id) -> None:
         return
     try:
         import ctypes
+
+        hwnd = int(win_id)
+
         DWMWA_BORDER_COLOR = 34
-        val = ctypes.c_int(0xFFFFFFFE)  # DWMWA_COLOR_NONE
+        DWMWA_COLOR_NONE = 0xFFFFFFFE
+
+        val = ctypes.c_int(DWMWA_COLOR_NONE)
         ctypes.windll.dwmapi.DwmSetWindowAttribute(
-            int(win_id), DWMWA_BORDER_COLOR, ctypes.byref(val), ctypes.sizeof(val)
+            hwnd, DWMWA_BORDER_COLOR, ctypes.byref(val), ctypes.sizeof(val)
+        )
+
+        DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+        dark_val = ctypes.c_int(1)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ctypes.byref(dark_val), ctypes.sizeof(dark_val)
+        )
+
+        DWMWA_WINDOW_CORNER_PREFERENCE = 33
+        corner_pref = ctypes.c_int(2)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ctypes.byref(corner_pref), ctypes.sizeof(corner_pref)
         )
     except Exception:
         pass
+
+
+def remove_window_border_delayed(widget) -> None:
+    """Remove window border with delayed execution to ensure window is fully created."""
+    if sys.platform != "win32":
+        return
+
+    def _do_remove():
+        try:
+            win_id = widget.winId()
+            if win_id:
+                remove_window_border(win_id)
+        except Exception:
+            pass
+
+    from PySide6.QtCore import QTimer
+    QTimer.singleShot(0, _do_remove)

@@ -20,3 +20,4 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+settings.json

@@ -8,6 +8,7 @@ _TRANSLATIONS = {
     "zh-CN": {
         "tray.tooltip": "荧素万演",
         "tray.title": "荧素万演",
+        "tray.docs": "文档...",
         "tray.settings": "设置...",
         "tray.board": "小黑板...",
         "tray.timer": "计时工具...",
@@ -39,6 +40,7 @@ _TRANSLATIONS = {
     "zh-TW": {
         "tray.tooltip": "Luminalium",
         "tray.title": "Luminalium",
+        "tray.docs": "文件...",
         "tray.settings": "設定...",
         "tray.board": "小黑板...",
         "tray.timer": "Timer...",
@@ -70,6 +72,7 @@ _TRANSLATIONS = {
     "yue-HK": {
         "tray.tooltip": "Luminalium",
         "tray.title": "Luminalium",
+        "tray.docs": "文件...",
         "tray.settings": "設定...",
         "tray.board": "黑板仔...",
         "tray.timer": "計時器...",
@@ -101,6 +104,7 @@ _TRANSLATIONS = {
     "ja-JP": {
         "tray.tooltip": "ルマイナリウム",
         "tray.title": "ルマイナリウム",
+        "tray.docs": "ドキュメント...",
         "tray.settings": "設定...",
         "tray.board": "黒板...",
         "tray.timer": "Timer...",
@@ -130,6 +134,7 @@ _TRANSLATIONS = {
     "en-US": {
         "tray.tooltip": "Luminalium Assistant",
         "tray.title": "Luminalium",
+        "tray.docs": "Docs",
         "tray.settings": "Settings",
         "tray.board": "Board",
         "tray.timer": "Timer",
@@ -159,6 +164,7 @@ _TRANSLATIONS = {
     "ug-CN": {
         "tray.tooltip": "Luminalium ياردەمچىسى",
         "tray.title": "Luminalium",
+        "tray.docs": "پۈتۈك...",
         "tray.settings": "تەڭشەكلەر",
         "tray.board": "تاختا",
         "tray.timer": "ۋاقىت بەلگىلەش قىستۇرمىسى",

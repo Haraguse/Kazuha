@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -6319,7 +6319,9 @@
               </div>
               <div class="switch" id="sw-Timer-EnableSoundEffects"></div>
             </div>
-            <div class="settings-item no-divider" style="flex-direction: column; align-items: stretch; gap: 12px;">
+          </div>
+          <div class="settings-group">
+            <div class="settings-item" style="flex-direction: column; align-items: stretch; gap: 12px;">
               <div class="item-info" style="width: 100%;">
                 <span class="item-label" data-i18n="timer.quickAdd.label">快捷加时</span>
                 <span class="item-desc" data-i18n="timer.quickAdd.desc">编辑计时器里的快捷加时按钮，最多四个，可选秒或分</span>
@@ -6524,7 +6526,8 @@
           </div>
 
           <div class="group-title" data-i18n="interaction.toolbar.customization.label">工具栏固定程序</div>
-          <div class="settings-group" style="background: transparent; border: none; padding: 0;">
+          <div class="settings-group">
+            <div class="settings-item" style="flex-direction: column; align-items: stretch; gap: 12px;">
             <div id="toolbar-app-list" class="toolbar-app-list"></div>
 
             <div class="toolbar-actions" style="justify-content: flex-end;">
@@ -6532,6 +6535,7 @@
                 data-i18n="interaction.toolbar.removeApp" disabled>删除软件</button>
               <button id="toolbar-add-btn" class="btn btn-confirm" type="button"
                 data-i18n="interaction.toolbar.addApp">添加软件</button>
+            </div>
             </div>
           </div>
         </div>
@@ -7901,6 +7905,7 @@
         "about.version.copyright": "COPYRIGHT 2025-2026 思拓创联 丨本程序根据 GNU General Public License 3 获得许可",
         "about.version.github": "GitHub 仓库地址",
         "about.version.qq": "QQ群（1004548404）",
+        "about.version.docs": "文档",
         "about.credits.label": "鸣谢",
         "about.credits.contributors": "贡献人员",
         "about.credits.viewAllContributors": "查看完整贡献人员",
@@ -8726,6 +8731,7 @@
         "about.version.copyright": "COPYRIGHT 2025-2026 SECTL │ 本程式依據 GNU General Public License 3 授權",
         "about.version.github": "GitHub 儲存庫",
         "about.version.qq": "QQ群",
+        "about.version.docs": "文件",
         "about.credits.label": "鳴謝",
         "about.credits.contributors": "貢獻人員",
         "about.credits.viewAllContributors": "查看完整貢獻人員",
@@ -9147,6 +9153,7 @@
         "about.version.copyright": "COPYRIGHT 2025-2026 SECTL │ 本プログラムは GNU General Public License 3 に基づきライセンスされています",
         "about.version.github": "GitHub リポジトリ",
         "about.version.qq": "QQ グループ",
+        "about.version.docs": "ドキュメント",
         "about.credits.label": "謝辞",
         "about.credits.contributors": "コントリビューター",
         "about.credits.viewAllContributors": "すべてのコントリビューターを見る",
@@ -15559,8 +15566,9 @@
       const layout = document.getElementById('layout');
       const title = document.getElementById("section-title");
       const aboutItem = document.querySelector('.sidebar-item[data-section="about"]');
+      const aboutSection = document.getElementById('section-about');
 
-      // Gracefully fade-out breadcrumb title before layout collapses
+      // Fade-out breadcrumb title
       if (title) {
         title.style.transition = 'opacity 0.14s cubic-bezier(0.16, 1, 0.3, 1), transform 0.14s cubic-bezier(0.16, 1, 0.3, 1)';
         title.style.opacity = '0';
@@ -15584,13 +15592,12 @@
         onTransitionEnd._done = true;
         layout.removeEventListener('transitionend', onTransitionEnd);
 
+        // Start sidebar staggered slide-in first (lightweight, compositor-only)
         if (sidebar) {
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
               sidebar.classList.remove('sidebar-inserting');
               sidebar.classList.add('sidebar-inserting-active');
-              
-              // Clean up after stagger animation completes
               setTimeout(() => {
                 sidebar.classList.remove('sidebar-inserting-active');
                 sidebar.style.overflow = '';
@@ -15599,36 +15606,41 @@
           });
         }
 
-        const aboutSection = document.getElementById('section-about');
+        // About section layout — deferred to its own frame so sidebar animation starts clean
+        requestAnimationFrame(() => {
+          if (aboutSection) {
+            aboutSection.style.display = 'block';
+            aboutSection.style.animation = 'none';
+            aboutSection.style.opacity = '0';
+          }
+          if (aboutItem) {
+            document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+            aboutItem.classList.add('active');
+          }
+          document.querySelectorAll(".section").forEach(sec => sec.classList.remove('active'));
+          if (aboutSection) {
+            aboutSection.classList.add('active');
+          }
 
-        if (aboutSection) {
-          aboutSection.style.display = 'block';
-        }
-
-        if (aboutItem) {
-          aboutItem.click();
-        }
-
-        if (aboutSection) {
-          aboutSection.style.animationPlayState = 'paused';
-        }
-
-        const activeSection = document.querySelector('.section.active');
-        if (!activeSection || activeSection.id !== 'section-about') {
-          const sections = document.querySelectorAll(".section");
-          sections.forEach(sec => {
-            sec.classList.toggle('active', sec.id === 'section-about');
+          // Release inline styles in subsequent frames, let CSS .section.active animation play
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              if (aboutSection) {
+                aboutSection.style.display = '';
+                aboutSection.style.animation = '';
+                aboutSection.style.opacity = '';
+                setTimeout(() => {
+                  aboutSection.style.animation = '';
+                }, 400);
+              }
+            });
           });
+        });
 
-          const navItems = document.querySelectorAll(".sidebar-item");
-          navItems.forEach(item => {
-            item.classList.toggle('active', item.getAttribute('data-section') === 'about');
-          });
-        }
-
+        // Restore title
         if (title) {
           title.textContent = getText("section.about") || "关于";
-          // Fade the restored title in from the left (reverse of exit direction)
+          title.style.display = 'none';
           title.style.transition = '';
           title.style.opacity = '0';
           title.style.transform = 'translateX(-10px)';
@@ -15641,18 +15653,6 @@
             });
           });
         }
-
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            if (aboutSection) {
-              aboutSection.style.animationPlayState = 'running';
-              setTimeout(() => {
-                aboutSection.style.display = '';
-                aboutSection.style.animationPlayState = '';
-              }, 350);
-            }
-          });
-        });
       };
 
       if (animationsDisabled()) {

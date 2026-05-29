@@ -3705,6 +3705,9 @@ class _LightweightLoadingOverlay(QWidget):
         self.setWindowFlags(
             Qt.FramelessWindowHint | Qt.Tool | Qt.WindowDoesNotAcceptFocus | Qt.WindowStaysOnTopHint
         )
+        if sys.platform == "win32":
+            from ppt_assistant.core.platform_integration import remove_window_border_delayed
+            remove_window_border_delayed(self)
         self._dark_mode = True
         self._show_window_controls = show_window_controls
         self._fade_anim = None
@@ -3986,6 +3989,9 @@ class MainWindow(QWebEngineView):
 
         if frameless:
             self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
+            if sys.platform == "win32":
+                from ppt_assistant.core.platform_integration import remove_window_border_delayed
+                remove_window_border_delayed(self)
         else:
             self.setWindowFlag(Qt.Window, True)
             self.setWindowFlag(Qt.WindowCloseButtonHint, True)
@@ -4681,6 +4687,9 @@ body {
                 Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
             )
             self.setAttribute(Qt.WA_TranslucentBackground)
+            if sys.platform == "win32":
+                from ppt_assistant.core.platform_integration import remove_window_border_delayed
+                remove_window_border_delayed(self)
             self.resize(340, 400)
 
             screen = QApplication.primaryScreen()

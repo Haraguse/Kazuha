@@ -825,6 +825,10 @@ class StartupSplash(QWidget):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
 
+        if sys.platform == "win32":
+            from ppt_assistant.core.platform_integration import remove_window_border_delayed
+            remove_window_border_delayed(self)
+
         self._version_raw, self._code_name_en, self._code_name_cn = _load_version_info()
         self._version_text = _format_version_display(self._version_raw)
         self._language = _get_current_language()

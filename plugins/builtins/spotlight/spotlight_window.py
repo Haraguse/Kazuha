@@ -117,6 +117,10 @@ class SpotlightControlPanel(QFrame):
         if not icon.isNull():
             self.setWindowIcon(icon)
 
+        if sys.platform == "win32":
+            from ppt_assistant.core.platform_integration import remove_window_border_delayed
+            remove_window_border_delayed(self)
+
         # 布局
         self.layout = QHBoxLayout(self)
         self.layout.setContentsMargins(12, 8, 12, 8)
@@ -214,6 +218,10 @@ class SpotlightWindow(QWidget):
         icon = load_app_icon()
         if not icon.isNull():
             self.setWindowIcon(icon)
+
+        if sys.platform == "win32":
+            from ppt_assistant.core.platform_integration import remove_window_border_delayed
+            remove_window_border_delayed(self)
 
         # 初始化状态
         self.selection_rect = QRect()
