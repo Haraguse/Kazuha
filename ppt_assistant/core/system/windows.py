@@ -212,6 +212,11 @@ class WindowsSystemAPI(SystemAPI):
         return [
             os.path.join(
                 root_dir,
+                "internalSMTCHelper",
+                "SmtcHelper.exe",
+            ),
+            os.path.join(
+                root_dir,
                 "scripts",
                 "smtc_helper",
                 "bin",
@@ -306,6 +311,7 @@ class WindowsSystemAPI(SystemAPI):
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         startupinfo.wShowWindow = 0
         creationflags = subprocess.CREATE_NO_WINDOW
+        helper_cwd = os.path.dirname(command[0]) if command else None
         process = subprocess.Popen(
             command,
             stdin=subprocess.PIPE,
@@ -317,6 +323,7 @@ class WindowsSystemAPI(SystemAPI):
             bufsize=1,
             creationflags=creationflags,
             startupinfo=startupinfo,
+            cwd=helper_cwd,
         )
         output_queue = queue.Queue()
         self._smtc_worker = process

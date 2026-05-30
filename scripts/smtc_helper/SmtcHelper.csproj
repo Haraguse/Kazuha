@@ -6,6 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UseWinUI3>false</UseWinUI3>
+    <OutDir>..\..\internalSMTCHelper\</OutDir>
+    <IntermediateOutputPath>..\..\build\smtc_helper\obj\</IntermediateOutputPath>
+    <BaseIntermediateOutputPath>..\..\build\smtc_helper\obj\</BaseIntermediateOutputPath>
   </PropertyGroup>
 
   <ItemGroup>

@@ -9,7 +9,7 @@ from typing import Optional
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QObject, Slot, Signal, Qt, QUrl, QTimer, QRect
 from PySide6.QtGui import QColor, QRegion, QGuiApplication
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
 from ppt_assistant.core.config import cfg, ROOT_DIR
 from qfluentwidgets import Theme, isDarkTheme, MessageBox, themeColor
 from ppt_assistant.core.i18n import t
@@ -315,20 +315,17 @@ class InkPromptWindow(QWidget):
         """Create a standard dialog with two buttons using qfluentwidgets Dialog."""
         from qfluentwidgets import Dialog
         
-        # Create dialog with title and content
-        dialog = Dialog(texts["title"], texts["text"], None)
+        dialog = Dialog(texts["title"], texts["text"], self)
         
-        # Set button text
         dialog.yesButton.setText(texts.get("keep", "保留"))
         dialog.cancelButton.setText(texts.get("discard", "不保留"))
         
-        # Connect buttons - yesButton emits True, cancelButton emits False
         dialog.yesButton.clicked.connect(lambda: self._on_result(True))
         dialog.cancelButton.clicked.connect(lambda: self._on_result(False))
         
-        # Hide the mask widget (we have our own background)
         if hasattr(dialog, "maskWidget"):
-            dialog.maskWidget.hide()
+            dialog.maskWidget.deleteLater()
+            dialog.maskWidget = None
         
         return dialog
 
@@ -340,12 +337,13 @@ class InkPromptWindow(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
-        # Play Windows error sound
         self._play_error_sound()
-        # Show the dialog
         self._dialog.show()
         self._dialog.raise_()
         self._dialog.activateWindow()
+        center_x = (self.width() - self._dialog.width()) // 2
+        center_y = (self.height() - self._dialog.height()) // 2
+        self._dialog.move(center_x, center_y)
 
     def _play_error_sound(self):
         """Play Windows error sound using Windows API."""

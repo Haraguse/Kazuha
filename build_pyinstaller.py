@@ -66,6 +66,7 @@ def run():
         ("ppt_assistant", "ppt_assistant"),
         ("fonts", "fonts"),
         ("user", "user"),
+        ("internalSMTCHelper", "internalSMTCHelper"),
         ("scripts", "scripts"),
         ("Luminalium2WPS/protocol", "Luminalium2WPS/protocol"),
     ]

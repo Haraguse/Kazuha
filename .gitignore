@@ -1,6 +1,15 @@
 # Build outputs
 dist/
 build/
+internalSMTCHelper/
+.codex_tmp/
+.dotnet_appdata/
+.dotnet_home/
+.dotnet_localappdata/
+.nuget/
+.vscode/
+scripts/smtc_helper/obj/
+
 
 # Python
 __pycache__/

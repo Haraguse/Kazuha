@@ -7,12 +7,12 @@
         "PopWindowScale": 1.0,
         "SafeArea": 0,
         "Scale": 1.0,
-        "ShowStatusBar": false,
+        "ShowStatusBar": true,
         "SidePageOpacity": 1.0,
         "StatusBarShowBattery": true,
         "StatusBarShowMusic": true,
         "StatusBarShowNetwork": true,
-        "StatusBarShowSeconds": false,
+        "StatusBarShowSeconds": true,
         "StatusBarShowTime": true,
         "StatusBarShowVolume": true,
         "StrictEdgeAlignment": false,
@@ -83,25 +83,5 @@
     "Notifications": {
         "ResourceMonitorInterval": 300,
         "TimerNotifyEnabled": true
-    },
-    "Update": {
-        "State": "error",
-        "CurrentVersion": "1.3.301.1",
-        "LatestVersion": "",
-        "Changelog": "",
-        "ErrorMessage": "请检查网络连接后重试",
-        "ReleaseUrl": "https://github.com/SECTL/Luminalium/releases/latest"
-    },
-    "Timer": {
-        "QuickAddPresets": [
-            {
-                "unit": "minute",
-                "value": 1
-            },
-            {
-                "unit": "second",
-                "value": 16
-            }
-        ]
     }
 }
