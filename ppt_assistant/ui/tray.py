@@ -714,15 +714,7 @@ class SystemTray(QObject):
         header = Action(header_icon, t("tray.title"), self._fallback_menu)
         self._fallback_menu.addAction(header)
 
-        docs_icon = self._render_menu_icon(
-            os.path.join(ICON_DIR, "docs.svg") if os.path.exists(os.path.join(ICON_DIR, "docs.svg"))
-            else None,
-            size=16
-        )
-        if docs_icon:
-            docs_action = Action(docs_icon, t("tray.docs"), self._fallback_menu)
-        else:
-            docs_action = Action(t("tray.docs"), self._fallback_menu)
+        docs_action = Action(FIF.DOCUMENT, t("tray.docs"), self._fallback_menu)
         docs_action.triggered.connect(lambda: os.startfile("https://luminalium.sectl.top/"))
         self._fallback_menu.addAction(docs_action)
 
@@ -801,12 +793,7 @@ class SystemTray(QObject):
         header.setEnabled(False)
         self._native_menu.addAction(header)
 
-        docs_icon_path = os.path.join(ICON_DIR, "docs.svg")
-        if os.path.exists(docs_icon_path):
-            docs_icon = QIcon(docs_icon_path)
-            docs_action = Action(docs_icon, t("tray.docs"), self._native_menu)
-        else:
-            docs_action = Action(t("tray.docs"), self._native_menu)
+        docs_action = Action(FIF.DOCUMENT, t("tray.docs"), self._native_menu)
         docs_action.triggered.connect(lambda: os.startfile("https://luminalium.sectl.top/"))
         self._native_menu.addAction(docs_action)
 
