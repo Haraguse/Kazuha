@@ -44,7 +44,7 @@ class RenderBackendFactory:
             backend = DirectX12Backend(config)
             print("[✓] 已选择DirectX 12后端")
             return backend
-        except:
+        except Exception:
             pass
 
         # 降级到OpenGL
@@ -52,7 +52,7 @@ class RenderBackendFactory:
             backend = OpenGLBackend(config)
             print("[✓] 已选择OpenGL后端")
             return backend
-        except:
+        except Exception:
             pass
 
         raise RuntimeError(

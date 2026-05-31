@@ -9,6 +9,12 @@ def register_url_protocol():
     try:
         import winreg
         key_path = r"Software\Classes\luminalium"
+        try:
+            existing_key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_READ)
+            winreg.CloseKey(existing_key)
+            return
+        except FileNotFoundError:
+            pass
         key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
         winreg.SetValue(key, "", winreg.REG_SZ, "URL:Luminalium Protocol")
         winreg.SetValueEx(key, "URL Protocol", 0, winreg.REG_SZ, "")
@@ -487,9 +493,24 @@ def _should_enable_system_tray() -> bool:
     return is_system_tray_supported()
 
 
-def _load_settings_json():
+_SETTINGS_CACHED_MTIME = 0
+_SETTINGS_CACHED_DATA = {}
+
+
+def _load_settings_json(force_reload=False):
+    global _SETTINGS_CACHED_MTIME, _SETTINGS_CACHED_DATA
+    if not force_reload and _SETTINGS_CACHED_MTIME > 0:
+        return _SETTINGS_CACHED_DATA
     if not os.path.exists(SETTINGS_PATH):
+        _SETTINGS_CACHED_DATA = {}
+        _SETTINGS_CACHED_MTIME = 1
         return {}
+    try:
+        current_mtime = os.path.getmtime(SETTINGS_PATH)
+        if not force_reload and _SETTINGS_CACHED_MTIME > 0 and current_mtime <= _SETTINGS_CACHED_MTIME:
+            return _SETTINGS_CACHED_DATA
+    except Exception:
+        pass
     try:
         with open(SETTINGS_PATH, "rb") as f:
             raw = f.read()
@@ -504,7 +525,15 @@ def _load_settings_json():
             data = json.loads(text)
         except Exception:
             continue
-        return data if isinstance(data, dict) else {}
+        if isinstance(data, dict):
+            _SETTINGS_CACHED_DATA = data
+            try:
+                _SETTINGS_CACHED_MTIME = os.path.getmtime(SETTINGS_PATH)
+            except Exception:
+                _SETTINGS_CACHED_MTIME = 1
+            return data
+    _SETTINGS_CACHED_DATA = {}
+    _SETTINGS_CACHED_MTIME = 1
     return {}
 
 
@@ -604,6 +633,9 @@ _BUNDLED_FONT_FILES = {
 }
 
 
+_BUNDLED_FONT_CACHE = None
+
+
 def _dedupe_font_families(families):
     seen = set()
     ordered = []
@@ -619,6 +651,9 @@ def _dedupe_font_families(families):
 
 
 def _load_bundled_font_families(root_dir: str):
+    global _BUNDLED_FONT_CACHE
+    if _BUNDLED_FONT_CACHE is not None:
+        return _BUNDLED_FONT_CACHE
     families = {}
     fonts_dir = os.path.join(root_dir, "fonts")
     for key, file_name in _BUNDLED_FONT_FILES.items():
@@ -634,6 +669,7 @@ def _load_bundled_font_families(root_dir: str):
                 families[key] = loaded[0]
         except Exception:
             continue
+    _BUNDLED_FONT_CACHE = families
     return families
 
 
@@ -1882,9 +1918,8 @@ class PPTAssistantApp:
         yield 10, "loading_config"
         _apply_theme_and_color(cfg.themeMode.value)
 
-        # Step 2: Fonts
+        # Step 2: Fonts (loading already done before splash)
         yield 20, "loading_fonts"
-        _apply_global_font(self.app)
         self._current_language = _get_current_language()
         data = _load_settings_json()
         profiles = (data.get("Fonts", {}) or {}).get("Profiles", {}) or {}
@@ -2090,7 +2125,6 @@ class PPTAssistantApp:
         """Dynamic plugin loading from builtins and external directory."""
         self.plugins = []
 
-        # 1. Load Builtin Plugins
         builtin_plugins = [
             "plugins.builtins.settings.plugin.SettingsPlugin",
             "plugins.builtins.onboarding.plugin.OnboardingPlugin",
@@ -2101,74 +2135,81 @@ class PPTAssistantApp:
             "plugins.builtins.logs.plugin.LogsPlugin",
         ]
 
-        for p_path in builtin_plugins:
+        self._plugin_paths = builtin_plugins
+        self._plugin_index = 0
+        self._load_next_builtin_plugin()
+
+    def _load_next_builtin_plugin(self):
+        if self._plugin_index >= len(self._plugin_paths):
+            self._load_external_plugins()
+            return
+        p_path = self._plugin_paths[self._plugin_index]
+        self._plugin_index += 1
+        try:
+            mod_name, cls_name = p_path.rsplit(".", 1)
+            mod = importlib.import_module(mod_name)
+            cls = getattr(mod, cls_name)
+            plugin = cls()
+            plugin.set_context(self)
+            self.plugins.append(plugin)
+
+            if cls_name == "SettingsPlugin":
+                self.settings_plugin = plugin
+            elif cls_name == "OnboardingPlugin":
+                self.onboarding_plugin = plugin
+            elif cls_name == "BoardPlugin":
+                self.board_plugin = plugin
+            elif cls_name == "TimerPlugin":
+                self.timer_plugin = plugin
+            elif cls_name == "SpotlightPlugin":
+                self.spotlight_plugin = plugin
+            elif cls_name == "LogsPlugin":
+                self.logs_plugin = plugin
+        except Exception as e:
+            print(f"Failed to load builtin plugin {p_path}: {e}")
+        QTimer.singleShot(0, self._load_next_builtin_plugin)
+
+    def _load_external_plugins(self):
+        # 2. Load External Plugins from PLUGINS_DIR
+        if not os.path.exists(PLUGINS_DIR):
+            return
+        for item in os.listdir(PLUGINS_DIR):
+            p_dir = os.path.join(PLUGINS_DIR, item)
+            if not os.path.isdir(p_dir):
+                continue
+
+            # Check for manifest.json
+            manifest_path = os.path.join(p_dir, "manifest.json")
+            if not os.path.exists(manifest_path):
+                continue
+
             try:
-                mod_name, cls_name = p_path.rsplit(".", 1)
-                mod = importlib.import_module(mod_name)
+                with open(manifest_path, "r", encoding="utf-8-sig") as f:
+                    manifest = json.load(f)
+
+                entry_point = manifest.get("entry")
+                if not entry_point:
+                    continue
+
+                if PLUGINS_DIR not in sys.path:
+                    sys.path.insert(0, PLUGINS_DIR)
+
+                mod_name, cls_name = entry_point.rsplit(".", 1)
+                spec = importlib.util.spec_from_file_location(
+                    f"external_plugin_{item}", os.path.join(p_dir, mod_name + ".py")
+                )
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+
                 cls = getattr(mod, cls_name)
                 plugin = cls()
                 plugin.set_context(self)
+                plugin.manifest = manifest
                 self.plugins.append(plugin)
-
-                # Maintain compatibility with existing code
-                if cls_name == "SettingsPlugin":
-                    self.settings_plugin = plugin
-                elif cls_name == "OnboardingPlugin":
-                    self.onboarding_plugin = plugin
-                elif cls_name == "BoardPlugin":
-                    self.board_plugin = plugin
-                elif cls_name == "TimerPlugin":
-                    self.timer_plugin = plugin
-                elif cls_name == "SpotlightPlugin":
-                    self.spotlight_plugin = plugin
-                elif cls_name == "LogsPlugin":
-                    self.logs_plugin = plugin
+                print(f"Loaded external plugin: {manifest.get('name', item)}")
             except Exception as e:
-                print(f"Failed to load builtin plugin {p_path}: {e}")
-
-        # 2. Load External Plugins from PLUGINS_DIR
-        if os.path.exists(PLUGINS_DIR):
-            for item in os.listdir(PLUGINS_DIR):
-                p_dir = os.path.join(PLUGINS_DIR, item)
-                if not os.path.isdir(p_dir):
-                    continue
-
-                # Check for manifest.json
-                manifest_path = os.path.join(p_dir, "manifest.json")
-                if not os.path.exists(manifest_path):
-                    continue
-
-                try:
-                    with open(manifest_path, "r", encoding="utf-8-sig") as f:
-                        manifest = json.load(f)
-
-                    entry_point = manifest.get("entry")
-                    if not entry_point:
-                        continue
-
-                    # Add plugins dir to sys.path if not present
-                    if PLUGINS_DIR not in sys.path:
-                        sys.path.insert(0, PLUGINS_DIR)
-
-                    # Import from the specific plugin directory
-                    mod_name, cls_name = entry_point.rsplit(".", 1)
-                    spec = importlib.util.spec_from_file_location(
-                        f"external_plugin_{item}", os.path.join(p_dir, mod_name + ".py")
-                    )
-                    mod = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(mod)
-
-                    # Instantiate the plugin class
-                    cls = getattr(mod, cls_name)
-                    plugin = cls()
-                    plugin.set_context(self)
-                    # Set plugin metadata from manifest
-                    plugin.manifest = manifest
-                    self.plugins.append(plugin)
-                    print(f"Loaded external plugin: {manifest.get('name', item)}")
-                except Exception as e:
-                    print(f"Failed to load external plugin from {p_dir}: {e}")
-                    traceback.print_exc()
+                print(f"Failed to load external plugin from {p_dir}: {e}")
+                traceback.print_exc()
 
     def update_splash(self, value, text):
         if self._splash:

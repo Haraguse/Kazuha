@@ -1542,7 +1542,7 @@ class OverlayWindow(QWebEngineView):
                 return
             from PySide6.QtCore import QTimer
             self._memory_timer = QTimer(self)
-            self._memory_timer.setInterval(15000)
+            self._memory_timer.setInterval(120000)
             self._memory_timer.timeout.connect(self._on_memory_tick)
             self._memory_timer.start()
         except Exception:
@@ -1560,10 +1560,7 @@ class OverlayWindow(QWebEngineView):
     def _on_memory_tick(self):
         try:
             import gc
-            for _ in range(2):
-                gc.collect(0)
-                gc.collect(1)
-                gc.collect(2)
+            gc.collect(2)
 
             page = self.page()
             if page is not None:
@@ -1571,12 +1568,6 @@ class OverlayWindow(QWebEngineView):
                     page.clearMemoryCaches()
                 except Exception:
                     pass
-                profile = page.profile()
-                if profile is not None:
-                    try:
-                        profile.clearHttpCache()
-                    except Exception:
-                        pass
 
             if sys.platform == "win32":
                 try:
@@ -1590,8 +1581,7 @@ class OverlayWindow(QWebEngineView):
                     )
                     if handle:
                         try:
-                            for _ in range(3):
-                                kernel32.SetProcessWorkingSetSize(handle, -1, -1)
+                            kernel32.SetProcessWorkingSetSize(handle, -1, -1)
                         finally:
                             kernel32.CloseHandle(handle)
                 except Exception:

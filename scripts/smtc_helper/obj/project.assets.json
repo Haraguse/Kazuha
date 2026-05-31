@@ -1,7 +1,7 @@
 {
-  "version": 3,
+  "version": 4,
   "targets": {
-    "net8.0-windows10.0.19041": {
+    "net8.0-windows10.0.19041.0": {
       "Microsoft.Windows.CsWinRT/2.1.5": {
         "type": "package",
         "compile": {
@@ -215,33 +215,41 @@
     }
   },
   "projectFileDependencyGroups": {
-    "net8.0-windows10.0.19041": [
+    "net8.0-windows10.0.19041.0": [
       "Microsoft.Windows.CsWinRT >= 2.1.5"
     ]
   },
   "packageFolders": {
-    "h:\\Dev\\Kazuha\\.nuget\\packages": {}
+    "c:\\Users\\Evan Evan\\Documents\\Luminalium\\.nuget\\packages": {},
+    "D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "h:\\Dev\\Kazuha\\scripts\\smtc_helper\\SmtcHelper.csproj",
+      "projectUniqueName": "c:\\Users\\Evan Evan\\Documents\\Luminalium\\scripts\\smtc_helper\\SmtcHelper.csproj",
       "projectName": "SmtcHelper",
-      "projectPath": "h:\\Dev\\Kazuha\\scripts\\smtc_helper\\SmtcHelper.csproj",
-      "packagesPath": "h:\\Dev\\Kazuha\\.nuget\\packages",
-      "outputPath": "h:\\Dev\\Kazuha\\scripts\\smtc_helper\\obj\\",
+      "projectPath": "c:\\Users\\Evan Evan\\Documents\\Luminalium\\scripts\\smtc_helper\\SmtcHelper.csproj",
+      "packagesPath": "c:\\Users\\Evan Evan\\Documents\\Luminalium\\.nuget\\packages",
+      "outputPath": "c:\\Users\\Evan Evan\\Documents\\Luminalium\\scripts\\smtc_helper\\obj\\",
       "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
       "configFilePaths": [
-        "h:\\Dev\\Kazuha\\.dotnet_appdata\\NuGet\\NuGet.Config"
+        "c:\\Users\\Evan Evan\\Documents\\Luminalium\\.dotnet_appdata\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net8.0-windows10.0.19041.0"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
-        "net8.0-windows10.0.19041": {
+        "net8.0-windows10.0.19041.0": {
+          "framework": "net8.0-windows10.0.19041",
           "targetAlias": "net8.0-windows10.0.19041.0",
           "projectReferences": {}
         }
@@ -255,10 +263,12 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      }
+      },
+      "SdkAnalysisLevel": "10.0.300"
     },
     "frameworks": {
-      "net8.0-windows10.0.19041": {
+      "net8.0-windows10.0.19041.0": {
+        "framework": "net8.0-windows10.0.19041",
         "targetAlias": "net8.0-windows10.0.19041.0",
         "dependencies": {
           "Microsoft.Windows.CsWinRT": {
@@ -280,18 +290,18 @@
         "downloadDependencies": [
           {
             "name": "Microsoft.Windows.SDK.NET.Ref",
-            "version": "[10.0.19041.56, 10.0.19041.56]"
+            "version": "[10.0.19041.57, 10.0.19041.57]"
           }
         ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           },
-          "Microsoft.Windows.SDK.NET.Ref": {
+          "Microsoft.Windows.SDK.NET.Ref.Windows": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.420/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

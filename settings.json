@@ -3,7 +3,7 @@
         "AllowRecording": false,
         "ClearMode": "slide",
         "FlipperPosition": "center",
-        "OverlayScreen": "Auto",
+        "OverlayScreen": "WCAN",
         "PopWindowScale": 1.0,
         "SafeArea": 0,
         "Scale": 1.0,
@@ -15,7 +15,7 @@
         "StatusBarShowSeconds": true,
         "StatusBarShowTime": true,
         "StatusBarShowVolume": true,
-        "StrictEdgeAlignment": false,
+        "StrictEdgeAlignment": true,
         "SyncOpacity": false,
         "ToolbarAutoHalfCollapse": false,
         "ToolbarOpacity": 1.0,
@@ -31,7 +31,7 @@
         "AutoShowOverlay": true,
         "CompatibilityMode": false,
         "CrashAutoHandleEnabled": false,
-        "CrashAutoHandleMode": "ShowAnalyzer",
+        "CrashAutoHandleMode": "RestartSilent",
         "DisableAnimations": false,
         "RegisterUrlProtocol": true,
         "RunAtStartup": false,
@@ -40,7 +40,7 @@
         "SplashMode": "Always",
         "SplashStartTime": "08:00",
         "SplashStyle": "default",
-        "UseNativeTitleBar": false
+        "UseNativeTitleBar": true
     },
     "Toolbar": {
         "DisabledTools": [],
@@ -73,7 +73,7 @@
             "Microsoft YaHei",
             "PingFang SC"
         ],
-        "ThemeColor": "#ff3275f5"
+        "ThemeColor": "#ffe1ebff"
     },
     "Appearance": {
         "OverlayTheme": "default",
