@@ -289,44 +289,59 @@ class OverlayBridge(QObject):
 
 
 class InkPromptWindow(QWidget):
-    """Independent QFluentWidgets-based dialog for ink annotation prompt."""
+    """Independent QFluentWidgets-based dialog for ink annotation prompt.
+
+    This window is intentionally created **without** a Qt parent (top-level)
+    to avoid QWidget overlay corruption on QWebEngineView-based overlays.
+    The ``parent`` parameter is only used as a reference for positioning
+    the dialog on the toolbar window.
+    """
     result = Signal(bool)  # True (keep) or False (discard)
 
     def __init__(self, texts, parent=None):
-        super().__init__(parent)
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        # Keep a reference for geometry centering (not a Qt parent)
+        self._toolbar_window = parent
+        super().__init__(None)
+        self.setWindowFlags(
+            Qt.FramelessWindowHint
+            | Qt.Window
+            | Qt.WindowStaysOnTopHint
+            | Qt.NoDropShadowWindowHint
+        )
         self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setAttribute(Qt.WA_ShowWithoutActivating, False)
 
         # Make it full screen
         screen = QGuiApplication.primaryScreen()
         if screen:
             self.setGeometry(screen.geometry())
 
-        from ppt_assistant.core.platform_integration import remove_window_border
-        remove_window_border(self.winId())
+        if sys.platform == "win32":
+            from ppt_assistant.core.platform_integration import remove_window_border
+            remove_window_border(self.winId())
 
         # Semi-transparent black background
         self.bg_color = QColor(0, 0, 0, 140)
 
         # Create the dialog
         self._dialog = self._create_dialog(texts)
-        
+
     def _create_dialog(self, texts):
         """Create a standard dialog with two buttons using qfluentwidgets Dialog."""
         from qfluentwidgets import Dialog
-        
+
         dialog = Dialog(texts["title"], texts["text"], self)
-        
+
         dialog.yesButton.setText(texts.get("keep", "保留"))
         dialog.cancelButton.setText(texts.get("discard", "不保留"))
-        
+
         dialog.yesButton.clicked.connect(lambda: self._on_result(True))
         dialog.cancelButton.clicked.connect(lambda: self._on_result(False))
-        
+
         if hasattr(dialog, "maskWidget"):
             dialog.maskWidget.deleteLater()
             dialog.maskWidget = None
-        
+
         return dialog
 
     def paintEvent(self, event):
@@ -341,9 +356,18 @@ class InkPromptWindow(QWidget):
         self._dialog.show()
         self._dialog.raise_()
         self._dialog.activateWindow()
-        center_x = (self.width() - self._dialog.width()) // 2
-        center_y = (self.height() - self._dialog.height()) // 2
-        self._dialog.move(center_x, center_y)
+        # Center the dialog on the toolbar window (OverlayWindow) geometry
+        tw = self._toolbar_window
+        if tw is not None and tw.isVisible():
+            geo = tw.frameGeometry()
+            cx = geo.x() + (geo.width() - self._dialog.width()) // 2
+            cy = geo.y() + (geo.height() - self._dialog.height()) // 2
+        else:
+            cx = (self.width() - self._dialog.width()) // 2
+            cy = (self.height() - self._dialog.height()) // 2
+        self._dialog.move(cx, cy)
+        # Force a full repaint so the background is drawn immediately
+        self.update()
 
     def _play_error_sound(self):
         """Play Windows error sound using Windows API."""
@@ -355,10 +379,6 @@ class InkPromptWindow(QWidget):
             winmm = ctypes.WinDLL('winmm.dll')
 
             # Define PlaySound function signature
-            # PlaySound(lpzSound, hmod, fdwSound)
-            # lpzSound: sound name (can be filename or system event alias)
-            # hmod: module handle (0 for NULL)
-            # fdwSound: flags
             SND_FILENAME = 0x00020000  # Name is a file name
             SND_ASYNC = 0x0001  # Play asynchronously
             SND_NODEFAULT = 0x0002  # Do not use default sound
@@ -376,8 +396,21 @@ class InkPromptWindow(QWidget):
         self.result.emit(result)
         # Close the dialog first, then close the parent window
         if hasattr(self, '_dialog') and self._dialog:
-            self._dialog.close()
-        self.close()
+            try:
+                self._dialog.close()
+                self._dialog.deleteLater()
+            except Exception:
+                pass
+            self._dialog = None
+        QTimer.singleShot(0, self._do_close)
+
+    def _do_close(self):
+        """Deferred close to let the result signal propagate first."""
+        try:
+            self.close()
+            self.deleteLater()
+        except Exception:
+            pass
 
 
 class WaylandFallbackOverlayWindow(QWidget):
@@ -1441,10 +1474,8 @@ class OverlayWindow(QWebEngineView):
         
     def _on_ink_prompt_window_result(self, result):
         print(f"[Overlay] InkPromptWindow result: {result}", flush=True)
-        # Clean up
-        if hasattr(self, '_ink_prompt_window') and self._ink_prompt_window:
-            self._ink_prompt_window.close()
-            self._ink_prompt_window = None
+        # Clean up the reference; the window will close itself via _on_result -> _do_close
+        self._ink_prompt_window = None
         # Emit the result through the ink_prompt_result signal
         # result is True (keep) or False (discard)
         self.ink_prompt_result.emit(result)

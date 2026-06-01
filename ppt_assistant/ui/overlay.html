@@ -2070,12 +2070,12 @@
                 if (leftFlipper) leftFlipper.style.transform = '';
                 if (rightFlipper) rightFlipper.style.transform = '';
                 
-                // Reset Toolbar Container overrides
-                toolbarContainer.style.justifyContent = '';
-                toolbarContainer.style.paddingTop = '';
-                toolbarContainer.style.paddingBottom = '';
-                
                 if (pos === 'left') {
+                    // Reset Toolbar Container overrides
+                    toolbarContainer.style.justifyContent = '';
+                    toolbarContainer.style.paddingTop = '';
+                    toolbarContainer.style.paddingBottom = '';
+                    
                     // Toolbar to Bottom-ish
                     toolbarContainer.style.justifyContent = 'flex-end';
                     toolbarContainer.style.paddingBottom = `calc(${strictEdgeAlignment ? 0 : 20}px + ${strictEdgeAlignment ? 0 : safeArea}px)`;
@@ -2088,6 +2088,11 @@
                         }
                     }
                 } else if (pos === 'right') {
+                    // Reset Toolbar Container overrides
+                    toolbarContainer.style.justifyContent = '';
+                    toolbarContainer.style.paddingTop = '';
+                    toolbarContainer.style.paddingBottom = '';
+                    
                     // Toolbar to Bottom-ish
                     toolbarContainer.style.justifyContent = 'flex-end';
                     toolbarContainer.style.paddingBottom = `calc(${strictEdgeAlignment ? 0 : 20}px + ${strictEdgeAlignment ? 0 : safeArea}px)`;
