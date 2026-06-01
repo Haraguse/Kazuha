@@ -13,7 +13,4 @@
     <SourceRoot Include="c:\Users\Evan Evan\Documents\Luminalium\.nuget\packages\" />
     <SourceRoot Include="D:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages\" />
   </ItemGroup>
-  <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <Import Project="$(NuGetPackageRoot)\microsoft.windows.cswinrt\2.1.5\build\Microsoft.Windows.CsWinRT.props" Condition="Exists('$(NuGetPackageRoot)\microsoft.windows.cswinrt\2.1.5\build\Microsoft.Windows.CsWinRT.props')" />
-  </ImportGroup>
 </Project>

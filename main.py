@@ -2572,6 +2572,8 @@ class PPTAssistantApp:
             if cfg.compatibilityMode.value:
                 return
             if not self._slideshow_running or not cfg.autoShowOverlay.value:
+                if hasattr(self.monitor, '_pending_ink_prompt') and self.monitor._pending_ink_prompt:
+                    return
                 self.overlay.set_active_on_slideshow(False, animate=True)
                 return
             active_kind = getattr(self.monitor, "_active_kind", None)

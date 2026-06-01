@@ -51,12 +51,6 @@
         "net8.0-windows10.0.19041.0": {
           "framework": "net8.0-windows10.0.19041",
           "targetAlias": "net8.0-windows10.0.19041.0",
-          "dependencies": {
-            "Microsoft.Windows.CsWinRT": {
-              "target": "Package",
-              "version": "[2.1.5, )"
-            }
-          },
           "imports": [
             "net461",
             "net462",

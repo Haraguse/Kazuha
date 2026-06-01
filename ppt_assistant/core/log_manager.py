@@ -15,13 +15,14 @@ LogLevel = Literal["debug", "info", "warn", "error"]
 class LogEntry:
     """日志项"""
 
-    def __init__(self, timestamp: str, level: LogLevel, message: str):
+    def __init__(self, timestamp: str, level: LogLevel, message: str, index: int = None):
         self.timestamp = timestamp
         self.level = level
         self.message = message
+        self._index = index
 
     def to_dict(self) -> Dict:
-        return {"time": self.timestamp, "level": self.level, "message": self.message}
+        return {"time": self.timestamp, "level": self.level, "message": self.message, "_idx": self._index}
 
 
 class LogCaptureStream(io.StringIO):
@@ -65,6 +66,7 @@ class LogManager:
         self._original_stdout = sys.stdout
         self._original_stderr = sys.stderr
         self._capture_streams = {}
+        self._total_count = 0
 
     def start_capture(self):
         """开始捕获 stdout 和 stderr"""
@@ -90,13 +92,38 @@ class LogManager:
             return
 
         with self._lock:
-            # 检查级别过滤
             if not self._filters.get(level, True):
                 return
 
             timestamp = datetime.now().strftime("%H:%M:%S")
-            entry = LogEntry(timestamp, level, message)
+            entry = LogEntry(timestamp, level, message, index=self._total_count)
             self.logs.append(entry)
+            self._total_count += 1
+
+    def get_total_count(self) -> int:
+        with self._lock:
+            return self._total_count
+
+    def get_logs_since(
+        self, since_index: int, levels: List[LogLevel] = None, search_text: str = ""
+    ) -> Dict:
+        with self._lock:
+            if levels is None:
+                levels = ["debug", "info", "warn", "error"]
+
+            search_lower = search_text.lower()
+            new_entries = []
+
+            for entry in self.logs:
+                if entry._index is not None and entry._index <= since_index:
+                    continue
+                if entry.level not in levels:
+                    continue
+                if search_lower and search_lower not in entry.message.lower():
+                    continue
+                new_entries.append(entry.to_dict())
+
+            return {"logs": new_entries, "total_count": self._total_count}
 
     def get_logs(
         self, levels: List[LogLevel] = None, search_text: str = ""
@@ -145,6 +172,7 @@ class LogManager:
         """清空所有日志"""
         with self._lock:
             self.logs.clear()
+            self._total_count = 0
 
     def log(self, level: LogLevel, message: str):
         """直接添加日志（不通过 stdout/stderr）"""

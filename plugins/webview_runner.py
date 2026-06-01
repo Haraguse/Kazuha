@@ -2536,6 +2536,25 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             print(f"Error getting logs: {e}", file=sys.stderr)
             return []
 
+    @Slot(int, str, "QVariant", result="QVariant")
+    def get_logs_since(self, since_index=0, search_text="", levels=None):
+        try:
+            from ppt_assistant.core.log_manager import get_log_manager
+
+            manager = get_log_manager()
+
+            if levels is None:
+                levels = ["debug", "info", "warn", "error"]
+            elif isinstance(levels, str):
+                levels = [levels]
+
+            return manager.get_logs_since(
+                since_index=since_index, levels=levels, search_text=search_text
+            )
+        except Exception as e:
+            print(f"Error getting logs since: {e}", file=sys.stderr)
+            return {"logs": [], "total_count": 0}
+
     @Slot(result="QVariant")
     def get_log_stats(self):
         """获取日志统计"""
