@@ -1,11 +1,11 @@
 {
   "version": 4,
   "targets": {
-    "net8.0-windows10.0.19041": {}
+    "net8.0-windows10.0.19041.0": {}
   },
   "libraries": {},
   "projectFileDependencyGroups": {
-    "net8.0-windows10.0.19041": []
+    "net8.0-windows10.0.19041.0": []
   },
   "packageFolders": {
     "c:\\Users\\Evan Evan\\Documents\\Luminalium\\.nuget\\packages": {},
@@ -86,5 +86,13 @@
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json"
       }
     }
-  }
+  },
+  "logs": [
+    {
+      "code": "Undefined",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "读取缓存文件 c:\\Users\\Evan Evan\\Documents\\Luminalium\\scripts\\smtc_helper\\obj\\project.nuget.cache 时遇到问题: '\"' is invalid after a value. Expected either ',', '}', or ']'. Path: $.expectedPackageFiles[1] | LineNumber: 8 | BytePositionInLine: 4."
+    }
+  ]
 }

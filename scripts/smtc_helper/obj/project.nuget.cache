@@ -1,13 +1,20 @@
 {
   "version": 2,
-  "dgSpecHash": "TxXcAakh1r0=",
-  "dgSpecHash": "EurRcDSKt9I=",
+  "dgSpecHash": "2fqkTdrIgYo=",
   "success": true,
   "projectFilePath": "c:\\Users\\Evan Evan\\Documents\\Luminalium\\scripts\\smtc_helper\\SmtcHelper.csproj",
   "expectedPackageFiles": [
-    "h:\\Dev\\Kazuha\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.56\\microsoft.windows.sdk.net.ref.10.0.19041.56.nupkg.sha512"
-    "c:\\Users\\Evan Evan\\Documents\\Luminalium\\.nuget\\packages\\microsoft.windows.cswinrt\\2.1.5\\microsoft.windows.cswinrt.2.1.5.nupkg.sha512",
     "c:\\Users\\Evan Evan\\Documents\\Luminalium\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.57\\microsoft.windows.sdk.net.ref.10.0.19041.57.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "Undefined",
+      "level": "Warning",
+      "message": "读取缓存文件 c:\\Users\\Evan Evan\\Documents\\Luminalium\\scripts\\smtc_helper\\obj\\project.nuget.cache 时遇到问题: '\"' is invalid after a value. Expected either ',', '}', or ']'. Path: $.expectedPackageFiles[1] | LineNumber: 8 | BytePositionInLine: 4.",
+      "projectPath": "c:\\Users\\Evan Evan\\Documents\\Luminalium\\scripts\\smtc_helper\\SmtcHelper.csproj",
+      "warningLevel": 1,
+      "filePath": "c:\\Users\\Evan Evan\\Documents\\Luminalium\\scripts\\smtc_helper\\SmtcHelper.csproj",
+      "targetGraphs": []
+    }
+  ]
 }
