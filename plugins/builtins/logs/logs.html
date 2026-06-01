@@ -1,233 +1,608 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>日志 - Luminalium</title>
-  <link rel="stylesheet" href="../settings/settings_primitives.css">
   <style>
-    :root {
-      --bg-app: #f7f8f9;
-      --bg-card: #ffffff;
-      --text-primary: #1a1c1e;
-      --text-secondary: #5e6368;
-      --accent-blue: #3275F5;
-      --divider: rgba(0, 0, 0, 0.06);
-      --card-border: rgba(0, 0, 0, 0.04);
-      --shadow-main: 0 4px 12px rgba(0, 0, 0, 0.04);
-      --pivot-bg: rgba(0, 0, 0, 0.05);
+    @font-face {
+      font-family: "Google Sans Flex";
+      src: url("../../../fonts/Google Sans Flex.ttf") format("truetype");
+      font-display: swap;
     }
 
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg-app: #121212;
-        --bg-card: #1e1e1e;
-        --text-primary: #e1e1e1;
-        --text-secondary: #909090;
-        --accent-blue: #4A85F6;
-        --divider: rgba(255, 255, 255, 0.06);
-        --card-border: rgba(255, 255, 255, 0.04);
-        --shadow-main: 0 4px 12px rgba(0, 0, 0, 0.2);
-        --pivot-bg: rgba(255, 255, 255, 0.05);
-      }
+    @font-face {
+      font-family: "MiSans VF";
+      src: url("../../../fonts/MiSansVF.ttf") format("truetype");
+      font-display: swap;
     }
 
-    body {
+    @font-face {
+      font-family: "MiSans Japanese VF";
+      src: url("../../../fonts/MiSansJapaneseVF.ttf") format("truetype");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "MiSans TC VF";
+      src: url("../../../fonts/MiSansTCVF.ttf") format("truetype");
+      font-display: swap;
+    }
+
+    :root[data-disable-animations="true"] *,
+    :root[data-disable-animations="true"] *::before,
+    :root[data-disable-animations="true"] *::after {
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+
+    * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      background: var(--bg-app);
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      font-family: var(--font-stack, "Segoe UI Variable", "Microsoft YaHei", sans-serif);
-      color: var(--text-primary);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 40px 0;
-    }
-
-    .content-body {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 0 40px;
-    }
-
-    .page-title {
-      font-size: 32px;
-      font-weight: 700;
-      margin-bottom: 32px;
-      letter-spacing: -0.5px;
-    }
-
-    .pivot-wrapper {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      margin-bottom: 24px;
-    }
-
-    .pivot-container {
-      display: flex;
-      gap: 24px;
-      border-bottom: none;
-    }
-
-    .pivot-item {
-      padding: 8px 4px 12px 4px;
-      font-size: 14px;
-      color: var(--text-secondary);
-      cursor: pointer;
-      position: relative;
-      transition: color 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .pivot-item:hover {
-      color: var(--text-primary);
-    }
-
-    .pivot-item.active {
-      color: var(--accent-blue);
-      font-weight: 600;
-    }
-
-    .pivot-item.active::after {
-      content: "";
-      position: absolute;
-      bottom: -1px;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: var(--accent-blue);
-      border-radius: 1px;
-    }
-
-    .group-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      margin-bottom: 12px;
-      padding-left: 4px;
-    }
-
-    .filter-bar {
-      display: flex;
-      padding: 12px 16px;
-      gap: 12px;
-      border-bottom: none;
-      align-items: center;
-    }
-
-    .filter-input {
-      flex: 1;
-      border: none;
-      background: transparent;
-      font-size: 13px;
-      color: var(--text-primary);
-      outline: none;
+    button,
+    input,
+    select,
+    textarea {
       font-family: inherit;
     }
 
-    .filter-level {
-      display: flex;
-      gap: 4px;
+    html,
+    body {
+      background: var(--bg-app);
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
     }
 
-    .filter-btn {
-      padding: 4px 10px;
-      font-size: 11px;
-      font-weight: 700;
-      border-radius: 6px;
-      border: 1px solid var(--divider);
+    body {
+      color: var(--text-primary);
+      font-family: var(--font-stack);
+      display: flex;
+      flex-direction: column;
+    }
+
+    html[data-font-weight-mode="override"] body,
+    html[data-font-weight-mode="override"] body * {
+      font-weight: var(--font-weight-override) !important;
+    }
+
+    .container {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+      height: 100%;
+      padding: 12px;
+      gap: 12px;
+    }
+
+    .sidebar {
+      width: 72px;
       background: transparent;
+      display: flex;
+      flex-direction: column;
+      padding: 12px 6px;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
       color: var(--text-secondary);
+      font-size: 11px;
       cursor: pointer;
+      width: 100%;
+      height: 60px;
+      border-radius: 12px;
       transition: all 0.2s;
     }
 
-    .filter-btn.active {
-      background: var(--accent-blue);
-      color: #fff;
-      border-color: var(--accent-blue);
+    .nav-item:hover {
+      color: var(--text-primary);
+      background: var(--item-hover);
     }
 
-    .log-viewer {
-      height: 500px;
-      overflow-y: auto;
-      padding: 16px;
-      font-family: "Cascadia Code", "Consolas", monospace;
-      font-size: 12px;
-      line-height: 1.6;
+    .nav-item.active {
+      color: var(--accent-blue);
+      background: var(--item-hover);
     }
+
+    .nav-icon {
+      width: 24px;
+      height: 24px;
+      background-color: currentColor;
+      -webkit-mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+    }
+
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      position: relative;
+    }
+
+    .main-container {
+      flex: 1;
+      position: relative;
+      background: var(--bg-surface);
+      border-radius: 16px;
+      border: 1px solid var(--divider);
+      box-shadow: var(--shadow-main);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header-inline {
+      padding: 24px 32px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .header-btn {
+      height: 32px;
+      padding: 0 14px;
+      border-radius: 8px;
+      border: 1px solid var(--divider);
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+
+    .header-btn:hover {
+      background: var(--item-hover);
+      color: var(--text-primary);
+    }
+
+    .header-btn:active {
+      transform: scale(0.97);
+    }
+
+    .header-btn.danger {
+      color: #E74C3C;
+    }
+
+    .header-btn.danger:hover {
+      background: rgba(231, 76, 60, 0.08);
+      color: #E74C3C;
+    }
+
+    .header-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .view-section {
+      position: absolute;
+      top: 72px;
+      left: 0;
+      width: 100%;
+      bottom: 0;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .view-section.active {
+      display: flex;
+    }
+
+    .view-section.entering {
+      animation: viewEnter 0.25s cubic-bezier(0.2, 1, 0.4, 1) forwards;
+    }
+
+    @keyframes viewEnter {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* --- Log Pivot Tabs --- */
+    .log-pivot {
+      display: flex;
+      gap: 2px;
+      padding: 4px;
+      margin: 0 32px;
+      background: var(--card-bg);
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+
+    .log-pivot-item {
+      flex: 1;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .log-pivot-item:hover {
+      color: var(--text-primary);
+    }
+
+    .log-pivot-item.active {
+      color: var(--text-primary);
+      background: var(--bg-surface);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    :root[data-frameless="true"] body {
+    border: 1px solid var(--divider, rgba(0,0,0,0.12));
+    border-radius: 12px;
+    overflow: hidden;
+}
+:root[data-frameless="true"] .container {
+    padding-top: 0;
+}
+
+.title-bar {
+    display: none;
+}
+:root[data-frameless="true"] .title-bar {
+    display: flex;
+}
+
+/* --- Filter Panel (font-preview style) --- */
+.filter-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px 18px;
+    border: 1px solid var(--divider);
+    border-radius: 12px;
+    background: var(--bg-surface);
+    margin: 0 32px;
+    flex-shrink: 0;
+}
+
+.filter-search-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.filter-search-row svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: var(--text-secondary);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.5;
+    flex-shrink: 0;
+}
+
+.filter-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    font-family: inherit;
+}
+
+.filter-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+.filter-level {
+    display: flex;
+    gap: 4px;
+}
+
+.filter-btn {
+    padding: 3px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    border-radius: 6px;
+    border: 1px solid var(--divider);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-btn:hover {
+    background: var(--item-hover);
+}
+
+.filter-btn.active {
+    color: var(--text-inverse);
+    border-color: transparent;
+}
+
+.filter-btn.active[data-level="debug"] {
+    background: #888;
+}
+
+.filter-btn.active[data-level="info"] {
+    background: var(--accent-blue);
+}
+
+.filter-btn.active[data-level="warn"] {
+    background: #FF9D00;
+}
+
+.filter-btn.active[data-level="error"] {
+    background: #E74C3C;
+}
+
+/* --- Log Container (font-preview style) --- */
+.log-container {
+    flex: 1;
+    margin: 12px 32px 12px 32px;
+    border: 1px solid var(--divider);
+    border-radius: 12px;
+    background: var(--bg-surface);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.log-viewer {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 18px;
+    font-family: "Cascadia Code", "Consolas", "Menlo", monospace;
+    font-size: 12px;
+    line-height: 1.7;
+}
 
     .log-entry {
       display: flex;
       gap: 12px;
-      padding: 6px 0;
-      border-bottom: none;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: background 0.15s;
     }
 
-    .log-entry:last-child { border-bottom: none; }
-
-    .log-time { color: var(--text-secondary); min-width: 75px; flex-shrink: 0; }
-    .log-level { 
-      min-width: 45px; 
-      text-align: center; 
-      font-weight: 700; 
-      font-size: 10px; 
-      border-radius: 4px; 
-      padding: 1px 0;
+    .log-entry:hover {
+      background: var(--item-hover);
     }
-    .log-level.debug { color: #888; background: rgba(128,128,128,0.1); }
-    .log-level.info { color: var(--accent-blue); background: rgba(50, 117, 245, 0.1); }
-    .log-level.warn { color: #FF9D00; background: rgba(255, 157, 0, 0.1); }
-    .log-level.error { color: #E74C3C; background: rgba(231, 76, 60, 0.1); }
-    .log-message { flex: 1; word-break: break-all; }
 
-    /* Stats Grid */
+    .log-time {
+      color: var(--text-secondary);
+      min-width: 75px;
+      flex-shrink: 0;
+      font-size: 11px;
+    }
+
+    .log-level {
+      min-width: 48px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 10px;
+      border-radius: 4px;
+      padding: 1px 4px;
+      flex-shrink: 0;
+    }
+
+    .log-level.debug {
+      color: #888;
+      background: rgba(128, 128, 128, 0.1);
+    }
+
+    .log-level.info {
+      color: var(--accent-blue);
+      background: rgba(50, 117, 245, 0.1);
+    }
+
+    .log-level.warn {
+      color: #FF9D00;
+      background: rgba(255, 157, 0, 0.1);
+    }
+
+    .log-level.error {
+      color: #E74C3C;
+      background: rgba(231, 76, 60, 0.1);
+    }
+
+    .log-message {
+      flex: 1;
+      word-break: break-all;
+      color: var(--text-primary);
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      opacity: 0.3;
+      gap: 12px;
+    }
+
+    .empty-state-icon {
+      width: 48px;
+      height: 48px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state-icon svg {
+      width: 100%;
+      height: 100%;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .empty-state-text {
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-family: var(--font-stack);
+    }
+
+    /* --- Stats Grid --- */
+    .stats-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 32px;
+    }
+
     .stats-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
+      gap: 12px;
     }
 
-    .stat-item {
+    .stat-card {
       padding: 20px 24px;
-      border-bottom: none;
-      border-right: 1px solid var(--divider);
+      border-radius: 12px;
+      border: 1px solid var(--divider);
+      background: var(--bg-surface);
+      transition: background 0.15s;
     }
-    .stat-item:nth-child(2n) { border-right: none; }
-    .stat-item:nth-last-child(-n+2) { border-bottom: none; }
 
-    .stat-label { font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-bottom: 4px; }
-    .stat-value { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+    .stat-card:hover {
+      background: var(--item-hover);
+    }
 
-    .stat-item.info .stat-value { color: var(--accent-blue); }
-    .stat-item.warn .stat-value { color: #FF9D00; }
-    .stat-item.error .stat-value { color: #E74C3C; }
-
-    /* Footer */
-    .footer-info {
-      position: fixed;
-      bottom: 20px;
-      right: 32px;
-      text-align: right;
-      font-size: 11px;
+    .stat-label {
+      font-size: 12px;
       color: var(--text-secondary);
-      opacity: 0.5;
-      line-height: 1.4;
-      pointer-events: none;
+      font-weight: 600;
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
     }
 
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-card.debug .stat-value {
+      color: #888;
+    }
+
+    .stat-card.info .stat-value {
+      color: var(--accent-blue);
+    }
+
+    .stat-card.warn .stat-value {
+      color: #FF9D00;
+    }
+
+    .stat-card.error .stat-value {
+      color: #E74C3C;
+    }
+
+    /* --- System Info --- */
+    .system-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 32px;
+    }
+
+    .info-group {
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--shadow-main);
+      overflow: hidden;
+    }
+
+    .info-item {
+      min-height: 52px;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border-bottom: 1px solid var(--divider);
+      transition: background 0.15s;
+    }
+
+    .info-item:last-child {
+      border-bottom: none;
+    }
+
+    .info-item:hover {
+      background: var(--item-hover);
+    }
+
+    .info-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .info-value {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-family: "Cascadia Code", "Consolas", monospace;
+      text-align: right;
+    }
+
+    /* --- Dialog --- */
     .dialog-overlay {
       position: fixed;
       inset: 0;
       display: none;
       align-items: center;
       justify-content: center;
-      background: rgba(0, 0, 0, 0.45);
+      background: var(--dialog-overlay);
       z-index: 9999;
     }
 
@@ -236,15 +611,35 @@
     }
 
     .dialog-card {
-      width: min(420px, calc(100vw - 40px));
-      background: var(--bg-card);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
+      width: min(380px, calc(100vw - 40px));
+      background: var(--bg-surface);
+      border: 1px solid var(--divider);
+      border-radius: 16px;
       box-shadow: var(--shadow-main);
-      padding: 20px;
+      padding: 24px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 16px;
+    }
+
+    .dialog-icon-area {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--dialog-icon-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dialog-icon-area svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: var(--accent-blue);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
 
     .dialog-title {
@@ -253,62 +648,122 @@
       color: var(--text-primary);
     }
 
-    .dialog-text {
+    .dialog-desc {
       font-size: 13px;
       color: var(--text-secondary);
+      line-height: 1.5;
     }
 
-    .dialog-actions {
+    .dialog-buttons {
       display: flex;
       justify-content: flex-end;
       gap: 8px;
       margin-top: 4px;
     }
 
-    .dialog-btn-danger {
-      color: #ff4d4f;
-      border-color: rgba(255, 77, 79, 0.35);
+    .dialog-btn {
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 8px;
+      border: 1px solid var(--divider);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s;
     }
 
-    .pivot-content { display: none; }
-    .pivot-content.active { display: block; animation: fadeIn 0.2s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .dialog-btn:hover {
+      background: var(--item-hover);
+    }
 
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 4px; }
-    [data-theme="dark"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+    .dialog-btn.confirm {
+      background: #E74C3C;
+      color: #fff;
+      border-color: transparent;
+    }
+
+    .dialog-btn.confirm:hover {
+      background: #d63031;
+    }
+
+    /* --- Dev Watermark --- */
+    .dev-watermark {
+      position: fixed;
+      right: 16px;
+      bottom: 12px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-align: right;
+      pointer-events: none;
+      line-height: 1.4;
+      white-space: pre-line;
+      z-index: 9999;
+      opacity: 0.5;
+    }
+
+    /* --- Scrollbar --- */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--divider);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
   </style>
 </head>
+
 <body>
-  <div class="content">
-    <div class="content-body">
-      <div class="page-title" data-i18n="nav.diagnostics">诊断</div>
-
-      <div class="pivot-wrapper">
-        <div class="pivot-container">
-          <div class="pivot-item active" data-pivot-group="logs" data-pivot="logs" onclick="switchTab('logs')" data-i18n="diagnostics.logs">运行日志</div>
-          <div class="pivot-item" data-pivot-group="logs" data-pivot="stats" onclick="switchTab('stats')" data-i18n="diagnostics.stats">统计信息</div>
-          <div class="pivot-item" data-pivot-group="logs" data-pivot="system" onclick="switchTab('system')" data-i18n="diagnostics.system">系统信息</div>
-        </div>
-        <div class="header-actions">
-          <button class="settings-button" onclick="exportLogs()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            <span data-i18n="diagnostics.export">导出日志</span>
-          </button>
-          <button class="settings-button" onclick="clearLogs()" style="color: #ff4d4f;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-            <span data-i18n="diagnostics.clear">清空</span>
-          </button>
-        </div>
+  <div class="container">
+    <div class="sidebar">
+      <div class="nav-item active" data-target="view-logs" data-title-key="title.logs">
+        <div class="nav-icon icon-logs"></div>
+        <span data-i18n="nav.logs">日志</span>
       </div>
+      <div class="nav-item" data-target="view-stats" data-title-key="title.stats">
+        <div class="nav-icon icon-stats"></div>
+        <span data-i18n="nav.stats">统计</span>
+      </div>
+      <div class="nav-item" data-target="view-system" data-title-key="title.system">
+        <div class="nav-icon icon-system"></div>
+        <span data-i18n="nav.system">系统</span>
+      </div>
+    </div>
 
-      <!-- Logs Section -->
-      <div class="pivot-content active" id="section-logs" data-pivot-group="logs" data-pivot-content="logs">
-        <div class="group-title" data-i18n="diagnostics.logs">运行日志</div>
-        <div class="settings-group">
-          <div class="filter-bar">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.4;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input type="text" class="filter-input" id="searchInput" data-i18n-placeholder="diagnostics.search" placeholder="搜索日志..." onkeyup="applyFilters()">
+    <div class="content-area">
+      <main class="main-container">
+        <header class="header-inline">
+          <div class="page-title" id="pageTitle" data-i18n="title.logs">运行日志</div>
+          <div class="header-actions">
+            <button class="header-btn" onclick="exportLogs()">
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span data-i18n="diagnostics.export">导出</span>
+            </button>
+            <button class="header-btn danger" onclick="clearLogs()">
+              <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              <span data-i18n="diagnostics.clear">清空</span>
+            </button>
+          </div>
+        </header>
+
+        <section id="view-logs" class="view-section active">
+          <div class="filter-panel">
+            <div class="filter-search-row">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input type="text" class="filter-input" id="searchInput" data-i18n-placeholder="diagnostics.search" placeholder="搜索日志..." onkeyup="debouncedApplyFilters()">
+            </div>
             <div class="filter-level">
               <button class="filter-btn active" data-level="debug" onclick="toggleLevel('debug')">DEBUG</button>
               <button class="filter-btn active" data-level="info" onclick="toggleLevel('info')">INFO</button>
@@ -316,261 +771,702 @@
               <button class="filter-btn active" data-level="error" onclick="toggleLevel('error')">ERROR</button>
             </div>
           </div>
-          <div class="log-viewer" id="logViewer">
-            <div class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; opacity: 0.3;">
-              <span style="font-size: 40px; margin-bottom: 12px;">📋</span>
-              <span data-i18n="diagnostics.logs.empty">暂无日志</span>
+          <div class="log-container">
+            <div class="log-viewer" id="logViewer">
+              <div class="empty-state">
+                <div class="empty-state-icon">
+                  <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                </div>
+                <span class="empty-state-text" data-i18n="diagnostics.logs.empty">暂无日志</span>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <!-- Stats Section -->
-      <div class="pivot-content" id="section-stats" data-pivot-group="logs" data-pivot-content="stats">
-        <div class="group-title" data-i18n="diagnostics.stats">日志统计</div>
-        <div class="settings-group">
-          <div class="stats-grid">
-            <div class="stat-item">
-              <div class="stat-label">DEBUG</div>
-              <div class="stat-value" id="stat-debug">0</div>
-            </div>
-            <div class="stat-item info">
-              <div class="stat-label">INFO</div>
-              <div class="stat-value" id="stat-info">0</div>
-            </div>
-            <div class="stat-item warn">
-              <div class="stat-label">WARN</div>
-              <div class="stat-value" id="stat-warn">0</div>
-            </div>
-            <div class="stat-item error">
-              <div class="stat-label">ERROR</div>
-              <div class="stat-value" id="stat-error">0</div>
+        <section id="view-stats" class="view-section">
+          <div class="stats-container">
+            <div class="stats-grid">
+              <div class="stat-card debug">
+                <div class="stat-label">DEBUG</div>
+                <div class="stat-value" id="stat-debug">0</div>
+              </div>
+              <div class="stat-card info">
+                <div class="stat-label">INFO</div>
+                <div class="stat-value" id="stat-info">0</div>
+              </div>
+              <div class="stat-card warn">
+                <div class="stat-label">WARN</div>
+                <div class="stat-value" id="stat-warn">0</div>
+              </div>
+              <div class="stat-card error">
+                <div class="stat-label">ERROR</div>
+                <div class="stat-value" id="stat-error">0</div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <!-- System Section -->
-      <div class="pivot-content" id="section-system" data-pivot-group="logs" data-pivot-content="system">
-        <div class="group-title" data-i18n="diagnostics.system">系统信息</div>
-        <div class="settings-group" id="systemInfoGroup">
-          <!-- Populated by JS using settings-item style -->
-        </div>
-      </div>
+        <section id="view-system" class="view-section">
+          <div class="system-container">
+            <div class="info-group" id="systemInfoGroup">
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   </div>
 
-  <div class="footer-info">
-    <div data-i18n="footer.version">开发中版本</div>
-    <div>品质不保证 (1.3.5.1)</div>
-  </div>
-  <div class="dialog-overlay" id="clear-dialog">
+  <div class="dialog-overlay" id="clearDialog">
     <div class="dialog-card">
+      <div class="dialog-icon-area">
+        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      </div>
       <div class="dialog-title" data-i18n="diagnostics.clear.title">清空日志</div>
-      <div class="dialog-text" data-i18n="diagnostics.clear.confirm">确定要清空所有日志吗？</div>
-      <div class="dialog-actions">
-        <button class="settings-button" onclick="closeClearDialog()" data-i18n="dialog.cancel">取消</button>
-        <button class="settings-button dialog-btn-danger" onclick="confirmClearLogs()" data-i18n="diagnostics.clear">清空</button>
+      <div class="dialog-desc" data-i18n="diagnostics.clear.confirm">确定要清空所有日志吗？此操作不可撤销。</div>
+      <div class="dialog-buttons">
+        <button class="dialog-btn cancel" onclick="closeClearDialog()" data-i18n="dialog.cancel">取消</button>
+        <button class="dialog-btn confirm" onclick="confirmClearLogs()" data-i18n="diagnostics.clear">清空</button>
       </div>
     </div>
   </div>
 
-  <script src="../../utils/i18n.js"></script>
-  <script src="../../utils/font_manager.js"></script>
+  <div id="devWatermark" class="dev-watermark" style="display: none;"></div>
+
   <script>
+    const I18N = {
+      "zh-CN": {
+        "app.logs": "日志",
+        "app.name": "荧素万演",
+        "nav.logs": "日志",
+        "nav.stats": "统计",
+        "nav.system": "系统",
+        "title.logs": "运行日志",
+        "title.stats": "日志统计",
+        "title.system": "系统信息",
+        "diagnostics.export": "导出",
+        "diagnostics.clear": "清空",
+        "diagnostics.search": "搜索日志...",
+        "diagnostics.logs.empty": "暂无日志",
+        "diagnostics.clear.title": "清空日志",
+        "diagnostics.clear.confirm": "确定要清空所有日志吗？此操作不可撤销。",
+        "dialog.cancel": "取消",
+        "diagnostics.system.appVersion": "应用版本",
+        "diagnostics.system.os": "操作系统",
+        "diagnostics.system.processor": "处理器",
+        "diagnostics.system.arch": "架构",
+        "diagnostics.system.pythonVersion": "Python 版本",
+        "diagnostics.system.startTime": "启动时间",
+        "diagnostics.system.uptime": "运行时长",
+        "diagnostics.system.hours": "时",
+        "diagnostics.system.minutes": "分",
+        "diagnostics.system.seconds": "秒",
+        "diagnostics.export.header": "时间,级别,消息",
+        "general.devWatermark": "开发中版本/技术预览版本\n不保证最终品质 （{version}）"
+      },
+      "zh-TW": {
+        "app.logs": "日誌",
+        "app.name": "Luminalium",
+        "nav.logs": "日誌",
+        "nav.stats": "統計",
+        "nav.system": "系統",
+        "title.logs": "運行日誌",
+        "title.stats": "日誌統計",
+        "title.system": "系統資訊",
+        "diagnostics.export": "匯出",
+        "diagnostics.clear": "清空",
+        "diagnostics.search": "搜尋日誌...",
+        "diagnostics.logs.empty": "暫無日誌",
+        "diagnostics.clear.title": "清空日誌",
+        "diagnostics.clear.confirm": "確定要清空所有日誌嗎？此操作不可撤銷。",
+        "dialog.cancel": "取消",
+        "diagnostics.system.appVersion": "應用版本",
+        "diagnostics.system.os": "作業系統",
+        "diagnostics.system.processor": "處理器",
+        "diagnostics.system.arch": "架構",
+        "diagnostics.system.pythonVersion": "Python 版本",
+        "diagnostics.system.startTime": "啟動時間",
+        "diagnostics.system.uptime": "運行時長",
+        "diagnostics.system.hours": "時",
+        "diagnostics.system.minutes": "分",
+        "diagnostics.system.seconds": "秒",
+        "diagnostics.export.header": "時間,級別,訊息",
+        "general.devWatermark": "開發中版本/技術預覽版本\n不保證最終品質 （{version}）"
+      },
+      "ja-JP": {
+        "app.logs": "ログ",
+        "app.name": "ルマイナリウム",
+        "nav.logs": "ログ",
+        "nav.stats": "統計",
+        "nav.system": "システム",
+        "title.logs": "実行ログ",
+        "title.stats": "ログ統計",
+        "title.system": "システム情報",
+        "diagnostics.export": "エクスポート",
+        "diagnostics.clear": "クリア",
+        "diagnostics.search": "ログを検索...",
+        "diagnostics.logs.empty": "ログはありません",
+        "diagnostics.clear.title": "ログをクリア",
+        "diagnostics.clear.confirm": "すべてのログをクリアしますか？この操作は元に戻せません。",
+        "dialog.cancel": "キャンセル",
+        "diagnostics.system.appVersion": "アプリバージョン",
+        "diagnostics.system.os": "オペレーティングシステム",
+        "diagnostics.system.processor": "プロセッサ",
+        "diagnostics.system.arch": "アーキテクチャ",
+        "diagnostics.system.pythonVersion": "Python バージョン",
+        "diagnostics.system.startTime": "起動時刻",
+        "diagnostics.system.uptime": "稼働時間",
+        "diagnostics.system.hours": "時間",
+        "diagnostics.system.minutes": "分",
+        "diagnostics.system.seconds": "秒",
+        "diagnostics.export.header": "時刻,レベル,メッセージ",
+        "general.devWatermark": "開発中バージョン/テクニカルプレビュー\n品質は保証されません （{version}）"
+      },
+      "en-US": {
+        "app.logs": "Logs",
+        "app.name": "Luminalium",
+        "nav.logs": "Logs",
+        "nav.stats": "Stats",
+        "nav.system": "System",
+        "title.logs": "Runtime Logs",
+        "title.stats": "Log Statistics",
+        "title.system": "System Info",
+        "diagnostics.export": "Export",
+        "diagnostics.clear": "Clear",
+        "diagnostics.search": "Search logs...",
+        "diagnostics.logs.empty": "No logs yet",
+        "diagnostics.clear.title": "Clear Logs",
+        "diagnostics.clear.confirm": "Are you sure you want to clear all logs? This action cannot be undone.",
+        "dialog.cancel": "Cancel",
+        "diagnostics.system.appVersion": "App Version",
+        "diagnostics.system.os": "Operating System",
+        "diagnostics.system.processor": "Processor",
+        "diagnostics.system.arch": "Architecture",
+        "diagnostics.system.pythonVersion": "Python Version",
+        "diagnostics.system.startTime": "Start Time",
+        "diagnostics.system.uptime": "Uptime",
+        "diagnostics.system.hours": "h",
+        "diagnostics.system.minutes": "m",
+        "diagnostics.system.seconds": "s",
+        "diagnostics.export.header": "Time,Level,Message",
+        "general.devWatermark": "In-Development/Technical Preview\nFinal quality not guaranteed ({version})"
+      }
+    };
+
+    let settings = window.initialSettings || {};
+    let currentLanguage = (settings.General && settings.General.Language) || "zh-CN";
+
+    function animationsDisabled() {
+      return !!settings?.General?.DisableAnimations;
+    }
+
+    function motionDelay(ms) {
+      return animationsDisabled() ? 0 : ms;
+    }
+
+    function getText(key) {
+      const fallbackLang = currentLanguage === "yue-HK" ? "zh-TW" : "zh-CN";
+      const langPack = I18N[currentLanguage] || I18N[fallbackLang] || I18N["zh-CN"];
+      if (langPack && key in langPack) return langPack[key];
+      const fallback = I18N[fallbackLang] || I18N["zh-CN"];
+      if (fallback && key in fallback) return fallback[key];
+      return "";
+    }
+
+    function getDefaultFontStack(lang) {
+      if (lang === "zh-TW") {
+        return '"Google Sans Flex", "MiSans Japanese VF", "MiSans TC VF", "Segoe UI", system-ui, -apple-system, sans-serif';
+      }
+      if (lang === "ja-JP") {
+        return '"Google Sans Flex", "MiSans Japanese VF", "MiSans TC VF", "Segoe UI", system-ui, -apple-system, sans-serif';
+      }
+      return '"Google Sans Flex", "MiSans VF", "Segoe UI", system-ui, -apple-system, sans-serif';
+    }
+
+    function getSelectedWebFont(lang) {
+      if (settings && settings.Fonts && !settings.Fonts.CustomFont) return "";
+      const profiles = settings && settings.Fonts && settings.Fonts.Profiles;
+      const langProfile = profiles && profiles[lang];
+      const v = langProfile && langProfile.web;
+      return (typeof v === "string" && v.trim()) ? v.trim() : "";
+    }
+
+    function normalizeFontWeightValue(value) {
+      let normalized = value;
+      if (typeof normalized === "number" && Number.isFinite(normalized)) {
+        normalized = String(Math.round(normalized));
+      }
+      if (typeof normalized !== "string") return "";
+      normalized = normalized.trim();
+      if (!normalized || !/^\d{3,4}$/.test(normalized)) return "";
+      const num = Number(normalized);
+      if (!Number.isInteger(num) || num < 100 || num > 1000 || num % 100 !== 0) return "";
+      return String(num);
+    }
+
+    function getSelectedWebFontWeight(lang) {
+      if (settings && settings.Fonts && !settings.Fonts.CustomFont) return "";
+      const weights = settings && settings.Fonts && settings.Fonts.Weights;
+      const langProfile = weights && weights[lang];
+      return normalizeFontWeightValue(langProfile && langProfile.web);
+    }
+
+    function applyWebFontWeight(weightValue) {
+      const normalized = normalizeFontWeightValue(weightValue);
+      if (normalized) {
+        document.documentElement.dataset.fontWeightMode = "override";
+        document.documentElement.style.setProperty("--font-weight-override", normalized);
+      } else {
+        document.documentElement.removeAttribute("data-font-weight-mode");
+        document.documentElement.style.removeProperty("--font-weight-override");
+      }
+    }
+
+    function applyLanguageFont() {
+      const base = getDefaultFontStack(currentLanguage);
+      const selected = getSelectedWebFont(currentLanguage);
+      const stack = selected ? `"${selected.replace(/"/g, '\\"')}", ${base}` : base;
+      document.documentElement.style.setProperty("--font-stack", stack);
+      applyWebFontWeight(getSelectedWebFontWeight(currentLanguage));
+    }
+
+    function buildWindowTitle(titleKey) {
+      const pageText = getText(titleKey) || "";
+      const appText = getText("app.logs") || "日志";
+      const appName = getText("app.name") || "Luminalium";
+      const parts = [];
+      if (pageText) parts.push(pageText);
+      parts.push(appText);
+      parts.push(appName);
+      return parts.join(" - ");
+    }
+
+    function updateWindowTitleFromActive() {
+      if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.set_title) return;
+      const activeNav = document.querySelector(".nav-item.active");
+      const key = activeNav ? (activeNav.dataset.titleKey || "title.logs") : "title.logs";
+      const title = buildWindowTitle(key);
+      if (title) window.pywebview.api.set_title(title);
+    }
+
+    function applyAnimationPreference() {
+      document.documentElement.setAttribute("data-disable-animations", animationsDisabled() ? "true" : "false");
+    }
+
+    function applyI18n() {
+      document.documentElement.lang = currentLanguage;
+      const nodes = document.querySelectorAll("[data-i18n]");
+      nodes.forEach(node => {
+        const key = node.getAttribute("data-i18n");
+        const text = getText(key);
+        if (text) node.textContent = text;
+      });
+      const placeholderNodes = document.querySelectorAll("[data-i18n-placeholder]");
+      placeholderNodes.forEach(node => {
+        const key = node.getAttribute("data-i18n-placeholder");
+        const text = getText(key);
+        if (text) node.placeholder = text;
+      });
+      const activeNav = document.querySelector(".nav-item.active");
+      const pageTitle = document.getElementById("pageTitle");
+      if (activeNav && pageTitle) {
+        const key = activeNav.dataset.titleKey || "title.logs";
+        const text = getText(key);
+        if (text) pageTitle.textContent = text;
+      }
+      const dialogTitle = document.querySelector("#clearDialog .dialog-title");
+      if (dialogTitle) dialogTitle.textContent = getText("diagnostics.clear.title") || dialogTitle.textContent;
+      const dialogDesc = document.querySelector("#clearDialog .dialog-desc");
+      if (dialogDesc) dialogDesc.textContent = getText("diagnostics.clear.confirm") || dialogDesc.textContent;
+      const cancelBtn = document.querySelector("#clearDialog .dialog-btn.cancel");
+      if (cancelBtn) cancelBtn.textContent = getText("dialog.cancel") || cancelBtn.textContent;
+      const confirmBtn = document.querySelector("#clearDialog .dialog-btn.confirm");
+      if (confirmBtn) confirmBtn.textContent = getText("diagnostics.clear") || confirmBtn.textContent;
+      updateWindowTitleFromActive();
+    }
+
+    function applyTheme(themeMode, themeIdOverride) {
+      let mode = themeMode || 'Light';
+      if (mode === 'Auto') {
+        const resolvedIsDark = (typeof settings !== 'undefined' && settings && settings.Appearance && settings.Appearance.ResolvedIsDark)
+          || (window.initialSettings && window.initialSettings.Appearance && window.initialSettings.Appearance.ResolvedIsDark);
+        mode = resolvedIsDark ? 'Dark' : 'Light';
+      }
+      const isDark = mode === 'Dark';
+      const themeId = themeIdOverride || (settings && settings.Appearance && settings.Appearance.ThemeId ? settings.Appearance.ThemeId : 'default');
+      if (!window.initialSettings) window.initialSettings = {};
+      if (!window.initialSettings.Appearance) window.initialSettings.Appearance = {};
+      window.initialSettings.Appearance.ResolvedIsDark = isDark;
+      window.initialSettings.Appearance.ThemeId = themeId;
+      window.initialSettings.Appearance.ThemeMode = mode;
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme-id', themeId);
+      if (typeof window.__applyUnifiedTheme === 'function') {
+        window.__applyUnifiedTheme();
+      }
+    }
+
+    function updateTheme(themeMode, themeId) {
+      if (!settings.Appearance) settings.Appearance = {};
+      if (themeMode) settings.Appearance.ThemeMode = themeMode;
+      if (themeId) settings.Appearance.ThemeId = themeId;
+      applyTheme(settings.Appearance.ThemeMode || themeMode || 'Light', settings.Appearance.ThemeId || themeId);
+    }
+
+    function updateDevWatermark() {
+      const el = document.getElementById("devWatermark");
+      if (!el) return;
+      const version = (window.initialSettings && window.initialSettings.version) || {};
+      const verStr = version.version_name || version.version || "";
+      if (!verStr) { el.style.display = "none"; return; }
+      const tmpl = getText("general.devWatermark") || "In-Development/Technical Preview\nFinal quality not guaranteed ({version})";
+      el.textContent = tmpl.replace("{version}", verStr);
+      el.style.display = "";
+    }
+
+    /* --- Sidebar Nav Icons --- */
+    const NAV_ICONS = {
+      "icon-logs": 'data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="14 2 14 8 20 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+      "icon-stats": 'data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M18 20V10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 20V4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 20v-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+      "icon-system": 'data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="2"/></svg>'
+    };
+
+    function initNavIcons() {
+      Object.entries(NAV_ICONS).forEach(([cls, url]) => {
+        document.querySelectorAll(`.${cls}`).forEach(el => {
+          el.style.webkitMaskImage = `url('${url}')`;
+          el.style.maskImage = `url('${url}')`;
+        });
+      });
+    }
+
+    /* --- Navigation --- */
+    const navItems = document.querySelectorAll('.nav-item');
+    const sections = document.querySelectorAll('.view-section');
+    const pageTitle = document.getElementById('pageTitle');
+
+    navItems.forEach(item => {
+      item.addEventListener('click', () => {
+        if (item.classList.contains('active')) return;
+
+        const currentActive = document.querySelector('.view-section.active');
+        if (currentActive) {
+          currentActive.classList.remove('active');
+        }
+
+        navItems.forEach(n => n.classList.remove('active'));
+        item.classList.add('active');
+
+        const targetId = item.dataset.target;
+        const targetSec = document.getElementById(targetId);
+        targetSec.classList.remove('entering');
+        void targetSec.offsetWidth;
+        targetSec.classList.add('active', 'entering');
+        setTimeout(() => targetSec.classList.remove('entering'), motionDelay(250));
+
+        const titleKey = item.dataset.titleKey || "title.logs";
+        const text = getText(titleKey);
+        pageTitle.textContent = text || pageTitle.textContent;
+        updateWindowTitleFromActive();
+
+        if (targetId === 'view-stats') updateStatsFromAPI();
+        else if (targetId === 'view-system') updateSystemInfo();
+      });
+    });
+
+    /* --- Log Data --- */
     let logs = [];
     let filteredLogs = [];
     let activeLevels = { debug: true, info: true, warn: true, error: true };
     let searchText = "";
     let autoRefreshTimer = null;
     let systemInfoTimer = null;
+    let lastLogIndex = -1;
+    let isAutoScroll = true;
+    let _filterDebounceTimer = null;
+    const MAX_RENDER = 500;
+    const REFRESH_INTERVAL = 2000;
+
+    window.debouncedApplyFilters = function () {
+      clearTimeout(_filterDebounceTimer);
+      _filterDebounceTimer = setTimeout(() => {
+        applyFilters();
+      }, 400);
+    };
 
     function onPyWebViewReady() {
-        if (window.FontManager) window.FontManager.init();
-        if (window.I18nManager) window.I18nManager.init();
-        
-        loadLogsFromAPI();
-        autoRefreshTimer = setInterval(loadLogsFromAPI, 1000);
-        updateSystemInfo();
-        systemInfoTimer = setInterval(updateSystemInfo, 1000);
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.get_settings) {
+        window.pywebview.api.get_settings().then(s => {
+          if (s && Object.keys(s).length > 0) {
+            settings = s;
+          }
+          applyAnimationPreference();
+          const lang = settings.General && settings.General.Language;
+          if (lang) currentLanguage = lang;
+          if (settings && settings.Appearance) {
+            const themeMode = settings.Appearance.ThemeMode || 'Light';
+            applyTheme(themeMode);
+          } else {
+            applyTheme('Light');
+          }
+          applyI18n();
+          updateDevWatermark();
+        }).catch(err => {
+          console.error("Failed to get settings:", err);
+          applyAnimationPreference();
+          applyTheme('Light');
+          applyI18n();
+          updateDevWatermark();
+        });
+      } else {
+        applyAnimationPreference();
+        applyTheme('Light');
+        applyI18n();
+        updateDevWatermark();
+      }
+
+      loadLogsFromAPI();
+      autoRefreshTimer = setInterval(() => { incrementalRefresh().catch(() => {}); }, REFRESH_INTERVAL);
+      updateSystemInfo();
+      systemInfoTimer = setInterval(() => { updateSystemInfo().catch(() => {}); }, REFRESH_INTERVAL);
     }
 
     if (window.pywebview) onPyWebViewReady();
-    else window.addEventListener("pywebviewready", onPyWebViewReady);
+    else window.addEventListener('pywebviewready', onPyWebViewReady);
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const viewer = document.getElementById("logViewer");
+      if (viewer) {
+        viewer.addEventListener('scroll', () => {
+          isAutoScroll = (viewer.scrollTop + viewer.clientHeight) >= (viewer.scrollHeight - 30);
+        });
+      }
+    });
 
     async function loadLogsFromAPI() {
-        if (!window.pywebview?.api?.get_logs) {
-            if (logs.length === 0) initializeMockLogs();
-            return;
+      if (!window.pywebview?.api?.get_logs) {
+        if (logs.length === 0) initializeMockLogs();
+        return;
+      }
+      try {
+        const levels = Object.keys(activeLevels).filter(l => activeLevels[l]);
+        const st = document.getElementById("searchInput")?.value || "";
+        const result = await window.pywebview.api.get_logs(st, levels);
+        logs = result || [];
+        if (logs.length > 0) {
+          const last = logs[logs.length - 1];
+          if (typeof last._idx === "number") lastLogIndex = last._idx;
+          else lastLogIndex = -1;
+        } else {
+          lastLogIndex = -1;
         }
-        try {
-            const levels = Object.keys(activeLevels).filter(l => activeLevels[l]);
-            const st = document.getElementById("searchInput")?.value || "";
-            const result = await window.pywebview.api.get_logs(st, levels);
-            logs = result || [];
-            applyFilters();
-        } catch (e) {
-            console.error(e);
-            if (logs.length === 0) initializeMockLogs();
-        }
+        renderLogsFull();
+      } catch (e) {
+        console.error(e);
+        if (logs.length === 0) initializeMockLogs();
+      }
+    }
+
+    async function incrementalRefresh() {
+      const st = document.getElementById("searchInput")?.value || "";
+      if (st) return;
+      try {
+        if (!window.pywebview?.api?.get_logs_since) return;
+        const levels = Object.keys(activeLevels).filter(l => activeLevels[l]);
+        const result = await window.pywebview.api.get_logs_since(lastLogIndex + 1, "", levels);
+        const newLogs = result?.logs || [];
+        if (typeof result?.total_count === "number") lastLogIndex = result.total_count - 1;
+        else if (newLogs.length > 0) lastLogIndex = newLogs[newLogs.length - 1]._idx;
+        if (newLogs.length === 0) return;
+        appendLogEntries(newLogs);
+      } catch (e) {
+        console.error("incrementalRefresh error:", e);
+      }
     }
 
     function initializeMockLogs() {
-        logs = [
-            { time: "10:00:01", level: "info", message: "应用启动成功" },
-            { time: "10:00:05", level: "debug", message: "加载配置文件: settings.json" },
-            { time: "10:00:12", level: "warn", message: "警告: 某些可选依赖未安装" }
-        ];
-        applyFilters();
+      logs = [
+        { time: "10:00:01", level: "info", message: "应用启动成功" },
+        { time: "10:00:05", level: "debug", message: "加载配置文件: settings.json" },
+        { time: "10:00:12", level: "warn", message: "警告: 某些可选依赖未安装" }
+      ];
+      renderLogsFull();
     }
 
-    window.applyFilters = function() {
-        searchText = document.getElementById("searchInput")?.value?.toLowerCase() || "";
-        filteredLogs = logs.filter(log => {
-            const levelMatch = activeLevels[log.level];
-            const searchMatch = !searchText || 
-                log.time.includes(searchText) ||
-                log.message.toLowerCase().includes(searchText);
-            return levelMatch && searchMatch;
-        });
-        renderLogs();
+    function createLogEntryEl(log) {
+      const div = document.createElement("div");
+      div.className = "log-entry";
+      div.innerHTML = `<div class="log-time">${log.time}</div><div class="log-level ${log.level}">${log.level.toUpperCase()}</div><div class="log-message">${escapeHtml(log.message)}</div>`;
+      return div;
+    }
+
+    function appendLogEntries(newLogs) {
+      const viewer = document.getElementById("logViewer");
+      const emptyState = viewer.querySelector('.empty-state');
+      if (emptyState) emptyState.remove();
+
+      const frag = document.createDocumentFragment();
+      for (const log of newLogs) {
+        frag.appendChild(createLogEntryEl(log));
+        logs.push(log);
+      }
+      viewer.appendChild(frag);
+
+      trimRenderedLogs(viewer);
+
+      if (isAutoScroll) {
+        viewer.scrollTop = viewer.scrollHeight;
+      }
+    }
+
+    function trimRenderedLogs(viewer) {
+      const entries = viewer.querySelectorAll('.log-entry');
+      if (entries.length > MAX_RENDER) {
+        const removeCount = entries.length - MAX_RENDER;
+        for (let i = 0; i < removeCount; i++) {
+          entries[i].remove();
+        }
+        if (logs.length > MAX_RENDER) {
+          logs = logs.slice(logs.length - MAX_RENDER);
+        }
+      }
+    }
+
+    window.applyFilters = function () {
+      loadLogsFromAPI();
     };
 
-    function renderLogs() {
-        const viewer = document.getElementById("logViewer");
-        if (filteredLogs.length === 0) {
-            const emptyText = window.I18nManager?.getText("diagnostics.logs.empty") || "暂无日志";
-            viewer.innerHTML = `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; opacity: 0.3;"><span style="font-size: 40px; margin-bottom: 12px;">📋</span><span>${emptyText}</span></div>`;
-            return;
-        }
-        viewer.innerHTML = filteredLogs.map(log => `
-            <div class="log-entry">
-                <div class="log-time">${log.time}</div>
-                <div class="log-level ${log.level}">${log.level.toUpperCase()}</div>
-                <div class="log-message">${escapeHtml(log.message)}</div>
-            </div>
-        `).join("");
-        viewer.scrollTop = viewer.scrollHeight;
+    function renderLogsFull() {
+      const viewer = document.getElementById("logViewer");
+      filteredLogs = logs;
+      if (filteredLogs.length === 0) {
+        const emptyText = getText("diagnostics.logs.empty") || "暂无日志";
+        viewer.innerHTML = `<div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div><span class="empty-state-text">${emptyText}</span></div>`;
+        return;
+      }
+
+      const displayLogs = filteredLogs.length > MAX_RENDER
+        ? filteredLogs.slice(filteredLogs.length - MAX_RENDER)
+        : filteredLogs;
+
+      const frag = document.createDocumentFragment();
+      for (const log of displayLogs) {
+        frag.appendChild(createLogEntryEl(log));
+      }
+      viewer.innerHTML = '';
+      viewer.appendChild(frag);
+      viewer.scrollTop = viewer.scrollHeight;
     }
 
     async function updateStatsFromAPI() {
-        if (window.pywebview?.api?.get_log_stats) {
-            try {
-                const stats = await window.pywebview.api.get_log_stats();
-                document.getElementById("stat-debug").textContent = stats.debug || 0;
-                document.getElementById("stat-info").textContent = stats.info || 0;
-                document.getElementById("stat-warn").textContent = stats.warn || 0;
-                document.getElementById("stat-error").textContent = stats.error || 0;
-                return;
-            } catch (e) {}
-        }
-        const stats = { debug: 0, info: 0, warn: 0, error: 0 };
-        logs.forEach(log => { if (stats[log.level] !== undefined) stats[log.level]++; });
-        document.getElementById("stat-debug").textContent = stats.debug;
-        document.getElementById("stat-info").textContent = stats.info;
-        document.getElementById("stat-warn").textContent = stats.warn;
-        document.getElementById("stat-error").textContent = stats.error;
+      if (window.pywebview?.api?.get_log_stats) {
+        try {
+          const stats = await window.pywebview.api.get_log_stats();
+          document.getElementById("stat-debug").textContent = stats.debug || 0;
+          document.getElementById("stat-info").textContent = stats.info || 0;
+          document.getElementById("stat-warn").textContent = stats.warn || 0;
+          document.getElementById("stat-error").textContent = stats.error || 0;
+          return;
+        } catch (e) { }
+      }
+      const stats = { debug: 0, info: 0, warn: 0, error: 0 };
+      logs.forEach(log => { if (stats[log.level] !== undefined) stats[log.level]++; });
+      document.getElementById("stat-debug").textContent = stats.debug;
+      document.getElementById("stat-info").textContent = stats.info;
+      document.getElementById("stat-warn").textContent = stats.warn;
+      document.getElementById("stat-error").textContent = stats.error;
     }
 
-    window.switchTab = function(tabName) {
-        document.querySelectorAll('.pivot-item[data-pivot-group="logs"]').forEach(item => {
-            item.classList.toggle("active", item.dataset.pivot === tabName);
-        });
-        document.querySelectorAll('.pivot-content[data-pivot-group="logs"]').forEach(section => {
-            section.classList.toggle("active", section.dataset.pivotContent === tabName);
-        });
-        if (tabName === "stats") updateStatsFromAPI();
-        else if (tabName === "system") updateSystemInfo();
+    window.toggleLevel = async function (level) {
+      activeLevels[level] = !activeLevels[level];
+      document.querySelector(`[data-level="${level}"]`).classList.toggle("active");
+      if (window.pywebview?.api?.set_log_filters) {
+        await window.pywebview.api.set_log_filters(JSON.stringify(activeLevels));
+      }
+      loadLogsFromAPI();
     };
 
-    window.toggleLevel = async function(level) {
-        activeLevels[level] = !activeLevels[level];
-        document.querySelector(`[data-level="${level}"]`).classList.toggle("active");
-        if (window.pywebview?.api?.set_log_filters) {
-            await window.pywebview.api.set_log_filters(JSON.stringify(activeLevels));
-        }
-        loadLogsFromAPI();
+    window.clearLogs = function () {
+      const dlg = document.getElementById("clearDialog");
+      if (dlg) dlg.classList.add("active");
     };
 
-    window.clearLogs = function() {
-        const dlg = document.getElementById("clear-dialog");
-        if (dlg) dlg.classList.add("active");
+    window.closeClearDialog = function () {
+      const dlg = document.getElementById("clearDialog");
+      if (dlg) dlg.classList.remove("active");
     };
 
-    window.closeClearDialog = function() {
-        const dlg = document.getElementById("clear-dialog");
-        if (dlg) dlg.classList.remove("active");
+    window.confirmClearLogs = async function () {
+      if (window.pywebview?.api?.clear_logs) await window.pywebview.api.clear_logs();
+      logs = [];
+      filteredLogs = [];
+      lastLogIndex = -1;
+      renderLogsFull();
+      updateStatsFromAPI();
+      closeClearDialog();
     };
 
-    window.confirmClearLogs = async function() {
-        if (window.pywebview?.api?.clear_logs) await window.pywebview.api.clear_logs();
-        logs = [];
-        filteredLogs = [];
-        renderLogs();
-        updateStatsFromAPI();
-        closeClearDialog();
-    };
-
-    window.exportLogs = function() {
-        const header = window.I18nManager?.getText("diagnostics.export.header") || "时间,级别,消息";
-        const csvContent = "data:text/csv;charset=utf-8," + header + "\n" +
-            logs.map(log => `${log.time},"${log.level}","${log.message.replace(/"/g, '""')}"`).join("\n");
-        const link = document.createElement("a");
-        link.setAttribute("href", encodeURI(csvContent));
-        link.setAttribute("download", `logs_${Date.now()}.csv`);
-        link.click();
+    window.exportLogs = function () {
+      const header = getText("diagnostics.export.header") || "时间,级别,消息";
+      const csvContent = "data:text/csv;charset=utf-8," + header + "\n" +
+        logs.map(log => `${log.time},"${log.level}","${log.message.replace(/"/g, '""')}"`).join("\n");
+      const link = document.createElement("a");
+      link.setAttribute("href", encodeURI(csvContent));
+      link.setAttribute("download", `logs_${Date.now()}.csv`);
+      link.click();
     };
 
     async function updateSystemInfo() {
-        const grid = document.getElementById("systemInfoGroup");
-        if (window.pywebview?.api?.get_system_info) {
-            try {
-                const sysInfo = await window.pywebview.api.get_system_info();
-                const info = {
-                    [getText("diagnostics.system.appVersion") || "应用版本"]: sysInfo.app_version || "Unknown",
-                    [getText("diagnostics.system.os") || "操作系统"]: sysInfo.platform + " " + sysInfo.platform_version,
-                    [getText("diagnostics.system.processor") || "处理器"]: sysInfo.processor || "Unknown",
-                    [getText("diagnostics.system.arch") || "架构"]: sysInfo.architecture,
-                    [getText("diagnostics.system.pythonVersion") || "Python 版本"]: sysInfo.python_version || "Unknown",
-                    [getText("diagnostics.system.startTime") || "启动时间"]: new Date(Date.now() - performance.now()).toLocaleString(),
-                    [getText("diagnostics.system.uptime") || "运行时长"]: formatUptime()
-                };
-                grid.innerHTML = Object.entries(info).map(([key, value]) => `
-                    <div class="settings-item">
-                        <div class="item-info"><span class="item-label">${key}</span></div>
-                        <div class="item-state" style="font-family: 'Cascadia Code', monospace;">${value}</div>
-                    </div>
-                `).join("");
-            } catch (e) { loadFallbackSystemInfo(); }
-        } else loadFallbackSystemInfo();
+      const grid = document.getElementById("systemInfoGroup");
+      if (window.pywebview?.api?.get_system_info) {
+        try {
+          const sysInfo = await window.pywebview.api.get_system_info();
+          const info = [
+            { label: getText("diagnostics.system.appVersion") || "应用版本", value: sysInfo.app_version || "Unknown" },
+            { label: getText("diagnostics.system.os") || "操作系统", value: sysInfo.platform + " " + sysInfo.platform_version },
+            { label: getText("diagnostics.system.processor") || "处理器", value: sysInfo.processor || "Unknown" },
+            { label: getText("diagnostics.system.arch") || "架构", value: sysInfo.architecture },
+            { label: getText("diagnostics.system.pythonVersion") || "Python 版本", value: sysInfo.python_version || "Unknown" },
+            { label: getText("diagnostics.system.startTime") || "启动时间", value: new Date(Date.now() - performance.now()).toLocaleString() },
+            { label: getText("diagnostics.system.uptime") || "运行时长", value: formatUptime() }
+          ];
+          grid.innerHTML = info.map(item => `
+            <div class="info-item">
+              <div class="info-label">${item.label}</div>
+              <div class="info-value">${item.value}</div>
+            </div>
+          `).join("");
+        } catch (e) { loadFallbackSystemInfo(); }
+      } else loadFallbackSystemInfo();
     }
 
     function loadFallbackSystemInfo() {
-        const info = {
-            [getText("diagnostics.system.appVersion") || "应用版本"]: "1.3.5.1",
-            [getText("diagnostics.system.uptime") || "运行时长"]: formatUptime()
-        };
-        document.getElementById("systemInfoGroup").innerHTML = Object.entries(info).map(([key, value]) => `
-            <div class="settings-item">
-                <div class="item-info"><span class="item-label">${key}</span></div>
-                <div class="item-state">${value}</div>
-            </div>
-        `).join("");
+      const info = [
+        { label: getText("diagnostics.system.appVersion") || "应用版本", value: "1.3.5.1" },
+        { label: getText("diagnostics.system.uptime") || "运行时长", value: formatUptime() }
+      ];
+      document.getElementById("systemInfoGroup").innerHTML = info.map(item => `
+        <div class="info-item">
+          <div class="info-label">${item.label}</div>
+          <div class="info-value">${item.value}</div>
+        </div>
+      `).join("");
     }
 
     function formatUptime() {
-        const uptime = Math.round(performance.now() / 1000);
-        const hours = Math.floor(uptime / 3600);
-        const minutes = Math.floor((uptime % 3600) / 60);
-        const seconds = uptime % 60;
-        return `${hours}${getText("diagnostics.system.hours")||"h"} ${minutes}${getText("diagnostics.system.minutes")||"m"} ${seconds}${getText("diagnostics.system.seconds")||"s"}`;
+      const uptime = Math.round(performance.now() / 1000);
+      const hours = Math.floor(uptime / 3600);
+      const minutes = Math.floor((uptime % 3600) / 60);
+      const seconds = uptime % 60;
+      return `${hours}${getText("diagnostics.system.hours") || "h"} ${minutes}${getText("diagnostics.system.minutes") || "m"} ${seconds}${getText("diagnostics.system.seconds") || "s"}`;
     }
 
-    function getText(key) { return window.I18nManager?.getText(key); }
     function escapeHtml(text) {
-        if (!text) return "";
-        return String(text).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+      if (!text) return "";
+      return String(text).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
     }
+
+    initNavIcons();
   </script>
 </body>
+
 </html>

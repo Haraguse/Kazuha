@@ -25,7 +25,7 @@
     },
     "PPT": {
         "AutoHandleInk": true,
-        "PageTurnRateLimit": 2
+        "PageTurnRateLimit": 5
     },
     "General": {
         "AutoShowOverlay": true,
@@ -40,7 +40,8 @@
         "SplashMode": "Always",
         "SplashStartTime": "08:00",
         "SplashStyle": "default",
-        "UseNativeTitleBar": false
+        "UseNativeTitleBar": false,
+        "Language": "zh-CN"
     },
     "Toolbar": {
         "DisabledTools": [],
@@ -73,7 +74,7 @@
             "Microsoft YaHei",
             "PingFang SC"
         ],
-        "ThemeColor": "#ff3275f5"
+        "ThemeColor": "#ffe1ebff"
     },
     "Appearance": {
         "OverlayTheme": "default",
@@ -83,5 +84,9 @@
     "Notifications": {
         "ResourceMonitorInterval": 300,
         "TimerNotifyEnabled": true
+    },
+    "Debug": {
+        "SimulateOverlayUnsupported": false,
+        "RtlTest": false
     }
 }

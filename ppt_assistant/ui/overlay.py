@@ -293,9 +293,13 @@ class InkPromptWindow(QWidget):
     result = Signal(bool)  # True (keep) or False (discard)
 
     def __init__(self, texts, parent=None):
-        super().__init__(parent)
+        # NOTE: Do NOT pass parent here — creating a child widget of QWebEngineView
+        # (a DWM layered window) and then closing it invalidates the parent's alpha
+        # compositing layer, causing the overlay background to turn solid black.
+        super().__init__(None)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setAttribute(Qt.WA_DeleteOnClose)
 
         # Make it full screen
         screen = QGuiApplication.primaryScreen()
@@ -888,6 +892,11 @@ class OverlayWindow(QWebEngineView):
         self._restore_linux_webengine_env_override()
         self._page_ready = bool(ok)
         print(f"[Overlay] loadFinished ok={bool(ok)}", flush=True)
+        if not self._wayland_compatible_mode:
+            try:
+                self.page().setBackgroundColor(Qt.transparent)
+            except Exception:
+                pass
         if self._page_ready:
             self._ensure_post_load_initialized()
             self._flush_pending_scripts()
@@ -1434,20 +1443,61 @@ class OverlayWindow(QWebEngineView):
         print(f"[Overlay] show_ink_prompt called, creating InkPromptWindow", flush=True)
         texts = self._get_ink_prompt_texts()
         
-        # Create and show the independent dialog
-        self._ink_prompt_window = InkPromptWindow(texts, parent=self)
+        # Create as a top-level window (no parent) to avoid corrupting the overlay's
+        # DWM layered-window alpha compositing when this dialog is later closed.
+        self._ink_prompt_window = InkPromptWindow(texts, parent=None)
         self._ink_prompt_window.result.connect(self._on_ink_prompt_window_result)
         self._ink_prompt_window.show()
         
     def _on_ink_prompt_window_result(self, result):
         print(f"[Overlay] InkPromptWindow result: {result}", flush=True)
-        # Clean up
         if hasattr(self, '_ink_prompt_window') and self._ink_prompt_window:
             self._ink_prompt_window.close()
             self._ink_prompt_window = None
-        # Emit the result through the ink_prompt_result signal
-        # result is True (keep) or False (discard)
+        # Emit the result first, then schedule transparency restoration.
         self.ink_prompt_result.emit(result)
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(50, self._restore_transparency_after_ink_prompt)
+
+    def _restore_transparency_after_ink_prompt(self):
+        """Restore overlay window transparency attributes after ink prompt dialog closes.
+
+        On Windows, DWM may reset the alpha channel of the overlay's layered window
+        after any compositing event (e.g. a child/sibling window closing).  The most
+        reliable way to re-establish full transparency is to hide the window and
+        re-show it so that DWM rebuilds the compositing surface from scratch.
+        """
+        try:
+            if self._wayland_compatible_mode:
+                return
+            # Re-assert Qt transparency attributes (no-op if already set, but safe).
+            self.setAttribute(Qt.WA_TranslucentBackground)
+            self.setAttribute(Qt.WA_NoSystemBackground)
+            try:
+                self.page().setBackgroundColor(Qt.transparent)
+            except Exception:
+                pass
+            if sys.platform == "win32":
+                # On Windows a hide→show cycle forces DWM to recompose the layered
+                # window surface, which is the only reliable way to clear the black
+                # alpha artefact after a peer/child window has been dismissed.
+                was_visible = self.isVisible()
+                if was_visible:
+                    self.hide()
+                    from ppt_assistant.core.platform_integration import remove_window_border
+                    win_id = self.winId()
+                    if win_id:
+                        remove_window_border(win_id)
+                    self.show()
+                else:
+                    self.show()
+            else:
+                if not self.isVisible():
+                    self.show()
+                self.repaint()
+            print("[Overlay] Transparency restored after ink prompt", flush=True)
+        except Exception as e:
+            print(f"[Overlay] Error restoring transparency: {e}", flush=True)
 
     def _get_ink_prompt_texts(self):
         return {
@@ -1623,15 +1673,19 @@ class OverlayWindow(QWebEngineView):
 
     def set_active_on_slideshow(self, active: bool, animate: bool = True):
         print(f"[Overlay] set_active_on_slideshow({active}, animate={animate})")
-        import traceback
-
-        traceback.print_stack(limit=5)
         self._active_on_slideshow = bool(active)
         if self._active_on_slideshow:
             try:
                 self._ensure_runtime_initialized()
                 print(f"[Overlay] Calling show(), isVisible before: {self.isVisible()}")
                 self.show()
+                if not self._wayland_compatible_mode:
+                    self.setAttribute(Qt.WA_TranslucentBackground)
+                    self.setAttribute(Qt.WA_NoSystemBackground)
+                    try:
+                        self.page().setBackgroundColor(Qt.transparent)
+                    except Exception:
+                        pass
                 print(f"[Overlay] After show(), isVisible: {self.isVisible()}")
                 self.raise_()
                 self._ensure_topmost()

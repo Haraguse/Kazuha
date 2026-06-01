@@ -12,7 +12,4 @@
   <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
     <SourceRoot Include="h:\Dev\Kazuha\.nuget\packages\" />
   </ItemGroup>
-  <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <Import Project="$(NuGetPackageRoot)\microsoft.windows.cswinrt\2.1.5\build\Microsoft.Windows.CsWinRT.props" Condition="Exists('$(NuGetPackageRoot)\microsoft.windows.cswinrt\2.1.5\build\Microsoft.Windows.CsWinRT.props')" />
-  </ImportGroup>
 </Project>

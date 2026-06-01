@@ -1,10 +1,9 @@
 {
   "version": 2,
-  "dgSpecHash": "siBQe3C5Etk=",
+  "dgSpecHash": "TxXcAakh1r0=",
   "success": true,
   "projectFilePath": "h:\\Dev\\Kazuha\\scripts\\smtc_helper\\SmtcHelper.csproj",
   "expectedPackageFiles": [
-    "h:\\Dev\\Kazuha\\.nuget\\packages\\microsoft.windows.cswinrt\\2.1.5\\microsoft.windows.cswinrt.2.1.5.nupkg.sha512",
     "h:\\Dev\\Kazuha\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.56\\microsoft.windows.sdk.net.ref.10.0.19041.56.nupkg.sha512"
   ],
   "logs": []
