@@ -40,7 +40,8 @@
         "SplashMode": "Always",
         "SplashStartTime": "08:00",
         "SplashStyle": "default",
-        "UseNativeTitleBar": false
+        "UseNativeTitleBar": false,
+        "Language": "zh-CN"
     },
     "Toolbar": {
         "DisabledTools": [],
@@ -73,6 +74,7 @@
             "Microsoft YaHei",
             "PingFang SC"
         ],
+        "ThemeColor": "#ffe1ebff"
         "ThemeColor": "#ffe1ebff"
     },
     "Appearance": {
