@@ -291,10 +291,10 @@ def _load_settings_json():
             raw = f.read()
     except Exception:
         return {}
-    for enc in ("utf-8", "utf-8-sig", "gbk", "gb18030", "cp1252"):
+    for enc in ("utf-8-sig", "utf-8", "gbk"):
         try:
-            text = raw.decode(enc, errors="ignore")
-        except Exception:
+            text = raw.decode(enc)
+        except UnicodeDecodeError:
             continue
         try:
             data = json.loads(text)
@@ -373,7 +373,10 @@ def _apply_theme_and_color(theme_value):
 _apply_theme_and_color(cfg.themeMode.value)
 
 
-def _save_cfg():
+_save_debounce_timer = None
+
+
+def _do_save_cfg():
     old_data = _load_settings_json()
 
     qconfig.save()
@@ -396,6 +399,29 @@ def _save_cfg():
             json.dump(merged, f, indent=4, ensure_ascii=False)
     except Exception:
         pass
+
+
+def _ensure_save_debounce_timer():
+    global _save_debounce_timer
+    if _save_debounce_timer is not None:
+        return
+    from PySide6.QtCore import QTimer
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance()
+    if app is None:
+        return
+    _save_debounce_timer = QTimer(app)
+    _save_debounce_timer.setSingleShot(True)
+    _save_debounce_timer.setInterval(500)
+    _save_debounce_timer.timeout.connect(_do_save_cfg)
+
+
+def _save_cfg():
+    _ensure_save_debounce_timer()
+    if _save_debounce_timer is None:
+        _do_save_cfg()
+        return
+    _save_debounce_timer.start()
 
 
 def _on_theme_changed(theme):
@@ -455,7 +481,6 @@ try:
         platform_set_run_at_startup(True)
 except Exception:
     pass
-_save_cfg()
 
 
 def reload_cfg():

@@ -191,6 +191,15 @@ class PPTWorker(QObject):
         # Animation click step tracking
         self._last_anim_click_index = -1
         self._last_anim_click_count = -1
+        # COM cooldown tracking
+        self._last_com_fail_time = {}
+        self._com_cooldown_seconds = 5.0
+        self._cached_com_apps = {}
+        self._last_com_success_time = {}
+        # Video state caching
+        self._video_cached_slide = 0
+        self._cached_media_shape = None
+        self._cached_video_length = 0.0
 
     def _consume_page_turn_token(self) -> bool:
         now = time.monotonic()
@@ -244,6 +253,11 @@ class PPTWorker(QObject):
     def _get_window_process_name(self, hwnd: int) -> str:
         if not hwnd or not win32process or not win32api:
             return ""
+        cache_key = int(hwnd)
+        if hasattr(self, '_process_name_cache'):
+            cached = self._process_name_cache.get(cache_key)
+            if cached is not None:
+                return cached
         try:
             _, pid = win32process.GetWindowThreadProcessId(int(hwnd))
             if not pid:
@@ -259,7 +273,11 @@ class PPTWorker(QObject):
                     win32api.CloseHandle(handle)
                 except Exception:
                     pass
-            return self._normalize_process_name(exe)
+            name = self._normalize_process_name(exe)
+            if not hasattr(self, '_process_name_cache'):
+                self._process_name_cache = {}
+            self._process_name_cache[cache_key] = name
+            return name
         except Exception:
             return ""
 
@@ -355,10 +373,16 @@ class PPTWorker(QObject):
 
     def _safe_hwnd_from_ss_win(self, ss_win) -> int:
         try:
+            ss_id = id(ss_win)
+            if ss_id == getattr(self, '_cached_ss_id', 0):
+                return self._cached_ss_hwnd
             val = getattr(ss_win, "HWND", 0)
             if callable(val):
                 val = val()
-            return int(val or 0)
+            hwnd = int(val or 0)
+            self._cached_ss_id = ss_id
+            self._cached_ss_hwnd = hwnd
+            return hwnd
         except Exception:
             return 0
 
@@ -1388,9 +1412,17 @@ class PPTWorker(QObject):
     def _safe_get_active_object(self, prog_id: str):
         if not win32com:
             return None
+        now = time.monotonic()
+        last_fail = self._last_com_fail_time.get(prog_id, 0.0)
+        if last_fail > 0 and (now - last_fail) < self._com_cooldown_seconds:
+            return None
         try:
-            return win32com.client.GetActiveObject(prog_id)
+            app = win32com.client.GetActiveObject(prog_id)
+            self._last_com_fail_time.pop(prog_id, None)
+            self._last_com_success_time[prog_id] = now
+            return app
         except Exception:
+            self._last_com_fail_time[prog_id] = now
             return None
 
     def _safe_get_active_object_any(self, prog_ids):
@@ -1520,7 +1552,8 @@ class PPTWorker(QObject):
                 return
 
             # 1. Try PowerPoint
-            self.ppt_app = self._safe_get_active_object("PowerPoint.Application")
+            if self._active_kind != "ppt" or self.ppt_app is None:
+                self.ppt_app = self._safe_get_active_object("PowerPoint.Application")
             if not self.ppt_app:
                 self._handle_stop("ppt")
                 self._check_wps_state()
@@ -1710,7 +1743,8 @@ class PPTWorker(QObject):
                 )
             return
         try:
-            self.wps_app = self._safe_get_active_object("KWPP.Application")
+            if self._active_kind != "wps" or self.wps_app is None:
+                self.wps_app = self._safe_get_active_object("KWPP.Application")
         except BaseException:
             self.wps_app = None
             self._handle_stop("wps")
@@ -1760,7 +1794,8 @@ class PPTWorker(QObject):
                 )
             return
         try:
-            self.yozo_app = self._safe_get_active_object_any(YOZO_COM_PROG_IDS)
+            if self._active_kind != "yozo" or self.yozo_app is None:
+                self.yozo_app = self._safe_get_active_object_any(YOZO_COM_PROG_IDS)
         except BaseException:
             self.yozo_app = None
             self._handle_stop("yozo")
@@ -1983,27 +2018,32 @@ class PPTWorker(QObject):
             view = ss_win.View
             try:
                 slide = view.Slide
+                slide_index = self._extract_slide_position(view)
                 shapes = slide.Shapes
                 count = shapes.Count
-                found_video = False
-                for i in range(1, count + 1):
-                    shape = shapes.Item(i)
-                    media = getattr(shape, "MediaFormat", None)
-                    if media is None:
-                        continue
 
-                    length = getattr(media, "Length", 0)
-                    position = getattr(media, "Position", 0)
+                if slide_index != self._video_cached_slide or self._cached_media_shape is None:
+                    self._video_cached_slide = slide_index
+                    self._cached_media_shape = None
+                    self._cached_video_length = 0.0
+                    for i in range(1, count + 1):
+                        shape = shapes.Item(i)
+                        media = getattr(shape, "MediaFormat", None)
+                        if media is None:
+                            continue
+                        length = getattr(media, "Length", 0)
+                        if length and float(length) > 0:
+                            self._cached_media_shape = media
+                            self._cached_video_length = float(length)
+                            break
 
-                    if length and float(length) > 0:
-                        l = float(length)
-                        p = float(position or 0.0)
-                        ratio = p / l if l > 0 else 0
-                        self.video_state_changed.emit(ratio, p, l)
-                        found_video = True
-                        break
-
-                if not found_video:
+                if self._cached_media_shape is not None:
+                    position = getattr(self._cached_media_shape, "Position", 0)
+                    p = float(position or 0.0)
+                    l = self._cached_video_length
+                    ratio = p / l if l > 0 else 0
+                    self.video_state_changed.emit(ratio, p, l)
+                else:
                     self.video_state_changed.emit(0.0, 0.0, 0.0)
             except Exception:
                 pass

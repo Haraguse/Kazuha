@@ -159,9 +159,13 @@ def run_memory_cleaner(parent_pid: int, interval_seconds: int = 30) -> None:
     gc.set_threshold(700, 10, 10)
     gc.enable()
 
+    check_interval = max(5, interval_seconds)
+    aggressive_interval = max(2, interval_seconds // 3)
+
     print(
         f"[MemoryCleaner] Started, parent_pid={parent_pid}, "
-        f"target_total={_MEMORY_LIMIT_MB}MB, self_limit={_SELF_LIMIT_MB}MB",
+        f"target_total={_MEMORY_LIMIT_MB}MB, self_limit={_SELF_LIMIT_MB}MB, "
+        f"interval={check_interval}s",
         flush=True,
     )
 
@@ -170,7 +174,7 @@ def run_memory_cleaner(parent_pid: int, interval_seconds: int = 30) -> None:
 
     while True:
         try:
-            time.sleep(_CHECK_INTERVAL_S)
+            time.sleep(check_interval)
             now_mono = time.monotonic()
 
             if not _is_process_alive(parent_pid):
@@ -251,7 +255,7 @@ def run_memory_cleaner(parent_pid: int, interval_seconds: int = 30) -> None:
                     )
                     suppress_rounds = 0
                     while total_mb > _MEMORY_LIMIT_MB:
-                        time.sleep(_AGGRESSIVE_INTERVAL_S)
+                        time.sleep(aggressive_interval)
                         _aggressive_gc()
                         _force_trim_pids(webview_pids)
                         _trim_pid_windows(parent_pid)

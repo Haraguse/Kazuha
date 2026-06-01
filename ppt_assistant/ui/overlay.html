@@ -67,7 +67,8 @@
             box-sizing: border-box;
             font-size: 12px;
             font-weight: 900;
-            /* backdrop-filter: blur(10px); */
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
             opacity: 0;
             transition: opacity 0.3s;
             border-bottom: 1px solid var(--overlay-status-sep);
@@ -393,8 +394,8 @@
             overflow: hidden;
             /* box-shadow: var(--overlay-page-shadow); */
             pointer-events: auto;
-            /* backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px); */
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
             transition: background 0.3s, border-color 0.3s;
         }
 
@@ -705,8 +706,14 @@
             /* box-shadow: var(--overlay-toolbar-shadow); */
             transition: opacity 0.3s, transform 0.3s;
             position: relative;
-            /* backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px); */
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+        }
+
+        @supports not (backdrop-filter: blur(1px)) {
+            #toolbar {
+                background: var(--overlay-toolbar-bg);
+            }
         }
 
         .compat-label {
@@ -841,8 +848,8 @@
             border-radius: 12px;
             padding: 16px;
             box-shadow: var(--overlay-popup-shadow);
-            /* backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px); */
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.2s, transform 0.2s;
@@ -1107,8 +1114,8 @@
             flex-direction: column;
             gap: 12px;
             box-shadow: var(--overlay-popup-shadow);
-            /* backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px); */
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.2s, transform 0.2s;
@@ -1873,6 +1880,14 @@
             const toolbarOpacity = currentConfig.toolbarOpacity !== undefined ? currentConfig.toolbarOpacity : 1.0;
             const sidePageOpacity = currentConfig.sidePageOpacity !== undefined ? currentConfig.sidePageOpacity : 1.0;
             
+            // Check if backdrop-filter is supported for glassmorphism effect
+            const supportsBackdropFilter = CSS.supports('backdrop-filter: blur(1px)') || 
+                                           CSS.supports('-webkit-backdrop-filter: blur(1px)');
+            
+            // For glassmorphism effect, reduce base opacity to make background semi-transparent
+            const glassToolbarOpacity = supportsBackdropFilter ? Math.min(toolbarOpacity, 0.6) : toolbarOpacity;
+            const glassSidePageOpacity = supportsBackdropFilter ? Math.min(sidePageOpacity, 0.6) : sidePageOpacity;
+            
             // Get base colors from CSS variables
             const rootStyle = getComputedStyle(document.documentElement);
             const toolbarBgVar = rootStyle.getPropertyValue('--overlay-toolbar-bg').trim();
@@ -1906,15 +1921,32 @@
                 // Remove inline background-color if present (from previous version)
                 toolbar.style.removeProperty('background-color');
                 // Set the variable locally to override global value but respect CSS rules
-                const newColor = resolveColor(toolbarBgVar, toolbarOpacity);
+                const newColor = resolveColor(toolbarBgVar, glassToolbarOpacity);
                 toolbar.style.setProperty('--overlay-toolbar-bg', newColor);
             }
             
             document.querySelectorAll('.flipper').forEach(el => {
                 el.style.removeProperty('background-color');
-                const newColor = resolveColor(pageBgVar, sidePageOpacity);
+                const newColor = resolveColor(pageBgVar, glassSidePageOpacity);
                 el.style.setProperty('--overlay-page-bg', newColor);
             });
+            
+            // Apply glassmorphism to status bar and popup panels
+            if (supportsBackdropFilter) {
+                const statusBar = document.getElementById('status-bar');
+                if (statusBar) {
+                    const statusBgVar = rootStyle.getPropertyValue('--overlay-status-bg').trim();
+                    const newStatusColor = resolveColor(statusBgVar, 0.65);
+                    statusBar.style.setProperty('--overlay-status-bg', newStatusColor);
+                }
+                
+                // Popup panels (color picker, eraser settings, etc.)
+                document.querySelectorAll('#color-picker, #eraser-settings, .app-launcher-panel').forEach(el => {
+                    const popupBgVar = rootStyle.getPropertyValue('--overlay-popup-bg').trim();
+                    const newPopupColor = resolveColor(popupBgVar, 0.65);
+                    el.style.setProperty('--overlay-popup-bg', newPopupColor);
+                });
+            }
         }
 
         function updateConfig(config) {
