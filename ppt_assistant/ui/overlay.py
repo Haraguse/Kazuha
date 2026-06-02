@@ -2,6 +2,7 @@ import os
 import sys
 import math
 import json
+import time
 import ctypes
 import tempfile
 import importlib.util
@@ -869,7 +870,12 @@ class OverlayWindow(QWebEngineView):
         self._last_sent_smtc_artwork_data_url = None
         self._smtc_thread = None
         self._stop_smtc = False
+        self._smtc_poll_enabled = False
         self.status_timer = None
+        self._current_page = 1
+        self._total_pages = 1
+        self._thumbnail_prefetch_before = 2
+        self._thumbnail_prefetch_after = 4
 
         screen = QGuiApplication.primaryScreen()
         if screen:
@@ -1193,13 +1199,9 @@ class OverlayWindow(QWebEngineView):
             return
         self._post_load_initialized = True
         print("[Overlay] Initializing post-load services...", flush=True)
-        self._start_smtc_thread()
         self.load_plugins()
         self.bind_config_signals()
-        if self.status_timer is None:
-            self.status_timer = QTimer(self)
-            self.status_timer.timeout.connect(self._update_system_status)
-            self.status_timer.start(2000)
+        self._refresh_status_services()
         self.apply_initial_state()
         print("[Overlay] Post-load services ready.", flush=True)
 
@@ -1254,6 +1256,40 @@ class OverlayWindow(QWebEngineView):
         else:
             if self._zorder_timer is not None:
                 self._zorder_timer.stop()
+
+    def _wants_status_updates(self) -> bool:
+        try:
+            return bool(
+                self._page_ready
+                and self.isVisible()
+                and self._active_on_slideshow
+                and cfg.showStatusBar.value
+            )
+        except Exception:
+            return False
+
+    def _wants_smtc_updates(self) -> bool:
+        try:
+            return bool(self._wants_status_updates() and cfg.statusBarShowMusic.value)
+        except Exception:
+            return False
+
+    def _refresh_status_services(self):
+        wants_status = self._wants_status_updates()
+        self._smtc_poll_enabled = self._wants_smtc_updates()
+
+        if wants_status:
+            if self.status_timer is None:
+                self.status_timer = QTimer(self)
+                self.status_timer.timeout.connect(self._update_system_status)
+            if not self.status_timer.isActive():
+                self.status_timer.start(5000)
+            self._update_system_status()
+        elif self.status_timer is not None:
+            self.status_timer.stop()
+
+        if self._smtc_poll_enabled:
+            self._start_smtc_thread()
 
     def _on_render_process_terminated(self, status, exit_code):
         self._restore_linux_webengine_env_override()
@@ -1373,23 +1409,42 @@ class OverlayWindow(QWebEngineView):
 
     def on_start_background_caching(self, total_pages):
         """Start background caching of thumbnails"""
-        if self._background_thumbnail_timer is not None:
-            return  # Already running
+        try:
+            self._total_pages = max(1, int(total_pages))
+        except Exception:
+            self._total_pages = max(1, int(self._total_pages or 1))
 
-        # Build list of pages to cache (excluding already cached ones)
+        # WPS bridge thumbnail fetching is currently coarse-grained, so avoid
+        # speculative background requests that would amplify memory/IO pressure.
+        if getattr(self.monitor, "_active_kind", None) == "wps":
+            return
+
+        candidates = []
+        start = max(1, self._current_page - self._thumbnail_prefetch_before)
+        end = min(
+            self._total_pages,
+            self._current_page + self._thumbnail_prefetch_after,
+        )
+        for page in range(start, end + 1):
+            if page != self._current_page:
+                candidates.append(page)
+
         self._pending_thumbnails = [
-            i for i in range(1, total_pages + 1) if i not in self._cached_thumbnails
+            i for i in candidates if i not in self._cached_thumbnails
         ]
 
-        # Start timer for background caching
-        self._background_thumbnail_timer = QTimer(self)
-        self._background_thumbnail_timer.setSingleShot(False)
-        self._background_thumbnail_timer.timeout.connect(
-            self._process_next_background_thumbnail
-        )
-        self._background_thumbnail_timer.start(
-            500
-        )  # 500ms interval between generations
+        if not self._pending_thumbnails:
+            if self._background_thumbnail_timer is not None:
+                self._background_thumbnail_timer.stop()
+            return
+
+        if self._background_thumbnail_timer is None:
+            self._background_thumbnail_timer = QTimer(self)
+            self._background_thumbnail_timer.setSingleShot(False)
+            self._background_thumbnail_timer.timeout.connect(
+                self._process_next_background_thumbnail
+            )
+        self._background_thumbnail_timer.start(700)
 
     def _process_next_background_thumbnail(self):
         """Process the next thumbnail in the background queue"""
@@ -1411,12 +1466,18 @@ class OverlayWindow(QWebEngineView):
         self.request_thumbnail.emit(next_page)
 
     def on_slide_changed(self, current, total):
+        try:
+            self._current_page = max(1, int(current))
+            self._total_pages = max(self._current_page, int(total))
+        except Exception:
+            pass
         # Reset animation state first so the previous slide's pending-animation
         # flag never leaks into the new slide's button state.  The real value
         # will arrive via animation_step_changed within the next poll cycle (~200ms).
         reset = "if (typeof updateAnimationInfo === 'function') updateAnimationInfo(false);"
         update = f"if (typeof updatePageInfo === 'function') updatePageInfo({current}, {total});"
         self._run_javascript(reset + " " + update)
+        self.on_start_background_caching(self._total_pages)
 
     def on_animation_step_changed(self, click_index, click_count):
         """Called when PPT animation click index/count changes.
@@ -1525,28 +1586,37 @@ class OverlayWindow(QWebEngineView):
         def smtc_loop():
             api = get_system_api()
             while not self._stop_smtc:
+                if not self._smtc_poll_enabled:
+                    time.sleep(0.5)
+                    continue
                 try:
                     info = api.get_media_info()
                     self._smtc_info = info
                 except Exception:
                     pass
-                for _ in range(20):
+                for _ in range(10):
                     if self._stop_smtc:
                         break
-                    import time
+                    time.sleep(0.2)
 
-                    time.sleep(0.1)
-
+        if self._smtc_thread is not None and self._smtc_thread.is_alive():
+            return
+        self._stop_smtc = False
         self._smtc_thread = threading.Thread(target=smtc_loop, daemon=True)
         self._smtc_thread.start()
 
     def _update_system_status(self):
+        if not self._wants_status_updates():
+            return
         try:
             # Battery
-            battery = psutil.sensors_battery()
             is_desktop = False
             battery_percent = 100
             battery_charging = False
+            if cfg.statusBarShowBattery.value:
+                battery = psutil.sensors_battery()
+            else:
+                battery = None
 
             if battery:
                 battery_percent = int(battery.percent)
@@ -1555,23 +1625,32 @@ class OverlayWindow(QWebEngineView):
                 is_desktop = True
 
             # Network
-            net_stats = psutil.net_if_stats()
             network_online = False
-            for iface, stats in net_stats.items():
-                if stats.isup and "loopback" not in iface.lower():
-                    network_online = True
-                    break
+            if cfg.statusBarShowNetwork.value:
+                net_stats = psutil.net_if_stats()
+                for iface, stats in net_stats.items():
+                    if stats.isup and "loopback" not in iface.lower():
+                        network_online = True
+                        break
 
             volume = -1
 
-            smtc_status = self._smtc_info.get("status", "")
-            smtc_title = self._smtc_info.get("title", "")
-            smtc_artist = self._smtc_info.get("artist", "")
-            smtc_position_ms = int(self._smtc_info.get("position_ms", 0) or 0)
-            smtc_duration_ms = int(self._smtc_info.get("duration_ms", 0) or 0)
-            smtc_artwork_data_url = self._smtc_info.get("artwork_data_url", "") or ""
-
-            print(f"[Overlay] SMTC: status={smtc_status}, title={smtc_title}, artist={smtc_artist}")
+            if cfg.statusBarShowMusic.value:
+                smtc_status = self._smtc_info.get("status", "")
+                smtc_title = self._smtc_info.get("title", "")
+                smtc_artist = self._smtc_info.get("artist", "")
+                smtc_position_ms = int(self._smtc_info.get("position_ms", 0) or 0)
+                smtc_duration_ms = int(self._smtc_info.get("duration_ms", 0) or 0)
+                smtc_artwork_data_url = (
+                    self._smtc_info.get("artwork_data_url", "") or ""
+                )
+            else:
+                smtc_status = ""
+                smtc_title = ""
+                smtc_artist = ""
+                smtc_position_ms = 0
+                smtc_duration_ms = 0
+                smtc_artwork_data_url = ""
 
             data = {
                 "is_desktop": is_desktop,
@@ -1883,6 +1962,16 @@ class OverlayWindow(QWebEngineView):
                 return
 
     def bind_config_signals(self):
+        cfg.themeMode.valueChanged.connect(lambda *_: self.update_theme())
+        cfg.themeId.valueChanged.connect(lambda *_: self.update_theme())
+        cfg.showStatusBar.valueChanged.connect(lambda *_: self.update_config())
+        cfg.showStatusBar.valueChanged.connect(lambda *_: self._refresh_status_services())
+        cfg.statusBarShowBattery.valueChanged.connect(lambda *_: self.update_config())
+        cfg.statusBarShowBattery.valueChanged.connect(lambda *_: self._refresh_status_services())
+        cfg.statusBarShowNetwork.valueChanged.connect(lambda *_: self.update_config())
+        cfg.statusBarShowNetwork.valueChanged.connect(lambda *_: self._refresh_status_services())
+        cfg.statusBarShowMusic.valueChanged.connect(lambda *_: self.update_config())
+        cfg.statusBarShowMusic.valueChanged.connect(lambda *_: self._refresh_status_services())
         cfg.toolbarOrder.valueChanged.connect(lambda *_: self.update_config())
         cfg.toolbarPosition.valueChanged.connect(lambda *_: self.update_config())
         cfg.flipperPosition.valueChanged.connect(lambda *_: self.update_config())
@@ -1916,7 +2005,13 @@ class OverlayWindow(QWebEngineView):
             self.page().setBackgroundColor(Qt.transparent)
         self.update_theme()
         self._start_memory_timer()
+        self._refresh_status_services()
         print(f"[Overlay] After showEvent, window visible: {self.isVisible()}")
+
+    def hideEvent(self, event):
+        self._stop_memory_timer()
+        self._refresh_status_services()
+        super().hideEvent(event)
 
     def _start_memory_timer(self):
         try:
@@ -1942,7 +2037,6 @@ class OverlayWindow(QWebEngineView):
     def _on_memory_tick(self):
         try:
             import gc
-            gc.collect(2)
 
             page = self.page()
             if page is not None:
@@ -1950,30 +2044,14 @@ class OverlayWindow(QWebEngineView):
                     page.clearMemoryCaches()
                 except Exception:
                     pass
-
-            if sys.platform == "win32":
-                try:
-                    kernel32 = ctypes.windll.kernel32
-                    PROCESS_SET_QUOTA = 0x0100
-                    PROCESS_QUERY_INFORMATION = 0x0400
-                    handle = kernel32.OpenProcess(
-                        PROCESS_SET_QUOTA | PROCESS_QUERY_INFORMATION,
-                        False,
-                        os.getpid(),
-                    )
-                    if handle:
-                        try:
-                            kernel32.SetProcessWorkingSetSize(handle, -1, -1)
-                        finally:
-                            kernel32.CloseHandle(handle)
-                except Exception:
-                    pass
+            gc.collect(2)
         except Exception:
             pass
 
     def closeEvent(self, event):
         self._stop_memory_timer()
         self._stop_smtc = True
+        self._smtc_poll_enabled = False
         if self._crash_recovery_timer is not None:
             try:
                 self._crash_recovery_timer.stop()
@@ -2016,6 +2094,7 @@ class OverlayWindow(QWebEngineView):
                 print(f"[Overlay] After show(), isVisible: {self.isVisible()}")
                 self.raise_()
                 self._ensure_topmost()
+                self._refresh_status_services()
                 print(f"[Overlay] After raise/topmost, isVisible: {self.isVisible()}")
             except Exception as e:
                 print(f"[Overlay] Error in set_active_on_slideshow(True): {e}")
@@ -2031,6 +2110,7 @@ class OverlayWindow(QWebEngineView):
                     pass
                 print("[Overlay] Calling hide()")
                 self.hide()
+                self._refresh_status_services()
             except Exception as e:
                 print(f"[Overlay] Error in set_active_on_slideshow(False): {e}")
 
@@ -2066,6 +2146,7 @@ class OverlayWindow(QWebEngineView):
     def cleanup(self):
         self._stop_memory_timer()
         self._stop_smtc = True
+        self._smtc_poll_enabled = False
         if self._smtc_thread:
             self._smtc_thread.join(timeout=1.0)
         if self._zorder_timer is not None:

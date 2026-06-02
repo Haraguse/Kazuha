@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -2718,11 +2718,6 @@
       -webkit-mask-image: url('../../../icons/timer.svg');
     }
 
-    .toolbar-preview-btn-icon.icon-sec_random_roll_call::before {
-      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M480-80q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113T480-80Zm0-80q33 0 56.5-23.5T560-240q0-33-23.5-56.5T480-320q-33 0-56.5 23.5T400-240q0 33 23.5 56.5T480-160ZM200-440q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm560 0q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35ZM136-200q-23 0-39.5-16.5T80-256q0-80 56-136t136-56q42 0 80 16.5t68 46.5q-60 18-100 66t-53 121H136Zm557 0q-13-73-53-121t-100-66q30-30 68-46.5T688-448q80 0 136 56t56 136q0 23-16.5 39.5T824-200H693Z'/%3E%3C/svg%3E");
-      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M480-80q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113T480-80Zm0-80q33 0 56.5-23.5T560-240q0-33-23.5-56.5T480-320q-33 0-56.5 23.5T400-240q0 33 23.5 56.5T480-160ZM200-440q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm560 0q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35ZM136-200q-23 0-39.5-16.5T80-256q0-80 56-136t136-56q42 0 80 16.5t68 46.5q-60 18-100 66t-53 121H136Zm557 0q-13-73-53-121t-100-66q30-30 68-46.5T688-448q80 0 136 56t56 136q0 23-16.5 39.5T824-200H693Z'/%3E%3C/svg%3E");
-    }
-
     .toolbar-preview-btn-icon.icon-exit::before {
       mask-image: url('../../../icons/Minimize.svg');
       -webkit-mask-image: url('../../../icons/Minimize.svg');
@@ -3117,6 +3112,11 @@
     .toolbar-preview-root .icon-timer {
       -webkit-mask-image: url('../../../icons/timer.svg');
       mask-image: url('../../../icons/timer.svg');
+    }
+
+    .toolbar-preview-root .icon-sec_random_roll_call {
+      -webkit-mask-image: url('../../../icons/person.svg');
+      mask-image: url('../../../icons/person.svg');
     }
 
     .toolbar-preview-root .icon-app {
@@ -12491,8 +12491,9 @@
 
     function setThemeId(themeId) {
       if (!settings.Appearance) settings.Appearance = {};
+      if (settings.Appearance.ThemeId === themeId) return;
       settings.Appearance.ThemeId = themeId;
-      ThemeSystem.applyTheme(themeId, settings.Appearance.ThemeMode || "Light");
+      applyAppearanceThemeToUI();
       if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
         window.pywebview.api.save_setting("Appearance", "ThemeId", themeId);
       }
@@ -13378,6 +13379,29 @@
       });
     }
 
+    function applyAppearanceThemeToUI(options = {}) {
+      const refreshThemeGallery = options.refreshThemeGallery !== false;
+      const refreshToolbarPreview = options.refreshToolbarPreview !== false;
+      const mode = settings.Appearance && settings.Appearance.ThemeMode ? settings.Appearance.ThemeMode : "Light";
+      const themeSelectContainer = document.getElementById("theme-Light")?.parentElement;
+      if (themeSelectContainer) {
+        themeSelectContainer.querySelectorAll(".theme-option").forEach(opt => opt.classList.remove("active"));
+      }
+      const activeOpt = document.getElementById(`theme-${mode}`);
+      if (activeOpt) activeOpt.classList.add("active");
+
+      MonetTheme.palette = normalizeMonetPalette(settings.Appearance?.MonetPalette);
+      const themeId = settings.Appearance && settings.Appearance.ThemeId ? settings.Appearance.ThemeId : "default";
+      ThemeSystem.applyTheme(themeId, mode);
+      if (refreshThemeGallery) {
+        ThemeSystem.renderThemeSelect("color-scheme-select", themeId, mode);
+      }
+      if (refreshToolbarPreview) {
+        renderToolbarPreview();
+      }
+      initializeThemeMonitoring();
+    }
+
     function applySettingsToUI() {
       isHydratingSettingsUI = true;
       try {
@@ -13522,23 +13546,10 @@
           boardBackgroundEl.value = boardBackgroundColor;
         }
 
-        const mode = settings.Appearance && settings.Appearance.ThemeMode ? settings.Appearance.ThemeMode : "Light";
-        const themeSelectContainer = document.getElementById("theme-Light")?.parentElement;
-        if (themeSelectContainer) {
-          themeSelectContainer.querySelectorAll(".theme-option").forEach(opt => opt.classList.remove("active"));
-        }
-        const activeOpt = document.getElementById(`theme-${mode}`);
-        if (activeOpt) activeOpt.classList.add("active");
-
         const activeLangOpt = document.querySelector(`.language-option[data-lang="${currentLanguage}"]`);
         if (activeLangOpt) activeLangOpt.classList.add("active");
 
-        MonetTheme.palette = normalizeMonetPalette(settings.Appearance?.MonetPalette);
-        const themeId = settings.Appearance && settings.Appearance.ThemeId ? settings.Appearance.ThemeId : "default";
-        ThemeSystem.applyTheme(themeId, mode);
-        ThemeSystem.renderThemeSelect("color-scheme-select", themeId, mode);
-
-        renderToolbarPreview();
+        applyAppearanceThemeToUI();
         initToolbarPosition();
         applyDebugSettings();
         const passwordEl = document.getElementById("input-security-password");
@@ -13607,7 +13618,6 @@
         }
 
         checkLockState();
-        initializeThemeMonitoring();
       } finally {
         isHydratingSettingsUI = false;
       }
@@ -13615,9 +13625,10 @@
 
     function setTheme(mode) {
       if (!settings.Appearance) settings.Appearance = {};
+      if (settings.Appearance.ThemeMode === mode) return;
       settings.Appearance.ThemeMode = mode;
       lastAppliedThemeVariant = null; // Reset to trigger theme update
-      applySettingsToUI();
+      applyAppearanceThemeToUI();
       if (window.pywebview && window.pywebview.api.save_setting) {
         window.pywebview.api.save_setting("Appearance", "ThemeMode", mode);
       }
@@ -15050,7 +15061,7 @@
       if (!settings.Appearance) settings.Appearance = {};
       if (mode) settings.Appearance.ThemeMode = mode;
       if (themeId) settings.Appearance.ThemeId = themeId;
-      applySettingsToUI();
+      applyAppearanceThemeToUI();
     }
 
     function setSplashMode(mode) {

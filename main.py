@@ -2008,8 +2008,8 @@ class PPTAssistantApp:
             flush=True,
         )
         self._start_resource_monitor()
-        self._start_memory_cleaner()
-        self._setup_gc_timer()
+        if not self._start_memory_cleaner():
+            self._setup_gc_timer()
         
         # Start Update Service
         try:
@@ -2239,11 +2239,17 @@ class PPTAssistantApp:
 
     def _start_memory_cleaner(self):
         try:
+            if self._memory_cleaner_process is not None:
+                if self._memory_cleaner_process.poll() is None:
+                    return True
+                self._memory_cleaner_process = None
+            if sys.platform != "win32":
+                return False
             base_dir = os.path.dirname(os.path.abspath(__file__))
             main_path = os.path.join(base_dir, "main.py")
             env = os.environ.copy()
             env["LUMINALIUM_PARENT_PID"] = str(os.getpid())
-            env["LUMINALIUM_MEMCLEAN_INTERVAL"] = "30"
+            env["LUMINALIUM_MEMCLEAN_INTERVAL"] = "45"
             creationflags = (
                 0x08000000 | 0x00000008
             )
@@ -2255,8 +2261,10 @@ class PPTAssistantApp:
                 cmd, env=env, creationflags=creationflags, close_fds=True
             )
             print("[APP] Memory cleaner process started", flush=True)
+            return True
         except Exception as e:
             print(f"[APP] Failed to start memory cleaner: {e}", flush=True)
+            return False
 
     def _stop_memory_cleaner(self):
         try:
@@ -2276,7 +2284,8 @@ class PPTAssistantApp:
         try:
             if self._gc_timer is not None:
                 return
-            import gc
+            if self._memory_cleaner_process is not None and self._memory_cleaner_process.poll() is None:
+                return
             self._gc_timer = QTimer(self.app)
             self._gc_timer.setInterval(120000)
             self._gc_timer.timeout.connect(self._on_gc_tick)
@@ -2298,9 +2307,6 @@ class PPTAssistantApp:
     def _on_gc_tick(self):
         try:
             import gc
-            gc.collect()
-            gc.collect(0)
-            gc.collect(1)
             collected = gc.collect(2)
             if collected > 0:
                 print(f"[APP] GC collected {collected} objects", flush=True)
@@ -2707,12 +2713,15 @@ class PPTAssistantApp:
             if new_qt_font != old_qt_font or new_qt_weight != old_qt_weight:
                 _apply_global_font(self.app)
 
+            theme_mode_changed = cfg.themeMode.value != old_theme
+            theme_id_changed = (
+                hasattr(cfg, "themeId") and cfg.themeId.value != old_theme_id
+            )
+
             should_reload = (
                 new_lang != old_lang
                 or new_overlay_font != old_overlay_font
-                or cfg.themeMode.value != old_theme
                 or cfg.compatibilityMode.value != old_compat
-                or (hasattr(cfg, "themeId") and cfg.themeId.value != old_theme_id)
                 or cfg.showClear.value != old_clear
                 or cfg.showSpotlight.value != old_spotlight
                 or cfg.showTimer.value != old_timer
@@ -2745,6 +2754,9 @@ class PPTAssistantApp:
                     if status_bar_changed:
                         self.overlay.update_config()
 
+                    if theme_mode_changed or theme_id_changed:
+                        self.overlay.update_theme()
+
                     if cfg.compatibilityMode.value != old_compat:
                         self.overlay.update_config()
                         if cfg.compatibilityMode.value:
@@ -2754,7 +2766,7 @@ class PPTAssistantApp:
 
             # Layout mode change is now handled by auto-reload above, no restart prompt needed
 
-            if cfg.themeMode.value != old_theme:
+            if theme_mode_changed:
                 if self.tray is not None:
                     self.tray._update_icon()
 

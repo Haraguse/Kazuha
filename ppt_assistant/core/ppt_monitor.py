@@ -202,6 +202,50 @@ class PPTWorker(QObject):
         self._video_cached_slide = 0
         self._cached_media_shape = None
         self._cached_video_length = 0.0
+        self._current_poll_interval_ms = 0
+        self._fast_poll_until = 0.0
+
+    def _request_fast_poll(self, seconds: float = 2.0):
+        try:
+            seconds = float(seconds)
+        except Exception:
+            seconds = 2.0
+        if seconds <= 0:
+            return
+        self._fast_poll_until = max(self._fast_poll_until, time.monotonic() + seconds)
+
+    def _get_target_poll_interval_ms(self) -> int:
+        if self._running:
+            return 180
+
+        now = time.monotonic()
+        if now < float(self._fast_poll_until or 0.0):
+            return 250
+
+        if self._active_kind in {"ppt", "wps", "yozo"}:
+            return 350
+
+        recent_success = 0.0
+        try:
+            recent_success = max(self._last_com_success_time.values(), default=0.0)
+        except Exception:
+            recent_success = 0.0
+        if recent_success and (now - recent_success) < 10.0:
+            return 500
+
+        if sys.platform.startswith("linux") and self._wps_bridge_connected():
+            return 500
+
+        return 1000
+
+    def _apply_poll_interval(self, force: bool = False):
+        if self._timer is None:
+            return
+        interval = int(max(120, self._get_target_poll_interval_ms()))
+        if not force and interval == self._current_poll_interval_ms:
+            return
+        self._current_poll_interval_ms = interval
+        self._timer.setInterval(interval)
 
     def _consume_page_turn_token(self) -> bool:
         now = time.monotonic()
@@ -552,7 +596,7 @@ class PPTWorker(QObject):
             hwnd = self._focus_slideshow_window()
             if not hwnd:
                 return False
-            if win32api and win32con:
+            if win32api and win32con and self._is_slideshow_foreground(hwnd):
                 win32api.keybd_event(int(vk), 0, 0, 0)
                 win32api.keybd_event(int(vk), 0, win32con.KEYEVENTF_KEYUP, 0)
                 sent = True
@@ -569,7 +613,7 @@ class PPTWorker(QObject):
             hwnd = self._focus_slideshow_window()
             if not hwnd:
                 return False
-            if win32api and win32con:
+            if win32api and win32con and self._is_slideshow_foreground(hwnd):
                 win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
                 win32api.keybd_event(int(key_vk), 0, 0, 0)
                 win32api.keybd_event(int(key_vk), 0, win32con.KEYEVENTF_KEYUP, 0)
@@ -582,6 +626,23 @@ class PPTWorker(QObject):
         if sent:
             return True
         return self._post_ctrl_shortcut_to_window(hwnd, int(key_vk))
+
+    def _is_slideshow_foreground(self, target_hwnd: int = 0) -> bool:
+        if not win32gui:
+            return False
+        try:
+            fg = int(win32gui.GetForegroundWindow() or 0)
+        except Exception:
+            fg = 0
+        if not fg:
+            return False
+        try:
+            target_hwnd = int(target_hwnd or 0)
+        except Exception:
+            target_hwnd = 0
+        if target_hwnd and fg == target_hwnd:
+            return True
+        return self._is_slideshow_hwnd(fg, self._active_kind or None)
 
     def _focus_slideshow_window(self, hwnd: int = 0) -> int:
         try:
@@ -603,6 +664,15 @@ class PPTWorker(QObject):
                 pass
             if win32gui:
                 try:
+                    if win32con:
+                        try:
+                            win32gui.ShowWindow(int(hwnd), win32con.SW_SHOW)
+                        except Exception:
+                            pass
+                        try:
+                            win32gui.BringWindowToTop(int(hwnd))
+                        except Exception:
+                            pass
                     win32gui.SetForegroundWindow(int(hwnd))
                 except Exception:
                     pass
@@ -1384,10 +1454,12 @@ class PPTWorker(QObject):
 
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._check_ppt_state)
-        self._timer.start(200)
+        self._request_fast_poll(3.0)
+        self._apply_poll_interval(force=True)
+        self._timer.start(self._current_poll_interval_ms or 250)
         self._note_info(
             "timer_started",
-            "PPT monitor timer started (interval=200ms).",
+            f"PPT monitor timer started (interval={int(self._current_poll_interval_ms or 250)}ms).",
             min_interval=30.0,
         )
 
@@ -1617,6 +1689,7 @@ class PPTWorker(QObject):
                             self._running = True
                             self._set_active_kind("ppt")
                             self._control_mode = "com"
+                            self._request_fast_poll(5.0)
                             try:
                                 hwnd = self._safe_hwnd_from_ss_win(ss_win)
                                 if hwnd and hwnd != self._slideshow_hwnd:
@@ -1647,6 +1720,7 @@ class PPTWorker(QObject):
                         self._running = True
                         self._set_active_kind("ppt")
                         self._control_mode = "win32"
+                        self._request_fast_poll(5.0)
                         if hwnd != self._slideshow_hwnd:
                             self._slideshow_hwnd = int(hwnd)
                             self.slideshow_hwnd_changed.emit(int(hwnd))
@@ -1663,6 +1737,8 @@ class PPTWorker(QObject):
 
         except Exception:
             pass
+        finally:
+            self._apply_poll_interval()
 
         # If not running PPT, check WPS
         if not self._running:
@@ -1798,6 +1874,7 @@ class PPTWorker(QObject):
                     self._running = True
                     self._set_active_kind("wps")
                     self._control_mode = "com"
+                    self._request_fast_poll(5.0)
                     try:
                         hwnd = self._safe_hwnd_from_ss_win(ss_win)
                         if hwnd and hwnd != self._slideshow_hwnd:
@@ -1849,6 +1926,7 @@ class PPTWorker(QObject):
                     self._running = True
                     self._set_active_kind("yozo")
                     self._control_mode = "com"
+                    self._request_fast_poll(5.0)
                     try:
                         hwnd = self._safe_hwnd_from_ss_win(ss_win)
                         if hwnd and hwnd != self._slideshow_hwnd:
@@ -1903,6 +1981,7 @@ class PPTWorker(QObject):
             self._slideshow_started_at = 0.0
             self._last_linux_slideshow_seen_at = 0.0
             self._last_non_eraser_pointer_type = 1
+            self._request_fast_poll(2.0)
 
     def _update_window_rect(self, ss_win):
         try:

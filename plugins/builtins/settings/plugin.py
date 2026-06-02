@@ -6,6 +6,7 @@ import subprocess
 from PySide6.QtCore import QTimer
 
 from plugins.interface import AssistantPlugin
+from plugins.webview_window_utils import bring_window_to_front
 from ppt_assistant.core.config import SETTINGS_PATH
 
 
@@ -114,6 +115,7 @@ class SettingsPlugin(AssistantPlugin):
             self._window.show()
             self._window.raise_()
             self._window.activateWindow()
+            bring_window_to_front(int(self._window.winId()))
             if show_toast and self._api is not None:
                 self._api.notify_existing_window("已经存在打开的窗口！")
             return True
@@ -194,6 +196,7 @@ class SettingsPlugin(AssistantPlugin):
         try:
             self._window.raise_()
             self._window.activateWindow()
+            bring_window_to_front(int(self._window.winId()))
         except Exception:
             pass
 
