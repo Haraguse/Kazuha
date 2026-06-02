@@ -1,18 +1,18 @@
 {
     "Overlay": {
+        "OverlayScreen": "WCAN",
         "AllowRecording": false,
         "ClearMode": "slide",
         "FlipperPosition": "center",
-        "OverlayScreen": "WCAN",
         "PopWindowScale": 1.0,
-        "SafeArea": 1,
+        "SafeArea": 0,
         "Scale": 1.0,
-        "ShowStatusBar": true,
+        "ShowStatusBar": false,
         "SidePageOpacity": 1.0,
         "StatusBarShowBattery": true,
         "StatusBarShowMusic": true,
         "StatusBarShowNetwork": true,
-        "StatusBarShowSeconds": true,
+        "StatusBarShowSeconds": false,
         "StatusBarShowTime": true,
         "StatusBarShowVolume": true,
         "StrictEdgeAlignment": false,
@@ -20,18 +20,18 @@
         "ToolbarAutoHalfCollapse": false,
         "ToolbarOpacity": 1.0,
         "ToolbarPosition": "bottom",
-        "UIAccessTopmost": true,
+        "UIAccessTopmost": false,
         "ZOrderCheckInterval": 200
     },
     "PPT": {
         "AutoHandleInk": true,
-        "PageTurnRateLimit": 5
+        "PageTurnRateLimit": 2
     },
     "General": {
         "AutoShowOverlay": true,
         "CompatibilityMode": false,
         "CrashAutoHandleEnabled": false,
-        "CrashAutoHandleMode": "RestartSilent",
+        "CrashAutoHandleMode": "ShowAnalyzer",
         "DisableAnimations": false,
         "RegisterUrlProtocol": true,
         "RunAtStartup": false,
@@ -40,8 +40,7 @@
         "SplashMode": "Always",
         "SplashStartTime": "08:00",
         "SplashStyle": "default",
-        "UseNativeTitleBar": false,
-        "Language": "zh-CN"
+        "UseNativeTitleBar": false
     },
     "Toolbar": {
         "DisabledTools": [],
@@ -58,6 +57,7 @@
             "spotlight",
             "board_in_board",
             "timer",
+            "clear",
             "apps"
         ]
     },
@@ -67,20 +67,15 @@
             "Microsoft YaHei",
             "PingFang SC"
         ],
-        "ThemeColor": "#ffe1ebff"
-        "ThemeColor": "#ffe1ebff"
+        "ThemeColor": "#ff3275f5"
     },
     "Appearance": {
         "OverlayTheme": "default",
         "ThemeId": "default",
-        "ThemeMode": "Auto"
+        "ThemeMode": "Light"
     },
     "Notifications": {
         "ResourceMonitorInterval": 300,
         "TimerNotifyEnabled": true
-    },
-    "Debug": {
-        "SimulateOverlayUnsupported": false,
-        "RtlTest": false
     }
 }

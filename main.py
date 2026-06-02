@@ -2338,6 +2338,7 @@ class PPTAssistantApp:
 
         self.overlay.request_ptr_arrow.connect(lambda: self.monitor.set_pointer_type(1))
         self.overlay.request_ptr_pen.connect(lambda: self.monitor.set_pointer_type(2))
+        self.overlay.request_ptr_highlighter.connect(lambda: self.monitor.set_pointer_type(3))
         self.overlay.request_ptr_eraser.connect(
             lambda: self.monitor.set_pointer_type(5)
         )
@@ -2810,6 +2811,9 @@ class PPTAssistantApp:
             )
             new_overlay.request_ptr_pen.connect(
                 lambda: self.monitor.set_pointer_type(2)
+            )
+            new_overlay.request_ptr_highlighter.connect(
+                lambda: self.monitor.set_pointer_type(3)
             )
             new_overlay.request_ptr_eraser.connect(
                 lambda: self.monitor.set_pointer_type(5)

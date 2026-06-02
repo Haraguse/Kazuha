@@ -2223,11 +2223,13 @@ class PPTWorker(QObject):
                 except Exception:
                     pass
             if win32api and win32con:
-                vk = ord("E")
-                win32api.keybd_event(vk, 0, 0, 0)
-                win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)
+                    vk = ord("E")
+                    win32api.keybd_event(vk, 0, 0, 0)
+                    win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)
         except Exception:
             pass
+
+        self.set_pointer_type(2)
 
     def _apply_ink_keep(self, ss_win):
         try:
@@ -2361,35 +2363,63 @@ class PPTWorker(QObject):
         delays = (0.0, 0.08, 0.16, 0.28)
         last_error = None
         pointer_type = int(pointer_type)
+        prefers_native_highlighter = pointer_type == 3
+        recent_pen_activation = False
+        try:
+            started_at = float(self._slideshow_started_at or 0.0)
+            recent_pen_activation = (
+                pointer_type == 2
+                and started_at > 0.0
+                and (time.monotonic() - started_at) < 1.0
+            )
+        except Exception:
+            recent_pen_activation = False
+        if recent_pen_activation:
+            delays = (0.04, 0.12, 0.24, 0.4)
+            try:
+                self._focus_slideshow_window()
+                time.sleep(0.05)
+            except Exception:
+                pass
         shortcut_vk = {
             1: ord("A"),
             2: ord("P"),
+            3: ord("I"),
             5: ord("E"),
         }.get(pointer_type)
-        for attempt, delay in enumerate(delays):
-            if delay > 0:
-                time.sleep(delay)
-            try:
-                force_arrow_reset = attempt > 0 or pointer_type == 2
-                if self._try_apply_pointer_type(
-                    pointer_type, force_arrow_reset=force_arrow_reset
-                ):
-                    self._control_mode = "com"
-                    return
-            except Exception as e:
-                last_error = e
+        if not prefers_native_highlighter:
+            for attempt, delay in enumerate(delays):
+                if delay > 0:
+                    time.sleep(delay)
+                try:
+                    force_arrow_reset = attempt > 0 or pointer_type == 2
+                    if self._try_apply_pointer_type(
+                        pointer_type, force_arrow_reset=force_arrow_reset
+                    ):
+                        self._control_mode = "com"
+                        return
+                except Exception as e:
+                    last_error = e
         try:
             if shortcut_vk and sys.platform == "win32":
-                if pointer_type == 2:
+                if pointer_type in (2, 3):
                     self._send_ctrl_shortcut_to_slideshow(ord("A"))
                     time.sleep(0.02)
                 if self._send_ctrl_shortcut_to_slideshow(shortcut_vk):
                     time.sleep(0.05)
-                    if self._try_apply_pointer_type(
-                        pointer_type, force_arrow_reset=True
-                    ):
-                        self._control_mode = "com"
-                        return
+                    if not prefers_native_highlighter:
+                        if self._try_apply_pointer_type(
+                            pointer_type, force_arrow_reset=True
+                        ):
+                            self._control_mode = "com"
+                            return
+                        if recent_pen_activation:
+                            time.sleep(0.12)
+                            if self._try_apply_pointer_type(
+                                pointer_type, force_arrow_reset=True
+                            ):
+                                self._control_mode = "com"
+                                return
                     self._control_mode = "win32"
                     return
         except Exception as e:
@@ -2397,15 +2427,22 @@ class PPTWorker(QObject):
         shortcut = {
             1: "ctrl+a",
             2: "ctrl+p",
+            3: "ctrl+i",
             5: "ctrl+e",
         }.get(pointer_type)
         if shortcut:
             try:
                 if self._send_linux_shortcut_to_slideshow(shortcut):
                     time.sleep(0.05)
-                    if self._try_apply_pointer_type(pointer_type, force_arrow_reset=True):
-                        self._control_mode = "com"
-                        return
+                    if not prefers_native_highlighter:
+                        if self._try_apply_pointer_type(pointer_type, force_arrow_reset=True):
+                            self._control_mode = "com"
+                            return
+                        if recent_pen_activation:
+                            time.sleep(0.12)
+                            if self._try_apply_pointer_type(pointer_type, force_arrow_reset=True):
+                                self._control_mode = "com"
+                                return
                     self._control_mode = "win32"
                     return
             except Exception as e:
@@ -2413,10 +2450,15 @@ class PPTWorker(QObject):
         if shortcut_vk and sys.platform == "win32":
             try:
                 hwnd = int(self._slideshow_hwnd or 0) or self._find_ppt_slideshow_hwnd()
-                if pointer_type == 2 and hwnd:
+                if pointer_type in (2, 3) and hwnd:
                     self._post_ctrl_shortcut_to_window(hwnd, ord("A"))
                     time.sleep(0.02)
                 if hwnd and self._post_ctrl_shortcut_to_window(hwnd, shortcut_vk):
+                    if recent_pen_activation and self._try_apply_pointer_type(
+                        pointer_type, force_arrow_reset=True
+                    ):
+                        self._control_mode = "com"
+                        return
                     self._control_mode = "win32"
                     return
             except Exception as e:

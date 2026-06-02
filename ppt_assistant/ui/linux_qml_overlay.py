@@ -299,6 +299,8 @@ class LinuxOverlayBridge(QObject):
             self._overlay.request_ptr_arrow.emit()
         elif tool_name == "pen":
             self._overlay.request_ptr_pen.emit()
+        elif tool_name == "highlight":
+            self._overlay.request_ptr_highlighter.emit()
         elif tool_name == "eraser":
             self._overlay.request_ptr_eraser.emit()
 
@@ -390,6 +392,7 @@ class LinuxQmlOverlayWindow(QWidget):
     request_end = Signal()
     request_ptr_arrow = Signal()
     request_ptr_pen = Signal()
+    request_ptr_highlighter = Signal()
     request_ptr_eraser = Signal()
     request_pen_color = Signal(int, int, int)
     request_thumbnail = Signal(int)

@@ -32,6 +32,7 @@ class LinuxCompatOverlayWindow(QWidget):
     request_end = Signal()
     request_ptr_arrow = Signal()
     request_ptr_pen = Signal()
+    request_ptr_highlighter = Signal()
     request_ptr_eraser = Signal()
     request_pen_color = Signal(int, int, int)
     request_thumbnail = Signal(int)
@@ -483,6 +484,9 @@ class LinuxCompatOverlayWindow(QWidget):
         elif tool == "pen":
             self._current_tool = "pen"
             self.request_ptr_pen.emit()
+        elif tool == "highlight":
+            self._current_tool = "highlight"
+            self.request_ptr_highlighter.emit()
         elif tool == "eraser":
             self._current_tool = "eraser"
             self.request_ptr_eraser.emit()

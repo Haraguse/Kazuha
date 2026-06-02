@@ -149,6 +149,8 @@ class OverlayBridge(QObject):
             self._overlay.request_ptr_arrow.emit()
         elif tool_name == "pen":
             self._overlay.request_ptr_pen.emit()
+        elif tool_name == "highlight":
+            self._overlay.request_ptr_highlighter.emit()
         elif tool_name == "eraser":
             self._overlay.request_ptr_eraser.emit()
 
@@ -421,6 +423,7 @@ class WaylandFallbackOverlayWindow(QWidget):
     request_end = Signal()
     request_ptr_arrow = Signal()
     request_ptr_pen = Signal()
+    request_ptr_highlighter = Signal()
     request_ptr_eraser = Signal()
     request_pen_color = Signal(int, int, int)
     request_thumbnail = Signal(int)
@@ -568,6 +571,7 @@ class OverlayWindow(QWebEngineView):
     request_end = Signal()
     request_ptr_arrow = Signal()
     request_ptr_pen = Signal()
+    request_ptr_highlighter = Signal()
     request_ptr_eraser = Signal()
     request_pen_color = Signal(int, int, int)
     request_thumbnail = Signal(int)
@@ -617,6 +621,7 @@ class OverlayWindow(QWebEngineView):
                 )
             self.setAttribute(Qt.WA_TranslucentBackground)
             self.setAttribute(Qt.WA_NoSystemBackground)
+            self.setAttribute(Qt.WA_TransparentForMouseEvents, True)
 
         if sys.platform == "win32":
             from ppt_assistant.core.platform_integration import remove_window_border_delayed
@@ -632,6 +637,7 @@ class OverlayWindow(QWebEngineView):
         self._presentation_readonly = False
         self._active_on_slideshow = False
         self._current_ink_dialog = None
+        self._mask_ready = False
 
         self._smtc_info = {
             "status": "",
@@ -1222,6 +1228,12 @@ class OverlayWindow(QWebEngineView):
 
         if not region.isEmpty():
             self.setMask(region)
+            if not self._mask_ready:
+                self._mask_ready = True
+                try:
+                    self.setAttribute(Qt.WA_TransparentForMouseEvents, False)
+                except Exception:
+                    pass
         else:
             if self.isVisible():
                 pass
@@ -1695,6 +1707,11 @@ class OverlayWindow(QWebEngineView):
         self._active_on_slideshow = bool(active)
         if self._active_on_slideshow:
             try:
+                self._mask_ready = False
+                try:
+                    self.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+                except Exception:
+                    pass
                 self._ensure_runtime_initialized()
                 print(f"[Overlay] Calling show(), isVisible before: {self.isVisible()}")
                 self.show()
@@ -1716,6 +1733,11 @@ class OverlayWindow(QWebEngineView):
                 traceback.print_exc()
         else:
             try:
+                self._mask_ready = False
+                try:
+                    self.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+                except Exception:
+                    pass
                 print("[Overlay] Calling hide()")
                 self.hide()
             except Exception as e:

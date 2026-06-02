@@ -4002,7 +4002,6 @@ class MainWindow(QWebEngineView):
         super().__init__()
         self.setPage(QWebEnginePage(_get_shared_profile(), self))
         self.setWindowTitle(title)
-        self.resize(width, height)
 
         self._frameless = frameless
 
@@ -4016,6 +4015,8 @@ class MainWindow(QWebEngineView):
             self.setWindowFlag(Qt.WindowCloseButtonHint, True)
             self.setWindowFlag(Qt.WindowMinMaxButtonsHint, True)
 
+        self.resize(width, height)
+
         try:
             if "Onboarding" in str(title):
                 if not frameless:
@@ -4023,6 +4024,7 @@ class MainWindow(QWebEngineView):
             self._center_on_screen()
         except Exception:
             self._center_on_screen()
+        self._centered = False
         self._theme_mode = theme_mode
         self._custom_border = custom_border
         self._defer_load = defer_load
@@ -4973,6 +4975,9 @@ body {
 
     def showEvent(self, event):
         super().showEvent(event)
+        if not self._centered:
+            self._centered = True
+            QTimer.singleShot(0, self._center_on_screen)
         self._aero_enabled = False
         if self._pending_url is not None:
             self.load(self._pending_url)

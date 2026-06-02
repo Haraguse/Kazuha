@@ -1501,6 +1501,7 @@
                 <div class="color-option" style="background-color: #44546A;" onclick="selectColor(68,84,106, this)" onmouseover="updateColorInfo('蓝灰色', '68 84 106', '#44546A')"></div>
                 <div class="color-option" style="background-color: #4472C4;" onclick="selectColor(68,114,196, this)" onmouseover="updateColorInfo('蓝色', '68 114 196', '#4472C4')"></div>
                 <div class="color-option" style="background-color: #ED7D31;" onclick="selectColor(237,125,49, this)" onmouseover="updateColorInfo('橙色', '237 125 49', '#ED7D31')"></div>
+                <div class="color-option" style="background-color: #FF0000;" onclick="selectColor(255,0,0, this)" onmouseover="updateColorInfo('红色', '255 0 0', '#FF0000')"></div>
                 <div class="color-option" style="background-color: #A5A5A5;" onclick="selectColor(165,165,165, this)" onmouseover="updateColorInfo('灰色', '165 165 165', '#A5A5A5')"></div>
                 <div class="color-option" style="background-color: #FFC000;" onclick="selectColor(255,192,0, this)" onmouseover="updateColorInfo('金色', '255 192 0', '#FFC000')"></div>
                 <div class="color-option" style="background-color: #5B9BD5;" onclick="selectColor(91,155,213, this)" onmouseover="updateColorInfo('浅蓝色', '91 155 213', '#5B9BD5')"></div>
@@ -1726,7 +1727,11 @@
         function applyAnimationPreference() {
             document.documentElement.setAttribute('data-disable-animations', animationsDisabled() ? 'true' : 'false');
         }
-        const DEFAULT_PEN_COLOR = Object.freeze({ tab: 'highlight', name: '红色', rgb: '255 0 0', hex: '#FF0000' });
+        const DEFAULT_TOOL_COLORS = Object.freeze({
+            pen: Object.freeze({ tab: 'pen', name: '黑色', rgb: '0 0 0', hex: '#000000' }),
+            highlight: Object.freeze({ tab: 'highlight', name: '黄色', rgb: '255 255 0', hex: '#FFFF00' })
+        });
+        const DEFAULT_PEN_COLOR = DEFAULT_TOOL_COLORS.pen;
         const PEN_COLOR_PRESETS = Object.freeze({
             '#FFFFFF': { tab: 'pen', name: '白色', rgb: '255 255 255', hex: '#FFFFFF' },
             '#000000': { tab: 'pen', name: '黑色', rgb: '0 0 0', hex: '#000000' },
@@ -1749,6 +1754,12 @@
             '#7030A0': { tab: 'highlight', name: '紫色', rgb: '112 48 160', hex: '#7030A0' }
         });
         let currentPenColor = { ...DEFAULT_PEN_COLOR };
+
+        function getDefaultColorForTab(tab) {
+            return {
+                ...(DEFAULT_TOOL_COLORS[tab] || DEFAULT_PEN_COLOR)
+            };
+        }
 
         document.addEventListener('click', (e) => {
             if (!document.body.classList.contains('popup-active')) return;
@@ -1818,7 +1829,12 @@
                 displayColor.tab = (preset && preset.tab) || DEFAULT_PEN_COLOR.tab;
             }
 
-            const matchedOption = findColorOption(displayColor.hex, displayColor.tab);
+            let matchedOption = findColorOption(displayColor.hex, displayColor.tab);
+            if (!matchedOption) {
+                const fallbackColor = getDefaultColorForTab(displayColor.tab);
+                Object.assign(displayColor, fallbackColor);
+                matchedOption = findColorOption(displayColor.hex, displayColor.tab);
+            }
 
             activateColorTab(displayColor.tab);
             document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
@@ -1833,7 +1849,7 @@
         }
 
         function resetPenColorState() {
-            currentPenColor = { ...DEFAULT_PEN_COLOR };
+            currentPenColor = getDefaultColorForTab('pen');
             syncColorPickerState();
         }
 
@@ -2532,7 +2548,8 @@
 
         function setActiveToolUI(tool) {
             document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-            const btn = document.getElementById('btn-' + tool);
+            const btnId = (tool === 'highlight') ? 'pen' : tool;
+            const btn = document.getElementById('btn-' + btnId);
             if (btn) btn.classList.add('active');
             currentTool = tool;
         }
@@ -2546,7 +2563,7 @@
             const picker = document.getElementById('color-picker');
             const eraserSettings = document.getElementById('eraser-settings');
             
-            if (tool === 'pen' && currentTool === 'pen') {
+            if ((tool === 'pen' || tool === 'highlight') && (currentTool === 'pen' || currentTool === 'highlight')) {
                 if (picker.classList.contains('visible')) {
                     closePopup();
                 } else {
@@ -2577,11 +2594,13 @@
                 closePopup();
             }
 
+            currentTool = tool;
             setActiveToolUI(tool);
             
             if (bridge) {
                 if (tool === 'select') bridge.setTool('arrow');
                 else if (tool === 'pen') bridge.setTool('pen');
+                else if (tool === 'highlight') bridge.setTool('highlight');
                 else if (tool === 'eraser') bridge.setTool('eraser');
             }
         }
@@ -2598,6 +2617,14 @@
                 : { tab: selectedTab, name: '当前颜色', rgb: `${r} ${g} ${b}`, hex };
             syncColorPickerState();
             
+            const tool = selectedTab === 'highlight' ? 'highlight' : 'pen';
+            if (currentTool !== tool) {
+                currentTool = tool;
+                if (bridge) {
+                    bridge.setTool(tool);
+                }
+            }
+            
             if (bridge) {
                 bridge.setPenColor(r, g, b);
             }
@@ -2607,6 +2634,24 @@
 
         function switchColorTab(tab, el) {
             activateColorTab(tab);
+            const matchedOption = findColorOption(currentPenColor && currentPenColor.hex, tab);
+            if (!matchedOption) {
+                currentPenColor = getDefaultColorForTab(tab);
+            } else {
+                currentPenColor = {
+                    ...(currentPenColor || {}),
+                    tab
+                };
+            }
+            syncColorPickerState();
+            const tool = tab === 'highlight' ? 'highlight' : 'pen';
+            if (currentTool !== tool) {
+                currentTool = tool;
+                setActiveToolUI(tool);
+                if (bridge) {
+                    bridge.setTool(tool);
+                }
+            }
         }
 
         function updateColorInfo(name, rgb, hex) {
