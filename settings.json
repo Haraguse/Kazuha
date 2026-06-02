@@ -7,12 +7,12 @@
         "PopWindowScale": 1.0,
         "SafeArea": 0,
         "Scale": 1.0,
-        "ShowStatusBar": false,
+        "ShowStatusBar": true,
         "SidePageOpacity": 1.0,
         "StatusBarShowBattery": true,
         "StatusBarShowMusic": true,
         "StatusBarShowNetwork": true,
-        "StatusBarShowSeconds": false,
+        "StatusBarShowSeconds": true,
         "StatusBarShowTime": true,
         "StatusBarShowVolume": true,
         "StrictEdgeAlignment": false,
@@ -40,7 +40,8 @@
         "SplashMode": "Always",
         "SplashStartTime": "08:00",
         "SplashStyle": "default",
-        "UseNativeTitleBar": false
+        "UseNativeTitleBar": true,
+        "Language": "zh-CN"
     },
     "Toolbar": {
         "DisabledTools": [],
@@ -67,12 +68,18 @@
             "Microsoft YaHei",
             "PingFang SC"
         ],
-        "ThemeColor": "#ff3275f5"
+        "ThemeColor": "#ffe1ebff"
     },
     "Appearance": {
         "OverlayTheme": "default",
         "ThemeId": "default",
-        "ThemeMode": "Light"
+        "ThemeMode": "Auto",
+        "MonetPalette": {
+            "background": "#edf2f8",
+            "primary": "#86a6cf",
+            "surface": "#FFFFFF",
+            "text": "#000000"
+        }
     },
     "Notifications": {
         "ResourceMonitorInterval": 300,
@@ -80,5 +87,11 @@
     },
     "Linkage": {
         "SecRandomEnabled": true
+    },
+    "Window": {
+        "TimerFullscreenBehavior": "maximize"
+    },
+    "Fonts": {
+        "CustomFont": false
     }
 }

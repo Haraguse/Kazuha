@@ -537,13 +537,24 @@ def _should_defer_initial_load(url, title, explicit_defer=False):
     return False
 
 
+def _is_onboarding_webview_process():
+    for arg in sys.argv:
+        text = str(arg or "").strip().lower()
+        if "onboarding.html" in text or text == "onboarding" or "onboarding preview" in text:
+            return True
+    return False
+
+
+def _should_disable_webview_gpu_features(window_tag=None):
+    if _is_virtual_gpu() or _is_windows7():
+        return True
+    return str(window_tag or "").strip().lower() == "onboarding"
+
+
 def _apply_chromium_flags():
     _maybe_add_vxkex_path()
+    is_onboarding_process = _is_onboarding_webview_process()
     flags = [
-        "--enable-zero-copy",
-        "--enable-features=GpuRasterization",
-        "--disable-frame-rate-limit",
-        "--disable-gpu-vsync",
         "--disable-renderer-backgrounding",
         "--disable-background-timer-throttling",
         "--disable-backgrounding-occluded-windows",
@@ -553,9 +564,6 @@ def _apply_chromium_flags():
         "--disable-speech-api",
         "--disable-web-security",
         "--wm-window-animations-disabled",
-        "--enable-gpu-rasterization",
-        "--ignore-gpu-blocklist",
-        "--enable-low-end-device-mode",
         "--renderer-process-limit=1",
         "--max-decoded-image-size-bytes=10485760",
         "--disk-cache-size=20971520",
@@ -564,6 +572,19 @@ def _apply_chromium_flags():
         "--js-flags=--max-old-space-size=128",
         "--num-raster-threads=2",
     ]
+
+    if not is_onboarding_process:
+        flags.extend(
+            [
+                "--enable-low-end-device-mode",
+                "--enable-zero-copy",
+                "--enable-features=GpuRasterization",
+                "--disable-frame-rate-limit",
+                "--disable-gpu-vsync",
+                "--enable-gpu-rasterization",
+                "--ignore-gpu-blocklist",
+            ]
+        )
 
     if sys.platform == "win32":
         flags.extend([
@@ -4059,7 +4080,7 @@ class MainWindow(QWebEngineView):
         self.winId()
         self._apply_page_background()
         settings = self.page().settings()
-        allow_gpu = (not _is_windows7()) and (not _is_virtual_gpu())
+        allow_gpu = not _should_disable_webview_gpu_features(self._window_tag)
         settings.setAttribute(
             QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, allow_gpu
         )
@@ -4132,6 +4153,19 @@ class MainWindow(QWebEngineView):
         )
         preview_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         self.page().scripts().insert(preview_script)
+        if self._window_tag == "onboarding":
+            onboarding_render_script = QWebEngineScript()
+            onboarding_render_script.setSourceCode(
+                "try {"
+                "window.__LUMINALIUM_GPU_SAFE_EFFECTS = true;"
+                "document.documentElement.setAttribute('data-gpu-safe-effects', 'true');"
+                "} catch (e) {}"
+            )
+            onboarding_render_script.setInjectionPoint(
+                QWebEngineScript.InjectionPoint.DocumentCreation
+            )
+            onboarding_render_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
+            self.page().scripts().insert(onboarding_render_script)
         if self._custom_border:
             self._inject_custom_border()
         if self._loading_overlay_enabled:

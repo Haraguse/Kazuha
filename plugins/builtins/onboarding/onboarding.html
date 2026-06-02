@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -3900,6 +3900,60 @@
       pointer-events: none;
     }
 
+    /* Material You Blobs */
+    .blob-container {
+      position: absolute;
+      z-index: 0;
+      pointer-events: none;
+      transition: top 1.2s cubic-bezier(0.2, 0, 0, 1),
+                  right 1.2s cubic-bezier(0.2, 0, 0, 1),
+                  bottom 1.2s cubic-bezier(0.2, 0, 0, 1),
+                  left 1.2s cubic-bezier(0.2, 0, 0, 1),
+                  transform 1.2s cubic-bezier(0.2, 0, 0, 1);
+    }
+    .blob-container-1 {
+      top: -10%;
+      right: -10%;
+      width: 45vmin;
+      height: 45vmin;
+      transform: translate(0, 0);
+    }
+    .blob-container-1.collide {
+      top: 50%;
+      right: 50%;
+      transform: translate(20%, -20%);
+    }
+    .blob-container-2 {
+      bottom: -15%;
+      left: -10%;
+      width: 55vmin;
+      height: 55vmin;
+      transform: translate(0, 0);
+    }
+    .blob-container-2.collide {
+      bottom: 50%;
+      left: 50%;
+      transform: translate(-20%, 20%);
+    }
+    .blob {
+      width: 100%;
+      height: 100%;
+      background: var(--text-primary);
+      opacity: 0.05;
+      border-radius: 50%;
+      animation: rotateBlob 6s infinite linear;
+      transition: border-radius 1.2s cubic-bezier(0.2, 0, 0, 1);
+    }
+    .blob-container-2 .blob {
+      animation-direction: reverse;
+      animation-duration: 8s;
+      border-radius: 25%;
+    }
+    @keyframes rotateBlob {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
     .hero-btn {
       width: 64px;
       height: 64px;
@@ -4203,8 +4257,12 @@
 
 /* Onboarding Overrides */
 html, body {
-  display: block !important; /* Override settings flex layout */
-  position: relative;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--bg-app);
 }
 .app {
   position: absolute;
@@ -4213,8 +4271,15 @@ html, body {
   right: 0;
   bottom: 0;
   width: 100%;
-  padding-top: 32px;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+:root[data-frameless="true"] .app {
+  top: 32px;
+}
+:root[data-frameless="true"][data-maximized="true"] .app {
+  top: 40px; /* Account for larger title bar in maximized state */
 }
 
 /* Settings Group & Items */
@@ -4542,6 +4607,49 @@ html, body {
       list-style-position: outside;
       padding-left: 20px;
     }
+
+    :root[data-gpu-safe-effects="true"] .hyperos-bg {
+      background:
+        radial-gradient(circle at 20% 20%, var(--hyperos-g1) 0%, transparent 34%),
+        radial-gradient(circle at 80% 75%, var(--hyperos-g2) 0%, transparent 34%),
+        radial-gradient(circle at 30% 78%, var(--hyperos-g3) 0%, transparent 38%),
+        linear-gradient(135deg, rgba(91, 141, 239, 0.10), rgba(0, 0, 0, 0));
+      filter: blur(28px);
+      animation: none;
+      opacity: 0.52;
+    }
+
+    :root[data-gpu-safe-effects="true"] .hero-screen .card {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.14) !important;
+    }
+
+    :root[data-gpu-safe-effects="true"][data-theme="light"] .hero-screen .card {
+      background: rgba(255, 255, 255, 0.88) !important;
+      border: 1px solid rgba(255, 255, 255, 0.72) !important;
+    }
+
+    :root[data-gpu-safe-effects="true"][data-theme="dark"] .hero-screen .card {
+      background: rgba(28, 28, 30, 0.82) !important;
+      border: 1px solid rgba(255, 255, 255, 0.10) !important;
+    }
+
+    :root[data-gpu-safe-effects="true"] .hero-btn {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+    }
+
+    :root[data-gpu-safe-effects="true"][data-theme="dark"] .hero-btn {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.24);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
+    }
+
+    :root[data-gpu-safe-effects="true"] .about-main-logo {
+      filter: none;
+    }
 </style>
 </head>
 <body>
@@ -4549,34 +4657,46 @@ html, body {
     <!-- Screen 1: Hero -->
     <div id="screen-hero" class="hero-screen">
       <div class="hyperos-bg"></div>
-      <div class="card">
-        <div class="hero-content" id="hero-content" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-          <img src="../../../icons/logo.svg" class="hero-logo" alt="Logo">
+      <div class="card" style="position: relative; overflow: hidden;">
+        <div class="blob-container blob-container-1"><div class="blob" id="blob-1"></div></div>
+        <div class="blob-container blob-container-2"><div class="blob" id="blob-2"></div></div>
+        <img src="../../../icons/logo.svg" class="hero-logo" alt="Logo" style="position: absolute; top: 32px; left: 32px; width: 48px; height: 48px; margin: 0; z-index: 2;">
+        <div class="version" id="app-version" style="position: absolute; top: 32px; right: 32px; z-index: 2; color: var(--text-secondary);"></div>
+        <div class="hero-content" id="hero-content" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 2;">
           <div class="hero-elements-fade">
-            <div class="hero-title">Luminalium</div>
-            <div class="hero-btn" id="btn-hero-next">
+            <!-- Content moved to footer -->
+          </div>
+        </div>
+        <div class="hero-footer" id="hero-footer" style="width: 100%; display: flex; justify-content: space-between; align-items: flex-end; z-index: 2;">
+          <div class="footer-left" style="display: flex; flex-direction: column; align-items: flex-start; gap: 12px;">
+            <div style="position: relative; height: 48px; width: 200px; overflow: hidden; margin-bottom: 8px;">
+              <div id="greeting-text" style="font-size: 36px; font-weight: bold; color: var(--text-primary); position: absolute; left: 0; top: 0; transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1);">你好</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px; margin-top: 4px;">
+              <div class="hero-lang" style="position: static; transform: none;">
+                  <div class="custom-select-container" id="lang-select-container">
+                    <div class="custom-select-toggle" onclick="toggleLangSelect()">
+                      <div class="custom-select-label" id="current-lang-label">简体中文</div>
+                      <div class="custom-select-icon"></div>
+                    </div>
+                    <div class="custom-select-menu" id="lang-select-menu">
+                      <!-- Options populated by JS -->
+                    </div>
+                  </div>
+              </div>
+              <div class="hero-links" style="display: flex; gap: 16px;">
+                <a id="link-gpl">查看 GPL 证书</a>
+                <a id="link-import">从外部导入配置</a>
+              </div>
+            </div>
+          </div>
+          
+          <div class="footer-right">
+            <div class="hero-btn" id="btn-hero-next" style="margin: 0;">
               <svg viewBox="0 0 24 24" fill="none">
                 <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
             </div>
-          </div>
-        </div>
-        <div class="hero-footer" id="hero-footer" style="width: 100%;">
-          <div class="version" id="app-version"></div>
-          <div class="hero-lang">
-              <div class="custom-select-container" id="lang-select-container">
-                <div class="custom-select-toggle" onclick="toggleLangSelect()">
-                  <div class="custom-select-label" id="current-lang-label">简体中文</div>
-                  <div class="custom-select-icon"></div>
-                </div>
-                <div class="custom-select-menu" id="lang-select-menu">
-                  <!-- Options populated by JS -->
-                </div>
-              </div>
-          </div>
-          <div class="hero-links">
-            <a id="link-gpl">查看 GPL 证书</a>
-            <a id="link-import">从外部导入配置</a>
           </div>
         </div>
       </div>
@@ -6274,6 +6394,70 @@ makes it unnecessary.
         alert("导入配置出错：" + e.message);
       }
     });
+
+    // Rotating Greetings
+    const greetings = ["你好", "你好呀", "こんにちは", "Hello"];
+    let greetingIdx = 0;
+    setInterval(() => {
+      const el = document.getElementById("greeting-text");
+      if (el && state.step === 0) {
+        el.style.transform = "translateY(-30px)";
+        el.style.opacity = 0;
+        
+        setTimeout(() => {
+          el.style.transition = "none";
+          el.style.transform = "translateY(30px)";
+          
+          greetingIdx = (greetingIdx + 1) % greetings.length;
+          el.textContent = greetings[greetingIdx];
+          
+          void el.offsetWidth; // force reflow
+          
+          el.style.transition = "transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)";
+          el.style.transform = "translateY(0)";
+          el.style.opacity = 1;
+        }, 600);
+      }
+    }, 3000);
+
+    // Material You Blob Collision & Morphing
+    const blobShapes = [
+      "50%", // Circle
+      "24%", // Square
+      "20% 80% 20% 80% / 80% 20% 80% 20%", // Slanted
+      "50% 50% 20% 20% / 50% 50% 20% 20%", // Arch
+      "50% 50% 0% 0% / 100% 100% 0% 0%", // Semicircle
+      "30% 70% 70% 30% / 30% 30% 70% 70%", // Oval
+      "50% 50% 50% 50% / 25% 25% 25% 25%", // Pill
+      "50% 50% 0% 50% / 50% 50% 0% 50%", // Fan
+      "40% 60% 70% 30% / 40% 50% 60% 50%", // Organic 1
+      "60% 40% 30% 70% / 50% 60% 40% 50%", // Organic 2
+      "50% 0% 50% 50% / 50% 0% 50% 50%", // Fan Flipped
+      "25% 25% 25% 25% / 50% 50% 50% 50%" // Pill Vertical
+    ];
+    let shapeIdx1 = 0;
+    let shapeIdx2 = 1;
+    setInterval(() => {
+      const c1 = document.querySelector('.blob-container-1');
+      const c2 = document.querySelector('.blob-container-2');
+      const b1 = document.getElementById('blob-1');
+      const b2 = document.getElementById('blob-2');
+      
+      if (!c1 || !c2 || !b1 || !b2 || state.step !== 0) return;
+
+      c1.classList.add('collide');
+      c2.classList.add('collide');
+
+      setTimeout(() => {
+        shapeIdx1 = (shapeIdx1 + Math.floor(Math.random() * 3) + 1) % blobShapes.length;
+        shapeIdx2 = (shapeIdx2 + Math.floor(Math.random() * 3) + 1) % blobShapes.length;
+        b1.style.borderRadius = blobShapes[shapeIdx1];
+        b2.style.borderRadius = blobShapes[shapeIdx2];
+        
+        c1.classList.remove('collide');
+        c2.classList.remove('collide');
+      }, 1200);
+    }, 4500);
 
     // Boot
     if (window.pywebview) {

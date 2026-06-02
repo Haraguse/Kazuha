@@ -1,43 +1,35 @@
 {
-  "version": 4,
+  "version": 3,
   "targets": {
-    "net8.0-windows10.0.19041.0": {}
+    "net8.0-windows10.0.19041": {}
   },
   "libraries": {},
   "projectFileDependencyGroups": {
-    "net8.0-windows10.0.19041.0": []
+    "net8.0-windows10.0.19041": []
   },
   "packageFolders": {
-    "c:\\Users\\Evan Evan\\Documents\\Luminalium\\.nuget\\packages": {},
-    "D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+    "h:\\Dev\\Kazuha\\.nuget\\packages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "c:\\Users\\Evan Evan\\Documents\\Luminalium\\scripts\\smtc_helper\\SmtcHelper.csproj",
+      "projectUniqueName": "h:\\Dev\\Kazuha\\scripts\\smtc_helper\\SmtcHelper.csproj",
       "projectName": "SmtcHelper",
-      "projectPath": "c:\\Users\\Evan Evan\\Documents\\Luminalium\\scripts\\smtc_helper\\SmtcHelper.csproj",
-      "packagesPath": "c:\\Users\\Evan Evan\\Documents\\Luminalium\\.nuget\\packages",
-      "outputPath": "c:\\Users\\Evan Evan\\Documents\\Luminalium\\scripts\\smtc_helper\\obj\\",
+      "projectPath": "h:\\Dev\\Kazuha\\scripts\\smtc_helper\\SmtcHelper.csproj",
+      "packagesPath": "h:\\Dev\\Kazuha\\.nuget\\packages",
+      "outputPath": "h:\\Dev\\Kazuha\\scripts\\smtc_helper\\obj\\",
       "projectStyle": "PackageReference",
-      "fallbackFolders": [
-        "D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-      ],
       "configFilePaths": [
-        "c:\\Users\\Evan Evan\\Documents\\Luminalium\\.dotnet_appdata\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        "h:\\Dev\\Kazuha\\.dotnet_appdata\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0-windows10.0.19041.0"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
-        "net8.0-windows10.0.19041.0": {
-          "framework": "net8.0-windows10.0.19041",
+        "net8.0-windows10.0.19041": {
           "targetAlias": "net8.0-windows10.0.19041.0",
           "projectReferences": {}
         }
@@ -51,12 +43,10 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      },
-      "SdkAnalysisLevel": "10.0.300"
+      }
     },
     "frameworks": {
-      "net8.0-windows10.0.19041.0": {
-        "framework": "net8.0-windows10.0.19041",
+      "net8.0-windows10.0.19041": {
         "targetAlias": "net8.0-windows10.0.19041.0",
         "imports": [
           "net461",
@@ -72,27 +62,19 @@
         "downloadDependencies": [
           {
             "name": "Microsoft.Windows.SDK.NET.Ref",
-            "version": "[10.0.19041.57, 10.0.19041.57]"
+            "version": "[10.0.19041.56, 10.0.19041.56]"
           }
         ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           },
-          "Microsoft.Windows.SDK.NET.Ref.Windows": {
+          "Microsoft.Windows.SDK.NET.Ref": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.420/PortableRuntimeIdentifierGraph.json"
       }
     }
-  },
-  "logs": [
-    {
-      "code": "Undefined",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "读取缓存文件 c:\\Users\\Evan Evan\\Documents\\Luminalium\\scripts\\smtc_helper\\obj\\project.nuget.cache 时遇到问题: '\"' is invalid after a value. Expected either ',', '}', or ']'. Path: $.expectedPackageFiles[1] | LineNumber: 8 | BytePositionInLine: 4."
-    }
-  ]
+  }
 }
