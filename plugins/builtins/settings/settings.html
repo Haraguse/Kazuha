@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -2718,6 +2718,11 @@
       -webkit-mask-image: url('../../../icons/timer.svg');
     }
 
+    .toolbar-preview-btn-icon.icon-sec_random_roll_call::before {
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M480-80q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113T480-80Zm0-80q33 0 56.5-23.5T560-240q0-33-23.5-56.5T480-320q-33 0-56.5 23.5T400-240q0 33 23.5 56.5T480-160ZM200-440q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm560 0q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35ZM136-200q-23 0-39.5-16.5T80-256q0-80 56-136t136-56q42 0 80 16.5t68 46.5q-60 18-100 66t-53 121H136Zm557 0q-13-73-53-121t-100-66q30-30 68-46.5T688-448q80 0 136 56t56 136q0 23-16.5 39.5T824-200H693Z'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M480-80q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113T480-80Zm0-80q33 0 56.5-23.5T560-240q0-33-23.5-56.5T480-320q-33 0-56.5 23.5T400-240q0 33 23.5 56.5T480-160ZM200-440q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm560 0q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35ZM136-200q-23 0-39.5-16.5T80-256q0-80 56-136t136-56q42 0 80 16.5t68 46.5q-60 18-100 66t-53 121H136Zm557 0q-13-73-53-121t-100-66q30-30 68-46.5T688-448q80 0 136 56t56 136q0 23-16.5 39.5T824-200H693Z'/%3E%3C/svg%3E");
+    }
+
     .toolbar-preview-btn-icon.icon-exit::before {
       mask-image: url('../../../icons/Minimize.svg');
       -webkit-mask-image: url('../../../icons/Minimize.svg');
@@ -4524,6 +4529,21 @@
       transform: translateX(-50%) translateY(0);
     }
 
+    .toast-container.toast-top-right {
+      top: 24px;
+      right: 24px;
+      bottom: auto;
+      left: auto;
+      transform: translateX(20px);
+      max-width: min(420px, calc(100vw - 48px));
+      white-space: normal;
+      pointer-events: none;
+    }
+
+    .toast-container.toast-top-right.show {
+      transform: translateX(0);
+    }
+
     .toast-icon {
       width: 16px;
       height: 16px;
@@ -5748,6 +5768,14 @@
         </svg>
         <span data-i18n="nav.plugins">插件</span>
       </div>
+      <div class="sidebar-item" data-section="linkage">
+        <svg class="sidebar-icon" viewBox="0 0 24 24">
+          <path d="M10.59 13.41a1.996 1.996 0 0 1 0-2.82l2-2a1.996 1.996 0 1 1 2.82 2.82l-1.29 1.3a1 1 0 1 0 1.41 1.41l1.29-1.3a3.996 3.996 0 1 0-5.66-5.64l-2 2a3.996 3.996 0 0 0 5.66 5.64l.7-.7a1 1 0 1 0-1.41-1.41l-.7.7a1.996 1.996 0 0 1-2.82 0Zm2.82-8.24a3.996 3.996 0 0 0-5.66 0l-.7.7a1 1 0 0 0 1.41 1.41l.7-.7a1.996 1.996 0 1 1 2.82 2.82l-1.29 1.3a1 1 0 1 0 1.41 1.41l1.29-1.3a3.996 3.996 0 0 0 0-5.64Z" />
+          <circle cx="6" cy="18" r="2" />
+          <circle cx="18" cy="18" r="2" />
+        </svg>
+        <span>联动</span>
+      </div>
 
       <div class="sidebar-item" data-section="board-in-board">
         <svg class="sidebar-icon" viewBox="0 0 24 24">
@@ -5973,6 +6001,19 @@
                   <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
                 </svg>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section" id="section-linkage">
+          <div class="group-title">SecRandom</div>
+          <div class="settings-group">
+            <div class="settings-item" onclick="toggleSwitch('Linkage', 'SecRandomEnabled')">
+              <div class="item-info">
+                <span class="item-label">是否启用联动</span>
+                <span class="item-desc">开启后在 PPT 悬浮工具栏中显示 SecRandom 点名按钮，点击后通过 IPC 接口 `roll_call/quick_draw` 触发快速点名</span>
+              </div>
+              <div class="switch" id="sw-Linkage-SecRandomEnabled"></div>
             </div>
           </div>
         </div>
@@ -9961,6 +10002,8 @@
 
     let toolbarApps = [];
     let selectedToolbarAppPaths = [];
+    const SECRANDOM_TOOLBAR_ITEM_PATH = "__builtin__/secrandom-roll-call";
+    const SECRANDOM_TOOLBAR_ITEM_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%235aa7ff'/%3E%3Cstop offset='100%25' stop-color='%23725cff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Ccircle cx='32' cy='24' r='12' fill='white'/%3E%3Cpath d='M14 54c2-10 10-16 18-16s16 6 18 16' fill='white'/%3E%3C/svg%3E";
 
     let currentLanguage = "zh-CN";
     let activeFontTabLanguage = currentLanguage;
@@ -13363,6 +13406,7 @@
         setSwitch("Toolbar", "ShowBoardInBoard");
         setSwitch("Toolbar", "ShowTimer");
         setSwitch("Toolbar", "ShowToolbarText");
+        setSwitch("Linkage", "SecRandomEnabled");
         setSwitch("Timer", "EnableSoundEffects");
         setSwitch("BoardInBoard", "PenStrokeEnabled");
         setSwitch("BoardInBoard", "WindowEnterAnimation");
@@ -14241,6 +14285,43 @@
       settings.Toolbar.QuickLaunchApps = toolbarApps;
     }
 
+    function isSecRandomLinkageEnabled() {
+      return !!(settings && settings.Linkage && settings.Linkage.SecRandomEnabled);
+    }
+
+    function getToolbarFixedItems() {
+      const apps = Array.isArray(toolbarApps) ? [...toolbarApps] : [];
+      if (isSecRandomLinkageEnabled()) {
+        apps.push({
+          path: SECRANDOM_TOOLBAR_ITEM_PATH,
+          name: "SecRandom 点名",
+          icon: SECRANDOM_TOOLBAR_ITEM_ICON,
+          isBuiltin: true,
+          builtinHint: "由“设置 > 联动”控制"
+        });
+      }
+      return apps;
+    }
+
+    let toastTimer = null;
+
+    function showToastMessage(message, position = "bottom-center") {
+      const toast = document.getElementById("toast-message");
+      const text = document.getElementById("toast-text");
+      if (!toast || !text) return;
+      text.textContent = message || "";
+      toast.classList.remove("toast-top-right");
+      if (position === "top-right") {
+        toast.classList.add("toast-top-right");
+      }
+      toast.classList.add("show");
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove("show");
+        toast.classList.remove("toast-top-right");
+      }, 2800);
+    }
+
     function updateSelectSlider(container) {
       if (!container) return;
       const active = container.querySelector(".theme-option.active");
@@ -14332,6 +14413,11 @@
       const order = normalizeToolbarOrder(rawOrder);
       if (toolbarApps && toolbarApps.length > 0 && !order.includes("apps")) {
         order.push("apps");
+      }
+      if (isSecRandomLinkageEnabled() && !order.includes("sec_random_roll_call")) {
+        const appsIndex = order.indexOf("apps");
+        if (appsIndex >= 0) order.splice(appsIndex, 0, "sec_random_roll_call");
+        else order.push("sec_random_roll_call");
       }
       const disabledTools = (settings.Toolbar && settings.Toolbar.DisabledTools) || [];
       const showSpotlight = !!(settings.Toolbar && settings.Toolbar.ShowSpotlight);
@@ -14518,6 +14604,8 @@
           toolbar.appendChild(createBtn("icon-board", "board_in_board"));
         } else if (itemId === "timer") {
           toolbar.appendChild(createBtn("icon-timer", "timer"));
+        } else if (itemId === "sec_random_roll_call") {
+          toolbar.appendChild(createBtn("icon-sec_random_roll_call", "sec_random_roll_call"));
         } else if (itemId === "apps") {
           if (toolbarApps && toolbarApps.length > 0) {
             toolbarApps.forEach(app => {
@@ -14586,8 +14674,11 @@
       const list = document.getElementById("toolbar-app-list");
       if (!list) return;
       list.innerHTML = "";
+      const fixedItems = getToolbarFixedItems();
+      const visiblePaths = fixedItems.map(app => app.path || "").filter(Boolean);
+      selectedToolbarAppPaths = selectedToolbarAppPaths.filter(path => visiblePaths.includes(path));
 
-      if (!toolbarApps || toolbarApps.length === 0) {
+      if (!fixedItems || fixedItems.length === 0) {
         list.innerHTML = `
           <div style="padding: 48px 32px; text-align: center; color: var(--text-secondary); background: var(--bg-surface); border-radius: 14px; border: 1px solid var(--divider);">
             <div style="font-size: 40px; margin-bottom: 16px; opacity: 0.3;">📦</div>
@@ -14600,7 +14691,7 @@
         return;
       }
 
-      toolbarApps.forEach(app => {
+      fixedItems.forEach(app => {
         if (!list) return;
         const row = document.createElement("div");
         const isSelected = selectedToolbarAppPaths.includes(app.path);
@@ -14615,24 +14706,31 @@
           }
         });
 
+        const isBuiltin = !!app.isBuiltin;
         const firstChar = (app.name || "?").charAt(0).toUpperCase();
         const iconHtml = app.icon
           ? `<img src="${app.icon}" class="toolbar-app-icon-img">`
           : firstChar;
+        const trailingHtml = isBuiltin
+          ? `<span style="font-size: 12px; color: var(--accent-blue); background: rgba(50,117,245,0.12); padding: 4px 8px; border-radius: 999px;">联动项</span>`
+          : `<button class="toolbar-app-rename-btn" data-i18n="interaction.toolbar.renameApp">重命名</button>`;
+        const pathText = isBuiltin
+          ? (app.builtinHint || "由“设置 > 联动”控制")
+          : (app.path || "No Path");
 
         row.innerHTML = `
           <div class="toolbar-app-icon-placeholder">${iconHtml}</div>
           <div class="toolbar-app-info">
             <div style="display: flex; align-items: center; justify-content: space-between;">
               <div class="toolbar-app-name">${app.name || "Unknown App"}</div>
-              <button class="toolbar-app-rename-btn" data-i18n="interaction.toolbar.renameApp">重命名</button>
+              ${trailingHtml}
             </div>
-            <div class="toolbar-app-path">${app.path || "No Path"}</div>
+            <div class="toolbar-app-path">${pathText}</div>
           </div>
         `;
 
         const renameBtn = row.querySelector(".toolbar-app-rename-btn");
-        if (renameBtn) {
+        if (renameBtn && !isBuiltin) {
           renameBtn.onclick = (e) => {
             e.stopPropagation();
             renameToolbarApp(app.path);
@@ -14705,6 +14803,8 @@
     function updateToolbarRemoveButtonState() {
       const btn = document.getElementById("toolbar-remove-btn");
       if (!btn) return;
+      const visiblePaths = getToolbarFixedItems().map(app => app.path || "").filter(Boolean);
+      selectedToolbarAppPaths = selectedToolbarAppPaths.filter(path => visiblePaths.includes(path));
       const enabled = selectedToolbarAppPaths.length > 0;
       btn.disabled = !enabled;
       if (enabled) btn.classList.remove("disabled");
@@ -14740,6 +14840,10 @@
 
     function removeSelectedToolbarApp() {
       if (selectedToolbarAppPaths.length === 0) return;
+      if (selectedToolbarAppPaths.includes(SECRANDOM_TOOLBAR_ITEM_PATH)) {
+        showToastMessage("若要删除SecRandom点名项，请在'设置>联动'中关闭对SecRandom的联动，此时点名项会自动删除", "top-right");
+        return;
+      }
       if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.remove_quick_launch_app) {
         return;
       }

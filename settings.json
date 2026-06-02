@@ -77,5 +77,8 @@
     "Notifications": {
         "ResourceMonitorInterval": 300,
         "TimerNotifyEnabled": true
+    },
+    "Linkage": {
+        "SecRandomEnabled": true
     }
 }

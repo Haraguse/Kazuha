@@ -1659,6 +1659,13 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
                     _pin_to_taskbar(bool(value))
                 elif key == "PinToStart":
                     _pin_to_start(bool(value))
+            elif category == "Linkage" and key == "SecRandomEnabled":
+                try:
+                    from ppt_assistant.core.config import cfg
+
+                    cfg.secRandomEnabled.value = bool(value)
+                except Exception:
+                    pass
 
             if category == "Appearance" and key in ("ThemeMode", "ThemeId"):
                 self.update_settings(data)

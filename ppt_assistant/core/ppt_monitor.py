@@ -152,6 +152,7 @@ class PPTWorker(QObject):
     ink_prompt_requested = Signal()
     animation_step_changed = Signal(int, int)  # click_index, click_count
     pen_color_changed = Signal(int, int, int, str)
+    tool_state_sync_requested = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -178,6 +179,7 @@ class PPTWorker(QObject):
         self._degraded_current = 0
         self._degraded_total = 0
         self._pending_ink_prompt = False
+        self._last_non_eraser_pointer_type = 1
         self._page_turn_times = deque()
         self._page_turn_window_seconds = 1.0
         self._last_linux_probe_at = 0.0
@@ -679,6 +681,42 @@ class PPTWorker(QObject):
             return True
         except Exception:
             return False
+
+    def _pointer_type_to_tool_name(self, pointer_type: int) -> str:
+        return {
+            1: "select",
+            2: "pen",
+            3: "highlight",
+            5: "eraser",
+        }.get(int(pointer_type or 0), "select")
+
+    def _remember_pointer_type(self, pointer_type: int):
+        try:
+            pointer_type = int(pointer_type)
+        except Exception:
+            return
+        if pointer_type in (1, 2, 3):
+            self._last_non_eraser_pointer_type = pointer_type
+
+    def _restore_previous_tool_after_eraser_rejected(self):
+        previous_pointer_type = 1
+        try:
+            if int(self._last_non_eraser_pointer_type or 0) in (1, 2, 3):
+                previous_pointer_type = int(self._last_non_eraser_pointer_type)
+        except Exception:
+            previous_pointer_type = 1
+
+        try:
+            self._try_apply_pointer_type(previous_pointer_type, force_arrow_reset=True)
+        except Exception:
+            pass
+
+        try:
+            self.tool_state_sync_requested.emit(
+                self._pointer_type_to_tool_name(previous_pointer_type)
+            )
+        except Exception:
+            pass
 
     def _read_pointer_color_rgb(self):
         try:
@@ -1864,6 +1902,7 @@ class PPTWorker(QObject):
                 self.slideshow_hwnd_changed.emit(0)
             self._slideshow_started_at = 0.0
             self._last_linux_slideshow_seen_at = 0.0
+            self._last_non_eraser_pointer_type = 1
 
     def _update_window_rect(self, ss_win):
         try:
@@ -2387,6 +2426,22 @@ class PPTWorker(QObject):
             3: ord("I"),
             5: ord("E"),
         }.get(pointer_type)
+        if pointer_type == 5:
+            for attempt, delay in enumerate(delays):
+                if delay > 0:
+                    time.sleep(delay)
+                try:
+                    if self._try_apply_pointer_type(
+                        pointer_type, force_arrow_reset=attempt > 0
+                    ):
+                        self._control_mode = "com"
+                        return
+                except Exception as e:
+                    last_error = e
+            self._restore_previous_tool_after_eraser_rejected()
+            if last_error is not None:
+                self._note_error("set_pointer_type_eraser", last_error)
+            return
         if not prefers_native_highlighter:
             for attempt, delay in enumerate(delays):
                 if delay > 0:
@@ -2397,6 +2452,7 @@ class PPTWorker(QObject):
                         pointer_type, force_arrow_reset=force_arrow_reset
                     ):
                         self._control_mode = "com"
+                        self._remember_pointer_type(pointer_type)
                         return
                 except Exception as e:
                     last_error = e
@@ -2412,6 +2468,7 @@ class PPTWorker(QObject):
                             pointer_type, force_arrow_reset=True
                         ):
                             self._control_mode = "com"
+                            self._remember_pointer_type(pointer_type)
                             return
                         if recent_pen_activation:
                             time.sleep(0.12)
@@ -2419,8 +2476,10 @@ class PPTWorker(QObject):
                                 pointer_type, force_arrow_reset=True
                             ):
                                 self._control_mode = "com"
+                                self._remember_pointer_type(pointer_type)
                                 return
                     self._control_mode = "win32"
+                    self._remember_pointer_type(pointer_type)
                     return
         except Exception as e:
             last_error = e
@@ -2437,13 +2496,16 @@ class PPTWorker(QObject):
                     if not prefers_native_highlighter:
                         if self._try_apply_pointer_type(pointer_type, force_arrow_reset=True):
                             self._control_mode = "com"
+                            self._remember_pointer_type(pointer_type)
                             return
                         if recent_pen_activation:
                             time.sleep(0.12)
                             if self._try_apply_pointer_type(pointer_type, force_arrow_reset=True):
                                 self._control_mode = "com"
+                                self._remember_pointer_type(pointer_type)
                                 return
                     self._control_mode = "win32"
+                    self._remember_pointer_type(pointer_type)
                     return
             except Exception as e:
                 last_error = e
@@ -2458,8 +2520,10 @@ class PPTWorker(QObject):
                         pointer_type, force_arrow_reset=True
                     ):
                         self._control_mode = "com"
+                        self._remember_pointer_type(pointer_type)
                         return
                     self._control_mode = "win32"
+                    self._remember_pointer_type(pointer_type)
                     return
             except Exception as e:
                 last_error = e
@@ -2631,6 +2695,7 @@ class PPTMonitor(QObject):
         self._worker.ink_prompt_requested.connect(self._on_ink_prompt_requested)
         self._worker.animation_step_changed.connect(self.animation_step_changed)
         self._worker.pen_color_changed.connect(self.pen_color_changed)
+        self._worker.tool_state_sync_requested.connect(self._sync_overlay_tool_state)
         self._worker.finished.connect(self._thread.quit)
         self._thread.finished.connect(self._worker.deleteLater)
 
@@ -2746,6 +2811,14 @@ class PPTMonitor(QObject):
         self._pending_ink_prompt = False
         print(f"[Monitor] Emitting _req_end_with_ink with keep={keep}", flush=True)
         self._req_end_with_ink.emit(bool(keep))
+
+    def _sync_overlay_tool_state(self, tool: str):
+        if not self._overlay:
+            return
+        try:
+            self._overlay.reset_tool_state_ui(str(tool or "select"))
+        except Exception:
+            pass
 
     # --- State Handling ---
     def _on_slide_changed(self, current, total):

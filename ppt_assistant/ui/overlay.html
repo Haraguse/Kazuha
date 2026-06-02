@@ -475,6 +475,44 @@
             display: flex;
         }
 
+        #overlay-toast {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            max-width: min(380px, calc(100vw - 32px));
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(18, 18, 24, 0.9);
+            color: rgba(255, 255, 255, 0.96);
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.45;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            transform: translateY(-8px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+            z-index: 4000;
+        }
+
+        #overlay-toast.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #overlay-toast.error {
+            background: rgba(124, 30, 45, 0.92);
+            border-color: rgba(255, 120, 145, 0.34);
+        }
+
+        #overlay-toast.info {
+            background: rgba(31, 58, 122, 0.92);
+            border-color: rgba(118, 166, 255, 0.34);
+        }
+
         .ink-card {
             min-width: 320px;
             max-width: 520px;
@@ -807,6 +845,7 @@
         .icon-spotlight { -webkit-mask-image: url('../../icons/spotlight.svg'); mask-image: url('../../icons/spotlight.svg'); }
         .icon-board { -webkit-mask-image: url('../../icons/board-in-board.svg'); mask-image: url('../../icons/board-in-board.svg'); }
         .icon-timer { -webkit-mask-image: url('../../icons/timer.svg'); mask-image: url('../../icons/timer.svg'); }
+        .icon-roll-call { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M480-80q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113T480-80Zm0-80q33 0 56.5-23.5T560-240q0-33-23.5-56.5T480-320q-33 0-56.5 23.5T400-240q0 33 23.5 56.5T480-160ZM200-440q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm560 0q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35ZM136-200q-23 0-39.5-16.5T80-256q0-80 56-136t136-56q42 0 80 16.5t68 46.5q-60 18-100 66t-53 121H136Zm557 0q-13-73-53-121t-100-66q30-30 68-46.5T688-448q80 0 136 56t56 136q0 23-16.5 39.5T824-200H693Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M480-80q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113T480-80Zm0-80q33 0 56.5-23.5T560-240q0-33-23.5-56.5T480-320q-33 0-56.5 23.5T400-240q0 33 23.5 56.5T480-160ZM200-440q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm560 0q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35ZM136-200q-23 0-39.5-16.5T80-256q0-80 56-136t136-56q42 0 80 16.5t68 46.5q-60 18-100 66t-53 121H136Zm557 0q-13-73-53-121t-100-66q30-30 68-46.5T688-448q80 0 136 56t56 136q0 23-16.5 39.5T824-200H693Z'/%3E%3C/svg%3E"); }
         .icon-app { -webkit-mask-image: url('../../icons/More.svg'); mask-image: url('../../icons/More.svg'); }
         .icon-minimize { 
             -webkit-mask-image: url('../../icons/Minimize.svg'); 
@@ -1599,6 +1638,8 @@
         </div>
     </div>
 
+    <div id="overlay-toast"></div>
+
     <script>
         function createBridgePlaceholder() {
             const noop = () => {};
@@ -1616,6 +1657,7 @@
                 toggleSpotlight: noop,
                 toggleBoard: noop,
                 toggleTimer: noop,
+                secRandomQuickDraw: noop,
                 launchApp: noop,
                 updateMask: noop,
                 releaseFocus: noop,
@@ -1638,9 +1680,34 @@
         let webChannelInitAttempts = 0;
         let webChannelInitTimer = null;
         let webChannelInitWatchdog = null;
+        let overlayToastTimer = null;
         const WEBCHANNEL_INIT_DELAY_MS = 50;
         const WEBCHANNEL_INIT_MAX_ATTEMPTS = 200;
         const WEBCHANNEL_INIT_TIMEOUT_MS = 2000;
+
+        function showOverlayToast(message, isError = false) {
+            const toast = document.getElementById('overlay-toast');
+            if (!toast) return;
+
+            const text = String(message || '').trim();
+            if (!text) return;
+
+            toast.textContent = text;
+            toast.classList.remove('error', 'info', 'visible');
+            toast.classList.add(isError ? 'error' : 'info');
+
+            void toast.offsetWidth;
+            toast.classList.add('visible');
+
+            if (overlayToastTimer) {
+                window.clearTimeout(overlayToastTimer);
+            }
+            overlayToastTimer = window.setTimeout(() => {
+                toast.classList.remove('visible');
+            }, 2600);
+        }
+
+        window.showOverlayToast = showOverlayToast;
 
         function clearWebChannelInitWatchdog() {
             if (webChannelInitWatchdog) {
@@ -2264,7 +2331,14 @@
                 toolbar.appendChild(compatLabel);
             }
 
-            const order = config.toolbarOrder || ["select", "pen", "eraser", "clear", "spotlight", "board_in_board", "timer", "apps"];
+            const order = Array.isArray(config.toolbarOrder)
+                ? [...config.toolbarOrder]
+                : ["select", "pen", "eraser", "clear", "spotlight", "board_in_board", "timer", "apps"];
+            if (config.secRandomEnabled && !order.includes('sec_random_roll_call')) {
+                const appsIndex = order.indexOf('apps');
+                if (appsIndex >= 0) order.splice(appsIndex, 0, 'sec_random_roll_call');
+                else order.push('sec_random_roll_call');
+            }
             
             order.forEach(item => {
                 if (item === 'clear') return;
@@ -2314,6 +2388,12 @@
                     case 'timer':
                         iconClass = 'icon-timer';
                         clickHandler = "bridge.toggleTimer()";
+                        btn.title = '计时器';
+                        break;
+                    case 'sec_random_roll_call':
+                        iconClass = 'icon-roll-call';
+                        clickHandler = "bridge.secRandomQuickDraw()";
+                        btn.title = 'SecRandom 点名';
                         break;
                     case 'apps':
                         if (config.apps && config.apps.length > 0) {

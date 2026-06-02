@@ -87,6 +87,9 @@ class Config(QConfig):
     showBoardInBoard = ConfigItem("Toolbar", "ShowBoardInBoard", True, BoolValidator())
     showTimer = ConfigItem("Toolbar", "ShowTimer", True, BoolValidator())
     showToolbarText = ConfigItem("Toolbar", "ShowToolbarText", False, BoolValidator())
+    secRandomEnabled = ConfigItem(
+        "Linkage", "SecRandomEnabled", False, BoolValidator()
+    )
 
     showStatusBar = ConfigItem("Overlay", "ShowStatusBar", False, BoolValidator())
     statusBarShowTime = ConfigItem(
@@ -439,7 +442,10 @@ def _bind_auto_save():
     cfg.crashAutoHandleMode.valueChanged.connect(lambda *_: _save_cfg())
     cfg.showClear.valueChanged.connect(lambda *_: _save_cfg())
     cfg.showSpotlight.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.showBoardInBoard.valueChanged.connect(lambda *_: _save_cfg())
     cfg.showTimer.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.showToolbarText.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.secRandomEnabled.valueChanged.connect(lambda *_: _save_cfg())
     cfg.showStatusBar.valueChanged.connect(lambda *_: _save_cfg())
     cfg.statusBarShowTime.valueChanged.connect(lambda *_: _save_cfg())
     cfg.statusBarShowSeconds.valueChanged.connect(lambda *_: _save_cfg())

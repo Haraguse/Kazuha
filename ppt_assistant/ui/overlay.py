@@ -6,9 +6,10 @@ import ctypes
 import tempfile
 import importlib.util
 from typing import Optional
+from multiprocessing.connection import Client
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QObject, Slot, Signal, Qt, QUrl, QTimer, QRect
-from PySide6.QtGui import QColor, QRegion, QGuiApplication
+from PySide6.QtGui import QColor, QRegion, QGuiApplication, QDesktopServices
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
 from ppt_assistant.core.config import cfg, ROOT_DIR
 from qfluentwidgets import Theme, isDarkTheme, MessageBox, themeColor
@@ -21,6 +22,9 @@ import psutil
 import threading
 
 PLUGIN_DIR = os.path.join(ROOT_DIR, "plugins", "builtins")
+SECRANDOM_IPC_NAME = "SecRandom.secrandom"
+SECRANDOM_IPC_COMMAND_QUICK_DRAW = "roll_call/quick_draw"
+SECRANDOM_URL_SCHEME = "secrandom"
 
 
 def _skip_webengine_import_at_startup() -> bool:
@@ -52,6 +56,68 @@ def _thumbnail_source_to_url(source):
     if text.lower().startswith(("data:", "file:", "http://", "https://", "blob:")):
         return text
     return QUrl.fromLocalFile(text).toString()
+
+
+def _build_secrandom_url(command: str, params: Optional[dict] = None) -> str:
+    query = ""
+    if params:
+        from urllib.parse import urlencode
+
+        query = "?" + urlencode(params)
+    return f"{SECRANDOM_URL_SCHEME}://{command}{query}"
+
+
+def _send_secrandom_ipc_command(command: str, params: Optional[dict] = None) -> bool:
+    if os.name != "nt":
+        print("[Overlay] SecRandom IPC is only supported on Windows", file=sys.stderr)
+        return False
+
+    address = rf"\\.\pipe\{SECRANDOM_IPC_NAME}"
+    message = {
+        "type": "url",
+        "payload": {
+            "url": _build_secrandom_url(command, params),
+        },
+    }
+
+    try:
+        conn = Client(address=address, family="AF_PIPE", authkey=None)
+    except Exception as e:
+        print(f"[Overlay] Failed to connect SecRandom IPC: {e}", file=sys.stderr)
+        return False
+
+    try:
+        request_bytes = json.dumps(message, ensure_ascii=False).encode("utf-8") + b"\n"
+        conn.send_bytes(request_bytes)
+        response_bytes = conn.recv_bytes()
+        if not response_bytes:
+            print("[Overlay] Empty response from SecRandom IPC", file=sys.stderr)
+            return False
+
+        response = json.loads(response_bytes.decode("utf-8").strip())
+        if not response.get("success", False):
+            print(
+                f"[Overlay] SecRandom IPC command failed: {response}",
+                file=sys.stderr,
+            )
+            return False
+        return True
+    except Exception as e:
+        print(f"[Overlay] Failed to send SecRandom IPC command: {e}", file=sys.stderr)
+        return False
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+
+def _send_secrandom_url_command(command: str, params: Optional[dict] = None) -> bool:
+    url = _build_secrandom_url(command, params)
+    if QDesktopServices.openUrl(QUrl(url)):
+        return True
+    print(f"[Overlay] Failed to open SecRandom URL: {url}", file=sys.stderr)
+    return False
 
 
 def _qt_platform_name() -> str:
@@ -230,6 +296,10 @@ class OverlayBridge(QObject):
     @Slot()
     def toggleTimer(self):
         self._overlay.execute_plugin("计时器")
+
+    @Slot()
+    def secRandomQuickDraw(self):
+        self._overlay.launch_secrandom_quick_draw()
 
     @Slot(str)
     def launchApp(self, path):
@@ -818,6 +888,37 @@ class OverlayWindow(QWebEngineView):
     def update_accent_color(self, hex_color):
         if self.page():
             self.page().runJavaScript(f"if(window.updateAccentColor) updateAccentColor('{hex_color}');")
+
+    def _show_overlay_toast(self, message: str, is_error: bool = False):
+        text = str(message or "").strip()
+        if not text:
+            return
+        script = (
+            "if (window.showOverlayToast) "
+            f"window.showOverlayToast({json.dumps(text, ensure_ascii=False)}, "
+            f"{'true' if is_error else 'false'});"
+        )
+        self._run_javascript(script)
+
+    def launch_secrandom_quick_draw(self):
+        if _send_secrandom_ipc_command(SECRANDOM_IPC_COMMAND_QUICK_DRAW):
+            return
+
+        if _send_secrandom_url_command(SECRANDOM_IPC_COMMAND_QUICK_DRAW):
+            self._show_overlay_toast(
+                "未检测到 SecRandom IPC，已自动改用 URL 协议触发点名。",
+                False,
+            )
+            return
+
+        self._show_overlay_toast(
+            "未能连接 SecRandom，请确认 SecRandom 已启动，并启用 URL/IPC 协议。",
+            True,
+        )
+        print(
+            "[Overlay] Failed to trigger SecRandom quick draw via IPC and URL",
+            file=sys.stderr,
+        )
 
     def _resolve_theme_path(self) -> str:
         theme_name = cfg.overlayTheme.value
@@ -1595,6 +1696,7 @@ class OverlayWindow(QWebEngineView):
             "showSpotlight": cfg.showSpotlight.value,
             "showBoardInBoard": cfg.showBoardInBoard.value,
             "showTimer": cfg.showTimer.value,
+            "secRandomEnabled": cfg.secRandomEnabled.value,
             "scale": cfg.scale.value,
             "safeArea": cfg.safeArea.value,
             "popWindowScale": cfg.popWindowScale.value,
@@ -1791,6 +1893,7 @@ class OverlayWindow(QWebEngineView):
         cfg.showSpotlight.valueChanged.connect(lambda *_: self.update_config())
         cfg.showBoardInBoard.valueChanged.connect(lambda *_: self.update_config())
         cfg.showTimer.valueChanged.connect(lambda *_: self.update_config())
+        cfg.secRandomEnabled.valueChanged.connect(lambda *_: self.update_config())
         cfg.scale.valueChanged.connect(lambda *_: self.update_config())
         cfg.safeArea.valueChanged.connect(lambda *_: self.update_config())
         cfg.popWindowScale.valueChanged.connect(lambda *_: self.update_config())
