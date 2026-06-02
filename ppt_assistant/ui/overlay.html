@@ -454,7 +454,8 @@
              flex-direction: row;
         }
 
-        #ink-prompt {
+        #ink-prompt,
+        #last-slide-exit-prompt {
             position: fixed;
             inset: 0;
             display: none;
@@ -469,7 +470,8 @@
             pointer-events: auto;
         }
 
-        #ink-prompt.visible {
+        #ink-prompt.visible,
+        #last-slide-exit-prompt.visible {
             display: flex;
         }
 
@@ -1543,7 +1545,7 @@
                 </div>
 
             </div>
-            <div class="flipper-btn" onclick="bridge.nextPage(window.noop)">
+            <div class="flipper-btn" onclick="handleNextPageClick()">
                 <div class="icon-mask icon-next"></div>
             </div>
         </div>
@@ -1559,7 +1561,7 @@
                 </div>
 
             </div>
-            <div class="flipper-btn" onclick="bridge.nextPage(window.noop)">
+            <div class="flipper-btn" onclick="handleNextPageClick()">
                 <div class="icon-mask icon-next"></div>
             </div>
         </div>
@@ -1586,6 +1588,17 @@
         </div>
     </div>
 
+    <div id="last-slide-exit-prompt" class="interactive" onclick="onLastSlideExitPrompt(false)">
+        <div class="ink-card" onclick="event.stopPropagation()">
+            <div class="ink-title">当前已是最后一页</div>
+            <div class="ink-text">是否退出幻灯片？</div>
+            <div class="ink-actions">
+                <button class="ink-btn" onclick="onLastSlideExitPrompt(false)">取消</button>
+                <button class="ink-btn confirm" onclick="onLastSlideExitPrompt(true)">退出</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         function createBridgePlaceholder() {
             const noop = () => {};
@@ -1598,6 +1611,7 @@
                 gotoSlide: noop,
                 clearScreen: noop,
                 endShow: noop,
+                showLastSlideExitPrompt: noop,
                 inkPromptResult: noop,
                 toggleSpotlight: noop,
                 toggleBoard: noop,
@@ -1885,6 +1899,54 @@
             if (bridge && typeof bridge.inkPromptResult === 'function') {
                 // Convert to string to ensure reliable transmission over WebChannel
                 bridge.inkPromptResult(String(value));
+            }
+        }
+
+        function showLastSlideExitPrompt() {
+            const prompt = document.getElementById('last-slide-exit-prompt');
+            if (prompt) {
+                prompt.classList.add('visible');
+            }
+        }
+
+        function hideLastSlideExitPrompt() {
+            const prompt = document.getElementById('last-slide-exit-prompt');
+            if (prompt) {
+                prompt.classList.remove('visible');
+            }
+        }
+
+        function shouldPromptExitOnLastSlide() {
+            const isCompat = currentConfig && currentConfig.compatibilityMode;
+            if (isCompat) return false;
+            if (currentPage <= 0 || totalPage <= 0) return false;
+            return currentPage >= totalPage && !hasRemainingAnimation;
+        }
+
+        function handleNextPageClick() {
+            const disabledTools = (currentConfig && currentConfig.disabledTools) ? currentConfig.disabledTools : [];
+            if (disabledTools.includes('next')) {
+                return;
+            }
+
+            if (shouldPromptExitOnLastSlide()) {
+                if (webChannelReady && bridge && typeof bridge.showLastSlideExitPrompt === 'function') {
+                    bridge.showLastSlideExitPrompt();
+                } else {
+                    showLastSlideExitPrompt();
+                }
+                return;
+            }
+
+            if (bridge && typeof bridge.nextPage === 'function') {
+                bridge.nextPage(window.noop);
+            }
+        }
+
+        function onLastSlideExitPrompt(shouldExit) {
+            hideLastSlideExitPrompt();
+            if (shouldExit && bridge && typeof bridge.endShow === 'function') {
+                bridge.endShow();
             }
         }
 
@@ -2710,10 +2772,7 @@
                         btn.classList.remove('disabled');
                     }
                 } else if (isNext) {
-                    // Keep next enabled on the last slide if animations are still pending
-                    const atLastSlide = !isCompat && current >= total;
-                    const nextBlocked = atLastSlide && !hasRemainingAnimation;
-                    if (nextBlocked || disabledTools.includes('next')) {
+                    if (disabledTools.includes('next')) {
                         btn.classList.add('disabled');
                     } else {
                         btn.classList.remove('disabled');

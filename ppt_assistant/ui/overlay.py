@@ -176,6 +176,11 @@ class OverlayBridge(QObject):
         self._overlay.request_end.emit()
 
     @Slot()
+    def showLastSlideExitPrompt(self):
+        print("[Bridge] showLastSlideExitPrompt() called", flush=True)
+        self._overlay.show_last_slide_exit_prompt()
+
+    @Slot()
     def mediaPlayPause(self):
         try:
             import ctypes
@@ -313,10 +318,15 @@ class InkPromptWindow(QWidget):
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating, False)
 
-        # Make it full screen
-        screen = QGuiApplication.primaryScreen()
-        if screen:
-            self.setGeometry(screen.geometry())
+        # Cover the same screen as the PPT toolbar/overlay window so the dialog
+        # appears centered on that display instead of always using the primary screen.
+        target_geometry = self._resolve_target_screen_geometry()
+        if target_geometry is not None and not target_geometry.isEmpty():
+            self.setGeometry(target_geometry)
+        else:
+            screen = QGuiApplication.primaryScreen()
+            if screen:
+                self.setGeometry(screen.geometry())
 
         if sys.platform == "win32":
             from ppt_assistant.core.platform_integration import remove_window_border
@@ -327,6 +337,25 @@ class InkPromptWindow(QWidget):
 
         # Create the dialog
         self._dialog = self._create_dialog(texts)
+
+    def _resolve_target_screen_geometry(self):
+        tw = self._toolbar_window
+        try:
+            if tw is not None:
+                if hasattr(tw, "screen") and callable(tw.screen):
+                    screen = tw.screen()
+                    if screen is not None:
+                        return screen.geometry()
+
+                frame_geometry = tw.frameGeometry()
+                if not frame_geometry.isEmpty():
+                    screen = QGuiApplication.screenAt(frame_geometry.center())
+                    if screen is not None:
+                        return screen.geometry()
+                    return frame_geometry
+        except Exception:
+            pass
+        return None
 
     def _create_dialog(self, texts):
         """Create a standard dialog with two buttons using qfluentwidgets Dialog."""
@@ -358,18 +387,30 @@ class InkPromptWindow(QWidget):
         self._dialog.show()
         self._dialog.raise_()
         self._dialog.activateWindow()
-        # Center the dialog on the toolbar window (OverlayWindow) geometry
-        tw = self._toolbar_window
-        if tw is not None and tw.isVisible():
-            geo = tw.frameGeometry()
-            cx = geo.x() + (geo.width() - self._dialog.width()) // 2
-            cy = geo.y() + (geo.height() - self._dialog.height()) // 2
-        else:
-            cx = (self.width() - self._dialog.width()) // 2
-            cy = (self.height() - self._dialog.height()) // 2
-        self._dialog.move(cx, cy)
+        self._center_dialog()
         # Force a full repaint so the background is drawn immediately
         self.update()
+
+    def _center_dialog(self):
+        target_rect = None
+        tw = self._toolbar_window
+        try:
+            if tw is not None and tw.isVisible():
+                target_rect = tw.frameGeometry()
+        except Exception:
+            target_rect = None
+        if target_rect is None or target_rect.isEmpty():
+            target_rect = self.frameGeometry()
+
+        global_x = target_rect.x() + (target_rect.width() - self._dialog.width()) // 2
+        global_y = target_rect.y() + (target_rect.height() - self._dialog.height()) // 2
+
+        if self._dialog.isWindow():
+            self._dialog.move(global_x, global_y)
+        else:
+            local_x = (self.width() - self._dialog.width()) // 2
+            local_y = (self.height() - self._dialog.height()) // 2
+            self._dialog.move(local_x, local_y)
 
     def _play_error_sound(self):
         """Play Windows error sound using Windows API."""
@@ -408,6 +449,115 @@ class InkPromptWindow(QWidget):
 
     def _do_close(self):
         """Deferred close to let the result signal propagate first."""
+        try:
+            self.close()
+            self.deleteLater()
+        except Exception:
+            pass
+
+
+class LastSlideExitPromptWindow(QWidget):
+    """Top-level confirmation dialog centered on the active overlay geometry."""
+
+    result = Signal(bool)  # True (exit) or False (cancel)
+
+    def __init__(self, texts, parent=None):
+        self._toolbar_window = parent
+        super().__init__(None)
+        self.setWindowFlags(
+            Qt.FramelessWindowHint
+            | Qt.Window
+            | Qt.WindowStaysOnTopHint
+            | Qt.NoDropShadowWindowHint
+        )
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setAttribute(Qt.WA_ShowWithoutActivating, False)
+
+        target_geometry = None
+        try:
+            if parent is not None:
+                target_geometry = parent.frameGeometry()
+        except Exception:
+            target_geometry = None
+
+        if target_geometry is not None and not target_geometry.isEmpty():
+            self.setGeometry(target_geometry)
+        else:
+            screen = QGuiApplication.primaryScreen()
+            if screen:
+                self.setGeometry(screen.geometry())
+
+        if sys.platform == "win32":
+            from ppt_assistant.core.platform_integration import remove_window_border
+
+            remove_window_border(self.winId())
+
+        self.bg_color = QColor(0, 0, 0, 140)
+        self._dialog = self._create_dialog(texts)
+
+    def _create_dialog(self, texts):
+        from qfluentwidgets import Dialog
+
+        dialog = Dialog(texts["title"], texts["text"], self)
+        dialog.yesButton.setText(texts.get("exit", "退出"))
+        dialog.cancelButton.setText(texts.get("cancel", "取消"))
+
+        dialog.yesButton.clicked.connect(lambda: self._on_result(True))
+        dialog.cancelButton.clicked.connect(lambda: self._on_result(False))
+
+        if hasattr(dialog, "maskWidget"):
+            dialog.maskWidget.deleteLater()
+            dialog.maskWidget = None
+
+        return dialog
+
+    def paintEvent(self, event):
+        from PySide6.QtGui import QPainter
+
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), self.bg_color)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._dialog.show()
+        self._dialog.raise_()
+        self._dialog.activateWindow()
+        self._center_dialog()
+        self.update()
+
+    def _center_dialog(self):
+        target_rect = None
+        tw = self._toolbar_window
+        try:
+            if tw is not None and tw.isVisible():
+                target_rect = tw.frameGeometry()
+        except Exception:
+            target_rect = None
+        if target_rect is None or target_rect.isEmpty():
+            target_rect = self.frameGeometry()
+
+        global_x = target_rect.x() + (target_rect.width() - self._dialog.width()) // 2
+        global_y = target_rect.y() + (target_rect.height() - self._dialog.height()) // 2
+
+        if self._dialog.isWindow():
+            self._dialog.move(global_x, global_y)
+        else:
+            local_x = (self.width() - self._dialog.width()) // 2
+            local_y = (self.height() - self._dialog.height()) // 2
+            self._dialog.move(local_x, local_y)
+
+    def _on_result(self, result):
+        self.result.emit(result)
+        if hasattr(self, "_dialog") and self._dialog:
+            try:
+                self._dialog.close()
+                self._dialog.deleteLater()
+            except Exception:
+                pass
+            self._dialog = None
+        QTimer.singleShot(0, self._do_close)
+
+    def _do_close(self):
         try:
             self.close()
             self.deleteLater()
@@ -637,6 +787,7 @@ class OverlayWindow(QWebEngineView):
         self._presentation_readonly = False
         self._active_on_slideshow = False
         self._current_ink_dialog = None
+        self._last_slide_exit_prompt_window = None
         self._mask_ready = False
 
         self._smtc_info = {
@@ -1486,7 +1637,7 @@ class OverlayWindow(QWebEngineView):
         
         # Create as a top-level window (no parent) to avoid corrupting the overlay's
         # DWM layered-window alpha compositing when this dialog is later closed.
-        self._ink_prompt_window = InkPromptWindow(texts, parent=None)
+        self._ink_prompt_window = InkPromptWindow(texts, parent=self)
         self._ink_prompt_window.result.connect(self._on_ink_prompt_window_result)
         self._ink_prompt_window.show()
         
@@ -1546,6 +1697,43 @@ class OverlayWindow(QWebEngineView):
             "text": "检测到放映期间添加了墨迹注释，是否保留到幻灯片中？",
             "keep": "保留",
             "discard": "不保留",
+        }
+
+    def show_last_slide_exit_prompt(self):
+        print("[Overlay] show_last_slide_exit_prompt called", flush=True)
+        if self._last_slide_exit_prompt_window is not None:
+            try:
+                self._last_slide_exit_prompt_window.raise_()
+                self._last_slide_exit_prompt_window.activateWindow()
+                return
+            except Exception:
+                self._last_slide_exit_prompt_window = None
+
+        self._last_slide_exit_prompt_window = LastSlideExitPromptWindow(
+            self._get_last_slide_exit_prompt_texts(),
+            parent=self,
+        )
+        self._last_slide_exit_prompt_window.result.connect(
+            self._on_last_slide_exit_prompt_result
+        )
+        self._last_slide_exit_prompt_window.show()
+
+    def _on_last_slide_exit_prompt_result(self, should_exit):
+        print(
+            f"[Overlay] LastSlideExitPromptWindow result: {should_exit}",
+            flush=True,
+        )
+        self._last_slide_exit_prompt_window = None
+        if should_exit:
+            self.request_end.emit()
+        QTimer.singleShot(50, self._restore_transparency_after_ink_prompt)
+
+    def _get_last_slide_exit_prompt_texts(self):
+        return {
+            "title": "当前已是最后一页",
+            "text": "是否退出幻灯片？",
+            "exit": "退出",
+            "cancel": "取消",
         }
 
     def load_plugins(self):
