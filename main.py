@@ -444,7 +444,7 @@ def _apply_graphics_settings():
             "--disable-software-rasterizer",
         ]
     else:
-        # Base flags tuned for smoother rendering
+        # Base flags tuned for smoother rendering and lower memory usage
         flags = [
             "--disable-frame-rate-limit",
             "--disable-gpu-vsync",
@@ -453,6 +453,13 @@ def _apply_graphics_settings():
             "--enable-features=VaapiVideoDecoder,VaapiVideoEncoder",
             "--ignore-gpu-blocklist",
             "--enable-hardware-overlays",
+            # Memory and performance optimizations
+            "--js-flags=--max-old-space-size=256",
+            "--disable-site-isolation-trials",
+            "--renderer-process-limit=2",
+            "--disable-features=Translate",
+            "--disable-logging",
+            "--enable-low-res-tiling",
         ]
 
         # Get refresh rate for target FPS
@@ -2307,7 +2314,7 @@ class PPTAssistantApp:
     def _on_gc_tick(self):
         try:
             import gc
-            collected = gc.collect(2)
+            collected = gc.collect(1)
             if collected > 0:
                 print(f"[APP] GC collected {collected} objects", flush=True)
         except Exception as e:

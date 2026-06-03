@@ -7,12 +7,12 @@ import traceback
 
 import psutil
 
-_MEMORY_LIMIT_MB = 256
-_SELF_LIMIT_MB = 32
-_PARENT_LIMIT_MB = 256
+_MEMORY_LIMIT_MB = 192
+_SELF_LIMIT_MB = 24
+_PARENT_LIMIT_MB = 192
 _CHECK_INTERVAL_S = 5
 _AGGRESSIVE_INTERVAL_S = 2
-_CLEAN_CYCLE_S = 15
+_CLEAN_CYCLE_S = 10
 
 
 def _get_rss_mb(pid: int) -> float:
@@ -156,7 +156,7 @@ def _is_process_alive(pid: int) -> bool:
 
 
 def run_memory_cleaner(parent_pid: int, interval_seconds: int = 30) -> None:
-    gc.set_threshold(700, 10, 10)
+    gc.set_threshold(300, 5, 5)
     gc.enable()
 
     check_interval = max(5, interval_seconds)

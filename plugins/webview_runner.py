@@ -568,9 +568,11 @@ def _apply_chromium_flags():
         "--max-decoded-image-size-bytes=10485760",
         "--disk-cache-size=20971520",
         "--max-active-webgl-contexts=1",
-        "--disable-features=BackForwardCache,VaapiVideoDecoder,MediaFoundationVideoCapture,HardwareMediaKeyHandling",
+        "--disable-features=BackForwardCache,VaapiVideoDecoder,MediaFoundationVideoCapture,HardwareMediaKeyHandling,Translate",
         "--js-flags=--max-old-space-size=128",
         "--num-raster-threads=2",
+        "--disable-site-isolation-trials",
+        "--enable-low-res-tiling",
     ]
 
     if not is_onboarding_process:
@@ -4227,7 +4229,7 @@ class MainWindow(QWebEngineView):
                 return
             import gc
             self._memory_timer = QTimer(self)
-            self._memory_timer.setInterval(15000)
+            self._memory_timer.setInterval(60000)
             self._memory_timer.timeout.connect(self._on_memory_tick)
             self._memory_timer.start()
         except Exception as e:
@@ -4246,10 +4248,7 @@ class MainWindow(QWebEngineView):
         try:
             import gc
 
-            for _ in range(2):
-                gc.collect(0)
-                gc.collect(1)
-                gc.collect(2)
+            gc.collect(1)
 
             page = self.page()
             if page is not None:
@@ -4266,32 +4265,7 @@ class MainWindow(QWebEngineView):
                         pass
 
             if sys.platform == "win32":
-                try:
-                    kernel32 = ctypes.windll.kernel32
-                    PROCESS_SET_QUOTA = 0x0100
-                    PROCESS_QUERY_INFORMATION = 0x0400
-                    handle = kernel32.OpenProcess(
-                        PROCESS_SET_QUOTA | PROCESS_QUERY_INFORMATION,
-                        False,
-                        os.getpid(),
-                    )
-                    if handle:
-                        try:
-                            for _ in range(3):
-                                kernel32.SetProcessWorkingSetSize(handle, -1, -1)
-
-                            ntdll = ctypes.windll.ntdll
-                            class PWSE(ctypes.Structure):
-                                _fields_ = [("Flags", ctypes.c_ulonglong)]
-                            pwse = PWSE()
-                            pwse.Flags = 0
-                            ntdll.NtSetInformationProcess(
-                                handle, 0x25, ctypes.byref(pwse), ctypes.sizeof(pwse)
-                            )
-                        finally:
-                            kernel32.CloseHandle(handle)
-                except Exception:
-                    pass
+                pass
         except Exception:
             pass
 

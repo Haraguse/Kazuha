@@ -2019,7 +2019,7 @@ class OverlayWindow(QWebEngineView):
                 return
             from PySide6.QtCore import QTimer
             self._memory_timer = QTimer(self)
-            self._memory_timer.setInterval(120000)
+            self._memory_timer.setInterval(60000)
             self._memory_timer.timeout.connect(self._on_memory_tick)
             self._memory_timer.start()
         except Exception:
@@ -2044,7 +2044,13 @@ class OverlayWindow(QWebEngineView):
                     page.clearMemoryCaches()
                 except Exception:
                     pass
-            gc.collect(2)
+                profile = page.profile()
+                if profile is not None:
+                    try:
+                        profile.clearHttpCache()
+                    except Exception:
+                        pass
+            gc.collect(1)
         except Exception:
             pass
 
