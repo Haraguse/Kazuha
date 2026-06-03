@@ -1281,7 +1281,7 @@ class BoardWindow(QQuickView):
         )
         self.statusChanged.connect(self._on_status_changed)
         self._settings_watch_timer = QTimer(self)
-        self._settings_watch_timer.setInterval(400)
+        self._settings_watch_timer.setInterval(1000)
         self._settings_watch_timer.timeout.connect(self._sync_board_settings)
         self._settings_watch_timer.start()
 

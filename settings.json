@@ -8,7 +8,7 @@
         "SafeArea": 0,
         "Scale": 1.0,
         "ShowStatusBar": true,
-        "SidePageOpacity": 1.0,
+        "SidePageOpacity": 1,
         "StatusBarShowBattery": true,
         "StatusBarShowMusic": true,
         "StatusBarShowNetwork": true,
@@ -40,7 +40,7 @@
         "SplashMode": "Always",
         "SplashStartTime": "08:00",
         "SplashStyle": "default",
-        "UseNativeTitleBar": true,
+        "UseNativeTitleBar": false,
         "Language": "zh-CN"
     },
     "Toolbar": {
@@ -68,12 +68,12 @@
             "Microsoft YaHei",
             "PingFang SC"
         ],
-        "ThemeColor": "#ffe1ebff"
+        "ThemeColor": "#ff3275f5"
     },
     "Appearance": {
         "OverlayTheme": "default",
         "ThemeId": "default",
-        "ThemeMode": "Auto",
+        "ThemeMode": "Light",
         "MonetPalette": {
             "background": "#edf2f8",
             "primary": "#86a6cf",
@@ -93,5 +93,6 @@
     },
     "Fonts": {
         "CustomFont": false
-    }
+    },
+    "_restart_pending": true
 }

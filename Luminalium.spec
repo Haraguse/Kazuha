@@ -5,21 +5,21 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('version.json', '.'), ('plugins', 'plugins'), ('icons', 'icons'), ('ppt_assistant', 'ppt_assistant'), ('fonts', 'fonts'), ('user', 'user'), ('scripts', 'scripts')],
+    datas=[('version.json', '.'), ('plugins', 'plugins'), ('icons', 'icons'), ('fonts', 'fonts'), ('user', 'user'), ('internalSMTCHelper', 'internalSMTCHelper'), ('ppt_assistant/assets', 'ppt_assistant/assets'), ('ppt_assistant\\ui\\crash_dialog.html', 'ppt_assistant/ui/crash_dialog.html'), ('ppt_assistant\\ui\\dialog.html', 'ppt_assistant/ui/dialog.html'), ('ppt_assistant\\ui\\LinuxOverlay.qml', 'ppt_assistant/ui/LinuxOverlay.qml'), ('ppt_assistant\\ui\\overlay.html', 'ppt_assistant/ui/overlay.html'), ('ppt_assistant\\ui\\splash.html', 'ppt_assistant/ui/splash.html'), ('ppt_assistant\\ui\\titlebar.html', 'ppt_assistant/ui/titlebar.html'), ('ppt_assistant\\ui\\titlebar_demo.html', 'ppt_assistant/ui/titlebar_demo.html')],
     hiddenimports=['PySide6.QtXml'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['PyQt5', 'PyQt5-Frameless-Window', 'setuptools', 'pkg_resources'],
+    excludes=['PyQt5', 'PyQt5-Frameless-Window', 'PyQt6', 'setuptools', 'pkg_resources', 'numpy', 'scipy', 'ppt_assistant.rendering'],
     noarchive=False,
-    optimize=0,
+    optimize=1,
 )
 pyz = PYZ(a.pure)
 
 exe = EXE(
     pyz,
     a.scripts,
-    [],
+    [('O', None, 'OPTION')],
     exclude_binaries=True,
     name='Luminalium',
     debug=False,
@@ -32,7 +32,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['c:\\Users\\Evan Evan\\Documents\\Luminalium\\icons\\logo.ico'],
+    icon=['C:\\Users\\Evan Evan\\Documents\\Luminalium\\icons\\logo.ico'],
 )
 coll = COLLECT(
     exe,

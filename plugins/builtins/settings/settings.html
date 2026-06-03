@@ -4466,6 +4466,122 @@
       opacity: 0.88;
     }
 
+    [data-theme="light"] .sidebar,
+    [data-theme="light"] .sidebar-mini {
+      background: rgba(248, 248, 250, 0.86);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.03);
+      backdrop-filter: blur(18px) saturate(140%);
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+    }
+
+    [data-theme="light"] .content {
+      background: rgba(255, 255, 255, 0.92);
+      border-color: rgba(0, 0, 0, 0.06);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 18px 40px rgba(15, 23, 42, 0.05);
+    }
+
+    [data-theme="light"] .settings-group {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.74)), var(--card-bg);
+      border-color: rgba(0, 0, 0, 0.06);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
+    }
+
+    [data-theme="light"] .settings-item:hover,
+    [data-theme="light"] #echo-cave-item:active {
+      background: rgba(0, 0, 0, 0.028);
+    }
+
+    [data-theme="light"] .sidebar-item,
+    [data-theme="light"] .sidebar-mini .nav-item {
+      color: #5f6368;
+    }
+
+    [data-theme="light"] .sidebar-item::before {
+      border-radius: 999px;
+    }
+
+    [data-theme="light"] .sidebar-item.active::before,
+    [data-theme="light"] .sidebar-mini .nav-item.active {
+      background: #e8e8ed;
+    }
+
+    [data-theme="light"] .sidebar-icon {
+      opacity: 0.82;
+    }
+
+    [data-theme="light"] .item-desc,
+    [data-theme="light"] .echo-cave-content,
+    [data-theme="light"] .version-card-right .item-desc {
+      color: #666666;
+      opacity: 1;
+    }
+
+    [data-theme="light"] .item-hint,
+    [data-theme="light"] .sidebar-version,
+    [data-theme="light"] .version-expander-credit {
+      color: #8e8e93;
+      opacity: 1;
+    }
+
+    [data-theme="light"] .about-header {
+      background: linear-gradient(180deg, #f7f9ff 0%, #eef3ff 100%);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    [data-theme="light"] .about-header::after {
+      background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.92) 60%, #ffffff);
+    }
+
+    [data-theme="light"] .hyperos-bg {
+      opacity: 0.72;
+      filter: blur(68px) saturate(125%);
+    }
+
+    [data-theme="light"] .about-logo-container::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      margin: auto;
+      width: 248px;
+      height: 248px;
+      background: rgba(15, 23, 42, 0.16);
+      -webkit-mask: url("./logo_grayscale.svg") center / contain no-repeat;
+      mask: url("./logo_grayscale.svg") center / contain no-repeat;
+      transform: translateY(2px) scale(1.02);
+      opacity: 0.75;
+      z-index: 0;
+    }
+
+    [data-theme="light"] .about-logo-container::after {
+      content: "";
+      position: absolute;
+      inset: 50%;
+      width: 236px;
+      height: 236px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.78) 0%, rgba(240, 244, 255, 0.3) 56%, rgba(240, 244, 255, 0) 100%);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    [data-theme="light"] .about-main-logo {
+      filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.08)) drop-shadow(0 12px 32px rgba(50, 117, 245, 0.12));
+    }
+
+    [data-theme="light"] .about-main-logo::before {
+      background: linear-gradient(160deg, rgba(50, 117, 245, 0.94), rgba(124, 150, 255, 0.8) 52%, rgba(255, 255, 255, 0.84));
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+
+    [data-theme="light"] .about-main-logo::after {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.22));
+      opacity: 0.92;
+      filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.42));
+    }
+
     .language-warning {
       display: none;
       margin-top: 8px;
@@ -4516,7 +4632,9 @@
       pointer-events: none;
       display: flex;
       align-items: center;
-      gap: 8px;
+      width: max-content;
+      max-width: calc(100vw - 48px);
+      box-sizing: border-box;
     }
 
     [data-theme="dark"] .toast-container {
@@ -4542,14 +4660,6 @@
 
     .toast-container.toast-top-right.show {
       transform: translateX(0);
-    }
-
-    .toast-icon {
-      width: 16px;
-      height: 16px;
-      background-color: var(--accent-blue);
-      -webkit-mask: url('../../../icons/Settings.svg') no-repeat center/contain;
-      mask: url('../../../icons/Settings.svg') no-repeat center/contain;
     }
 
     .debug-log-panel {
@@ -5693,7 +5803,6 @@
     </div>
   </div>
   <div id="toast-message" class="toast-container">
-    <div class="toast-icon"></div>
     <div id="toast-text">已经存在打开的窗口！</div>
   </div>
   <div id="performance-overlay" class="performance-overlay" aria-hidden="true">
@@ -5774,7 +5883,7 @@
           <circle cx="6" cy="18" r="2" />
           <circle cx="18" cy="18" r="2" />
         </svg>
-        <span>联动</span>
+        <span data-i18n="nav.linkage">联动</span>
       </div>
 
       <div class="sidebar-item" data-section="board-in-board">
@@ -7535,6 +7644,7 @@
         "nav.statusbar": "状态栏",
         "nav.storage": "存储、档案和备份",
         "nav.notifications": "通知",
+        "nav.linkage": "联动",
         "nav.plugins": "工具栏",
         "nav.pluginSettings": "插件设置",
         "nav.debug": "调试",
@@ -7549,6 +7659,7 @@
         "section.statusbar": "状态栏",
         "section.storage": "存储、档案和备份",
         "section.notifications": "通知",
+        "section.linkage": "联动",
         "section.plugins": "工具栏",
         "section.plugin-settings": "插件设置",
         "section.board-in-board": "内建功能",
@@ -7985,6 +8096,7 @@
         "nav.window": "視窗",
         "nav.storage": "存儲、檔案和備份",
         "nav.notifications": "通知",
+        "nav.linkage": "聯動",
         "nav.plugins": "工具列",
         "nav.pluginSettings": "插件設定",
         "nav.boardInBoard": "內建功能",
@@ -7999,6 +8111,7 @@
         "section.statusbar": "狀態欄",
         "section.storage": "存儲、檔案和備份",
         "section.notifications": "通知",
+        "section.linkage": "聯動",
         "section.plugins": "工具列",
         "section.plugin-settings": "插件設定",
         "section.board-in-board": "內建功能",
@@ -8405,6 +8518,7 @@
         "nav.statusbar": "狀態欄",
         "nav.storage": "存儲、檔案同備份",
         "nav.notifications": "通知",
+        "nav.linkage": "聯動",
         "nav.plugins": "工具列",
         "nav.pluginSettings": "插件設定",
         "nav.boardInBoard": "內建功能",
@@ -8418,6 +8532,7 @@
         "section.statusbar": "狀態欄",
         "section.storage": "存儲、檔案同備份",
         "section.notifications": "通知",
+        "section.linkage": "聯動",
         "section.plugins": "工具列",
         "section.plugin-settings": "插件設定",
         "section.board-in-board": "內建功能",
@@ -8810,6 +8925,7 @@
         "nav.about": "情報",
         "nav.window": "ウィンドウ",
         "nav.statusbar": "ステータスバー",
+        "nav.linkage": "連携",
         "nav.plugins": "ツールバー",
         "nav.pluginSettings": "プラグイン設定",
         "nav.boardInBoard": "内蔵機能",
@@ -8826,6 +8942,7 @@
         "section.statusbar": "ステータスバー",
         "section.storage": "ストレージ、アーカイブ、バックアップ",
         "section.notifications": "通知",
+        "section.linkage": "連携",
         "section.plugins": "ツールバー",
         "section.plugin-settings": "プラグイン設定",
         "section.board-in-board": "内蔵機能",
@@ -9232,6 +9349,7 @@
         "nav.about": "About",
         "nav.window": "Window",
         "nav.statusbar": "Status Bar",
+        "nav.linkage": "Linkage",
         "nav.plugins": "Toolbar",
         "nav.pluginSettings": "Plugin Settings",
         "nav.boardInBoard": "Built-in Features",
@@ -9248,6 +9366,7 @@
         "section.statusbar": "Status Bar",
         "section.storage": "Storage, Archive & Backup",
         "section.notifications": "Notifications",
+        "section.linkage": "Linkage",
         "section.plugins": "Toolbar",
         "section.plugin-settings": "Plugin Settings",
         "section.board-in-board": "Built-in Features",
@@ -9529,6 +9648,7 @@
         "nav.about": "About",
         "nav.window": "Window",
         "nav.statusbar": "Status Bar",
+        "nav.linkage": "Linkage",
         "nav.plugins": "Toolbar",
         "nav.pluginSettings": "Plugin Settings",
         "nav.boardInBoard": "Built-in Features",
@@ -9543,6 +9663,7 @@
         "section.overlay": "Presentation",
         "section.window": "Window",
         "section.statusbar": "Status Bar",
+        "section.linkage": "Linkage",
         "section.plugins": "Toolbar",
         "section.plugin-settings": "Plugin Settings",
         "section.board-in-board": "Built-in Features",
@@ -12540,6 +12661,9 @@
     }
 
     function buildWindowTitle(sectionKey) {
+      if (sectionKey === "linkage") {
+        return "联动 - 设置 - 荧素万演";
+      }
       const sectionText = getText("section." + sectionKey) || "";
       const appText = getText("app.settings") || "设置";
       const appName = getText("app.name") || "Luminalium";
@@ -14852,7 +14976,7 @@
     function removeSelectedToolbarApp() {
       if (selectedToolbarAppPaths.length === 0) return;
       if (selectedToolbarAppPaths.includes(SECRANDOM_TOOLBAR_ITEM_PATH)) {
-        showToastMessage("若要删除SecRandom点名项，请在'设置>联动'中关闭对SecRandom的联动，此时点名项会自动删除", "top-right");
+        showToastMessage("若要删除SecRandom点名项，请在'设置>联动'中关闭对SecRandom的联动，此时点名项会自动删除");
         return;
       }
       if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.remove_quick_launch_app) {

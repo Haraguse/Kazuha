@@ -242,7 +242,7 @@ class WindowsFocusWatcher(QObject):
         if self._poll_timer is not None:
             return
         self._poll_timer = QTimer(self)
-        self._poll_timer.setInterval(30)
+        self._poll_timer.setInterval(100)
         self._poll_timer.timeout.connect(self._recompute)
 
     def _set_polling_active(self, active: bool):

@@ -1940,7 +1940,7 @@ class PPTAssistantApp:
             os.path.getmtime(SETTINGS_PATH) if os.path.exists(SETTINGS_PATH) else 0
         )
         self._settings_timer = QTimer()
-        self._settings_timer.setInterval(100)
+        self._settings_timer.setInterval(500)
         self._settings_timer.timeout.connect(self._check_settings_changed)
         self._settings_timer.start()
 

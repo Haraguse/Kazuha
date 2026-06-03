@@ -1,7 +1,37 @@
+import fnmatch
 import os
-import sys
 import shutil
 import subprocess
+import sys
+
+
+STATIC_PPT_ASSET_EXTENSIONS = {".html", ".qml", ".ogg"}
+BASE_EXCLUDED_MODULES = [
+    "PyQt5",
+    "PyQt5-Frameless-Window",
+    "PyQt6",
+    "setuptools",
+    "pkg_resources",
+    # The desktop app does not use the experimental rendering package in production.
+    "numpy",
+    "scipy",
+    "ppt_assistant.rendering",
+]
+UNUSED_QT_DLL_PATTERNS = [
+    "Qt6Pdf*.dll",
+    "Qt6Charts*.dll",
+    "Qt6Graphs*.dll",
+    "Qt6Location*.dll",
+    "Qt6DataVisualization*.dll",
+    "Qt63D*.dll",
+    "Qt6Quick3D*.dll",
+    "Qt6RemoteObjects*.dll",
+]
+UNUSED_QT_RESOURCE_PATTERNS = [
+    "qtwebengine_devtools_resources*.pak",
+    "*.debug.pak",
+    "*.debug.bin",
+]
 
 
 def _remove_pdb_files(root_dir):
@@ -39,6 +69,84 @@ def _prune_qtwebengine_locales(root_dir):
                         pass
 
 
+def _collect_data_entries(root_dir):
+    data_entries = [
+        ("version.json", "."),
+        ("config", "config"),
+        ("plugins", "plugins"),
+        ("icons", "icons"),
+        ("fonts", "fonts"),
+        ("user", "user"),
+        ("internalSMTCHelper", "internalSMTCHelper"),
+        ("Luminalium2WPS/protocol", "Luminalium2WPS/protocol"),
+        ("ppt_assistant/assets", "ppt_assistant/assets"),
+    ]
+    ui_dir = os.path.join(root_dir, "ppt_assistant", "ui")
+    if os.path.isdir(ui_dir):
+        for name in os.listdir(ui_dir):
+            src = os.path.join(ui_dir, name)
+            if not os.path.isfile(src):
+                continue
+            if os.path.splitext(name)[1].lower() not in STATIC_PPT_ASSET_EXTENSIONS:
+                continue
+            data_entries.append((os.path.relpath(src, root_dir), f"ppt_assistant/ui/{name}"))
+    return [
+        (src, dst)
+        for src, dst in data_entries
+        if os.path.exists(os.path.join(root_dir, src))
+    ]
+
+
+def _remove_matching_files(root_dir, patterns):
+    for dirpath, _, filenames in os.walk(root_dir):
+        for name in filenames:
+            if not any(fnmatch.fnmatch(name, pattern) for pattern in patterns):
+                continue
+            try:
+                os.remove(os.path.join(dirpath, name))
+            except OSError:
+                pass
+
+
+def _remove_matching_directories(root_dir, names):
+    target_names = {name.lower() for name in names}
+    for dirpath, dirnames, _ in os.walk(root_dir):
+        for name in list(dirnames):
+            if name.lower() not in target_names:
+                continue
+            shutil.rmtree(os.path.join(dirpath, name), ignore_errors=True)
+            dirnames.remove(name)
+
+
+def _prune_unused_qt_binaries(root_dir):
+    pyside_dir = os.path.join(root_dir, "_internal", "PySide6")
+    if not os.path.isdir(pyside_dir):
+        return
+    _remove_matching_files(pyside_dir, UNUSED_QT_DLL_PATTERNS)
+    _remove_matching_files(
+        os.path.join(pyside_dir, "resources"), UNUSED_QT_RESOURCE_PATTERNS
+    )
+    _remove_matching_directories(os.path.join(pyside_dir, "plugins"), {"qmltooling"})
+
+
+def _prune_pyinstaller_metadata(root_dir):
+    _remove_matching_directories(root_dir, {"__pycache__", "Pythonwin"})
+    for dirpath, dirnames, _ in os.walk(root_dir):
+        for name in list(dirnames):
+            lower = name.lower()
+            if not lower.endswith(".dist-info"):
+                continue
+            shutil.rmtree(os.path.join(dirpath, name), ignore_errors=True)
+            dirnames.remove(name)
+
+
+def _build_exclude_args():
+    args = []
+    for module_name in BASE_EXCLUDED_MODULES:
+        args += ["--exclude-module", module_name]
+    return args
+
+
 def run():
     root_dir = os.path.dirname(os.path.abspath(__file__))
     dist_dir = os.path.join(root_dir, "dist")
@@ -58,22 +166,10 @@ def run():
     logo_ico = os.path.join(icons_dir, "logo.ico")
 
     data_sep = os.pathsep
-    data_entries = [
-        ("version.json", "."),
-        ("config", "config"),
-        ("plugins", "plugins"),
-        ("icons", "icons"),
-        ("ppt_assistant", "ppt_assistant"),
-        ("fonts", "fonts"),
-        ("user", "user"),
-        ("internalSMTCHelper", "internalSMTCHelper"),
-        ("scripts", "scripts"),
-        ("Luminalium2WPS/protocol", "Luminalium2WPS/protocol"),
-    ]
+    data_entries = _collect_data_entries(root_dir)
     add_data = []
     for src, dst in data_entries:
-        if os.path.exists(os.path.join(root_dir, src)):
-            add_data.append(f"{src}{data_sep}{dst}")
+        add_data.append(f"{src}{data_sep}{dst}")
 
     cmd = [
         python_exe,
@@ -81,14 +177,10 @@ def run():
         "PyInstaller",
         "--noconfirm",
         "--clean",
-        "--exclude-module",
-        "PyQt5",
-        "--exclude-module",
-        "PyQt5-Frameless-Window",
-        "--exclude-module",
-        "setuptools",
-        "--exclude-module",
-        "pkg_resources",
+        "--specpath",
+        os.path.join(build_dir, "Luminalium"),
+        "--optimize",
+        "1",
         "--hidden-import",
         "PySide6.QtXml",
         "--onedir",
@@ -96,6 +188,7 @@ def run():
         "--name",
         "Luminalium",
     ]
+    cmd += _build_exclude_args()
     if os.path.exists(logo_ico):
         cmd += ["--icon", logo_ico]
     for entry in add_data:
@@ -128,13 +221,11 @@ def run():
             "--clean",
             "--onefile",
             "--windowed",  # Now has GUI, avoid console
+            "--optimize", "1",
             "--hidden-import", "PySide6.QtCore",
             "--hidden-import", "PySide6.QtGui",
             "--hidden-import", "PySide6.QtWidgets",
             "--hidden-import", "qfluentwidgets",
-            "--exclude-module", "PyQt5",
-            "--exclude-module", "PyQt5-Frameless-Window",
-            "--exclude-module", "PyQt6",
             "--name",
             "updater",
             "--distpath",
@@ -145,6 +236,7 @@ def run():
             os.path.join(build_dir, "updater"),
             updater_py,
         ]
+        updater_cmd += _build_exclude_args()
         subprocess.check_call(updater_cmd, cwd=root_dir)
 
     output_dir = os.path.join(dist_dir, "Luminalium")
@@ -152,6 +244,8 @@ def run():
         _remove_pdb_files(output_dir)
         _prune_qt_translations(output_dir)
         _prune_qtwebengine_locales(output_dir)
+        _prune_unused_qt_binaries(output_dir)
+        _prune_pyinstaller_metadata(output_dir)
 
     if os.path.isdir(build_dir):
         shutil.rmtree(build_dir, ignore_errors=True)

@@ -13,6 +13,7 @@ from PySide6.QtCore import Qt, QRect, QPoint, QSize, Signal, QStandardPaths
 from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QPixmap, QCursor, QPainterPath
 from qfluentwidgets import Slider, Theme, FluentIcon as FIF
 import os
+import sys
 import time
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.config import cfg
