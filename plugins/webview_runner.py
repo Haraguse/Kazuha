@@ -49,6 +49,10 @@ from ppt_assistant.core.platform_integration import (
     get_quick_launch_dialog_filter,
     set_run_at_startup as platform_set_run_at_startup,
 )
+from ppt_assistant.core.windows_notifications import (
+    create_windows_notification_shortcut,
+    get_windows_notification_app_name,
+)
 
 DWMWA_WINDOW_CORNER_PREFERENCE = 33
 DWMWCP_ROUND = 2
@@ -731,18 +735,14 @@ def _create_shortcut(
     target_path, shortcut_path, work_dir=None, icon_path=None, args=None
 ):
     try:
-        import win32com.client
-
-        shell = win32com.client.Dispatch("WScript.Shell")
-        shortcut = shell.CreateShortCut(shortcut_path)
-        shortcut.TargetPath = target_path
-        if work_dir:
-            shortcut.WorkingDirectory = work_dir
-        if icon_path:
-            shortcut.IconLocation = icon_path
-        if args:
-            shortcut.Arguments = args
-        shortcut.Save()
+        create_windows_notification_shortcut(
+            target_path=target_path,
+            shortcut_path=shortcut_path,
+            work_dir=work_dir,
+            icon_path=icon_path,
+            args=args,
+            app_name=get_windows_notification_app_name(),
+        )
         return True
     except Exception as e:
         print(f"Error creating shortcut: {e}", file=sys.stderr)

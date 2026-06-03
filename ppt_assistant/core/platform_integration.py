@@ -129,6 +129,112 @@ def remove_window_border(win_id) -> None:
         pass
 
 
+def make_window_borderless_popup(win_id) -> None:
+    """Force a window into a true borderless popup/tool window on Windows."""
+    if sys.platform != "win32" or not win_id:
+        return
+
+    try:
+        import ctypes
+
+        hwnd = int(win_id)
+        user32 = ctypes.windll.user32
+        dwmapi = ctypes.windll.dwmapi
+
+        GWL_STYLE = -16
+        GWL_EXSTYLE = -20
+
+        WS_BORDER = 0x00800000
+        WS_CAPTION = 0x00C00000
+        WS_DLGFRAME = 0x00400000
+        WS_SYSMENU = 0x00080000
+        WS_THICKFRAME = 0x00040000
+        WS_MINIMIZEBOX = 0x00020000
+        WS_MAXIMIZEBOX = 0x00010000
+        WS_POPUP = 0x80000000
+
+        WS_EX_APPWINDOW = 0x00040000
+        WS_EX_TOOLWINDOW = 0x00000080
+
+        SWP_NOSIZE = 0x0001
+        SWP_NOMOVE = 0x0002
+        SWP_NOZORDER = 0x0004
+        SWP_NOACTIVATE = 0x0010
+        SWP_FRAMECHANGED = 0x0020
+
+        DWMWA_NCRENDERING_POLICY = 2
+        DWMNCRP_DISABLED = 1
+        DWMWA_WINDOW_CORNER_PREFERENCE = 33
+        DWMWCP_DONOTROUND = 1
+        DWMWA_BORDER_COLOR = 34
+        DWMWA_COLOR_NONE = 0xFFFFFFFE
+
+        style = user32.GetWindowLongW(hwnd, GWL_STYLE)
+        style_without_frame = style & ~(
+            WS_BORDER
+            | WS_CAPTION
+            | WS_DLGFRAME
+            | WS_SYSMENU
+            | WS_THICKFRAME
+            | WS_MINIMIZEBOX
+            | WS_MAXIMIZEBOX
+        )
+        new_style = style_without_frame | WS_POPUP
+
+        ex_style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+        new_ex_style = (ex_style | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW
+
+        if new_style != style:
+            user32.SetWindowLongW(hwnd, GWL_STYLE, new_style)
+        if new_ex_style != ex_style:
+            user32.SetWindowLongW(hwnd, GWL_EXSTYLE, new_ex_style)
+
+        user32.SetWindowPos(
+            hwnd,
+            0,
+            0,
+            0,
+            0,
+            0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
+        )
+
+        try:
+            nc_policy = ctypes.c_int(DWMNCRP_DISABLED)
+            dwmapi.DwmSetWindowAttribute(
+                hwnd,
+                DWMWA_NCRENDERING_POLICY,
+                ctypes.byref(nc_policy),
+                ctypes.sizeof(nc_policy),
+            )
+        except Exception:
+            pass
+
+        try:
+            corner_pref = ctypes.c_int(DWMWCP_DONOTROUND)
+            dwmapi.DwmSetWindowAttribute(
+                hwnd,
+                DWMWA_WINDOW_CORNER_PREFERENCE,
+                ctypes.byref(corner_pref),
+                ctypes.sizeof(corner_pref),
+            )
+        except Exception:
+            pass
+
+        try:
+            border_color = ctypes.c_int(DWMWA_COLOR_NONE)
+            dwmapi.DwmSetWindowAttribute(
+                hwnd,
+                DWMWA_BORDER_COLOR,
+                ctypes.byref(border_color),
+                ctypes.sizeof(border_color),
+            )
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+
 def remove_window_border_delayed(widget) -> None:
     """Remove window border with delayed execution to ensure window is fully created."""
     if sys.platform != "win32":

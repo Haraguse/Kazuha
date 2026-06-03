@@ -62,10 +62,11 @@ def parse_luminalium_url(url: str) -> dict | None:
     if not url or not url.startswith("luminalium://"):
         return None
     try:
-        from urllib.parse import urlparse
+        from urllib.parse import parse_qs, urlparse
         parsed = urlparse(url)
         path = parsed.path.strip("/")
         parts = [p for p in path.split("/") if p]
+        query = parse_qs(parsed.query or "")
         host = parsed.hostname or ""
         if host == "app" and len(parts) >= 1:
             if parts[0] == "settings":
@@ -74,7 +75,11 @@ def parse_luminalium_url(url: str) -> dict | None:
         elif host == "intergrate" and len(parts) >= 1:
             target = parts[0]
             if target in ("timer", "board"):
-                return {"action": target}
+                route = {"action": target}
+                for key, values in query.items():
+                    if values:
+                        route[key] = values[-1]
+                return route
     except Exception:
         pass
     return None
@@ -228,6 +233,10 @@ from ppt_assistant.core.linux_focus_watcher import LinuxFocusWatcher
 from ppt_assistant.core.win_focus_watcher import WindowsFocusWatcher
 from ppt_assistant.core.resource_monitor import SystemResourceMonitor
 from ppt_assistant.core.platform_integration import open_path
+from ppt_assistant.core.windows_notifications import (
+    configure_current_process_for_notifications,
+    send_windows_notification,
+)
 
 
 class WindowIconEventFilter(QObject):
@@ -1898,11 +1907,46 @@ class PPTAssistantApp:
                 self.settings_plugin.execute()
                 QTimer.singleShot(500, lambda: self._navigate_settings_page(page))
         elif action == "timer":
-            if hasattr(self, "timer_plugin"):
+            command = str(route.get("command") or "open").strip().lower()
+            if command == "restart":
+                self._restart_timer_from_notification()
+            elif command == "stop_all":
+                self._stop_all_timers_from_notification()
+            elif hasattr(self, "timer_plugin"):
                 self.timer_plugin.execute()
         elif action == "board":
             if hasattr(self, "board_plugin"):
                 self.board_plugin.execute()
+
+    def _restart_timer_from_notification(self):
+        seconds = 0
+        try:
+            seconds = int(max(0, self._timer_manager.total_seconds))
+        except Exception:
+            seconds = 0
+        if seconds <= 0:
+            return
+        try:
+            self._timer_manager.start(seconds)
+        except Exception as e:
+            print(f"[Protocol] Failed to restart timer from notification: {e}")
+            return
+        if hasattr(self, "timer_plugin"):
+            try:
+                self.timer_plugin.execute()
+            except Exception:
+                pass
+
+    def _stop_all_timers_from_notification(self):
+        try:
+            self._timer_manager.stop()
+        except Exception as e:
+            print(f"[Protocol] Failed to stop timer from notification: {e}")
+        if hasattr(self, "timer_plugin"):
+            try:
+                self.timer_plugin.terminate()
+            except Exception:
+                pass
 
     def _navigate_settings_page(self, page: str, retries=8):
         try:
@@ -2460,8 +2504,31 @@ class PPTAssistantApp:
                 return
         except Exception:
             pass
+        title = t("timer.notify.title")
+        body = t("timer.notify.body")
+        if sys.platform == "win32":
+            if send_windows_notification(
+                title,
+                body,
+                launch="luminalium://intergrate/timer?command=open",
+                buttons=[
+                    {
+                        "content": t("timer.notify.action.open"),
+                        "arguments": "luminalium://intergrate/timer?command=open",
+                    },
+                    {
+                        "content": t("timer.notify.action.restart"),
+                        "arguments": "luminalium://intergrate/timer?command=restart",
+                    },
+                    {
+                        "content": t("timer.notify.action.stop_all"),
+                        "arguments": "luminalium://intergrate/timer?command=stop_all",
+                    },
+                ],
+            ):
+                return
         if hasattr(self, "tray") and self.tray:
-            self.tray.show_message(t("timer.notify.title"), t("timer.notify.body"))
+            self.tray.show_message(title, body)
 
     @Slot()
     def _on_timer_background_mode(self):
@@ -3005,23 +3072,11 @@ def _check_post_update():
             
             if sys.platform == "win32":
                 try:
-                    from winrt.windows.ui.notifications import ToastNotificationManager, ToastNotification
-                    from winrt.windows.data.xml.dom import XmlDocument
-                    
-                    xml = XmlDocument()
-                    xml.load_xml(f"""
-                    <toast launch="luminalium://settings/update">
-                        <visual>
-                            <binding template="ToastGeneric">
-                                <text>更新完成</text>
-                                <text>应用已更新到 {new_ver}，点击以查看详细信息</text>
-                            </binding>
-                        </visual>
-                    </toast>
-                    """)
-                    
-                    notifier = ToastNotificationManager.create_toast_notifier("Luminalium")
-                    notifier.show(ToastNotification(xml))
+                    send_windows_notification(
+                        "更新完成",
+                        f"应用已更新到 {new_ver}，点击以查看详细信息",
+                        launch="luminalium://settings/update",
+                    )
                 except Exception as e:
                     print(f"Failed to send update notification: {e}")
     except Exception as e:
@@ -3029,6 +3084,8 @@ def _check_post_update():
 
 if __name__ == "__main__":
     # Platform settings moved to top of file to ensure they apply before any Qt import
+    if sys.platform == "win32":
+        configure_current_process_for_notifications()
 
     _ensure_user_dirs()
     

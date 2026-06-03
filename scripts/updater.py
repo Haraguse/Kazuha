@@ -25,12 +25,20 @@ from qfluentwidgets import (
     BodyLabel,
     isDarkTheme,
 )
+from ppt_assistant.core.windows_notifications import (
+    configure_current_process_for_notifications,
+    send_windows_notification,
+)
 
 def is_admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
     except:
         return False
+
+
+if sys.platform == "win32":
+    configure_current_process_for_notifications()
 
 # Mutex handling
 def wait_for_mutex(mutex_name, timeout=30):
@@ -119,21 +127,7 @@ def restore_backup(app_dir, bak_dir):
 
 def notify_failure(msg):
     try:
-        from winrt.windows.ui.notifications import ToastNotificationManager, ToastNotification
-        from winrt.windows.data.xml.dom import XmlDocument
-        xml = XmlDocument()
-        xml.load_xml(f"""
-        <toast>
-            <visual>
-                <binding template="ToastGeneric">
-                    <text>更新失败</text>
-                    <text>{msg}</text>
-                </binding>
-            </visual>
-        </toast>
-        """)
-        notifier = ToastNotificationManager.create_toast_notifier("Luminalium")
-        notifier.show(ToastNotification(xml))
+        send_windows_notification("更新失败", str(msg or ""))
     except:
         pass
 
