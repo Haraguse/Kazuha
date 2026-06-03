@@ -6311,7 +6311,7 @@ makes it unnecessary.
         
         if (!resultStr) {
           console.warn("import_settings returned null/undefined");
-          alert("导入配置成功但文件为空");
+          alert("导入配置失败：未收到导入结果");
           return;
         }
         
@@ -6338,10 +6338,24 @@ makes it unnecessary.
         console.log("Object.keys(result):", Object.keys(result));
         console.log("result.config exists:", !!result.config);
         console.log("result.preview exists:", !!result.preview);
+        console.log("result.error:", result.error);
+        console.log("result.cancelled:", !!result.cancelled);
         if (result.config) {
           console.log("result.config type:", typeof result.config);
           console.log("Object.keys(config):", Object.keys(result.config));
           console.log("config content:", result.config);
+        }
+
+        if (result.cancelled) {
+          console.log("Import cancelled by user");
+          return;
+        }
+
+        if (result.error) {
+          const message = result.message || "导入配置失败";
+          console.error("✗ Import failed:", result.error, message);
+          alert(message);
+          return;
         }
         
         // Extract config and preview
@@ -6351,9 +6365,9 @@ makes it unnecessary.
         console.log("Extracted config:", config);
         console.log("Extracted preview length:", preview ? preview.length : 0);
         
-        if (!config) {
-          console.error("✗ No config found in result");
-          alert("配置解析失败：找不到config字段");
+        if (!config || typeof config !== 'object' || Object.keys(config).length === 0) {
+          console.error("✗ No usable config found in result");
+          alert("未检测到可导入的配置项");
           return;
         }
         

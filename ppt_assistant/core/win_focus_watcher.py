@@ -1,5 +1,6 @@
 import sys
 import ctypes
+import time
 
 try:
     from ctypes import wintypes
@@ -184,6 +185,8 @@ class WindowsFocusWatcher(QObject):
         self._slideshow_running = False
         self._slideshow_hwnd = 0
         self._last_focus_on_slideshow = None
+        self._pending_focus_on_slideshow = None
+        self._pending_focus_started_at = 0.0
         self._poll_timer = None
         self._polling_active = False
         self._hook_failed = False
@@ -216,6 +219,8 @@ class WindowsFocusWatcher(QObject):
     @Slot(bool)
     def set_slideshow_running(self, running: bool):
         self._slideshow_running = bool(running)
+        self._pending_focus_on_slideshow = None
+        self._pending_focus_started_at = 0.0
         self._set_polling_active(self._slideshow_running)
         self._recompute()
 
@@ -225,6 +230,8 @@ class WindowsFocusWatcher(QObject):
             self._slideshow_hwnd = int(hwnd or 0)
         except Exception:
             self._slideshow_hwnd = 0
+        self._pending_focus_on_slideshow = None
+        self._pending_focus_started_at = 0.0
         self._recompute()
 
     @Slot(int)
@@ -394,6 +401,26 @@ class WindowsFocusWatcher(QObject):
                     or self._title_looks_like_slideshow(title)
                 )
 
-        if focus_on_slideshow != self._last_focus_on_slideshow:
-            self._last_focus_on_slideshow = focus_on_slideshow
-            self.focus_on_slideshow_changed.emit(bool(focus_on_slideshow))
+        stable_focus = bool(focus_on_slideshow)
+        now = time.monotonic()
+        hold_seconds = 0.18 if stable_focus else 0.32
+        if self._last_focus_on_slideshow is None:
+            self._last_focus_on_slideshow = stable_focus
+            self._pending_focus_on_slideshow = None
+            self._pending_focus_started_at = 0.0
+            self.focus_on_slideshow_changed.emit(stable_focus)
+            return
+        if stable_focus == self._last_focus_on_slideshow:
+            self._pending_focus_on_slideshow = None
+            self._pending_focus_started_at = 0.0
+            return
+        if self._pending_focus_on_slideshow != stable_focus:
+            self._pending_focus_on_slideshow = stable_focus
+            self._pending_focus_started_at = now
+            return
+        if (now - self._pending_focus_started_at) < hold_seconds:
+            return
+        self._last_focus_on_slideshow = stable_focus
+        self._pending_focus_on_slideshow = None
+        self._pending_focus_started_at = 0.0
+        self.focus_on_slideshow_changed.emit(stable_focus)

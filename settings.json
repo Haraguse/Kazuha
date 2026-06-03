@@ -21,7 +21,8 @@
         "ToolbarOpacity": 1.0,
         "ToolbarPosition": "bottom",
         "UIAccessTopmost": false,
-        "ZOrderCheckInterval": 200
+        "ZOrderCheckInterval": 200,
+        "RecreateOverlayAt": 1780498687911
     },
     "PPT": {
         "AutoHandleInk": true,
@@ -93,6 +94,5 @@
     },
     "Fonts": {
         "CustomFont": false
-    },
-    "_restart_pending": true
+    }
 }

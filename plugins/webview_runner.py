@@ -2075,6 +2075,9 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
         """Import settings from a user-selected JSON file"""
         import json as json_module
 
+        def _make_result(**payload):
+            return json_module.dumps(payload, ensure_ascii=False)
+
         try:
             file_path, _ = QFileDialog.getOpenFileName(
                 self._window, "选择配置文件", "", "JSON 配置文件 (*.json);;所有文件 (*)"
@@ -2082,19 +2085,60 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
 
             if not file_path:
                 print("No file selected", file=sys.stderr)
-                return None
+                return _make_result(cancelled=True)
 
             print(f"Importing from: {file_path}", file=sys.stderr)
 
-            # Load the config file
-            with open(file_path, "r", encoding="utf-8") as f:
-                config_data = json.load(f)
+            try:
+                with open(file_path, "rb") as f:
+                    raw = f.read()
+            except Exception as e:
+                print(f"Failed to read config file: {e}", file=sys.stderr)
+                return _make_result(
+                    error="read_failed", message=f"无法读取配置文件：{e}"
+                )
+
+            if not raw.strip():
+                print("Config file is empty", file=sys.stderr)
+                return _make_result(
+                    error="empty_file", message="配置文件为空，请选择有效的配置文件。"
+                )
+
+            config_data = None
+            parse_error = None
+            for encoding in ("utf-8-sig", "utf-8", "gbk", "gb18030"):
+                try:
+                    text = raw.decode(encoding)
+                except UnicodeDecodeError:
+                    continue
+                try:
+                    candidate = json_module.loads(text)
+                except Exception as e:
+                    parse_error = e
+                    continue
+                if isinstance(candidate, dict):
+                    config_data = candidate
+                    break
+                return _make_result(
+                    error="invalid_format",
+                    message="配置文件格式无效，根对象必须是 JSON 对象。",
+                )
+
+            if config_data is None:
+                print(f"Failed to parse config data: {parse_error}", file=sys.stderr)
+                return _make_result(
+                    error="parse_error",
+                    message="配置文件解析失败，请确认文件是有效的 JSON 配置文件。",
+                )
 
             print(f"Config data loaded: {list(config_data.keys())}", file=sys.stderr)
 
             if not isinstance(config_data, dict):
                 print("Config is not a dict", file=sys.stderr)
-                return None
+                return _make_result(
+                    error="invalid_format",
+                    message="配置文件格式无效，根对象必须是 JSON 对象。",
+                )
 
             # Extract relevant config sections
             imported_config = {}
@@ -2135,9 +2179,14 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             preview_lines = []
             for key, value in imported_config.items():
                 preview_lines.append(f"• {key}: {value}")
-            preview = (
-                "\n".join(preview_lines) if preview_lines else "未检测到支持的配置项"
-            )
+            if not imported_config:
+                print("No supported config entries found", file=sys.stderr)
+                return _make_result(
+                    error="unsupported_config",
+                    message="未检测到可导入的基础设置项，请确认这是 Luminalium 的配置文件。",
+                )
+
+            preview = "\n".join(preview_lines)
 
             # Return as JSON string for reliable serialization
             result = {"config": imported_config, "preview": preview}
@@ -2155,7 +2204,10 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             import traceback
 
             traceback.print_exc(file=sys.stderr)
-            return None
+            return _make_result(
+                error="unexpected_error",
+                message=f"导入配置时发生错误：{e}",
+            )
 
     def _get_pending_action_path(self):
         return os.path.join(self._get_profiles_dir(), "_pending_action")

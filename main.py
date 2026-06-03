@@ -1850,6 +1850,10 @@ class PPTAssistantApp:
         self._gc_timer = None
         self._open_settings_after_startup = False
         self._pending_protocol_url = None
+        self._pending_overlay_focus = None
+        self._overlay_focus_timer = QTimer(self.app)
+        self._overlay_focus_timer.setSingleShot(True)
+        self._overlay_focus_timer.timeout.connect(self._apply_pending_overlay_focus)
 
         # Flag watcher for external settings requests
         self._flag_timer = QTimer(self.app)
@@ -2582,7 +2586,13 @@ class PPTAssistantApp:
             print(f"[Main] focus_on_slideshow -> {bool(focused)}", flush=True)
         except Exception:
             pass
+        self._pending_overlay_focus = bool(focused)
+        delay_ms = 120 if focused else 260
+        self._overlay_focus_timer.start(delay_ms)
+
+    def _apply_pending_overlay_focus(self):
         try:
+            focused = bool(self._pending_overlay_focus)
             if cfg.compatibilityMode.value:
                 return
             if not self._slideshow_running or not cfg.autoShowOverlay.value:

@@ -816,6 +816,7 @@ class OverlayWindow(QWebEngineView):
         self._pending_thumbnails = []
         self._cached_thumbnails = set()
         self._zorder_timer = None
+        self._topmost_applied_once = False
 
         if self._wayland_compatible_mode:
             self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
@@ -1226,7 +1227,7 @@ class OverlayWindow(QWebEngineView):
             SWP_NOMOVE = 0x0002
             SWP_NOSIZE = 0x0001
             SWP_NOACTIVATE = 0x0010
-            SWP_SHOWWINDOW = 0x0040
+            SWP_NOOWNERZORDER = 0x0200
 
             if cfg.uiAccessTopmost.value:
                 GWL_EXSTYLE = -20
@@ -1241,8 +1242,10 @@ class OverlayWindow(QWebEngineView):
                 0,
                 0,
                 0,
-                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER,
             )
+            if result:
+                self._topmost_applied_once = True
         except Exception as e:
             print(f"[Overlay] Error in _ensure_topmost: {e}")
 
@@ -2079,8 +2082,10 @@ class OverlayWindow(QWebEngineView):
 
     def set_active_on_slideshow(self, active: bool, animate: bool = True):
         print(f"[Overlay] set_active_on_slideshow({active}, animate={animate})")
-        self._active_on_slideshow = bool(active)
-        if self._active_on_slideshow:
+        active = bool(active)
+        previous = bool(self._active_on_slideshow)
+        self._active_on_slideshow = active
+        if active:
             try:
                 self._mask_ready = False
                 try:
@@ -2088,8 +2093,9 @@ class OverlayWindow(QWebEngineView):
                 except Exception:
                     pass
                 self._ensure_runtime_initialized()
-                print(f"[Overlay] Calling show(), isVisible before: {self.isVisible()}")
-                self.show()
+                if not previous or not self.isVisible():
+                    print(f"[Overlay] Calling show(), isVisible before: {self.isVisible()}")
+                    self.show()
                 if not self._wayland_compatible_mode:
                     self.setAttribute(Qt.WA_TranslucentBackground)
                     self.setAttribute(Qt.WA_NoSystemBackground)
@@ -2098,8 +2104,9 @@ class OverlayWindow(QWebEngineView):
                     except Exception:
                         pass
                 print(f"[Overlay] After show(), isVisible: {self.isVisible()}")
-                self.raise_()
-                self._ensure_topmost()
+                if not previous or not self._topmost_applied_once:
+                    self.raise_()
+                    self._ensure_topmost()
                 self._refresh_status_services()
                 print(f"[Overlay] After raise/topmost, isVisible: {self.isVisible()}")
             except Exception as e:
@@ -2114,8 +2121,9 @@ class OverlayWindow(QWebEngineView):
                     self.setAttribute(Qt.WA_TransparentForMouseEvents, True)
                 except Exception:
                     pass
-                print("[Overlay] Calling hide()")
-                self.hide()
+                if previous or self.isVisible():
+                    print("[Overlay] Calling hide()")
+                    self.hide()
                 self._refresh_status_services()
             except Exception as e:
                 print(f"[Overlay] Error in set_active_on_slideshow(False): {e}")
