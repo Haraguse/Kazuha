@@ -4650,6 +4650,99 @@ html, body {
     :root[data-gpu-safe-effects="true"] .about-main-logo {
       filter: none;
     }
+    
+    @keyframes typeLetterIn {
+      0% {
+        opacity: 0;
+        transform: translateY(12px) scale(0.8);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    
+    @keyframes typeLetterOut {
+      0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-12px) scale(0.8);
+      }
+    }
+
+    /* Logo Intro Animations */
+    @keyframes strokeDraw {
+      0% { stroke-dashoffset: 1000; fill: transparent; }
+      100% { stroke-dashoffset: 0; fill: transparent; }
+    }
+
+    .animate-stroke {
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 1000;
+      animation: strokeDraw 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    .fade-out {
+      animation: fadeOut 0.4s ease-out forwards;
+    }
+
+    @keyframes fadeOut {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    #hero-logo-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 120px;
+      height: 120px;
+      margin-top: -60px;
+      margin-left: -60px;
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #hero-logo-container.to-corner {
+      top: 32px;
+      left: 32px;
+      width: 48px;
+      height: 48px;
+      margin-top: 0;
+      margin-left: 0;
+      transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .fade-in-bottom {
+      animation: fadeSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .fade-in-right {
+      animation: fadeSlideLeft 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .fade-in-center {
+      animation: fadeScaleIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes fadeSlideUp {
+      0% { opacity: 0; transform: translateY(40px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeSlideLeft {
+      0% { opacity: 0; transform: translateX(40px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes fadeScaleIn {
+      0% { opacity: 0; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    :root[data-theme="dark"] #hero-logo-stroke path {
+      stroke: rgba(255, 255, 255, 0.4);
+    }
 </style>
 </head>
 <body>
@@ -4658,20 +4751,32 @@ html, body {
     <div id="screen-hero" class="hero-screen">
       <div class="hyperos-bg"></div>
       <div class="card" style="position: relative; overflow: hidden;">
-        <div class="blob-container blob-container-1"><div class="blob" id="blob-1"></div></div>
-        <div class="blob-container blob-container-2"><div class="blob" id="blob-2"></div></div>
-        <img src="../../../icons/logo.svg" class="hero-logo" alt="Logo" style="position: absolute; top: 32px; left: 32px; width: 48px; height: 48px; margin: 0; z-index: 2;">
-        <div class="version" id="app-version" style="position: absolute; top: 32px; right: 32px; z-index: 2; color: var(--text-secondary);"></div>
+        <div class="blob-container blob-container-1" style="opacity: 0;"><div class="blob" id="blob-1"></div></div>
+        <div class="blob-container blob-container-2" style="opacity: 0;"><div class="blob" id="blob-2"></div></div>
+        
+        <div id="hero-logo-container">
+          <!-- Stroke Animation SVG -->
+          <svg id="hero-logo-stroke" style="width: 100%; height: 100%; position: absolute; z-index: 11; overflow: visible;" viewBox="0 0 184 184" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Outer Circle -->
+            <path d="M92 184C142.81 184 184 142.81 184 91.9999C184 41.1898 142.81 0 92 0C41.1898 0 0 41.1898 0 91.9999C0 142.81 41.1898 184 92 184Z" stroke="rgba(0, 0, 0, 0.4)" stroke-width="2" class="animate-stroke" />
+            <!-- Inner Star -->
+            <path d="M158.886 86.1137L120.209 63.8035L97.8984 25.1259C95.2415 20.5036 88.5751 20.5036 85.9021 25.1259L63.6077 63.8035L24.9301 86.1137C20.3078 88.7709 20.3078 95.4372 24.9301 98.11L63.6077 120.405L85.9021 159.082C88.5593 163.705 95.2257 163.705 97.8984 159.082L120.209 120.405L158.886 98.11C163.493 95.4372 163.493 88.7709 158.886 86.1137Z" stroke="rgba(0, 0, 0, 0.4)" stroke-width="2" class="animate-stroke" style="animation-delay: 0.2s;" />
+          </svg>
+          <!-- Full Color Logo -->
+          <img src="../../../icons/logo.svg" id="hero-logo-img" alt="Logo" style="width: 100%; height: 100%; opacity: 0; position: absolute; transition: opacity 0.4s ease-in-out; z-index: 10;">
+        </div>
+
+        <div class="version" id="app-version" style="position: absolute; top: 32px; right: 32px; z-index: 2; color: var(--text-secondary); opacity: 0;"></div>
         <div class="hero-content" id="hero-content" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 2;">
           <div class="hero-elements-fade">
             <!-- Content moved to footer -->
           </div>
         </div>
-        <div class="hero-footer" id="hero-footer" style="width: 100%; display: flex; justify-content: space-between; align-items: flex-end; z-index: 2;">
+        <div class="hero-footer" id="hero-footer" style="width: 100%; display: flex; justify-content: space-between; align-items: flex-end; z-index: 2; opacity: 0;">
           <div class="footer-left" style="display: flex; flex-direction: column; align-items: flex-start; gap: 12px;">
-            <div style="position: relative; height: 48px; width: 200px; overflow: hidden; margin-bottom: 8px;">
-              <div id="greeting-text" style="font-size: 36px; font-weight: bold; color: var(--text-primary); position: absolute; left: 0; top: 0; transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1);">你好</div>
-            </div>
+              <div id="greeting-container" style="display: flex; align-items: center; height: 48px; margin-bottom: 8px;">
+                <div id="greeting-text" style="font-size: 36px; font-weight: bold; color: var(--text-primary); display: flex; white-space: pre;"></div>
+              </div>
             <div style="display: flex; align-items: center; gap: 16px; margin-top: 4px;">
               <div class="hero-lang" style="position: static; transform: none;">
                   <div class="custom-select-container" id="lang-select-container">
@@ -6409,30 +6514,89 @@ makes it unnecessary.
       }
     });
 
-    // Rotating Greetings
+    // Rotating Greetings (Typing Effect)
     const greetings = ["你好", "你好呀", "こんにちは", "Hello"];
     let greetingIdx = 0;
-    setInterval(() => {
+    
+    function typeGreeting(text) {
       const el = document.getElementById("greeting-text");
-      if (el && state.step === 0) {
-        el.style.transform = "translateY(-30px)";
-        el.style.opacity = 0;
+      if (!el) return;
+      
+      // Clear existing letters with exit animation
+      const existingSpans = Array.from(el.children);
+      if (existingSpans.length > 0) {
+        existingSpans.forEach((span, i) => {
+          span.style.animation = `typeLetterOut 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards`;
+          span.style.animationDelay = `${i * 0.04}s`;
+        });
         
+        // Wait for exit animation to finish
         setTimeout(() => {
-          el.style.transition = "none";
-          el.style.transform = "translateY(30px)";
-          
-          greetingIdx = (greetingIdx + 1) % greetings.length;
-          el.textContent = greetings[greetingIdx];
-          
-          void el.offsetWidth; // force reflow
-          
-          el.style.transition = "transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)";
-          el.style.transform = "translateY(0)";
-          el.style.opacity = 1;
-        }, 600);
+          el.innerHTML = "";
+          startTyping(text);
+        }, existingSpans.length * 40 + 300);
+      } else {
+        startTyping(text);
       }
-    }, 3000);
+      
+      function startTyping(str) {
+        el.innerHTML = "";
+        const chars = Array.from(str);
+        chars.forEach((char, i) => {
+          const span = document.createElement("span");
+          span.textContent = char;
+          span.style.display = "inline-block";
+          span.style.opacity = "0";
+          span.style.animation = `typeLetterIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards`;
+          span.style.animationDelay = `${i * 0.08}s`;
+          el.appendChild(span);
+        });
+      }
+    }
+
+    // Intro Sequence (Logo Animation)
+    function playIntroSequence() {
+      const strokeSvg = document.getElementById('hero-logo-stroke');
+      const logoImg = document.getElementById('hero-logo-img');
+      const logoContainer = document.getElementById('hero-logo-container');
+      const footer = document.getElementById('hero-footer');
+      const version = document.getElementById('app-version');
+      const blobs = document.querySelectorAll('.blob-container');
+
+      // 1. Outline draws automatically via CSS animation (.animate-stroke)
+      
+      // 2. Fill color (fade out stroke, fade in full image)
+      setTimeout(() => {
+        strokeSvg.classList.add('fade-out');
+        logoImg.style.opacity = '1';
+      }, 1500);
+
+      // 3. Non-linear displacement to top-left corner
+      setTimeout(() => {
+        logoContainer.classList.add('to-corner');
+      }, 1900);
+
+      // 4. Reveal other elements and start typing
+      setTimeout(() => {
+        footer.classList.add('fade-in-bottom');
+        version.classList.add('fade-in-right');
+        blobs.forEach(b => b.classList.add('fade-in-center'));
+        
+        // Start the typing greeting
+        typeGreeting(greetings[0]);
+      }, 2300);
+    }
+    
+    // Play Intro when DOM loads
+    playIntroSequence();
+
+    setInterval(() => {
+      const footer = document.getElementById("hero-footer");
+      if (state.step === 0 && footer && footer.classList.contains("fade-in-bottom")) {
+        greetingIdx = (greetingIdx + 1) % greetings.length;
+        typeGreeting(greetings[greetingIdx]);
+      }
+    }, 4000);
 
     // Material You Blob Collision & Morphing
     const blobShapes = [
