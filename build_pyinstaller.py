@@ -177,8 +177,6 @@ def run():
         "PyInstaller",
         "--noconfirm",
         "--clean",
-        "--specpath",
-        os.path.join(build_dir, "Luminalium"),
         "--optimize",
         "1",
         "--hidden-import",
@@ -204,10 +202,17 @@ def run():
         "main.dist",
         "Luminalium.build",
         "Luminalium.dist",
+        "Luminalium.spec",
+        "updater.spec",
     ]:
         extra_path = os.path.join(root_dir, extra)
         if os.path.isdir(extra_path):
             shutil.rmtree(extra_path, ignore_errors=True)
+        elif os.path.isfile(extra_path):
+            try:
+                os.remove(extra_path)
+            except OSError:
+                pass
     subprocess.check_call(cmd, cwd=root_dir)
 
     # Build updater.exe into the main app output folder so shipping is one-step.
@@ -254,10 +259,17 @@ def run():
         "main.dist",
         "Luminalium.build",
         "Luminalium.dist",
+        "Luminalium.spec",
+        "updater.spec",
     ]:
         extra_path = os.path.join(root_dir, extra)
         if os.path.isdir(extra_path):
             shutil.rmtree(extra_path, ignore_errors=True)
+        elif os.path.isfile(extra_path):
+            try:
+                os.remove(extra_path)
+            except OSError:
+                pass
     local_app_data = os.environ.get("LOCALAPPDATA")
     if local_app_data:
         pyinstaller_cache = os.path.join(local_app_data, "pyinstaller")
