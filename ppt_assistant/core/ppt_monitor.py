@@ -179,6 +179,7 @@ class PPTWorker(QObject):
         self._degraded_current = 0
         self._degraded_total = 0
         self._pending_ink_prompt = False
+        self._active_pointer_type = 1
         self._last_non_eraser_pointer_type = 1
         self._page_turn_times = deque()
         self._page_turn_window_seconds = 1.0
@@ -765,8 +766,23 @@ class PPTWorker(QObject):
             pointer_type = int(pointer_type)
         except Exception:
             return
+        if pointer_type in (1, 2, 3, 5):
+            self._active_pointer_type = pointer_type
         if pointer_type in (1, 2, 3):
             self._last_non_eraser_pointer_type = pointer_type
+
+    def _restore_pointer_after_navigation(self):
+        try:
+            pointer_type = int(self._active_pointer_type or 0)
+        except Exception:
+            pointer_type = 0
+        if pointer_type not in (2, 3, 5):
+            return
+        try:
+            time.sleep(0.08)
+            self.set_pointer_type(pointer_type)
+        except Exception as e:
+            self._note_error("restore_pointer_after_navigation", e)
 
     def _restore_previous_tool_after_eraser_rejected(self):
         previous_pointer_type = 1
@@ -990,12 +1006,26 @@ class PPTWorker(QObject):
         view = getattr(ss_win, "View", None) if ss_win is not None else None
         if view is None:
             return False
+        try:
+            current_before = getattr(view, "PointerType", 0)
+            if callable(current_before):
+                current_before = current_before()
+            current_before = int(current_before or 0)
+        except Exception:
+            current_before = -1
 
         hwnd = self._safe_hwnd_from_ss_win(ss_win)
         if hwnd:
             self._focus_slideshow_window(hwnd)
 
-        if force_arrow_reset and pointer_type != 1:
+        skip_arrow_reset = (
+            force_arrow_reset
+            and pointer_type == 2
+            and (self._active_kind or "") == "ppt"
+            and current_before == 5
+        )
+
+        if force_arrow_reset and pointer_type != 1 and not skip_arrow_reset:
             try:
                 view.PointerType = 1
             except Exception:
@@ -1010,7 +1040,8 @@ class PPTWorker(QObject):
             current = getattr(view, "PointerType", 0)
             if callable(current):
                 current = current()
-            return int(current or 0) == int(pointer_type)
+            current = int(current or 0)
+            return current == int(pointer_type)
         except Exception:
             return False
 
@@ -2191,6 +2222,7 @@ class PPTWorker(QObject):
             # Prefer keyboard behavior (skip COM-specific differences).
             if self._send_vk_to_slideshow(win32con.VK_DOWN if win32con else 0x28):
                 self._control_mode = "win32"
+                self._restore_pointer_after_navigation()
                 return
         except Exception:
             pass
@@ -2201,6 +2233,7 @@ class PPTWorker(QObject):
             if view is not None:
                 view.Next()
                 self._control_mode = "com"
+                self._restore_pointer_after_navigation()
                 return
         except Exception as e:
             self._note_error("go_next_com", e)
@@ -2229,6 +2262,8 @@ class PPTWorker(QObject):
                     self.slide_changed.emit(
                         self._degraded_current, self._degraded_total
                     )
+            if ok:
+                self._restore_pointer_after_navigation()
         except Exception:
             pass
 
@@ -2263,6 +2298,7 @@ class PPTWorker(QObject):
             if view is not None:
                 view.Previous()
                 self._control_mode = "com"
+                self._restore_pointer_after_navigation()
                 return
         except Exception as e:
             self._note_error("go_previous_com", e)
@@ -2288,6 +2324,8 @@ class PPTWorker(QObject):
                     self.slide_changed.emit(
                         self._degraded_current, self._degraded_total
                     )
+            if ok:
+                self._restore_pointer_after_navigation()
         except Exception:
             pass
 
@@ -2300,18 +2338,24 @@ class PPTWorker(QObject):
                     hwnd = self._safe_hwnd_from_ss_win(ss_win)
                 except Exception:
                     hwnd = 0
-
                 if hwnd and win32gui:
                     try:
                         win32gui.SetForegroundWindow(hwnd)
                     except Exception:
                         pass
+                        pass
 
                 # Send 'E' key via keyboard event as fallback/primary if no COM method exists for "Erase All"
                 # View.EraseDrawing() exists?
+                view = None
                 try:
                     view = ss_win.View
-                    if hasattr(view, "EraseDrawing"):
+                    used_ppt_key_clear = False
+                    if (self._active_kind or "") == "ppt":
+                        used_ppt_key_clear = self._send_vk_to_slideshow(ord("E"))
+                    if used_ppt_key_clear:
+                        pass
+                    elif hasattr(view, "EraseDrawing"):
                         view.EraseDrawing()
                     else:
                         # Fallback to key
@@ -2325,6 +2369,11 @@ class PPTWorker(QObject):
                         vk = ord("E")
                         win32api.keybd_event(vk, 0, 0, 0)
                         win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)
+                # PowerPoint can resurrect erased strokes on the next redraw unless the
+                # underlying ink annotation collection is cleared as well.
+                self._clear_ink_annotations(view)
+                if (self._active_kind or "") == "ppt":
+                    self._reset_ppt_ink_visibility()
 
                 self._control_mode = "com"
                 return
@@ -2375,6 +2424,14 @@ class PPTWorker(QObject):
         except Exception:
             pass
         try:
+            self._clear_ink_annotations(view)
+        except Exception:
+            pass
+
+    def _clear_ink_annotations(self, view):
+        if view is None:
+            return
+        try:
             annotations = getattr(view, "InkAnnotations", None)
             if annotations is not None:
                 clear_method = getattr(annotations, "Clear", None) or getattr(
@@ -2382,6 +2439,16 @@ class PPTWorker(QObject):
                 )
                 if callable(clear_method):
                     clear_method()
+        except Exception:
+            pass
+
+    def _reset_ppt_ink_visibility(self):
+        if (self._active_kind or "") != "ppt":
+            return
+        try:
+            for _ in range(2):
+                self._send_ctrl_shortcut_to_slideshow(ord("M"))
+                time.sleep(0.03)
         except Exception:
             pass
 
@@ -2514,6 +2581,7 @@ class PPTWorker(QObject):
                         pointer_type, force_arrow_reset=attempt > 0
                     ):
                         self._control_mode = "com"
+                        self._remember_pointer_type(pointer_type)
                         return
                 except Exception as e:
                     last_error = e
@@ -2668,6 +2736,7 @@ class PPTWorker(QObject):
                 {"slide_index": index},
             ):
                 self._control_mode = "wps_bridge"
+                self._restore_pointer_after_navigation()
                 return
         except Exception as e:
             self._note_error("go_to_slide_wps_bridge", e)
@@ -2676,6 +2745,7 @@ class PPTWorker(QObject):
             view = getattr(ss_win, "View", None) if ss_win is not None else None
             if view is not None:
                 view.GotoSlide(index)
+                self._restore_pointer_after_navigation()
         except Exception as e:
             self._note_error("go_to_slide", e)
         try:
