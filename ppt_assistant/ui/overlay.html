@@ -397,10 +397,53 @@
             backdrop-filter: blur(25px) saturate(180%);
             -webkit-backdrop-filter: blur(25px) saturate(180%);
             transition: background 0.3s, border-color 0.3s;
+            position: relative;
+            isolation: isolate;
+            box-shadow:
+                0 18px 40px rgba(10, 15, 24, 0.18),
+                0 2px 8px rgba(10, 15, 24, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.12),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+        }
+
+        .flipper::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            background:
+                linear-gradient(180deg, rgba(252, 253, 255, 0.32), rgba(247, 250, 255, 0.16) 18%, rgba(226, 236, 255, 0.09) 44%, rgba(212, 226, 255, 0.025) 76%),
+                linear-gradient(135deg, rgba(250, 252, 255, 0.22), rgba(214, 228, 255, 0.08) 58%, rgba(194, 214, 255, 0.02));
+        }
+
+        .flipper::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            background:
+                radial-gradient(140% 68% at 50% -6%, rgba(255, 255, 255, 0.26), rgba(244, 248, 255, 0.08) 34%, rgba(255, 255, 255, 0) 62%),
+                radial-gradient(120% 78% at 50% 112%, rgba(34, 42, 58, 0.22), rgba(34, 42, 58, 0.07) 30%, rgba(34, 42, 58, 0) 66%);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.34),
+                inset 0 -1px 0 rgba(255, 255, 255, 0.12),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+                inset 0 -18px 28px rgba(26, 32, 44, 0.08);
+            mix-blend-mode: soft-light;
+        }
+
+        .flipper > * {
+            z-index: 1;
         }
 
         .flipper:active {
-            transform: scale(0.95);
+            transform: scale(0.965) translateY(1px);
         }
 
         /* Flipper Bottom Layout */
@@ -748,12 +791,82 @@
             position: relative;
             backdrop-filter: blur(25px) saturate(180%);
             -webkit-backdrop-filter: blur(25px) saturate(180%);
+            isolation: isolate;
+            box-shadow:
+                0 22px 52px rgba(10, 15, 24, 0.2),
+                0 4px 14px rgba(10, 15, 24, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.14),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.04);
         }
 
         @supports not (backdrop-filter: blur(1px)) {
             #toolbar {
                 background: var(--overlay-toolbar-bg);
             }
+        }
+
+        #toolbar::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            background:
+                linear-gradient(180deg, rgba(252, 253, 255, 0.34), rgba(247, 250, 255, 0.18) 14%, rgba(226, 236, 255, 0.1) 42%, rgba(214, 226, 252, 0.03) 76%),
+                linear-gradient(135deg, rgba(250, 252, 255, 0.24), rgba(214, 228, 255, 0.08) 58%, rgba(194, 214, 255, 0.02));
+        }
+
+        #toolbar::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            background:
+                radial-gradient(138% 96% at 50% -10%, rgba(255, 255, 255, 0.28), rgba(244, 248, 255, 0.08) 40%, rgba(255, 255, 255, 0) 64%),
+                radial-gradient(124% 94% at 50% 118%, rgba(28, 34, 48, 0.24), rgba(28, 34, 48, 0.06) 30%, rgba(28, 34, 48, 0) 66%);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.42),
+                inset 0 -1px 0 rgba(255, 255, 255, 0.12),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+                inset 0 -22px 34px rgba(26, 32, 44, 0.08);
+            mix-blend-mode: soft-light;
+        }
+
+        #toolbar > * {
+            z-index: 1;
+        }
+
+        body.toolbar-visual-default #toolbar,
+        body.toolbar-visual-default .flipper {
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            box-shadow: none;
+        }
+
+        body.toolbar-visual-default #toolbar::before,
+        body.toolbar-visual-default #toolbar::after,
+        body.toolbar-visual-default .flipper::before,
+        body.toolbar-visual-default .flipper::after {
+            opacity: 0;
+        }
+
+        body.toolbar-visual-frosted #toolbar,
+        body.toolbar-visual-frosted .flipper {
+            border-color: rgba(255, 255, 255, 0.14);
+            backdrop-filter: blur(32px) saturate(165%) contrast(1.04) brightness(1.02);
+            -webkit-backdrop-filter: blur(32px) saturate(165%) contrast(1.04) brightness(1.02);
+        }
+
+        body.toolbar-visual-frosted #toolbar::before,
+        body.toolbar-visual-frosted #toolbar::after,
+        body.toolbar-visual-frosted .flipper::before,
+        body.toolbar-visual-frosted .flipper::after {
+            opacity: 1;
         }
 
         .compat-label {
@@ -787,16 +900,30 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
             position: relative;
         }
         
         .tool-btn:hover {
-            background: var(--overlay-button-hover);
+            background: rgba(255, 255, 255, 0.14);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.22),
+                0 6px 14px rgba(15, 23, 42, 0.08);
+            transform: translateY(-0.5px);
         }
         
         .tool-btn.active {
-            background: var(--overlay-button-active);
+            background: rgba(196, 218, 255, 0.2);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.26),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        }
+
+        .tool-btn:active {
+            transform: translateY(0.5px) scale(0.985);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.16),
+                0 2px 6px rgba(15, 23, 42, 0.06);
         }
 
         .tool-btn-danger:hover {
@@ -816,7 +943,7 @@
         .separator {
             width: 1px;
             height: 24px;
-            background: rgba(255, 255, 255, 0.15);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.03));
             margin: auto 4px;
         }
         
@@ -2019,19 +2146,34 @@
 
         let opacityHelperDiv = null;
 
+        function getToolbarVisualMode() {
+            if (!currentConfig) return 'frosted';
+            return currentConfig.toolbarVisualMode === 'default' ? 'default' : 'frosted';
+        }
+
+        function applyToolbarVisualMode() {
+            const mode = getToolbarVisualMode();
+            document.body.classList.remove('toolbar-visual-default', 'toolbar-visual-frosted');
+            document.body.classList.add(`toolbar-visual-${mode}`);
+            return mode;
+        }
+
         function applyOpacity() {
             if (!currentConfig) return;
             
             const toolbarOpacity = currentConfig.toolbarOpacity !== undefined ? currentConfig.toolbarOpacity : 1.0;
             const sidePageOpacity = currentConfig.sidePageOpacity !== undefined ? currentConfig.sidePageOpacity : 1.0;
+            const visualMode = getToolbarVisualMode();
             
             // Check if backdrop-filter is supported for glassmorphism effect
-            const supportsBackdropFilter = CSS.supports('backdrop-filter: blur(1px)') || 
-                                           CSS.supports('-webkit-backdrop-filter: blur(1px)');
+            const supportsBackdropFilter = visualMode === 'frosted' && (
+                CSS.supports('backdrop-filter: blur(1px)') ||
+                CSS.supports('-webkit-backdrop-filter: blur(1px)')
+            );
             
             // For glassmorphism effect, reduce base opacity to make background semi-transparent
-            const glassToolbarOpacity = supportsBackdropFilter ? Math.min(toolbarOpacity, 0.6) : toolbarOpacity;
-            const glassSidePageOpacity = supportsBackdropFilter ? Math.min(sidePageOpacity, 0.6) : sidePageOpacity;
+            const glassToolbarOpacity = supportsBackdropFilter ? Math.min(toolbarOpacity, 0.38) : toolbarOpacity;
+            const glassSidePageOpacity = supportsBackdropFilter ? Math.min(sidePageOpacity, 0.34) : sidePageOpacity;
             
             // Get base colors from CSS variables
             const rootStyle = getComputedStyle(document.documentElement);
@@ -2081,14 +2223,14 @@
                 const statusBar = document.getElementById('status-bar');
                 if (statusBar) {
                     const statusBgVar = rootStyle.getPropertyValue('--overlay-status-bg').trim();
-                    const newStatusColor = resolveColor(statusBgVar, 0.65);
+                    const newStatusColor = resolveColor(statusBgVar, 0.42);
                     statusBar.style.setProperty('--overlay-status-bg', newStatusColor);
                 }
                 
                 // Popup panels (color picker, eraser settings, etc.)
                 document.querySelectorAll('#color-picker, #eraser-settings, .app-launcher-panel').forEach(el => {
                     const popupBgVar = rootStyle.getPropertyValue('--overlay-popup-bg').trim();
-                    const newPopupColor = resolveColor(popupBgVar, 0.65);
+                    const newPopupColor = resolveColor(popupBgVar, 0.44);
                     el.style.setProperty('--overlay-popup-bg', newPopupColor);
                 });
             }
@@ -2097,6 +2239,7 @@
         function updateConfig(config) {
             currentConfig = config;
             applyAnimationPreference();
+            applyToolbarVisualMode();
             
             applyOpacity();
             

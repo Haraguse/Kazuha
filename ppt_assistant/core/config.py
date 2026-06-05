@@ -143,6 +143,13 @@ class Config(QConfig):
     toolbarOpacity = RangeConfigItem(
         "Overlay", "ToolbarOpacity", 1.0, RangeValidator(0.1, 1.0), restart=False
     )
+    toolbarVisualMode = OptionsConfigItem(
+        "Overlay",
+        "ToolbarVisualMode",
+        "frosted",
+        OptionsValidator(["default", "frosted"]),
+        restart=False,
+    )
     sidePageOpacity = RangeConfigItem(
         "Overlay", "SidePageOpacity", 1.0, RangeValidator(0.1, 1.0), restart=False
     )
@@ -459,6 +466,7 @@ def _bind_auto_save():
     cfg.scale.valueChanged.connect(lambda *_: _save_cfg())
     cfg.popWindowScale.valueChanged.connect(lambda *_: _save_cfg())
     cfg.toolbarOpacity.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.toolbarVisualMode.valueChanged.connect(lambda *_: _save_cfg())
     cfg.sidePageOpacity.valueChanged.connect(lambda *_: _save_cfg())
     cfg.syncOpacity.valueChanged.connect(lambda *_: _save_cfg())
     cfg.strictEdgeAlignment.valueChanged.connect(lambda *_: _save_cfg())

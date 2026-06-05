@@ -1783,6 +1783,9 @@ class OverlayWindow(QWebEngineView):
             "safeArea": cfg.safeArea.value,
             "popWindowScale": cfg.popWindowScale.value,
             "toolbarOpacity": cfg.toolbarOpacity.value,
+            "toolbarVisualMode": getattr(cfg, "toolbarVisualMode", None).value
+            if hasattr(cfg, "toolbarVisualMode")
+            else "frosted",
             "sidePageOpacity": cfg.sidePageOpacity.value,
             "strictEdgeAlignment": cfg.strictEdgeAlignment.value,
             "toolbarAutoHalfCollapse": cfg.toolbarAutoHalfCollapse.value,
@@ -1990,6 +1993,7 @@ class OverlayWindow(QWebEngineView):
         cfg.safeArea.valueChanged.connect(lambda *_: self.update_config())
         cfg.popWindowScale.valueChanged.connect(lambda *_: self.update_config())
         cfg.toolbarOpacity.valueChanged.connect(lambda *_: self.update_config())
+        cfg.toolbarVisualMode.valueChanged.connect(lambda *_: self.update_config())
         cfg.sidePageOpacity.valueChanged.connect(lambda *_: self.update_config())
         cfg.strictEdgeAlignment.valueChanged.connect(lambda *_: self.update_config())
         cfg.toolbarAutoHalfCollapse.valueChanged.connect(lambda *_: self.update_config())
