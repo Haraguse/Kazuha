@@ -30,6 +30,8 @@ PySide6_Essentials==6.11.0
 PySideSix-Frameless-Window==0.8.1
 pywin32==311
 pywin32-ctypes==0.2.3
+winrt-Windows.Data.Xml.Dom>=2.0.0; sys_platform == "win32"
+winrt-Windows.UI.Notifications>=2.0.0; sys_platform == "win32"
 scipy==1.17.1
 setuptools==82.0.1
 shiboken6==6.11.0

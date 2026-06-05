@@ -20,10 +20,10 @@ from qfluentwidgets import (
     themeColor,
 )
 from qfluentwidgets.components.widgets.menu import MenuActionListWidget, MenuAnimationType
-from qframelesswindow import WindowEffect
 
 from ppt_assistant.core.config import SETTINGS_PATH, cfg, ROOT_DIR
 from ppt_assistant.core.i18n import get_language, t
+from ppt_assistant.core.windows_notifications import send_windows_notification
 
 ICON_DIR = os.path.join(ROOT_DIR, "icons")
 VERSION_PATH = os.path.join(ROOT_DIR, "version.json")
@@ -42,10 +42,6 @@ class AcrylicRoundMenu(RoundMenu):
 
     def __init__(self, title="", parent=None):
         super().__init__(title, parent)
-        self.windowEffect = WindowEffect(self)
-        self.setAttribute(Qt.WA_TranslucentBackground)
-
-        self.view.setStyleSheet("MenuActionListWidget { background: transparent; }")
 
         # Disable touch events to prevent abnormal expansion on touch screens
         self.setAttribute(Qt.WA_AcceptTouchEvents, False)
@@ -59,20 +55,12 @@ class AcrylicRoundMenu(RoundMenu):
 
     def showEvent(self, e):
         super().showEvent(e)
-        self._update_acrylic_color()
-        from ppt_assistant.core.platform_integration import remove_window_border
-        remove_window_border(self.winId())
+        from ppt_assistant.core.platform_integration import make_window_borderless_popup
+
+        make_window_borderless_popup(self.winId())
 
     def exec_(self, pos, ani=True, aniType=MenuAnimationType.FADE_IN_PULL_UP):
         RoundMenu.exec(self, pos, ani, aniType)
-
-    def _update_acrylic_color(self):
-        if sys.platform == "win32":
-            if isDarkTheme():
-                self.windowEffect.setAcrylicEffect(self.winId(), "20202050", True)
-            else:
-                self.windowEffect.setAcrylicEffect(self.winId(), "F2F2F250", True)
-
 
 def _hex_to_rgb(value: str):
     text = str(value or "").strip().lstrip("#")
@@ -483,8 +471,9 @@ class TrayFlyoutAnchor(QWidget):
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.setFixedSize(1, 1)
         self.move(anchor_pos)
-        from ppt_assistant.core.platform_integration import remove_window_border
-        remove_window_border(self.winId())
+        from ppt_assistant.core.platform_integration import make_window_borderless_popup
+
+        make_window_borderless_popup(self.winId())
 
 
 class ActionConfirmFlyoutView(FlyoutViewBase):
@@ -699,14 +688,18 @@ class SystemTray(QObject):
 
         self._fallback_menu.setItemHeight(32)
         self._fallback_menu.view.setGraphicsEffect(None)
-        self._fallback_menu.hBoxLayout.setContentsMargins(0, 2, 0, 2)
+        self._fallback_menu.hBoxLayout.setContentsMargins(0, 9, 0, 9)
         view = self._fallback_menu.view
         if isinstance(view, MenuActionListWidget):
             view.setIconSize(QSize(18, 18))
-            view.setViewportMargins(0, 2, 0, 2)
+            view.setViewportMargins(0, 5, 0, 5)
             view.setMinimumWidth(200)
             view.setMaximumWidth(200)
             _apply_app_font(view)
+            
+        self._fallback_menu.setStyleSheet(
+            self._fallback_menu.styleSheet() + "\nQMenu::scroller { height: 0px; width: 0px; }"
+        )
 
         self.tray_icon.setToolTip(t("tray.tooltip"))
 
@@ -914,31 +907,28 @@ class SystemTray(QObject):
 
         anchor = TrayFlyoutAnchor(QCursor.pos())
         anchor.show()
+        if sys.platform == "win32":
+            from ppt_assistant.core.platform_integration import make_window_borderless_popup
+
+            QTimer.singleShot(0, lambda: make_window_borderless_popup(anchor.winId()))
 
         view = ActionConfirmFlyoutView(title, body, confirm_text, anchor)
         self._confirm_anchor = anchor
         self._confirm_flyout = Flyout.make(view, anchor)
-        from ppt_assistant.core.platform_integration import remove_window_border
-        remove_window_border(self._confirm_flyout.winId())
+        if sys.platform == "win32":
+            from ppt_assistant.core.platform_integration import make_window_borderless_popup
+
+            QTimer.singleShot(
+                0,
+                lambda: make_window_borderless_popup(self._confirm_flyout.winId())
+                if self._confirm_flyout is not None
+                else None,
+            )
         self._confirm_flyout.view.setGraphicsEffect(None)
         self._confirm_flyout.hBoxLayout.setContentsMargins(0, 0, 0, 0)
         
         # Disable touch events to prevent abnormal expansion on touch screens
         self._confirm_flyout.setAttribute(Qt.WA_AcceptTouchEvents, False)
-
-        # Make the flyout use acrylic background
-        self._confirm_flyout.setAttribute(Qt.WA_TranslucentBackground)
-        self._confirm_flyout.windowEffect = WindowEffect(self._confirm_flyout)
-        
-        if sys.platform == "win32":
-            if isDarkTheme():
-                self._confirm_flyout.windowEffect.setAcrylicEffect(self._confirm_flyout.winId(), "20202050", True)
-            else:
-                self._confirm_flyout.windowEffect.setAcrylicEffect(self._confirm_flyout.winId(), "F2F2F250", True)
-                
-        # Make the view transparent so acrylic shows through
-        view.setAttribute(Qt.WA_TranslucentBackground)
-        view.setStyleSheet("ActionConfirmFlyoutView { background: transparent; }")
 
         view.cancelled.connect(self._close_confirm_flyout)
         view.confirmed.connect(confirmed_slot)
@@ -1055,4 +1045,10 @@ class SystemTray(QObject):
                 self.tray_icon.setIcon(QIcon(logo_path))
 
     def show_message(self, title, message):
+        if sys.platform == "win32":
+            try:
+                if send_windows_notification(title, message):
+                    return
+            except Exception:
+                pass
         self.tray_icon.showMessage(title, message, QSystemTrayIcon.Information, 2000)

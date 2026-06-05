@@ -42,7 +42,7 @@
         "SplashStartTime": "08:00",
         "SplashStyle": "default",
         "UseNativeTitleBar": false,
-        "Language": "zh-CN"
+        "Language": "zh-TW"
     },
     "Toolbar": {
         "DisabledTools": [],
