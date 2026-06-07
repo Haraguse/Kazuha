@@ -1174,8 +1174,10 @@
       inset: 0;
       background: var(--item-hover);
       border-radius: 10px;
-      transform: translateX(-110%);
-      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0;
+      scale: 0.92;
+      transition: opacity 0.22s cubic-bezier(0.25, 1, 0.5, 1),
+                  scale 0.22s cubic-bezier(0.25, 1, 0.5, 1);
       z-index: 0;
     }
 
@@ -1198,12 +1200,14 @@
     }
 
     .sidebar-item:hover::before {
-      transform: translateX(0);
+      opacity: 1;
+      scale: 1;
     }
 
     .sidebar-item.active::before {
       background: var(--card-bg);
-      transform: translateX(0);
+      opacity: 1;
+      scale: 1;
     }
 
     .sidebar-icon {
@@ -2340,24 +2344,44 @@
 
     .storage-toast {
       position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%) translateY(80px);
-      background: var(--bg-surface);
-      color: var(--text-primary);
-      padding: 12px 24px;
-      border-radius: 12px;
-      font-size: 14px;
-      box-shadow: 0 4px 20px var(--shadow-color);
-      border: 1px solid var(--card-border);
+      inset: 0;
+      background: rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       z-index: 9999;
       opacity: 0;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+      pointer-events: none;
     }
 
     .storage-toast.visible {
       opacity: 1;
-      transform: translateX(-50%) translateY(0);
+    }
+
+    .storage-toast .toast-content {
+      position: relative;
+      color: #FFFFFF;
+      font-size: 16px;
+      font-weight: 500;
+      text-align: center;
+      padding: 12px 28px;
+      border-radius: 14px;
+      background: rgba(30, 30, 30, 0.72);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 0.5px solid rgba(255, 255, 255, 0.12);
+      scale: 0.92;
+      opacity: 0;
+      transition: opacity 0.22s cubic-bezier(0.25, 1, 0.5, 1),
+                  scale 0.22s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .storage-toast.visible .toast-content {
+      opacity: 1;
+      scale: 1;
     }
 
     .update-header {
@@ -2855,17 +2879,9 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      /* box-shadow: var(--overlay-page-shadow); */
-      backdrop-filter: blur(25px);
-      -webkit-backdrop-filter: blur(25px);
       transition: background 0.3s, border-color 0.3s;
       position: relative;
-      isolation: isolate;
-      box-shadow:
-        0 18px 40px rgba(10, 15, 24, 0.18),
-        0 2px 8px rgba(10, 15, 24, 0.08),
-        inset 0 1px 0 rgba(255, 255, 255, 0.12),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+      box-shadow: none;
     }
 
     .toolbar-preview-root .flipper::before {
@@ -3068,17 +3084,9 @@
       padding: 8px;
       display: flex;
       gap: 4px;
-      /* box-shadow: var(--overlay-toolbar-shadow); */
       transition: opacity 0.3s, transform 0.3s;
-      backdrop-filter: blur(25px);
-      -webkit-backdrop-filter: blur(25px);
       position: relative;
-      isolation: isolate;
-      box-shadow:
-        0 22px 52px rgba(10, 15, 24, 0.2),
-        0 4px 14px rgba(10, 15, 24, 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 0.14),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+      box-shadow: none;
     }
 
     .toolbar-preview-root #toolbar::before {
@@ -3118,32 +3126,11 @@
       z-index: 1;
     }
 
-    .toolbar-preview-root.toolbar-visual-default #toolbar,
-    .toolbar-preview-root.toolbar-visual-default .flipper {
+    .toolbar-preview-root #toolbar,
+    .toolbar-preview-root .flipper {
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
       box-shadow: none;
-    }
-
-    .toolbar-preview-root.toolbar-visual-default #toolbar::before,
-    .toolbar-preview-root.toolbar-visual-default #toolbar::after,
-    .toolbar-preview-root.toolbar-visual-default .flipper::before,
-    .toolbar-preview-root.toolbar-visual-default .flipper::after {
-      opacity: 0;
-    }
-
-    .toolbar-preview-root.toolbar-visual-frosted #toolbar,
-    .toolbar-preview-root.toolbar-visual-frosted .flipper {
-      border-color: rgba(255, 255, 255, 0.14);
-      backdrop-filter: blur(32px) saturate(165%) contrast(1.04) brightness(1.02);
-      -webkit-backdrop-filter: blur(32px) saturate(165%) contrast(1.04) brightness(1.02);
-    }
-
-    .toolbar-preview-root.toolbar-visual-frosted #toolbar::before,
-    .toolbar-preview-root.toolbar-visual-frosted #toolbar::after,
-    .toolbar-preview-root.toolbar-visual-frosted .flipper::before,
-    .toolbar-preview-root.toolbar-visual-frosted .flipper::after {
-      opacity: 1;
     }
 
     .toolbar-preview-root .tool-btn {
@@ -3160,24 +3147,18 @@
 
     .toolbar-preview-root .tool-btn:hover {
       background: rgba(255, 255, 255, 0.14);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.22),
-        0 6px 14px rgba(15, 23, 42, 0.08);
+      box-shadow: none;
       transform: translateY(-0.5px);
     }
 
     .toolbar-preview-root .tool-btn.active {
-      background: rgba(196, 218, 255, 0.2);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.26),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.2);
+      box-shadow: none;
     }
 
     .toolbar-preview-root .tool-btn:active {
       transform: translateY(0.5px) scale(0.985);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.16),
-        0 2px 6px rgba(15, 23, 42, 0.06);
+      box-shadow: none;
     }
 
     .toolbar-preview-root .separator {
@@ -4596,64 +4577,6 @@
       opacity: 0.88;
     }
 
-    [data-theme="light"] .sidebar,
-    [data-theme="light"] .sidebar-mini {
-      background: rgba(248, 248, 250, 0.86);
-      border: 1px solid rgba(0, 0, 0, 0.06);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.03);
-      backdrop-filter: blur(18px) saturate(140%);
-      -webkit-backdrop-filter: blur(18px) saturate(140%);
-    }
-
-    [data-theme="light"] .content {
-      background: rgba(255, 255, 255, 0.92);
-      border-color: rgba(0, 0, 0, 0.06);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 18px 40px rgba(15, 23, 42, 0.05);
-    }
-
-    [data-theme="light"] .settings-group {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.74)), var(--card-bg);
-      border-color: rgba(0, 0, 0, 0.06);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
-    }
-
-    [data-theme="light"] .settings-item:hover,
-    [data-theme="light"] #echo-cave-item:active {
-      background: rgba(0, 0, 0, 0.028);
-    }
-
-    [data-theme="light"] .sidebar-item,
-    [data-theme="light"] .sidebar-mini .nav-item {
-      color: #5f6368;
-    }
-
-    [data-theme="light"] .sidebar-item::before {
-      border-radius: 999px;
-    }
-
-    [data-theme="light"] .sidebar-item.active::before,
-    [data-theme="light"] .sidebar-mini .nav-item.active {
-      background: #e8e8ed;
-    }
-
-    [data-theme="light"] .sidebar-icon {
-      opacity: 0.82;
-    }
-
-    [data-theme="light"] .item-desc,
-    [data-theme="light"] .echo-cave-content,
-    [data-theme="light"] .version-card-right .item-desc {
-      color: #666666;
-      opacity: 1;
-    }
-
-    [data-theme="light"] .item-hint,
-    [data-theme="light"] .sidebar-version,
-    [data-theme="light"] .version-expander-credit {
-      color: #8e8e93;
-      opacity: 1;
-    }
-
     [data-theme="light"] .about-header {
       background: linear-gradient(180deg, #f7f9ff 0%, #eef3ff 100%);
       border-bottom: 1px solid rgba(0, 0, 0, 0.04);
@@ -4743,53 +4666,60 @@
     /* Toast Message Styling */
     .toast-container {
       position: fixed;
-      bottom: 60px;
-      left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: rgba(30, 30, 30, 0.88);
-      color: #FFFFFF;
-      padding: 10px 20px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 400;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      border: 0.5px solid rgba(255, 255, 255, 0.1);
+      inset: 0;
+      background: rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       z-index: 9999;
       opacity: 0;
-      transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-      pointer-events: none;
       display: flex;
       align-items: center;
-      width: max-content;
-      max-width: calc(100vw - 48px);
+      justify-content: center;
+      transition: opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+      pointer-events: none;
       box-sizing: border-box;
     }
 
+    .toast-container .toast-text {
+      position: relative;
+      color: #FFFFFF;
+      font-size: 16px;
+      font-weight: 500;
+      text-align: center;
+      padding: 12px 28px;
+      border-radius: 14px;
+      background: rgba(30, 30, 30, 0.72);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 0.5px solid rgba(255, 255, 255, 0.12);
+      scale: 0.92;
+      opacity: 0;
+      transition: opacity 0.22s cubic-bezier(0.25, 1, 0.5, 1),
+                  scale 0.22s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .toast-container.show .toast-text {
+      opacity: 1;
+      scale: 1;
+    }
+
     [data-theme="dark"] .toast-container {
-      background: rgba(45, 45, 45, 0.9);
-      border: 0.5px solid rgba(255, 255, 255, 0.15);
+      background: rgba(0, 0, 0, 0.42);
     }
 
     .toast-container.show {
       opacity: 1;
-      transform: translateX(-50%) translateY(0);
     }
 
     .toast-container.toast-top-right {
-      top: 24px;
-      right: 24px;
-      bottom: auto;
-      left: auto;
-      transform: translateX(20px);
-      max-width: min(420px, calc(100vw - 48px));
-      white-space: normal;
-      pointer-events: none;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
     }
 
     .toast-container.toast-top-right.show {
-      transform: translateX(0);
+      opacity: 1;
     }
 
     .debug-log-panel {
@@ -5933,7 +5863,7 @@
     </div>
   </div>
   <div id="toast-message" class="toast-container">
-    <div id="toast-text">已经存在打开的窗口！</div>
+    <div id="toast-text" class="toast-text">已经存在打开的窗口！</div>
   </div>
   <div id="performance-overlay" class="performance-overlay" aria-hidden="true">
     <div class="performance-overlay-card">
@@ -6714,19 +6644,6 @@
                 <span class="item-desc" data-i18n="overlay.toolbarAutoHalfCollapse.desc">开启后，长时间不操作工具栏将自动半透明收起至屏幕边缘，点按即可恢复原位</span>
               </div>
               <div class="switch" id="sw-Overlay-ToolbarAutoHalfCollapse"></div>
-            </div>
-            <div class="settings-item">
-              <div class="item-info">
-                <span class="item-label" data-i18n="overlay.toolbarVisualMode.label">工具栏背景模式</span>
-                <span class="item-desc" data-i18n="overlay.toolbarVisualMode.desc">切换悬浮工具栏和翻页栏的背景质感；毛玻璃模式会增强模糊和高光层次</span>
-              </div>
-              <div class="item-state">
-                <select class="styled-select" id="sel-Overlay-ToolbarVisualMode"
-                  onchange="setToolbarVisualMode(this.value)">
-                  <option value="default" data-i18n="overlay.toolbarVisualMode.default">标准</option>
-                  <option value="frosted" data-i18n="overlay.toolbarVisualMode.frosted">毛玻璃</option>
-                </select>
-              </div>
             </div>
             <div class="settings-item">
               <div class="item-info">
@@ -8090,10 +8007,6 @@
         "overlay.scale.desc": "缩放悬浮工具栏及相关面板的整体大小，不改变停靠方向",
         "overlay.popWindowScale.label": "色板缩放倍率",
         "overlay.popWindowScale.desc": "调整取色板等弹出面板的缩放倍率，不影响主工具栏大小",
-        "overlay.toolbarVisualMode.label": "工具栏背景模式",
-        "overlay.toolbarVisualMode.desc": "切换悬浮工具栏和翻页栏的背景质感；毛玻璃模式会增强模糊和高光层次",
-        "overlay.toolbarVisualMode.default": "标准",
-        "overlay.toolbarVisualMode.frosted": "毛玻璃",
         "overlay.toolbarOpacity.label": "工具栏透明度",
         "overlay.toolbarOpacity.desc": "调整悬浮工具栏背景透明度，不影响图标和文字本身",
         "overlay.syncOpacity.label": "同步 两侧翻页栏透明度调节",
@@ -8532,10 +8445,6 @@
         "overlay.scale.desc": "調整懸浮窗組件的整體顯示大小",
         "overlay.popWindowScale.label": "色板縮放倍率",
         "overlay.popWindowScale.desc": "調整顏色選擇彈窗的大小",
-        "overlay.toolbarVisualMode.label": "工具列背景模式",
-        "overlay.toolbarVisualMode.desc": "切換懸浮工具列與翻頁欄的背景質感；毛玻璃模式會加強模糊與高光層次",
-        "overlay.toolbarVisualMode.default": "標準",
-        "overlay.toolbarVisualMode.frosted": "毛玻璃",
         "overlay.toolbarOpacity.label": "工具列透明度",
         "overlay.toolbarOpacity.desc": "調整工具列背景的不透明度",
         "overlay.syncOpacity.label": "同步兩側翻頁欄透明度調節",
@@ -8957,10 +8866,6 @@
         "overlay.scale.desc": "調整元件顯示大小",
         "overlay.popWindowScale.label": "色板縮放",
         "overlay.popWindowScale.desc": "調整色板彈窗大小",
-        "overlay.toolbarVisualMode.label": "工具列背景模式",
-        "overlay.toolbarVisualMode.desc": "切換懸浮工具列同翻頁欄嘅背景質感；毛玻璃模式會加強模糊同高光層次",
-        "overlay.toolbarVisualMode.default": "標準",
-        "overlay.toolbarVisualMode.frosted": "毛玻璃",
         "overlay.toolbarOpacity.label": "工具列透明度",
         "overlay.toolbarOpacity.desc": "較工具列背景有幾透",
         "overlay.syncOpacity.label": "同步兩邊翻頁欄透明度",
@@ -9372,10 +9277,6 @@
         "overlay.scale.desc": "オーバーレイコンポーネント全体の表示サイズを調整します",
         "overlay.popWindowScale.label": "色板の倍率",
         "overlay.popWindowScale.desc": "カラーパレットウィンドウのサイズを調整します",
-        "overlay.toolbarVisualMode.label": "ツールバー背景モード",
-        "overlay.toolbarVisualMode.desc": "ツールバーとページめくりバーの背景質感を切り替えます。すりガラスではぼかしとハイライトを強めます",
-        "overlay.toolbarVisualMode.default": "標準",
-        "overlay.toolbarVisualMode.frosted": "すりガラス",
         "overlay.toolbarOpacity.label": "ツールバーの不透明度",
         "overlay.toolbarOpacity.desc": "ツールバー背景の不透明度を調整します",
         "overlay.syncOpacity.label": "ページめくりバーの透明度を同期",
@@ -10018,10 +9919,6 @@
         "overlay.scale.desc": "Adjust the overall display size of overlay components",
         "overlay.popWindowScale.label": "Palette Scaling",
         "overlay.popWindowScale.desc": "Adjust color palette window size",
-        "overlay.toolbarVisualMode.label": "Toolbar Background Mode",
-        "overlay.toolbarVisualMode.desc": "Switch the background finish of the floating toolbar and flippers; Frosted enhances blur and highlight layers",
-        "overlay.toolbarVisualMode.default": "Standard",
-        "overlay.toolbarVisualMode.frosted": "Frosted",
         "overlay.toolbarOpacity.label": "Toolbar Opacity",
         "overlay.toolbarOpacity.desc": "Adjust the opacity of the toolbar background",
         "overlay.syncOpacity.label": "Sync Side Flippers Opacity",
@@ -11703,12 +11600,12 @@
         toast.className = 'storage-toast';
         document.body.appendChild(toast);
       }
-      toast.textContent = message;
+      toast.innerHTML = '<div class="toast-content">' + message + '</div>';
       toast.classList.add('visible');
       clearTimeout(toast._timer);
       toast._timer = setTimeout(() => {
         toast.classList.remove('visible');
-      }, 3000);
+      }, 1600);
     }
 
     async function refreshStorageInfo(force) {
@@ -12673,31 +12570,12 @@
       renderToolbarPreview();
     }
 
-    function setToolbarVisualMode(mode) {
-      const normalized = mode === "default" ? "default" : "frosted";
-      const sel = document.getElementById("sel-Overlay-ToolbarVisualMode");
-      if (sel && sel.value !== normalized) {
-        sel.value = normalized;
-        refreshCustomSelect(sel);
-      }
-
-      if (!settings.Overlay) settings.Overlay = {};
-      settings.Overlay.ToolbarVisualMode = normalized;
-      if (!isHydratingSettingsUI && window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
-        window.pywebview.api.save_setting("Overlay", "ToolbarVisualMode", normalized);
-      }
-      renderToolbarPreview();
-    }
-
     function initToolbarPosition() {
       const pos = (settings.Overlay && settings.Overlay.ToolbarPosition) || 'bottom';
       setToolbarPosition(pos);
 
       const flipperPos = (settings.Overlay && settings.Overlay.FlipperPosition) || 'center';
       setFlipperPosition(flipperPos);
-
-      const visualMode = (settings.Overlay && settings.Overlay.ToolbarVisualMode) || 'frosted';
-      setToolbarVisualMode(visualMode);
 
       if (window.pywebview && window.pywebview.api && window.pywebview.api.get_wallpaper_path) {
         window.pywebview.api.get_wallpaper_path().then(dataUrl => {
@@ -12844,16 +12722,15 @@
 
     function buildWindowTitle(sectionKey) {
       if (sectionKey === "linkage") {
-        return "联动 - 设置 - 荧素万演";
+        return "联动 - 设置 | 荧素万演";
       }
       const sectionText = getText("section." + sectionKey) || "";
       const appText = getText("app.settings") || "设置";
       const appName = getText("app.name") || "Luminalium";
       const parts = [];
       if (sectionText) parts.push(sectionText);
-      parts.push(appText);
-      parts.push(appName);
-      return parts.join(" - ");
+      if (appText) parts.push(appText);
+      return parts.join(" - ") + " | " + appName;
     }
 
     function updateWindowTitle(sectionKey) {
@@ -13103,7 +12980,7 @@
     let settings = window.initialSettings || {
       General: { RunAtStartup: false, AutoShowOverlay: true, DisableAnimations: false, CompatibilityMode: false, Language: "zh-CN" },
       PPT: { AutoHandleInk: true },
-      Overlay: { ShowStatusBar: true, ClearMode: "slide", ToolbarVisualMode: "frosted" },
+      Overlay: { ShowStatusBar: true, ClearMode: "slide" },
       Toolbar: { ShowClear: true, ShowToolbarText: true },
       Window: { TimerFullscreenBehavior: "fullscreen" },
       Timer: { EnableSoundEffects: true, QuickAddPresets: DEFAULT_TIMER_QUICK_ADD_PRESETS.map(item => ({ ...item })) },
@@ -13767,7 +13644,6 @@
         initRange("Overlay", "PopWindowScale", 1.0, "x", 2);
         initRange("Overlay", "ToolbarOpacity", 1.0, "", 2);
         initRange("Overlay", "SidePageOpacity", 1.0, "", 2);
-        setToolbarVisualMode(settings.Overlay?.ToolbarVisualMode || "frosted");
         initRange("PPT", "PageTurnRateLimit", 2, "", 0);
         setSwitch("Overlay", "SyncOpacity");
         setSwitch("Overlay", "ToolbarAutoHalfCollapse");
@@ -14637,7 +14513,7 @@
       toastTimer = setTimeout(() => {
         toast.classList.remove("show");
         toast.classList.remove("toast-top-right");
-      }, 2800);
+      }, 1600);
     }
 
     function updateSelectSlider(container) {
@@ -14753,13 +14629,9 @@
 
       const toolbarOpacity = settings.Overlay?.ToolbarOpacity ?? 1.0;
       const sidePageOpacity = settings.Overlay?.SidePageOpacity ?? 1.0;
-      const visualMode = settings.Overlay?.ToolbarVisualMode === "default" ? "default" : "frosted";
       const rootStyle = getComputedStyle(document.documentElement);
       const toolbarBgVar = rootStyle.getPropertyValue("--overlay-toolbar-bg").trim();
       const pageBgVar = rootStyle.getPropertyValue("--overlay-page-bg").trim();
-
-      previewRoot.classList.remove("toolbar-visual-default", "toolbar-visual-frosted");
-      previewRoot.classList.add(`toolbar-visual-${visualMode}`);
 
       const resolveColor = (colorStr, opacity) => {
         if (!colorStr) return "";
@@ -14780,13 +14652,10 @@
         return colorStr;
       };
 
-      const frostedOpacity = visualMode === "frosted" ? Math.min(toolbarOpacity, 0.38) : toolbarOpacity;
-      const frostedSideOpacity = visualMode === "frosted" ? Math.min(sidePageOpacity, 0.34) : sidePageOpacity;
-
-      const toolbarColor = resolveColor(toolbarBgVar, frostedOpacity);
+      const toolbarColor = resolveColor(toolbarBgVar, toolbarOpacity);
       toolbar.style.setProperty("--overlay-toolbar-bg", toolbarColor);
 
-      const pageColor = resolveColor(pageBgVar, frostedSideOpacity);
+      const pageColor = resolveColor(pageBgVar, sidePageOpacity);
       const flippers = previewRoot.querySelectorAll(".flipper");
       flippers.forEach(el => {
         el.style.setProperty("--overlay-page-bg", pageColor);
@@ -15437,7 +15306,7 @@
 
     function updateAccentColor(hex) {
       if (hex) {
-        document.documentElement.style.setProperty('--accent-blue', hex);
+        document.documentElement.style.setProperty('--accent-color', hex);
       }
     }
 

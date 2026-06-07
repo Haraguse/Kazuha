@@ -13,13 +13,26 @@ class BoardPlugin(AssistantPlugin):
     def get_icon(self):
         return "board-in-board.svg"
 
+    def _on_window_fully_closed(self):
+        """Discard the window reference after it has fully closed.
+
+        QQuickView destroys its QML scene graph on close.  Re-showing a
+        closed QQuickView causes a crash (segfault / ASSERT failures in
+        the Qt scene-graph code).  By clearing the reference we force a
+        brand-new BoardWindow to be created on the next execute() call.
+        """
+        if self.window is not None:
+            self.window.window_fully_closed.disconnect(self._on_window_fully_closed)
+            self.window.deleteLater()
+        self.window = None
+
     def execute(self):
-        # Re-create window if closed or create for the first time
+        # Re-create window if closed or create for the first time.
+        # A QQuickView that has been closed cannot be re-shown safely
+        # because its QML scene graph is destroyed on close.
         if not self.window:
             self.window = BoardWindow()
-            # If the window is closed, we might want to clear the reference
-            # but QQuickView close() just hides it.
-            # We'll rely on our showEvent to handle the slide-in.
+            self.window.window_fully_closed.connect(self._on_window_fully_closed)
 
         if self.window.isVisible():
             self.window.requestActivate()
@@ -39,4 +52,5 @@ class BoardPlugin(AssistantPlugin):
             # Force immediate close without animation for cleanup
             self.window._force_close = True
             self.window.close()
+            self.window.window_fully_closed.disconnect(self._on_window_fully_closed)
             self.window = None

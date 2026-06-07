@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "2fqkTdrIgYo=",
+  "dgSpecHash": "TxXcAakh1r0=",
   "success": true,
-  "projectFilePath": "c:\\Users\\Evan Evan\\Documents\\Luminalium\\scripts\\smtc_helper\\SmtcHelper.csproj",
+  "projectFilePath": "h:\\Dev\\Kazuha\\scripts\\smtc_helper\\SmtcHelper.csproj",
   "expectedPackageFiles": [
-    "c:\\Users\\Evan Evan\\Documents\\Luminalium\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.57\\microsoft.windows.sdk.net.ref.10.0.19041.57.nupkg.sha512"
+    "h:\\Dev\\Kazuha\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.56\\microsoft.windows.sdk.net.ref.10.0.19041.56.nupkg.sha512"
   ],
   "logs": []
 }

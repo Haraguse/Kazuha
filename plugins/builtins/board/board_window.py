@@ -1105,6 +1105,10 @@ def _apply_dwm_shadow(hwnd):
 class BoardWindow(QQuickView):
     _WINDOW_TITLE = "小黑板 - Luminalium"
 
+    # Emitted after the window has fully closed (animation finished, super().close() called).
+    # Listeners should discard their reference so a fresh window is created next time.
+    window_fully_closed = Signal()
+
     def __init__(self):
         super().__init__()
         self._is_closing = False
@@ -1564,6 +1568,7 @@ class BoardWindow(QQuickView):
         if self.windowState() & (Qt.WindowFullScreen | Qt.WindowMaximized):
             self._force_close = True
             super().close()
+            self.window_fully_closed.emit()
             return
 
         if self._animation:
@@ -1581,6 +1586,7 @@ class BoardWindow(QQuickView):
         else:
             self._force_close = True
             super().close()
+            self.window_fully_closed.emit()
 
     def _on_animation_finished(self):
         if self._is_closing:
@@ -1588,6 +1594,7 @@ class BoardWindow(QQuickView):
             super().close()
             # Reset for next time if the object is reused
             self._is_closing = False
+            self.window_fully_closed.emit()
 
     def closeEvent(self, event):
         if getattr(self, "_force_close", False):

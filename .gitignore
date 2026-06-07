@@ -32,3 +32,5 @@ venv/
 Thumbs.db
 settings.json
 settings.json
+/scripts/smtc_helper/obj
+/scripts/smtc_helper/obj

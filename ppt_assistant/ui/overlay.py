@@ -9,7 +9,7 @@ import importlib.util
 from typing import Optional
 from multiprocessing.connection import Client
 from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtCore import QObject, Slot, Signal, Qt, QUrl, QTimer, QRect
+from PySide6.QtCore import QObject, Slot, Signal, Qt, QUrl, QTimer, QRect, QEvent, QCoreApplication
 from PySide6.QtGui import QColor, QRegion, QGuiApplication, QDesktopServices
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
 from ppt_assistant.core.config import cfg, ROOT_DIR
@@ -429,20 +429,16 @@ class InkPromptWindow(QWidget):
         return None
 
     def _create_dialog(self, texts):
-        """Create a standard dialog with two buttons using qfluentwidgets Dialog."""
-        from qfluentwidgets import Dialog
+        """Create a dialog with two buttons using qfluentwidgets MessageBox."""
+        from qfluentwidgets import MessageBox
 
-        dialog = Dialog(texts["title"], texts["text"], self)
+        dialog = MessageBox(texts["title"], texts["text"], self)
 
         dialog.yesButton.setText(texts.get("keep", "保留"))
         dialog.cancelButton.setText(texts.get("discard", "不保留"))
 
         dialog.yesButton.clicked.connect(lambda: self._on_result(True))
         dialog.cancelButton.clicked.connect(lambda: self._on_result(False))
-
-        if hasattr(dialog, "maskWidget"):
-            dialog.maskWidget.deleteLater()
-            dialog.maskWidget = None
 
         return dialog
 
@@ -455,11 +451,11 @@ class InkPromptWindow(QWidget):
     def showEvent(self, event):
         super().showEvent(event)
         self._play_error_sound()
-        self._dialog.show()
-        self._dialog.raise_()
-        self._dialog.activateWindow()
-        self._center_dialog()
-        # Force a full repaint so the background is drawn immediately
+        if self._dialog:
+            self._dialog.show()
+            self._dialog.raise_()
+            self._dialog.activateWindow()
+            self._center_dialog()
         self.update()
 
     def _center_dialog(self):
@@ -569,7 +565,7 @@ class LastSlideExitPromptWindow(QWidget):
     def _create_dialog(self, texts):
         from qfluentwidgets import Dialog
 
-        dialog = Dialog(texts["title"], texts["text"], self)
+        dialog = Dialog(texts["title"], texts["text"], None)
         dialog.yesButton.setText(texts.get("exit", "退出"))
         dialog.cancelButton.setText(texts.get("cancel", "取消"))
 
@@ -726,6 +722,9 @@ class WaylandFallbackOverlayWindow(QWidget):
     def show_ink_prompt(self):
         self.ink_prompt_result.emit(False)
 
+    def dismiss_ink_prompt(self):
+        pass
+
     def execute_plugin(self, name):
         pass
 
@@ -782,6 +781,16 @@ class WaylandFallbackOverlayWindow(QWidget):
 
     def update_geometry(self, rect, screen):
         pass
+
+
+# Custom event type for thread-safe ink prompt marshalling.
+# QCoreApplication.postEvent is the most reliable cross-thread mechanism
+# in Qt – the event is ALWAYS delivered on the receiver's thread.
+_INK_PROMP_EVENT_TYPE = QEvent.Type(QEvent.registerEventType())
+
+class _InkPromptEvent(QEvent):
+    def __init__(self):
+        super().__init__(_INK_PROMP_EVENT_TYPE)
 
 
 class OverlayWindow(QWebEngineView):
@@ -1783,9 +1792,6 @@ class OverlayWindow(QWebEngineView):
             "safeArea": cfg.safeArea.value,
             "popWindowScale": cfg.popWindowScale.value,
             "toolbarOpacity": cfg.toolbarOpacity.value,
-            "toolbarVisualMode": getattr(cfg, "toolbarVisualMode", None).value
-            if hasattr(cfg, "toolbarVisualMode")
-            else "frosted",
             "sidePageOpacity": cfg.sidePageOpacity.value,
             "strictEdgeAlignment": cfg.strictEdgeAlignment.value,
             "toolbarAutoHalfCollapse": cfg.toolbarAutoHalfCollapse.value,
@@ -1818,15 +1824,36 @@ class OverlayWindow(QWebEngineView):
             pass
 
     def show_ink_prompt(self):
-        # Using the independent QFluentWidgets-based dialog for better reliability
-        print(f"[Overlay] show_ink_prompt called, creating InkPromptWindow", flush=True)
-        texts = self._get_ink_prompt_texts()
-        
-        # Create as a top-level window (no parent) to avoid corrupting the overlay's
-        # DWM layered-window alpha compositing when this dialog is later closed.
-        self._ink_prompt_window = InkPromptWindow(texts, parent=self)
-        self._ink_prompt_window.result.connect(self._on_ink_prompt_window_result)
-        self._ink_prompt_window.show()
+        # Post a custom event to self.  QCoreApplication.postEvent is
+        # thread-safe and the event is ALWAYS delivered on the receiver's
+        # thread (the GUI thread).  This is more reliable than signals
+        # with QueuedConnection for ensuring QWidget creation happens on
+        # the correct thread.
+        print(f"[Overlay] show_ink_prompt called, posting _InkPromptEvent", flush=True)
+        QCoreApplication.postEvent(self, _InkPromptEvent())
+
+    def customEvent(self, event):
+        if event.type() == _INK_PROMP_EVENT_TYPE:
+            self._do_show_ink_prompt()
+            event.accept()
+        else:
+            super().customEvent(event)
+
+    def _do_show_ink_prompt(self):
+        """Actual ink prompt creation - always runs on the GUI thread via customEvent."""
+        print(f"[Overlay] _do_show_ink_prompt called on GUI thread", flush=True)
+        try:
+            texts = self._get_ink_prompt_texts()
+            
+            # Create as a top-level window (no parent) to avoid corrupting the overlay's
+            # DWM layered-window alpha compositing when this dialog is later closed.
+            self._ink_prompt_window = InkPromptWindow(texts, parent=self)
+            self._ink_prompt_window.result.connect(self._on_ink_prompt_window_result)
+            self._ink_prompt_window.show()
+        except Exception as e:
+            print(f"[Overlay] _do_show_ink_prompt failed: {e}", flush=True)
+            self._ink_prompt_window = None
+            self.ink_prompt_result.emit(False)
         
     def _on_ink_prompt_window_result(self, result):
         print(f"[Overlay] InkPromptWindow result: {result}", flush=True)
@@ -1837,6 +1864,19 @@ class OverlayWindow(QWebEngineView):
         self.ink_prompt_result.emit(result)
         from PySide6.QtCore import QTimer
         QTimer.singleShot(50, self._restore_transparency_after_ink_prompt)
+
+    def dismiss_ink_prompt(self):
+        """Dismiss the ink prompt dialog if it is currently shown.
+        
+        Called when the slideshow ends while the ink prompt is still pending.
+        """
+        print(f"[Overlay] dismiss_ink_prompt called", flush=True)
+        if self._ink_prompt_window is not None:
+            try:
+                self._ink_prompt_window.close()
+            except Exception:
+                pass
+            self._ink_prompt_window = None
 
     def _restore_transparency_after_ink_prompt(self):
         """Restore overlay window transparency attributes after ink prompt dialog closes.
@@ -1993,7 +2033,6 @@ class OverlayWindow(QWebEngineView):
         cfg.safeArea.valueChanged.connect(lambda *_: self.update_config())
         cfg.popWindowScale.valueChanged.connect(lambda *_: self.update_config())
         cfg.toolbarOpacity.valueChanged.connect(lambda *_: self.update_config())
-        cfg.toolbarVisualMode.valueChanged.connect(lambda *_: self.update_config())
         cfg.sidePageOpacity.valueChanged.connect(lambda *_: self.update_config())
         cfg.strictEdgeAlignment.valueChanged.connect(lambda *_: self.update_config())
         cfg.toolbarAutoHalfCollapse.valueChanged.connect(lambda *_: self.update_config())

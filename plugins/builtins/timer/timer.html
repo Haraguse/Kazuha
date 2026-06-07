@@ -2110,10 +2110,9 @@
       const appText = getText("app.timer") || "计时器";
       const appName = getText("app.name") || "Luminalium";
       const parts = [];
-      if (pageText) parts.push(pageText);
-      parts.push(appText);
-      parts.push(appName);
-      return parts.join(" - ");
+      if (sectionText) parts.push(sectionText);
+      if (appText) parts.push(appText);
+      return parts.join(" - ") + " | " + appName;
     }
 
     function updateWindowTitleFromActive() {
@@ -2256,7 +2255,7 @@
 
     function updateAccentColor(hex) {
       if (hex) {
-        document.documentElement.style.setProperty('--accent-blue', hex);
+        document.documentElement.style.setProperty('--accent-color', hex);
       }
     }
 
@@ -2732,7 +2731,7 @@
 
     function updateAccentColor(hex) {
       if (hex) {
-        document.documentElement.style.setProperty('--accent-blue', hex);
+        document.documentElement.style.setProperty('--accent-color', hex);
       }
     }
 

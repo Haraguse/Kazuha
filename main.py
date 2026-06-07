@@ -95,6 +95,7 @@ import subprocess
 import json
 import importlib
 import importlib.util
+import faulthandler
 from typing import Optional
 import time
 import warnings
@@ -175,6 +176,10 @@ if __name__ == "__main__":
         interval = int(os.environ.get("LUMINALIUM_MEMCLEAN_INTERVAL", "30"))
         if parent_pid:
             run_memory_cleaner(parent_pid, interval)
+        sys.exit(0)
+
+    if "--watchdog" in sys.argv:
+        _run_watchdog_process()
         sys.exit(0)
 
 from PySide6.QtWidgets import (
@@ -1510,6 +1515,11 @@ def show_webview_dialog(
 
 
 class CrashHandler:
+    # Heartbeat file path - shared with watchdog subprocess
+    _heartbeat_path = None
+    _heartbeat_thread = None
+    _heartbeat_running = False
+
     def __init__(self, app=None):
         self.app = app
         self.app_instance = None
@@ -1668,6 +1678,29 @@ class CrashHandler:
         )
         print(f"CRASH DETECTED:\n{error_msg}", file=sys.stderr)
 
+        # Write persistent crash log to disk FIRST, before any dialog/cleanup
+        # that might itself fail or hang.  This ensures we always have a
+        # crash record on disk even if the rest of the handler breaks.
+        try:
+            crash_log_dir = os.path.join(
+                os.environ.get("APPDATA", tempfile.gettempdir()),
+                "Luminalium", "crash_logs"
+            )
+            os.makedirs(crash_log_dir, exist_ok=True)
+            crash_log_path = os.path.join(
+                crash_log_dir,
+                f"crash_{os.getpid()}_{int(time.time())}.log"
+            )
+            with open(crash_log_path, "w", encoding="utf-8") as f:
+                f.write(f"=== CRASH LOG ===\n")
+                f.write(f"PID: {os.getpid()}\n")
+                f.write(f"Time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"Exception: {exc_type.__name__}\n\n")
+                f.write(error_msg)
+            print(f"[CrashHandler] Crash log written to {crash_log_path}", flush=True)
+        except Exception as e:
+            print(f"[CrashHandler] Failed to write crash log: {e}", flush=True)
+
         action = self._resolve_crash_action()
         if action == "ShowAnalyzer":
             result = self._launch_crash_dialog(error_msg, wait_for_result=True)
@@ -1690,8 +1723,289 @@ class CrashHandler:
         time.sleep(0.5)
         os._exit(1)
 
+    # ---- Watchdog & Heartbeat ----
 
-_LUMINALIUM_MUTEX = None
+    def start_watchdog(self):
+        """Start heartbeat writer thread and watchdog subprocess.
+
+        The watchdog is a *separate process* so it survives if the main
+        process deadlocks or segfaults.  It uses two detection methods:
+
+        1. ``IsHungAppWindow`` (primary) – checks if any visible window
+           belonging to the main process is not responding to messages.
+           This works even when the GIL is held by a frozen thread.
+
+        2. Heartbeat file (secondary) – the main process writes a
+           timestamp every 2 s.  If the file goes stale the watchdog
+           treats it as a freeze.  This catches non-GUI freezes where
+           the event loop is fine but the app is logically stuck.
+        """
+        import threading
+
+        # 1. Set up heartbeat file
+        tmp_dir = tempfile.gettempdir()
+        self._heartbeat_path = os.path.join(
+            tmp_dir, f"luminalium_heartbeat_{os.getpid()}.txt"
+        )
+        self._heartbeat_running = True
+
+        # Write initial heartbeat immediately
+        try:
+            with open(self._heartbeat_path, "w", encoding="utf-8") as f:
+                f.write(str(time.time()))
+        except Exception:
+            pass
+
+        # 2. Start heartbeat writer thread (daemon, plain Python thread)
+        def _heartbeat_loop():
+            while self._heartbeat_running:
+                try:
+                    with open(self._heartbeat_path, "w", encoding="utf-8") as f:
+                        f.write(str(time.time()))
+                except Exception:
+                    pass
+                time.sleep(2)
+
+        self._heartbeat_thread = threading.Thread(
+            target=_heartbeat_loop, daemon=True, name="CrashHandlerHeartbeat"
+        )
+        self._heartbeat_thread.start()
+
+        # 3. Launch watchdog subprocess
+        self._launch_watchdog_subprocess()
+
+    def stop_watchdog(self):
+        """Stop heartbeat and clean up."""
+        self._heartbeat_running = False
+        if self._heartbeat_path:
+            try:
+                os.remove(self._heartbeat_path)
+            except Exception:
+                pass
+            self._heartbeat_path = None
+
+    def _launch_watchdog_subprocess(self):
+        """Launch a tiny watchdog process that monitors the main process."""
+        try:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            main_path = os.path.join(base_dir, "main.py")
+
+            env = os.environ.copy()
+            env["LUMINALIUM_WATCHDOG_FOR"] = str(os.getpid())
+            env["LUMINALIUM_HEARTBEAT_PATH"] = self._heartbeat_path or ""
+
+            creationflags = 0x08000000 | 0x00000008  # CREATE_NO_WINDOW | DETACHED_PROCESS
+
+            if getattr(sys, "frozen", False):
+                cmd = [sys.executable, "--watchdog"]
+            else:
+                cmd = [sys.executable, main_path, "--watchdog"]
+
+            subprocess.Popen(
+                cmd, env=env, creationflags=creationflags, close_fds=True
+            )
+            print("[Watchdog] Watchdog subprocess launched", flush=True)
+        except Exception as e:
+            print(f"[Watchdog] Failed to launch watchdog subprocess: {e}", flush=True)
+
+
+def _run_watchdog_process():
+    """Entry point for the watchdog subprocess.
+
+    Runs in a completely independent process.  Detects freezes via:
+      - IsHungAppWindow (primary, GIL-independent)
+      - Heartbeat file staleness (secondary)
+    """
+    pid_str = os.environ.get("LUMINALIUM_WATCHDOG_FOR", "")
+    heartbeat_path = os.environ.get("LUMINALIUM_HEARTBEAT_PATH", "")
+
+    if not pid_str:
+        return
+
+    main_pid = int(pid_str)
+    HUNG_TIMEOUT = 3       # consecutive hung checks before declaring freeze
+    HEARTBEAT_TIMEOUT = 15  # seconds without heartbeat = frozen
+    CHECK_INTERVAL = 5      # check every 5 seconds
+
+    print(f"[Watchdog] Monitoring PID {main_pid}", flush=True)
+
+    # --- Windows API helpers ---
+    import ctypes
+    from ctypes import wintypes
+
+    kernel32 = ctypes.windll.kernel32
+    user32 = ctypes.windll.user32
+
+    def _is_process_alive(pid):
+        handle = kernel32.OpenProcess(0x100000, False, pid)  # SYNCHRONIZE
+        if handle:
+            kernel32.CloseHandle(handle)
+            return True
+        return False
+
+    def _check_hung_windows(pid):
+        """Use IsHungAppWindow to detect if any visible window of the
+        process is not responding.  This is GIL-independent – it checks
+        the Windows message queue state from outside the process."""
+        found = False
+        hung = False
+
+        WNDENUMPROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+        def _enum_cb(hwnd, _):
+            nonlocal found, hung
+            wnd_pid = wintypes.DWORD()
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(wnd_pid))
+            if wnd_pid.value == pid and user32.IsWindowVisible(hwnd):
+                found = True
+                if user32.IsHungAppWindow(hwnd):
+                    hung = True
+                return False  # stop
+            return True  # continue
+
+        user32.EnumWindows(WNDENUMPROC(_enum_cb), 0)
+        return found, hung
+
+    def _check_heartbeat():
+        """Check heartbeat file staleness."""
+        if not heartbeat_path:
+            return False, 0.0
+        try:
+            with open(heartbeat_path, "r", encoding="utf-8") as f:
+                last_beat = float(f.read().strip())
+            elapsed = time.time() - last_beat
+            return elapsed >= HEARTBEAT_TIMEOUT, elapsed
+        except (FileNotFoundError, ValueError):
+            return False, 0.0
+
+    def _dump_thread_info(pid):
+        """Try to dump thread info of the frozen process."""
+        try:
+            import psutil
+            proc = psutil.Process(pid)
+            threads_info = []
+            for t in proc.threads():
+                threads_info.append(f"  tid={t.id}")
+            return f"Process threads ({len(threads_info)}):\n" + "\n".join(threads_info)
+        except Exception as e:
+            return f"Failed to enumerate threads: {e}"
+
+    def _handle_freeze(reason, detail=""):
+        """Handle a detected freeze: log, notify, kill."""
+        print(
+            f"[Watchdog] FREEZE DETECTED: {reason} (PID {main_pid})",
+            flush=True,
+        )
+
+        stack_info = _dump_thread_info(main_pid)
+        error_msg = (
+            f"Application freeze detected\n\n"
+            f"Reason: {reason}\n"
+            f"Main PID: {main_pid}\n"
+            f"{detail}\n\n"
+            f"{stack_info}"
+        )
+
+        # Write crash log
+        try:
+            crash_log_dir = os.path.join(
+                os.environ.get("APPDATA", tempfile.gettempdir()),
+                "Luminalium", "crash_logs"
+            )
+            os.makedirs(crash_log_dir, exist_ok=True)
+            crash_log_path = os.path.join(
+                crash_log_dir,
+                f"freeze_{main_pid}_{int(time.time())}.log"
+            )
+            with open(crash_log_path, "w", encoding="utf-8") as f:
+                f.write(error_msg)
+            print(f"[Watchdog] Freeze log written to {crash_log_path}", flush=True)
+        except Exception as e:
+            print(f"[Watchdog] Failed to write freeze log: {e}", flush=True)
+
+        # Launch crash dialog
+        try:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            main_path = os.path.join(base_dir, "main.py")
+
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".log", delete=False, encoding="utf-8"
+            ) as f:
+                f.write(error_msg)
+                temp_path = f.name
+
+            env = os.environ.copy()
+            env["CRASH_PARENT_PID"] = str(main_pid)
+            creationflags = 0x08000000 | 0x00000008
+
+            if getattr(sys, "frozen", False):
+                cmd = [sys.executable, "--webview-runner", "--crash-file", temp_path]
+            else:
+                cmd = [
+                    sys.executable, main_path,
+                    "--webview-runner", "--crash-file", temp_path,
+                ]
+
+            subprocess.Popen(
+                cmd, env=env, creationflags=creationflags, close_fds=True
+            )
+        except Exception as e:
+            print(f"[Watchdog] Failed to launch crash dialog: {e}", flush=True)
+
+        # Kill the frozen process
+        try:
+            import psutil
+            proc = psutil.Process(main_pid)
+            proc.kill()
+            print(f"[Watchdog] Killed frozen process {main_pid}", flush=True)
+        except Exception:
+            try:
+                handle = kernel32.OpenProcess(1, False, main_pid)  # PROCESS_TERMINATE
+                if handle:
+                    kernel32.TerminateProcess(handle, 1)
+                    kernel32.CloseHandle(handle)
+                    print(f"[Watchdog] Killed frozen process {main_pid} via WinAPI", flush=True)
+            except Exception as e2:
+                print(f"[Watchdog] Failed to kill frozen process: {e2}", flush=True)
+
+        # Clean up
+        if heartbeat_path:
+            try:
+                os.remove(heartbeat_path)
+            except Exception:
+                pass
+
+    # --- Main watchdog loop ---
+    hung_count = 0
+
+    while True:
+        time.sleep(CHECK_INTERVAL)
+
+        # If main process exited, clean up and exit
+        if not _is_process_alive(main_pid):
+            if heartbeat_path:
+                try:
+                    os.remove(heartbeat_path)
+                except Exception:
+                    pass
+            print("[Watchdog] Main process exited, stopping watchdog", flush=True)
+            break
+
+        # Check 1: IsHungAppWindow (GIL-independent)
+        found_window, is_hung = _check_hung_windows(main_pid)
+        if found_window and is_hung:
+            hung_count += 1
+            if hung_count >= HUNG_TIMEOUT:
+                _handle_freeze("Window not responding (IsHungAppWindow)")
+                break
+        else:
+            hung_count = 0
+
+        # Check 2: Heartbeat staleness (secondary)
+        heartbeat_stale, elapsed = _check_heartbeat()
+        if heartbeat_stale:
+            _handle_freeze(f"Heartbeat stale for {elapsed:.1f}s")
+            break
 
 def _create_global_mutex():
     if sys.platform == "win32":
@@ -2601,20 +2915,21 @@ class PPTAssistantApp:
             pass
         self._slideshow_running = False
         try:
-            self.overlay.on_slideshow_end_cleanup()
+            self._focus_watcher.set_slideshow_running(False)
         except Exception:
             pass
-        # Check if ink prompt is pending - if so, don't hide the overlay
-        # The overlay will be hidden after the user responds to the prompt
+        # Check if ink prompt is pending - if so, keep overlay visible and let the
+        # ink prompt flow complete naturally (user will click keep/discard)
         try:
             if hasattr(self.monitor, '_pending_ink_prompt') and self.monitor._pending_ink_prompt:
                 print("[Main] Ink prompt pending, keeping overlay visible", flush=True)
+                # Don't reset _pending_ink_prompt, don't dismiss the dialog.
+                # The ink_prompt_result callback will handle cleanup and end_show_with_ink_choice.
+                # Keep overlay active so the user can interact with the dialog.
+                self.overlay.set_active_on_slideshow(True, animate=False)
             else:
+                self.overlay.on_slideshow_end_cleanup()
                 self.overlay.set_active_on_slideshow(False, animate=False)
-        except Exception:
-            pass
-        try:
-            self._focus_watcher.set_slideshow_running(False)
         except Exception:
             pass
 
@@ -3017,30 +3332,11 @@ class PPTAssistantApp:
 
     @Slot(int, int, int, str)
     def _broadcast_pen_color(self, r, g, b, hex_color):
-        """Broadcast pen color change to all active webview windows and other plugins."""
-        # 1. Update Overlay
-        if hasattr(self.overlay, "update_accent_color"):
-            self.overlay.update_accent_color(hex_color)
-        elif hasattr(self.overlay, "run_js"):
-             self.overlay.run_js(f"if(window.updateAccentColor) updateAccentColor('{hex_color}')")
-
-        # 2. Update active plugins
+        """Broadcast pen color change to Board plugin only (NOT theme accent color)."""
         for plugin in getattr(self, "plugins", []):
-            # Check for webview windows
-            window = getattr(plugin, "_window", None)
-            if window and hasattr(window, "runJavaScript"):
-                window.runJavaScript(f"if(window.updateAccentColor) updateAccentColor('{hex_color}')")
-            
-            # Special case for Board plugin (QML)
             if plugin.get_name() == "板中板" or plugin.get_name() == "Board":
                 if hasattr(plugin, "set_pen_color"):
                     plugin.set_pen_color(r, g, b)
-
-        # 3. Update Settings window if open
-        if hasattr(self, "settings_plugin"):
-            window = getattr(self.settings_plugin, "_window", None)
-            if window and hasattr(window, "runJavaScript"):
-                window.runJavaScript(f"if(window.updateAccentColor) updateAccentColor('{hex_color}')")
 
     def cleanup(self):
         """Cleanup app resources and terminate subprocesses."""
@@ -3055,6 +3351,12 @@ class PPTAssistantApp:
             self.settings_plugin.terminate()
         if hasattr(self, "overlay"):
             self.overlay.cleanup()
+        # Stop watchdog heartbeat so the watchdog subprocess exits cleanly
+        try:
+            if hasattr(self, "app") and hasattr(self.app, "_crash_handler"):
+                self.app._crash_handler.stop_watchdog()
+        except Exception:
+            pass
 
     def run(self):
         # sys.exit(self.app.exec())
@@ -3124,6 +3426,50 @@ if __name__ == "__main__":
     _apply_global_font(app)
     print("[Main] Global font applied.", flush=True)
     crash_handler = CrashHandler(app)
+    app._crash_handler = crash_handler  # Store ref for cleanup
+    crash_handler.start_watchdog()
+
+    # Enable faulthandler to capture segfaults / SIGABRT etc.
+    # Writes stack trace to crash log directory on fatal signal.
+    try:
+        crash_log_dir = os.path.join(
+            os.environ.get("APPDATA", tempfile.gettempdir()),
+            "Luminalium", "crash_logs"
+        )
+        os.makedirs(crash_log_dir, exist_ok=True)
+        fh_path = os.path.join(crash_log_dir, "faulthandler.log")
+        faulthandler.enable(file=open(fh_path, "a", encoding="utf-8"), all_threads=True)
+        print(f"[Main] faulthandler enabled -> {fh_path}", flush=True)
+    except Exception as e:
+        print(f"[Main] Failed to enable faulthandler: {e}", flush=True)
+
+    # Install Qt message handler to catch Qt-level fatal errors
+    # (e.g. "Must construct a QApplication before a QWidget")
+    def _qt_message_handler(mode, context, message):
+        msg_str = str(message) if message else ""
+        if mode <= 2:  # QtWarningMsg or QtCriticalMsg
+            print(f"[Qt-{mode}] {msg_str}", flush=True)
+        if mode == 0:  # QtDebugMsg - skip
+            pass
+        elif mode == 4:  # QtFatalMsg
+            error_msg = f"Qt Fatal Error: {msg_str}\n\nFile: {context.file}\nLine: {context.line}\nFunction: {context.function}"
+            # Write to crash log immediately
+            try:
+                cld = os.path.join(
+                    os.environ.get("APPDATA", tempfile.gettempdir()),
+                    "Luminalium", "crash_logs"
+                )
+                os.makedirs(cld, exist_ok=True)
+                clp = os.path.join(cld, f"qtfatal_{os.getpid()}_{int(time.time())}.log")
+                with open(clp, "w", encoding="utf-8") as f:
+                    f.write(error_msg)
+                print(f"[CrashHandler] Qt fatal log written to {clp}", flush=True)
+            except Exception:
+                pass
+
+    from PySide6.QtCore import qInstallMessageHandler
+    qInstallMessageHandler(_qt_message_handler)
+    print("[Main] Qt message handler installed", flush=True)
     print("[Main] Creating global mutex...", flush=True)
     _create_global_mutex()
     print("[Main] Checking multi-instance state...", flush=True)

@@ -4,7 +4,7 @@ try:
 except ImportError:
     win32com = None
     pythoncom = None
-from PySide6.QtCore import QObject, Signal, QThread, QTimer, QRect, Slot
+from PySide6.QtCore import QObject, Signal, QThread, QTimer, QRect, Slot, Qt
 from PySide6.QtGui import QGuiApplication
 import time
 import os
@@ -1000,9 +1000,11 @@ class PPTWorker(QObject):
         return bool(ok)
 
     def _try_apply_pointer_type(
-        self, pointer_type: int, force_arrow_reset: bool = False
+        self, pointer_type: int, force_arrow_reset: bool = False,
+        ss_win: object = None
     ) -> bool:
-        ss_win = self._get_active_slideshow_window()
+        if ss_win is None:
+            ss_win = self._get_active_slideshow_window()
         view = getattr(ss_win, "View", None) if ss_win is not None else None
         if view is None:
             return False
@@ -1454,6 +1456,101 @@ class PPTWorker(QObject):
                 self._total_slides = total
                 self.slide_changed.emit(self._degraded_current, total)
 
+    def _register_com_message_filter(self):
+        """Register a COM IMessageFilter to handle RPC_E_CALL_REJECTED.
+
+        When PowerPoint is busy (e.g. showing a modal dialog or processing
+        input), COM calls from external threads are rejected with
+        RPC_E_CALL_REJECTED (0x80010001).  By registering a message filter
+        that tells COM to retry rejected calls automatically, we prevent
+        the SEH exception from propagating and crashing the process.
+
+        This implements IMessageFilter via ctypes, creating a COM object
+        with a vtable that returns RetryRejectedCall = 1000 (retry after
+        1 second) and HandleInComingCall = 0 (SERVERCALL_ISHANDLED).
+        """
+        if not pythoncom or not ctypes:
+            return
+        try:
+            from ctypes import WINFUNCTYPE, c_long, c_void_p, windll
+
+            # IUnknown vtable: QueryInterface, AddRef, Release
+            # IMessageFilter vtable: + HandleInComingCall, RetryRejectedCall, MessagePending
+
+            # Callback types for the vtable methods (stdcall)
+            QIFunc = WINFUNCTYPE(c_long, c_void_p, c_void_p, c_void_p)
+            AddRefFunc = WINFUNCTYPE(c_long, c_void_p)
+            ReleaseFunc = WINFUNCTYPE(c_long, c_void_p)
+            HICFunc = WINFUNCTYPE(c_long, c_void_p, c_long, c_void_p, c_long, c_void_p)
+            RRCFunc = WINFUNCTYPE(c_long, c_void_p, c_void_p, c_long, c_long)
+            MPFunc = WINFUNCTYPE(c_long, c_void_p, c_void_p, c_long, c_long)
+
+            class _Filter:
+                """Holds references to prevent GC of callback functions."""
+                pass
+
+            _filter = _Filter()
+
+            def _query_interface(this, riid, ppv):
+                return 0x80004002  # E_NOINTERFACE
+
+            _filter.qi = QIFunc(_query_interface)
+
+            def _add_ref(this):
+                return 1
+
+            _filter.add_ref = AddRefFunc(_add_ref)
+
+            def _release(this):
+                return 1
+
+            _filter.release = ReleaseFunc(_release)
+
+            def _handle_incoming_call(this, dwCallType, hTaskCaller, dwTickCount, lpInterfaceInfo):
+                return 0  # SERVERCALL_ISHANDLED
+
+            _filter.hic = HICFunc(_handle_incoming_call)
+
+            def _retry_rejected_call(this, hTaskCallee, dwTickCount, dwRejectType):
+                # Return > 0: retry after that many ms
+                # Return -1: cancel the call
+                return 1000
+
+            _filter.rrc = RRCFunc(_retry_rejected_call)
+
+            def _message_pending(this, hTaskCallee, dwTickCount, dwPendingType):
+                return 1  # PENDINGMSG_WAITNOPROCESS
+
+            _filter.mp = MPFunc(_message_pending)
+
+            # Build the vtable: IUnknown (3) + IMessageFilter (3) = 6 entries
+            vtable = (c_void_p * 6)(
+                ctypes.cast(_filter.qi, c_void_p),
+                ctypes.cast(_filter.add_ref, c_void_p),
+                ctypes.cast(_filter.release, c_void_p),
+                ctypes.cast(_filter.hic, c_void_p),
+                ctypes.cast(_filter.rrc, c_void_p),
+                ctypes.cast(_filter.mp, c_void_p),
+            )
+
+            # A COM object is a struct whose first (and only) field is a
+            # pointer to the vtable.  We allocate it as a 1-element array
+            # of c_void_p pointing at the vtable.
+            com_obj = (c_void_p * 1)(ctypes.cast(vtable, c_void_p))
+
+            old_filter = c_void_p()
+            hr = windll.ole32.CoRegisterMessageFilter(com_obj, ctypes.byref(old_filter))
+            if hr & 0x80000000:
+                # Failed to register, but don't crash
+                pass
+            else:
+                # Keep references alive to prevent GC
+                self._com_message_filter = _filter
+                self._com_message_filter_vtable = vtable
+                self._com_message_filter_obj = com_obj
+        except Exception:
+            pass
+
     @Slot()
     def start(self):
         if not pythoncom and not sys.platform.startswith("linux"):
@@ -1467,6 +1564,7 @@ class PPTWorker(QObject):
         if pythoncom and not self._com_initialized:
             pythoncom.CoInitialize()
             self._com_initialized = True
+            self._register_com_message_filter()
             self._note_info(
                 "com_initialized", "COM initialized for PPT monitor.", min_interval=30.0
             )
@@ -1527,19 +1625,19 @@ class PPTWorker(QObject):
                     ppt = win32com.client.GetActiveObject("PowerPoint.Application")
                     if ppt:
                         return ppt
-                except Exception:
+                except BaseException:
                     pass
                 try:
                     wps = win32com.client.GetActiveObject("Kwpp.Application")
                     if wps:
                         return wps
-                except Exception:
+                except BaseException:
                     pass
                 try:
                     yozo = win32com.client.GetActiveObject("YozoPG.Application")
                     if yozo:
                         return yozo
-                except Exception:
+                except BaseException:
                     pass
         # Fallback to cached apps
         if self.ppt_app:
@@ -1562,7 +1660,9 @@ class PPTWorker(QObject):
             self._last_com_fail_time.pop(prog_id, None)
             self._last_com_success_time[prog_id] = now
             return app
-        except Exception:
+        except BaseException:
+            # Catch BaseException to handle Windows SEH exceptions such as
+            # RPC_E_CALL_REJECTED (0x80010001) that bypass normal Exception.
             self._last_com_fail_time[prog_id] = now
             return None
 
@@ -1657,15 +1757,36 @@ class PPTWorker(QObject):
         return None
 
     def _get_active_slideshow_window(self):
-        app = self._get_active_app()
-        if app is None:
+        try:
+            app = self._get_active_app()
+            if app is None:
+                return None
+            if self._safe_count(getattr(app, "SlideShowWindows", None)) <= 0:
+                return None
+            return self._pick_best_slideshow_window(app, self._active_kind or None)
+        except Exception:
             return None
-        if self._safe_count(getattr(app, "SlideShowWindows", None)) <= 0:
-            return None
-        return self._pick_best_slideshow_window(app, self._active_kind or None)
+
+    def _pump_com_messages(self):
+        """Pump the COM message queue on the current STA thread.
+
+        This is necessary for IMessageFilter's RetryRejectedCall to work
+        correctly: COM needs to process internal messages between retries.
+        Also helps prevent stale COM proxies from causing access violations.
+        """
+        if not pythoncom:
+            return
+        try:
+            pythoncom.PumpWaitingMessages()
+        except Exception:
+            pass
 
     def _check_ppt_state(self):
         try:
+            # Pump COM messages before each check to ensure the STA thread
+            # processes any pending COM notifications and retries.
+            self._pump_com_messages()
+
             if not win32com:
                 if sys.platform.startswith("linux"):
                     if self._wps_bridge_connected():
@@ -1766,7 +1887,10 @@ class PPTWorker(QObject):
                 else:
                     self._handle_stop("ppt")
 
-        except Exception:
+        except BaseException:
+            # Catch BaseException (not just Exception) to handle Windows SEH
+            # exceptions such as RPC_E_CALL_REJECTED (0x80010001) that may
+            # bypass normal Python exception handling in win32com calls.
             pass
         finally:
             self._apply_poll_interval()
@@ -1992,8 +2116,9 @@ class PPTWorker(QObject):
             )
             self._running = False
             self._set_active_kind(None)
-            # Don't reset _pending_ink_prompt here - let the ink prompt handling complete
-            # It will be reset in end_show_with_ink_choice or _on_ink_prompt_result
+            # Do NOT reset _pending_ink_prompt here - if the ink prompt dialog
+            # is currently shown, let the user respond to it. The prompt flow
+            # will handle cleanup via _on_ink_prompt_result.
             print(f"[Monitor] _handle_stop: _pending_ink_prompt={self._pending_ink_prompt}", flush=True)
             self.slideshow_ended.emit()
             try:
@@ -2550,6 +2675,8 @@ class PPTWorker(QObject):
         pointer_type = int(pointer_type)
         prefers_native_highlighter = pointer_type == 3
         recent_pen_activation = False
+        # Cache COM reference to avoid repeated _get_active_slideshow_window() calls
+        _cached_ss_win = self._get_active_slideshow_window()
         try:
             started_at = float(self._slideshow_started_at or 0.0)
             recent_pen_activation = (
@@ -2578,7 +2705,8 @@ class PPTWorker(QObject):
                     time.sleep(delay)
                 try:
                     if self._try_apply_pointer_type(
-                        pointer_type, force_arrow_reset=attempt > 0
+                        pointer_type, force_arrow_reset=attempt > 0,
+                        ss_win=_cached_ss_win
                     ):
                         self._control_mode = "com"
                         self._remember_pointer_type(pointer_type)
@@ -2596,7 +2724,8 @@ class PPTWorker(QObject):
                 try:
                     force_arrow_reset = attempt > 0 or pointer_type == 2
                     if self._try_apply_pointer_type(
-                        pointer_type, force_arrow_reset=force_arrow_reset
+                        pointer_type, force_arrow_reset=force_arrow_reset,
+                        ss_win=_cached_ss_win
                     ):
                         self._control_mode = "com"
                         self._remember_pointer_type(pointer_type)
@@ -2612,7 +2741,8 @@ class PPTWorker(QObject):
                     time.sleep(0.05)
                     if not prefers_native_highlighter:
                         if self._try_apply_pointer_type(
-                            pointer_type, force_arrow_reset=True
+                            pointer_type, force_arrow_reset=True,
+                            ss_win=_cached_ss_win
                         ):
                             self._control_mode = "com"
                             self._remember_pointer_type(pointer_type)
@@ -2620,7 +2750,8 @@ class PPTWorker(QObject):
                         if recent_pen_activation:
                             time.sleep(0.12)
                             if self._try_apply_pointer_type(
-                                pointer_type, force_arrow_reset=True
+                                pointer_type, force_arrow_reset=True,
+                                ss_win=_cached_ss_win
                             ):
                                 self._control_mode = "com"
                                 self._remember_pointer_type(pointer_type)
@@ -2641,13 +2772,13 @@ class PPTWorker(QObject):
                 if self._send_linux_shortcut_to_slideshow(shortcut):
                     time.sleep(0.05)
                     if not prefers_native_highlighter:
-                        if self._try_apply_pointer_type(pointer_type, force_arrow_reset=True):
+                        if self._try_apply_pointer_type(pointer_type, force_arrow_reset=True, ss_win=_cached_ss_win):
                             self._control_mode = "com"
                             self._remember_pointer_type(pointer_type)
                             return
                         if recent_pen_activation:
                             time.sleep(0.12)
-                            if self._try_apply_pointer_type(pointer_type, force_arrow_reset=True):
+                            if self._try_apply_pointer_type(pointer_type, force_arrow_reset=True, ss_win=_cached_ss_win):
                                 self._control_mode = "com"
                                 self._remember_pointer_type(pointer_type)
                                 return
@@ -2841,7 +2972,7 @@ class PPTMonitor(QObject):
         self._worker.thumbnail_generated.connect(self.thumbnail_generated)
         self._worker.restrictions_changed.connect(self.restrictions_changed)
         self._worker.active_kind_changed.connect(self._on_active_kind_changed)
-        self._worker.ink_prompt_requested.connect(self._on_ink_prompt_requested)
+        self._worker.ink_prompt_requested.connect(self._do_show_ink_prompt, Qt.QueuedConnection)
         self._worker.animation_step_changed.connect(self.animation_step_changed)
         self._worker.pen_color_changed.connect(self.pen_color_changed)
         self._worker.tool_state_sync_requested.connect(self._sync_overlay_tool_state)
@@ -2938,15 +3069,20 @@ class PPTMonitor(QObject):
     def _on_active_kind_changed(self, kind):
         self._active_kind = kind or None
 
-    def _on_ink_prompt_requested(self):
-        print(f"[Monitor] _on_ink_prompt_requested called, _pending_ink_prompt={self._pending_ink_prompt}, _overlay={self._overlay}", flush=True)
+    def _do_show_ink_prompt(self):
+        print(f"[Monitor] _do_show_ink_prompt called, _pending_ink_prompt={self._pending_ink_prompt}, _overlay={self._overlay}", flush=True)
         if self._pending_ink_prompt:
             print("[Monitor] Already pending, returning", flush=True)
             return
         self._pending_ink_prompt = True
         if self._overlay:
-            print("[Monitor] Calling overlay.show_ink_prompt()", flush=True)
-            self._overlay.show_ink_prompt()
+            try:
+                print("[Monitor] Calling overlay.show_ink_prompt()", flush=True)
+                self._overlay.show_ink_prompt()
+            except Exception as e:
+                print(f"[Monitor] show_ink_prompt failed: {e}", flush=True)
+                self._pending_ink_prompt = False
+                self._req_end_with_ink.emit(False)
         else:
             print("[Monitor] No overlay, emitting True", flush=True)
             self._pending_ink_prompt = False
