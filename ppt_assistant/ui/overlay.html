@@ -307,8 +307,8 @@
             display: flex;
             flex-direction: column;
             gap: 4px;
-            width: 65%;
             margin-bottom: 8px;
+            padding-right: 12px;
         }
         .media-title {
             font-size: 18px;
@@ -1180,6 +1180,10 @@
             justify-content: space-between;
         }
 
+        .color-row + .color-row {
+            margin-top: 8px;
+        }
+
         .color-option {
             width: 24px;
             height: 24px;
@@ -1247,13 +1251,13 @@
         .pivot-item.active::after {
             content: "";
             position: absolute;
-            bottom: -1px;
+            bottom: 0;
             left: 0;
-            right: 0;
+            width: 100%;
             height: 2px;
             background: var(--accent-color);
             border-radius: 1px;
-            animation: pivotUnderlineIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: pivotUnderlineIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .pivot-content {
@@ -1263,6 +1267,14 @@
         .pivot-content.active {
             display: block;
             animation: pivotSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .highlight-unsupported {
+            padding: 32px 16px;
+            text-align: center;
+            color: var(--overlay-text-secondary);
+            font-size: 14px;
+            user-select: none;
         }
 
         .color-info {
@@ -1542,24 +1554,22 @@
                 <div class="color-option" style="background-color: #FF0000;" onclick="selectColor(255,0,0, this)" onmouseover="updateColorInfo('红色', '255 0 0', '#FF0000')"></div>
                 <div class="color-option" style="background-color: #A5A5A5;" onclick="selectColor(165,165,165, this)" onmouseover="updateColorInfo('灰色', '165 165 165', '#A5A5A5')"></div>
                 <div class="color-option" style="background-color: #FFC000;" onclick="selectColor(255,192,0, this)" onmouseover="updateColorInfo('金色', '255 192 0', '#FFC000')"></div>
+            </div>
+            <div class="color-row">
                 <div class="color-option" style="background-color: #5B9BD5;" onclick="selectColor(91,155,213, this)" onmouseover="updateColorInfo('浅蓝色', '91 155 213', '#5B9BD5')"></div>
                 <div class="color-option" style="background-color: #70AD47;" onclick="selectColor(112,173,71, this)" onmouseover="updateColorInfo('绿色', '112 173 71', '#70AD47')"></div>
+                <div class="color-option" style="background-color: #C00000;" onclick="selectColor(192,0,0, this)" onmouseover="updateColorInfo('深红色', '192 0 0', '#C00000')"></div>
+                <div class="color-option" style="background-color: #FFFF00;" onclick="selectColor(255,255,0, this)" onmouseover="updateColorInfo('黄色', '255 255 0', '#FFFF00')"></div>
+                <div class="color-option" style="background-color: #92D050;" onclick="selectColor(146,208,80, this)" onmouseover="updateColorInfo('浅绿色', '146 208 80', '#92D050')"></div>
+                <div class="color-option" style="background-color: #FF69B4;" onclick="selectColor(255,105,180, this)" onmouseover="updateColorInfo('骚粉色', '255 105 180', '#FF69B4')"></div>
+                <div class="color-option" style="background-color: #00BCD4;" onclick="selectColor(0,188,212, this)" onmouseover="updateColorInfo('亮青色', '0 188 212', '#00BCD4')"></div>
+                <div class="color-option" style="background-color: #002060;" onclick="selectColor(0,32,96, this)" onmouseover="updateColorInfo('深蓝色', '0 32 96', '#002060')"></div>
+                <div class="color-option" style="background-color: #7030A0;" onclick="selectColor(112,48,160, this)" onmouseover="updateColorInfo('紫色', '112 48 160', '#7030A0')"></div>
             </div>
         </div>
 
         <div id="tab-highlight" class="pivot-content">
-            <div class="color-row">
-                <div class="color-option" style="background-color: #C00000;" onclick="selectColor(192,0,0, this)" onmouseover="updateColorInfo('深红色', '192 0 0', '#C00000')"></div>
-                <div class="color-option" style="background-color: #FF0000;" onclick="selectColor(255,0,0, this)" onmouseover="updateColorInfo('红色', '255 0 0', '#FF0000')"></div>
-                <div class="color-option" style="background-color: #FFC000;" onclick="selectColor(255,192,0, this)" onmouseover="updateColorInfo('金色', '255 192 0', '#FFC000')"></div>
-                <div class="color-option" style="background-color: #FFFF00;" onclick="selectColor(255,255,0, this)" onmouseover="updateColorInfo('黄色', '255 255 0', '#FFFF00')"></div>
-                <div class="color-option" style="background-color: #92D050;" onclick="selectColor(146,208,80, this)" onmouseover="updateColorInfo('浅绿色', '146 208 80', '#92D050')"></div>
-                <div class="color-option" style="background-color: #00B050;" onclick="selectColor(0,176,80, this)" onmouseover="updateColorInfo('绿色', '0 176 80', '#00B050')"></div>
-                <div class="color-option" style="background-color: #00B0F0;" onclick="selectColor(0,176,240, this)" onmouseover="updateColorInfo('浅蓝色', '0 176 240', '#00B0F0')"></div>
-                <div class="color-option" style="background-color: #0070C0;" onclick="selectColor(0,112,192, this)" onmouseover="updateColorInfo('蓝色', '0 112 192', '#0070C0')"></div>
-                <div class="color-option" style="background-color: #002060;" onclick="selectColor(0,32,96, this)" onmouseover="updateColorInfo('深蓝色', '0 32 96', '#002060')"></div>
-                <div class="color-option" style="background-color: #7030A0;" onclick="selectColor(112,48,160, this)" onmouseover="updateColorInfo('紫色', '112 48 160', '#7030A0')"></div>
-            </div>
+            <div class="highlight-unsupported">不支持这么做。</div>
         </div>
         
         <div class="color-info" id="color-info-box">
@@ -1807,7 +1817,7 @@
         }
         const DEFAULT_TOOL_COLORS = Object.freeze({
             pen: Object.freeze({ tab: 'pen', name: '黑色', rgb: '0 0 0', hex: '#000000' }),
-            highlight: Object.freeze({ tab: 'highlight', name: '黄色', rgb: '255 255 0', hex: '#FFFF00' })
+            highlight: Object.freeze({ tab: 'pen', name: '黄色', rgb: '255 255 0', hex: '#FFFF00' })
         });
         const DEFAULT_PEN_COLOR = DEFAULT_TOOL_COLORS.pen;
         const PEN_COLOR_PRESETS = Object.freeze({
@@ -1818,18 +1828,17 @@
             '#4472C4': { tab: 'pen', name: '蓝色', rgb: '68 114 196', hex: '#4472C4' },
             '#ED7D31': { tab: 'pen', name: '橙色', rgb: '237 125 49', hex: '#ED7D31' },
             '#A5A5A5': { tab: 'pen', name: '灰色', rgb: '165 165 165', hex: '#A5A5A5' },
-            '#FFC000': { tab: 'highlight', name: '金色', rgb: '255 192 0', hex: '#FFC000' },
+            '#FFC000': { tab: 'pen', name: '金色', rgb: '255 192 0', hex: '#FFC000' },
             '#5B9BD5': { tab: 'pen', name: '浅蓝色', rgb: '91 155 213', hex: '#5B9BD5' },
             '#70AD47': { tab: 'pen', name: '绿色', rgb: '112 173 71', hex: '#70AD47' },
-            '#C00000': { tab: 'highlight', name: '深红色', rgb: '192 0 0', hex: '#C00000' },
-            '#FF0000': { tab: 'highlight', name: '红色', rgb: '255 0 0', hex: '#FF0000' },
-            '#FFFF00': { tab: 'highlight', name: '黄色', rgb: '255 255 0', hex: '#FFFF00' },
-            '#92D050': { tab: 'highlight', name: '浅绿色', rgb: '146 208 80', hex: '#92D050' },
-            '#00B050': { tab: 'highlight', name: '绿色', rgb: '0 176 80', hex: '#00B050' },
-            '#00B0F0': { tab: 'highlight', name: '浅蓝色', rgb: '0 176 240', hex: '#00B0F0' },
-            '#0070C0': { tab: 'highlight', name: '蓝色', rgb: '0 112 192', hex: '#0070C0' },
-            '#002060': { tab: 'highlight', name: '深蓝色', rgb: '0 32 96', hex: '#002060' },
-            '#7030A0': { tab: 'highlight', name: '紫色', rgb: '112 48 160', hex: '#7030A0' }
+            '#C00000': { tab: 'pen', name: '深红色', rgb: '192 0 0', hex: '#C00000' },
+            '#FF0000': { tab: 'pen', name: '红色', rgb: '255 0 0', hex: '#FF0000' },
+            '#FFFF00': { tab: 'pen', name: '黄色', rgb: '255 255 0', hex: '#FFFF00' },
+            '#92D050': { tab: 'pen', name: '浅绿色', rgb: '146 208 80', hex: '#92D050' },
+            '#FF69B4': { tab: 'pen', name: '骚粉色', rgb: '255 105 180', hex: '#FF69B4' },
+            '#00BCD4': { tab: 'pen', name: '亮青色', rgb: '0 188 212', hex: '#00BCD4' },
+            '#002060': { tab: 'pen', name: '深蓝色', rgb: '0 32 96', hex: '#002060' },
+            '#7030A0': { tab: 'pen', name: '紫色', rgb: '112 48 160', hex: '#7030A0' }
         });
         let currentPenColor = { ...DEFAULT_PEN_COLOR };
 
@@ -2755,6 +2764,7 @@
                 };
             }
             syncColorPickerState();
+
             const tool = tab === 'highlight' ? 'highlight' : 'pen';
             if (currentTool !== tool) {
                 currentTool = tool;
