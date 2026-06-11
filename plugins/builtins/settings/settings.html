@@ -5109,6 +5109,53 @@
       max-width: 92vw;
     }
 
+    /* Diagnostic Info Table */
+    .diagnostic-content {
+      min-height: 60px;
+    }
+
+    .diagnostic-loading {
+      text-align: center;
+      color: var(--text-secondary);
+      padding: 24px 0;
+      font-size: 14px;
+    }
+
+    .diagnostic-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .diagnostic-table tr {
+      border-bottom: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.15));
+    }
+
+    .diagnostic-table tr:last-child {
+      border-bottom: none;
+    }
+
+    .diagnostic-table td {
+      padding: 10px 8px;
+      vertical-align: top;
+    }
+
+    .diagnostic-table td.diag-key {
+      color: var(--text-secondary);
+      white-space: nowrap;
+      width: 140px;
+      font-weight: 500;
+      user-select: none;
+    }
+
+    .diagnostic-table td.diag-value {
+      color: var(--text-primary);
+      word-break: break-all;
+      font-family: var(--font-mono, "Cascadia Code", "Fira Code", "JetBrains Mono", "Consolas", monospace);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
     @keyframes modalFadeIn {
       from {
         opacity: 0;
@@ -7217,6 +7264,16 @@
                 </svg>
               </div>
             </div>
+            <div class="settings-item" onclick="showDiagnosticInfo()">
+              <div class="item-info">
+                <span class="item-label" data-i18n="about.diagnostic.label">查看诊断信息</span>
+              </div>
+              <div class="item-state">
+                <svg class="chevron" viewBox="0 0 24 24">
+                  <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                </svg>
+              </div>
+            </div>
           </div>
           <div class="settings-group">
             <div class="settings-item" id="echo-cave-item" style="cursor:pointer;user-select:none;">
@@ -8130,6 +8187,12 @@
         "about.echoCave.copied": "已复制",
         "about.echoCave.empty": "暂无回声洞",
         "about.echoCave.error": "获取失败，请稍后重试",
+        "about.diagnostic.label": "查看诊断信息",
+        "about.diagnostic.title": "诊断信息",
+        "about.diagnostic.loading": "加载中...",
+        "about.diagnostic.close": "关闭",
+        "about.diagnostic.copy": "复制全部",
+        "about.diagnostic.copied": "已复制",
         "debug.createDialog.label": "创建 Dialog",
         "debug.createDialog.desc": "测试 Dialog",
         "debug.triggerCrash.label": "触发测试崩溃",
@@ -8551,6 +8614,12 @@
         "about.echoCave.copied": "已複製",
         "about.echoCave.empty": "暫無回聲洞",
         "about.echoCave.error": "獲取失敗，請稍後重試",
+        "about.diagnostic.label": "檢視診斷資訊",
+        "about.diagnostic.title": "診斷資訊",
+        "about.diagnostic.loading": "載入中...",
+        "about.diagnostic.close": "關閉",
+        "about.diagnostic.copy": "複製全部",
+        "about.diagnostic.copied": "已複製",
         "debug.createDialog.label": "建立 Dialog",
         "debug.createDialog.desc": "測試全新的 Dialog 設計風格",
         "debug.triggerCrash.label": "觸發測試當機",
@@ -8960,6 +9029,12 @@
         "about.echoCave.copied": "已複製",
         "about.echoCave.empty": "暫無回聲洞",
         "about.echoCave.error": "獲取失敗，請稍後再試",
+        "about.diagnostic.label": "檢視診斷資訊",
+        "about.diagnostic.title": "診斷資訊",
+        "about.diagnostic.loading": "載入中...",
+        "about.diagnostic.close": "關閉",
+        "about.diagnostic.copy": "複製全部",
+        "about.diagnostic.copied": "已複製",
         "debug.createDialog.label": "建立 Dialog",
         "debug.createDialog.desc": "測試 Dialog",
         "debug.triggerCrash.label": "觸發測試崩潰",
@@ -9384,6 +9459,12 @@
         "about.echoCave.copied": "コピーしました",
         "about.echoCave.empty": "エコー文がありません",
         "about.echoCave.error": "取得に失敗しました。後でもう一度お試しください",
+        "about.diagnostic.label": "診断情報を表示",
+        "about.diagnostic.title": "診断情報",
+        "about.diagnostic.loading": "読み込み中...",
+        "about.diagnostic.close": "閉じる",
+        "about.diagnostic.copy": "すべてコピー",
+        "about.diagnostic.copied": "コピーしました",
         "debug.createDialog.label": "Dialog を作成",
         "debug.createDialog.desc": "新しい Dialog デザインをテストします",
         "debug.triggerCrash.label": "テストクラッシュを発生",
@@ -10025,6 +10106,12 @@
         "about.echoCave.copied": "Copied",
         "about.echoCave.empty": "No echo cave sentences available",
         "about.echoCave.error": "Failed to fetch, please try again later",
+        "about.diagnostic.label": "View Diagnostic Info",
+        "about.diagnostic.title": "Diagnostic Info",
+        "about.diagnostic.loading": "Loading...",
+        "about.diagnostic.close": "Close",
+        "about.diagnostic.copy": "Copy All",
+        "about.diagnostic.copied": "Copied",
         "debug.createDialog.label": "Create Dialog",
         "debug.createDialog.desc": "Test the new Dialog design style",
         "debug.triggerCrash.label": "Trigger test crash",
@@ -15978,6 +16065,95 @@
         if (mainItem) mainItem.click();
       }
     }
+
+    // --- Diagnostic Info ---
+    let _diagnosticData = null;
+
+    function formatDiagKey(key) {
+      const map = {
+        "OSType": "操作系统类型",
+        "OSVersion": "操作系统版本",
+        "DeviceModel": "设备型号",
+        "DeviceVendor": "设备厂商",
+        "CPU": "CPU",
+        "GPU": "显卡",
+        "RAM": "内存",
+        "AppPackageRoot": "应用包根目录",
+        "AppRoot": "应用根目录",
+        "CurrentRunningDirectory": "当前运行目录",
+        "AppVersion": "应用版本",
+        "ByMemoryKillCount": "内存强杀次数",
+      };
+      return map[key] || key;
+    }
+
+    function showDiagnosticInfo() {
+      const modal = document.getElementById("diagnostic-modal");
+      const loadingEl = document.getElementById("diagnostic-loading");
+      const tableEl = document.getElementById("diagnostic-table");
+
+      if (!modal) return;
+      modal.classList.add("active");
+      if (loadingEl) loadingEl.style.display = "block";
+      if (tableEl) tableEl.style.display = "none";
+
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.get_diagnostic_info) {
+        window.pywebview.api.get_diagnostic_info().then(data => {
+          _diagnosticData = data;
+          if (data && data.error) {
+            tableEl.innerHTML = '<tr><td colspan="2" style="color: var(--color-error, #e74856);">获取失败：' + data.error + '</td></tr>';
+          } else {
+            let rows = "";
+            const order = ["OSType", "OSVersion", "DeviceModel", "DeviceVendor", "CPU", "GPU", "RAM", "AppPackageRoot", "AppRoot", "CurrentRunningDirectory", "AppVersion", "ByMemoryKillCount"];
+            order.forEach(key => {
+              if (data.hasOwnProperty(key)) {
+                const value = data[key] != null ? String(data[key]) : "";
+                rows += '<tr><td class="diag-key">' + formatDiagKey(key) + '</td><td class="diag-value">' + value + '</td></tr>';
+              }
+            });
+            tableEl.innerHTML = rows;
+          }
+          if (loadingEl) loadingEl.style.display = "none";
+          if (tableEl) tableEl.style.display = "table";
+        }).catch(err => {
+          tableEl.innerHTML = '<tr><td colspan="2" style="color: var(--color-error, #e74856);">获取失败：' + err + '</td></tr>';
+          if (loadingEl) loadingEl.style.display = "none";
+          if (tableEl) tableEl.style.display = "table";
+        });
+      } else {
+        tableEl.innerHTML = '<tr><td colspan="2">诊断信息接口不可用</td></tr>';
+        if (loadingEl) loadingEl.style.display = "none";
+        if (tableEl) tableEl.style.display = "table";
+      }
+    }
+
+    function closeDiagnosticModal() {
+      const modal = document.getElementById("diagnostic-modal");
+      if (modal) modal.classList.remove("active");
+    }
+
+    function copyDiagnosticInfo() {
+      if (!_diagnosticData) return;
+      let text = "";
+      const order = ["OSType", "OSVersion", "DeviceModel", "DeviceVendor", "CPU", "GPU", "RAM", "AppPackageRoot", "AppRoot", "CurrentRunningDirectory", "AppVersion", "ByMemoryKillCount"];
+      order.forEach(key => {
+        if (_diagnosticData.hasOwnProperty(key)) {
+          const value = _diagnosticData[key] != null ? String(_diagnosticData[key]) : "";
+          text += formatDiagKey(key) + ": " + value + "\n";
+        }
+      });
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = document.getElementById("diagnostic-copy-btn");
+          if (btn) {
+            const orig = btn.textContent;
+            btn.textContent = getText("about.diagnostic.copied") || "已复制";
+            setTimeout(() => { btn.textContent = orig; }, 2000);
+          }
+        }).catch(() => {});
+      }
+    }
+
     // --- Restart Notification & Generic Modal ---
     let isRestartPending = false;
 
@@ -16379,6 +16555,24 @@
         <div id="generic-modal-custom"></div>
       </div>
       <div class="modal-footer" id="generic-modal-footer"></div>
+    </div>
+  </div>
+
+  <!-- Diagnostic Info Modal -->
+  <div id="diagnostic-modal" class="modal-overlay">
+    <div class="modal-dialog modal-dialog-wide">
+      <div class="modal-title" data-i18n="about.diagnostic.title">诊断信息</div>
+      <div class="modal-island">
+        <div id="diagnostic-content" class="diagnostic-content">
+          <div class="diagnostic-loading" id="diagnostic-loading" data-i18n="about.diagnostic.loading">加载中...</div>
+          <table class="diagnostic-table" id="diagnostic-table" style="display:none;">
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-confirm" onclick="closeDiagnosticModal()" data-i18n="about.diagnostic.close">关闭</button>
+        <button class="modal-btn modal-btn-confirm" id="diagnostic-copy-btn" onclick="copyDiagnosticInfo()" data-i18n="about.diagnostic.copy">复制全部</button>
+      </div>
     </div>
   </div>
 

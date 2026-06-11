@@ -1300,6 +1300,14 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
     def get_version(self):
         return self.version
 
+    @Slot(result="QVariant")
+    def get_diagnostic_info(self):
+        try:
+            from plugins.builtins.settings.diagnostic_info import collect_diagnostic_info
+            return collect_diagnostic_info()
+        except Exception as e:
+            return {"error": str(e)}
+
     @Slot(result=str)
     def get_platform(self):
         return str(sys.platform or "")
