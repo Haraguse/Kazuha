@@ -28,10 +28,13 @@ def is_dev_env():
     return False
 
 def init_db():
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute("CREATE TABLE IF NOT EXISTS update_progress(id INTEGER PRIMARY KEY, progress INTEGER, status TEXT)")
-        conn.execute("INSERT OR REPLACE INTO update_progress(id, progress, status) VALUES (1, 0, 'idle')")
+    try:
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute("CREATE TABLE IF NOT EXISTS update_progress(id INTEGER PRIMARY KEY, progress INTEGER, status TEXT)")
+            conn.execute("INSERT OR REPLACE INTO update_progress(id, progress, status) VALUES (1, 0, 'idle')")
+    except Exception as e:
+        print(f"[UpdateService] init_db failed: {e}")
 
 def set_progress(progress: int, status: str):
     try:
@@ -211,6 +214,9 @@ def trigger_updater(zip_path: Path, version: str):
     subprocess.Popen(cmd, creationflags=0x00000008 if sys.platform == "win32" else 0)
 
 # API Handlers
+async def handle_health(request):
+    return web.json_response({"status": "ok", "port": request.transport.get_extra_info('sockname')[1] if request.transport else 0})
+
 async def handle_check(request):
     force = _is_truthy(request.query.get("force"))
     res = await check_update_impl(force=force)
@@ -287,7 +293,12 @@ async def handle_echo_cave_proxy(request):
         return web.json_response({"success": False, "error": str(e)}, status=502)
 
 def start_update_server(port: int = 28423):
-    init_db()
+    print(f"[UpdateService] Starting update server on port {port}...", flush=True)
+    try:
+        init_db()
+        print("[UpdateService] init_db OK", flush=True)
+    except Exception as e:
+        print(f"[UpdateService] init_db FAILED (server will still start): {e}", flush=True)
     
     @web.middleware
     async def cors_middleware(request, handler):
@@ -304,6 +315,7 @@ def start_update_server(port: int = 28423):
         return web.Response(text="")
     
     app.router.add_options('/{tail:.*}', handle_options)
+    app.router.add_get('/api/update/health', handle_health)
     app.router.add_get('/api/update/check', handle_check)
     app.router.add_post('/api/update/download', handle_download)
     app.router.add_get('/api/update/progress', handle_progress)
@@ -315,24 +327,29 @@ def start_update_server(port: int = 28423):
     runner = web.AppRunner(app)
     
     def run_server():
+        print("[UpdateService] Server thread started", flush=True)
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
+            print("[UpdateService] Setting up AppRunner...", flush=True)
             loop.run_until_complete(runner.setup())
+            print("[UpdateService] AppRunner setup OK, binding to port...", flush=True)
             site = web.TCPSite(runner, '127.0.0.1', port)
             loop.run_until_complete(site.start())
-            print(f"[UpdateService] Started on http://127.0.0.1:{port}")
+            print(f"[UpdateService] Started on http://127.0.0.1:{port}", flush=True)
             loop.run_forever()
         except OSError as e:
             # WinError 10048: port already in use (likely another instance already started service)
             if getattr(e, "errno", None) == 10048:
                 print(
-                    f"[UpdateService] Port {port} already in use, reuse existing local update service."
+                    f"[UpdateService] Port {port} already in use, reuse existing local update service.", flush=True
                 )
             else:
-                print(f"[UpdateService] Failed to start on port {port}: {e}")
+                print(f"[UpdateService] Failed to start on port {port}: {e}", flush=True)
         except Exception as e:
-            print(f"[UpdateService] Unexpected server error: {e}")
+            print(f"[UpdateService] Unexpected server error: {e}", flush=True)
+            import traceback
+            traceback.print_exc()
         finally:
             try:
                 loop.run_until_complete(runner.cleanup())
@@ -345,4 +362,5 @@ def start_update_server(port: int = 28423):
         
     t = threading.Thread(target=run_server, daemon=True)
     t.start()
+    print(f"[UpdateService] Server thread spawned (port={port})", flush=True)
     return port

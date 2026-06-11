@@ -7452,6 +7452,17 @@
                 </svg>
               </div>
             </div>
+            <div class="settings-item" onclick="previewUpdatePanel()">
+              <div class="item-info">
+                <span class="item-label" data-i18n="debug.previewUpdate.label">预览更新界面</span>
+                <span class="item-desc" data-i18n="debug.previewUpdate.desc">打开更新面板预览，10 秒后自动关闭</span>
+              </div>
+              <div class="item-state">
+                <svg class="chevron" viewBox="0 0 24 24">
+                  <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                </svg>
+              </div>
+            </div>
             <div class="settings-item" onclick="toggleSwitch('Debug', 'SimulateOverlayUnsupported')">
               <div class="item-info">
                 <span class="item-label">模拟 Overlay 主题不支持状态</span>
@@ -8206,7 +8217,9 @@
         "debug.rtlTest.label": "RTL 布局测试",
         "debug.rtlTest.desc": "强制切换为从右到左的布局",
         "debug.rotateTest.label": "旋转窗口测试",
-        "debug.rotateTest.desc": "以窗口中心持续旋转设置页"
+        "debug.rotateTest.desc": "以窗口中心持续旋转设置页",
+        "debug.previewUpdate.label": "预览更新界面",
+        "debug.previewUpdate.desc": "打开更新面板预览，10 秒后自动关闭"
       },
       "zh-TW": {
         "app.settings": "設定",
@@ -8633,7 +8646,9 @@
         "debug.rtlTest.label": "RTL 版面測試",
         "debug.rtlTest.desc": "強制切換為由右至左的版面",
         "debug.rotateTest.label": "旋轉視窗測試",
-        "debug.rotateTest.desc": "以視窗中心持續旋轉設定頁"
+        "debug.rotateTest.desc": "以視窗中心持續旋轉設定頁",
+        "debug.previewUpdate.label": "預覽更新介面",
+        "debug.previewUpdate.desc": "開啟更新面板預覽，10 秒後自動關閉"
       },
       "yue-HK": {
         "app.settings": "設定",
@@ -15183,6 +15198,22 @@
       }
     }
 
+    let _previewUpdateTimer = null;
+    function previewUpdatePanel() {
+      if (_previewUpdateTimer) {
+        clearTimeout(_previewUpdateTimer);
+        _previewUpdateTimer = null;
+      }
+      // 记录当前 section，切到更新界面
+      showUpdate();
+      // 10 秒后自动返回
+      _previewUpdateTimer = setTimeout(() => {
+        hideUpdate();
+        _previewUpdateTimer = null;
+      }, 10000);
+      addDebugLog("预览更新界面：将在 10 秒后自动关闭");
+    }
+
     function triggerResetToPreOnboardingState() {
       const title = getText("dialog.resetPreOnboarding.title") || "恢复未引导前状态";
       const text = getText("dialog.resetPreOnboarding.text") || "这会删除同级目录下的 settings.json，并立即重启 Luminalium。\n\n执行后将清空当前大部分用户设置，包括语言、主题、浮层与工具栏配置、快捷启动列表等；重启后会重新进入首次引导。\n\n注意：如果你之前已经打开了开机启动，这里不会帮你一并关闭。";
@@ -15570,6 +15601,68 @@
         }
       },
 
+      /**
+       * 版本号拆解为可比较的数组（兼容后端 _parse_version 逻辑）
+       */
+      _parseVersion(version) {
+        const parts = String(version).trim().replace(/^v/i, "").split(".");
+        const result = parts.map(p => { const n = parseInt(p, 10); return isNaN(n) ? 0 : n; });
+        while (result.length < 4) result.push(0);
+        return result;
+      },
+
+      _isNewer(remote, current) {
+        const rv = this._parseVersion(remote);
+        const cv = this._parseVersion(current);
+        for (let i = 0; i < Math.max(rv.length, cv.length); i++) {
+          const r = rv[i] || 0;
+          const c = cv[i] || 0;
+          if (r > c) return true;
+          if (r < c) return false;
+        }
+        return false;
+      },
+
+      /**
+       * 通过本地 update server 检查更新（带少量重试）
+       */
+      async _checkViaLocalServer() {
+        return await this._fetchWithRetry("http://127.0.0.1:28423/api/update/check", 2, 500);
+      },
+
+      /**
+       * 直接调用 GitHub API 检查更新（server 不可用时的 fallback）
+       * 复用前端 source 切换逻辑，支持 github / bgithub / kkgithub
+       */
+      async _checkDirectFromGitHub() {
+        const source = this.getSource();
+        const apiBase = this.getApiBase();
+        const url = `${apiBase}/repos/${this.repo}/releases/latest`;
+        const resp = await fetch(url, { headers: { "Accept": "application/vnd.github.v3+json" } });
+        if (!resp.ok) throw new Error(`GitHub API HTTP ${resp.status}`);
+        const release = await resp.json();
+        const tag = (release.tag_name || "").replace(/^v/i, "");
+        const body = release.body || "";
+        const asset = (release.assets || []).find(a => {
+          const name = (a.name || "").toLowerCase();
+          return name.endsWith(".exe") || name.endsWith(".zip") || name.endsWith(".7z");
+        });
+        const downloadUrl = asset ? asset.browser_download_url : (release.html_url || "");
+        const size = asset ? asset.size || 0 : 0;
+
+        if (this._isNewer(tag, this.appVersion)) {
+          return {
+            available: true,
+            version: tag,
+            changelog: body,
+            download_url: this.normalizeReleaseUrl(downloadUrl, source),
+            size: size,
+            forced: false
+          };
+        }
+        return { available: false, reason: "UP_TO_DATE", changelog: body };
+      },
+
       async check() {
         this.setState('loading');
         this.setActions('loading');
@@ -15587,8 +15680,13 @@
         );
 
         try {
-          const response = await fetch("http://127.0.0.1:28423/api/update/check");
-          const data = await response.json();
+          let data;
+          try {
+            data = await this._checkViaLocalServer();
+          } catch (serverError) {
+            console.warn("Local update server unreachable, falling back to GitHub API directly:", serverError);
+            data = await this._checkDirectFromGitHub();
+          }
           
           if (data.error === "DEV_MODE" || data.reason === "DEV_MODE") {
              this.setState('error');
@@ -15602,7 +15700,7 @@
                </svg>`,
                "var(--accent-red)"
              );
-             document.getElementById('update-check-btn').style.display = 'none'; // Hide check button
+             document.getElementById('update-check-btn').style.display = 'none';
              return;
           }
 
@@ -15635,8 +15733,13 @@
           "var(--accent-blue)"
         );
         try {
-          const response = await fetch("http://127.0.0.1:28423/api/update/check?force=1");
-          const data = await response.json();
+          let data;
+          try {
+            data = await this._fetchWithRetry("http://127.0.0.1:28423/api/update/check?force=1", 2, 500);
+          } catch (serverError) {
+            console.warn("Local update server unreachable, falling back to GitHub API directly:", serverError);
+            data = await this._checkDirectFromGitHub();
+          }
           if (data.error === "DEV_MODE" || data.reason === "DEV_MODE") {
             this.showError(getText("update.devMode") || "已检测到新版本，开发模式禁止自动更新");
             return;
@@ -15656,6 +15759,31 @@
           console.error("Force pull update error:", error);
           this.showError(getText("update.error.desc") || "请检查网络连接后重试");
         }
+      },
+
+      /**
+       * 带退避重试的 fetch wrapper
+       * 解决 update server 线程启动时序问题导致的 "Failed to fetch"
+       */
+      async _fetchWithRetry(url, maxRetries = 3, baseDelay = 800) {
+        let lastError = null;
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+          try {
+            const response = await fetch(url);
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            return await response.json();
+          } catch (error) {
+            lastError = error;
+            if (attempt < maxRetries - 1) {
+              const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 200;
+              console.warn(`Update fetch attempt ${attempt + 1} failed, retrying in ${Math.round(delay)}ms:`, error);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          }
+        }
+        throw lastError;
       },
 
       // Show up-to-date state
