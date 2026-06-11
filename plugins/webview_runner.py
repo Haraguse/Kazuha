@@ -582,11 +582,8 @@ def _apply_chromium_flags():
     if not is_onboarding_process:
         flags.extend(
             [
-                "--enable-low-end-device-mode",
                 "--enable-zero-copy",
                 "--enable-features=GpuRasterization",
-                "--disable-frame-rate-limit",
-                "--disable-gpu-vsync",
                 "--enable-gpu-rasterization",
                 "--ignore-gpu-blocklist",
             ]

@@ -3,11 +3,13 @@ import sys
 import json
 import ctypes
 import ctypes.wintypes
-from PySide6.QtQuick import QQuickView, QQuickPaintedItem
+from PySide6.QtQuickWidgets import QQuickWidget
+from PySide6.QtQuick import QQuickPaintedItem
 from PySide6.QtQml import qmlRegisterType
 from PySide6.QtCore import (
     QUrl,
     Qt,
+    QEvent,
     Slot,
     QObject,
     QPoint,
@@ -24,7 +26,7 @@ from PySide6.QtCore import (
     QAbstractNativeEventFilter,
 )
 from PySide6.QtGui import QColor, QIcon, QAction, QGuiApplication, QPainter, QImage, QPen
-from PySide6.QtWidgets import QFileDialog
+from PySide6.QtWidgets import QApplication, QFileDialog, QWidget, QVBoxLayout
 from ppt_assistant.core.config import cfg, SETTINGS_PATH, qconfig
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.theme_data import THEMES
@@ -677,8 +679,8 @@ class BoardBackend(QObject):
     # ── window control slots ──────────────────────────────────────────────
     @Slot(int, int)
     def moveWindow(self, dx, dy):
-        current_pos = self._window.position()
-        self._window.setPosition(current_pos + QPoint(dx, dy))
+        current_pos = self._window.pos()
+        self._window.move(current_pos + QPoint(dx, dy))
 
     @Slot()
     def closeWindow(self):
@@ -686,7 +688,13 @@ class BoardBackend(QObject):
 
     @Slot()
     def startDrag(self):
-        self._window.startSystemMove()
+        if sys.platform == "win32":
+            hwnd = int(self._window.winId())
+            ctypes.windll.user32.ReleaseCapture()
+            ctypes.windll.user32.SendMessageW(hwnd, 0xA1, 2, 0)
+        else:
+            # Fallback: QWidget doesn't have startSystemMove
+            pass
 
     @Slot()
     def minimizeWindow(self):
@@ -711,7 +719,24 @@ class BoardBackend(QObject):
 
     @Slot(int)
     def startResize(self, edge):
-        self._window.startSystemResize(Qt.Edge(edge))
+        if sys.platform == "win32":
+            hwnd = int(self._window.winId())
+            # Map Qt.Edge to Windows WM_NCHITTEST codes
+            edge_map = {
+                1: 12,   # Qt.TopEdge → HTTOP
+                2: 11,   # Qt.RightEdge → HTRIGHT
+                4: 15,   # Qt.BottomEdge → HTBOTTOM
+                8: 10,   # Qt.LeftEdge → HTLEFT
+                3: 14,   # TopEdge|RightEdge → HTTOPRIGHT
+                5: 13,   # TopEdge|LeftEdge → HTTOPLEFT
+                9: 13,   # LeftEdge|TopEdge → HTTOPLEFT
+                6: 17,   # RightEdge|BottomEdge → HTBOTTOMRIGHT
+                10: 17,  # BottomEdge|RightEdge → HTBOTTOMRIGHT
+                12: 16,  # BottomEdge|LeftEdge → HTBOTTOMLEFT
+            }
+            wparam = edge_map.get(edge, 2)  # default to HTCAPTION
+            ctypes.windll.user32.ReleaseCapture()
+            ctypes.windll.user32.SendMessageW(hwnd, 0xA1, wparam, 0)
 
     @Property(bool, notify=windowStateChanged)
     def isMaximized(self):
@@ -1102,7 +1127,7 @@ def _apply_dwm_shadow(hwnd):
         pass
 
 
-class BoardWindow(QQuickView):
+class BoardWindow(QWidget):
     _WINDOW_TITLE = "小黑板 - Luminalium"
 
     # Emitted after the window has fully closed (animation finished, super().close() called).
@@ -1114,18 +1139,23 @@ class BoardWindow(QQuickView):
         self._is_closing = False
         self._animation = None
         self._native_filter = None
+        self._qml = None
+
+        # Create QQuickWidget as child — fills the entire QWidget.
+        # QQuickWidget uses QQuickRenderControl internally, which avoids
+        # the GPU context deadlock that QQuickView triggers on Windows
+        # when QWebEngineView is already using the GPU.
+        self._qml = QQuickWidget(self)
+        self._qml.setResizeMode(QQuickWidget.SizeRootObjectToView)
 
         qmlRegisterType(NativeBoardItem, "KazuhaBoard", 1, 0, "NativeBoardItem")
 
-        self.setTitle(self._WINDOW_TITLE)
-        self.setResizeMode(QQuickView.SizeRootObjectToView)
+        self.setWindowTitle(self._WINDOW_TITLE)
 
         if sys.platform == "win32":
-            self.setFlags(Qt.Window)
+            self.setWindowFlags(Qt.Window)
         else:
-            # Keep the Linux-adapt branch's restricted native title bar:
-            # allow close/maximize, but do not expose a minimize button.
-            self.setFlags(
+            self.setWindowFlags(
                 Qt.Window
                 | Qt.CustomizeWindowHint
                 | Qt.WindowTitleHint
@@ -1136,12 +1166,12 @@ class BoardWindow(QQuickView):
 
         icon = load_app_icon()
         if not icon.isNull():
-            self.setIcon(icon)
+            self.setWindowIcon(icon)
 
         self.backend = BoardBackend(self)
-        self.rootContext().setContextProperty("backend", self.backend)
-        self.rootContext().setContextProperty("windowTitle", self._WINDOW_TITLE)
-        self.rootContext().setContextProperty(
+        self._qml.rootContext().setContextProperty("backend", self.backend)
+        self._qml.rootContext().setContextProperty("windowTitle", self._WINDOW_TITLE)
+        self._qml.rootContext().setContextProperty(
             "titleBarHeight", TitleBarNativeFilter.TITLEBAR_H
         )
 
@@ -1164,53 +1194,53 @@ class BoardWindow(QQuickView):
             self._board_window_enter_animation,
         ) = _read_board_settings()
 
-        self.rootContext().setContextProperty("iconsDir", icons_url)
-        self.rootContext().setContextProperty("showToolText", cfg.showToolbarText.value)
-        self.rootContext().setContextProperty(
+        self._qml.rootContext().setContextProperty("iconsDir", icons_url)
+        self._qml.rootContext().setContextProperty("showToolText", cfg.showToolbarText.value)
+        self._qml.rootContext().setContextProperty(
             "boardToolbarPosition", self._board_toolbar_position
         )
-        self.rootContext().setContextProperty(
+        self._qml.rootContext().setContextProperty(
             "boardBackgroundColor", self._board_background_color
         )
-        self.rootContext().setContextProperty(
+        self._qml.rootContext().setContextProperty(
             "boardPopupBackgroundColor", self._board_popup_bg
         )
-        self.rootContext().setContextProperty(
+        self._qml.rootContext().setContextProperty(
             "boardPopupBorderColor", self._board_popup_border
         )
-        self.rootContext().setContextProperty(
+        self._qml.rootContext().setContextProperty(
             "boardEraserMode", self._board_eraser_mode
         )
-        self.rootContext().setContextProperty(
+        self._qml.rootContext().setContextProperty(
             "boardPenStrokeEnabled", self._board_pen_stroke_enabled
         )
-        self.rootContext().setContextProperty("penText", _t("toolbar.pen"))
-        self.rootContext().setContextProperty("eraserText", _t("toolbar.eraser"))
-        self.rootContext().setContextProperty("clearText", _t("toolbar.clear"))
-        self.rootContext().setContextProperty("undoText", "撤销")
-        self.rootContext().setContextProperty("redoText", "重做")
-        self.rootContext().setContextProperty("savePageText", _t("toolbar.save_page"))
-        self.rootContext().setContextProperty("addPageText", _t("toolbar.add_page"))
-        self.rootContext().setContextProperty(
+        self._qml.rootContext().setContextProperty("penText", _t("toolbar.pen"))
+        self._qml.rootContext().setContextProperty("eraserText", _t("toolbar.eraser"))
+        self._qml.rootContext().setContextProperty("clearText", _t("toolbar.clear"))
+        self._qml.rootContext().setContextProperty("undoText", "撤销")
+        self._qml.rootContext().setContextProperty("redoText", "重做")
+        self._qml.rootContext().setContextProperty("savePageText", _t("toolbar.save_page"))
+        self._qml.rootContext().setContextProperty("addPageText", _t("toolbar.add_page"))
+        self._qml.rootContext().setContextProperty(
             "themeColorsText", _t("toolbar.theme_colors")
         )
-        self.rootContext().setContextProperty(
+        self._qml.rootContext().setContextProperty(
             "standardColorsText", _t("toolbar.standard_colors")
         )
-        self.rootContext().setContextProperty(
+        self._qml.rootContext().setContextProperty(
             "eraserPointText", _t("toolbar.eraser_point")
         )
-        self.rootContext().setContextProperty(
+        self._qml.rootContext().setContextProperty(
             "eraserStrokeText", _t("toolbar.eraser_stroke")
         )
-        self.rootContext().setContextProperty("penSizeText", _t("toolbar.pen_size"))
-        self.rootContext().setContextProperty(
+        self._qml.rootContext().setContextProperty("penSizeText", _t("toolbar.pen_size"))
+        self._qml.rootContext().setContextProperty(
             "eraserSizeText", _t("toolbar.eraser_size")
         )
-        self.rootContext().setContextProperty(
+        self._qml.rootContext().setContextProperty(
             "slideClearText", _t("toolbar.slide_clear")
         )
-        self.rootContext().setContextProperty(
+        self._qml.rootContext().setContextProperty(
             "slideClearHintText", _t("toolbar.slide_clear_hint")
         )
 
@@ -1239,13 +1269,24 @@ class BoardWindow(QQuickView):
             "#002060",
             "#7030A0",
         ]
-        self.rootContext().setContextProperty("themeColors", theme_bases)
-        self.rootContext().setContextProperty("standardColors", standard_colors)
+        self._qml.rootContext().setContextProperty("themeColors", theme_bases)
+        self._qml.rootContext().setContextProperty("standardColors", standard_colors)
 
         cfg.showToolbarText.valueChanged.connect(self._on_show_tool_text_changed)
 
         qml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Board.qml")
-        self.setSource(QUrl.fromLocalFile(qml_path))
+
+        # Process pending events before loading QML to keep UI responsive
+        QApplication.processEvents()
+
+        self._qml.setSource(QUrl.fromLocalFile(qml_path))
+        # Allow event loop to process during QML scene graph initialization
+        QApplication.processEvents()
+
+        # Check for QML errors
+        if self._qml.status() == QQuickWidget.Status.Error:
+            errors = [str(e) for e in self._qml.errors()]
+            print(f"[BoardWindow] QML errors: {' | '.join(errors)}")
 
         # Set initial size
         self.resize(800, 600)
@@ -1254,7 +1295,7 @@ class BoardWindow(QQuickView):
             geometry = self.screen().availableGeometry()
             x = geometry.x() + (geometry.width() - 800) // 2
             y = geometry.y() + (geometry.height() - 600) // 2
-            self.setPosition(x, y)
+            self.move(x, y)
 
         # Slide-in animation setup
         self._setup_slide_animation()
@@ -1272,22 +1313,40 @@ class BoardWindow(QQuickView):
             )
             show_watermark = True
 
-        self.rootContext().setContextProperty("watermarkText", watermark_text)
-        self.rootContext().setContextProperty("showWatermark", show_watermark)
+        self._qml.rootContext().setContextProperty("watermarkText", watermark_text)
+        self._qml.rootContext().setContextProperty("showWatermark", show_watermark)
 
         # Track window state
         self._last_state = self.windowState()
-        self.windowStateChanged.connect(self._on_state_changed)
 
         # Strokes path
         self.strokes_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "board_strokes.json"
         )
-        self.statusChanged.connect(self._on_status_changed)
+        self._qml.statusChanged.connect(self._on_status_changed)
         self._settings_watch_timer = QTimer(self)
         self._settings_watch_timer.setInterval(1000)
         self._settings_watch_timer.timeout.connect(self._sync_board_settings)
         self._settings_watch_timer.start()
+
+        # Flush pending events so the event loop stays responsive
+        QApplication.processEvents()
+
+    def changeEvent(self, event):
+        """Override to detect window state changes (QWidget doesn't have windowStateChanged signal)."""
+        if event.type() == QEvent.WindowStateChange:
+            state = self.windowState()
+            if not (state & Qt.WindowFullScreen):
+                self._restore_maximized_after_fullscreen = bool(state & Qt.WindowMaximized)
+            self.backend.windowStateChanged.emit()
+            self._last_state = state
+        super().changeEvent(event)
+
+    def resizeEvent(self, event):
+        """Keep QQuickWidget in sync with the QWidget size."""
+        super().resizeEvent(event)
+        if self._qml:
+            self._qml.resize(event.size())
 
     def _sync_board_settings(self):
         try:
@@ -1306,7 +1365,7 @@ class BoardWindow(QQuickView):
             pen_stroke_enabled,
             window_enter_animation,
         ) = _read_board_settings()
-        root = self.rootObject()
+        root = self._qml.rootObject()
         if position != self._board_toolbar_position:
             self._board_toolbar_position = position
             if root:
@@ -1335,19 +1394,19 @@ class BoardWindow(QQuickView):
             self._board_window_enter_animation = window_enter_animation
 
     def _on_status_changed(self, status):
-        if status == QQuickView.Ready:
+        if status == QQuickWidget.Status.Ready:
             if os.path.exists(self.strokes_path):
                 try:
                     with open(self.strokes_path, "r", encoding="utf-8") as f:
                         document = _normalize_board_document(json.load(f))
-                    root = self.rootObject()
+                    root = self._qml.rootObject()
                     if root and hasattr(root, "setBoardDocument"):
                         root.setBoardDocument(document)
                 except Exception as e:
                     print(f"Failed to load strokes: {e}")
 
     def set_pen_color(self, r, g, b):
-        root = self.rootObject()
+        root = self._qml.rootObject()
         if not root:
             return
         canvas = root.findChild(QObject, "canvas")
@@ -1356,7 +1415,7 @@ class BoardWindow(QQuickView):
             canvas.setProperty("drawColor", color)
 
     def _on_show_tool_text_changed(self, value):
-        self.rootContext().setContextProperty("showToolText", value)
+        self._qml.rootContext().setContextProperty("showToolText", value)
 
     def toggle_fullscreen(self):
         if self.windowState() & Qt.WindowFullScreen:
@@ -1378,13 +1437,13 @@ class BoardWindow(QQuickView):
         self._last_state = state
 
     def _setup_slide_animation(self):
-        self._animation = QPropertyAnimation(self, b"y")
+        self._animation = QPropertyAnimation(self, b"pos")
         self._animation.setDuration(450)
         # Use OutQuint for a more distinct non-linear feel
         self._animation.setEasingCurve(QEasingCurve.OutQuint)
 
     def save_current_page_png(self):
-        root = self.rootObject()
+        root = self._qml.rootObject()
         if not root:
             return
         document = {"currentPage": 1, "pages": [{"strokes": []}]}
@@ -1495,6 +1554,9 @@ class BoardWindow(QQuickView):
         self._is_closing = False
         self._force_close = False
 
+        # Resize QQuickWidget to fill the window
+        self._qml.resize(self.width(), self.height())
+
         if self._board_window_enter_animation and self._animation and self._animation.state() != QPropertyAnimation.Running:
             geom = self.geometry()
 
@@ -1511,8 +1573,8 @@ class BoardWindow(QQuickView):
             start_y = target_y - geom.height()
 
             self._animation.stop()
-            self._animation.setStartValue(start_y)
-            self._animation.setEndValue(target_y)
+            self._animation.setStartValue(QPoint(geom.x(), start_y))
+            self._animation.setEndValue(QPoint(geom.x(), target_y))
             self._animation.start()
 
     def close(self):
@@ -1529,7 +1591,7 @@ class BoardWindow(QQuickView):
 
         # Check for content first
         try:
-            root = self.rootObject()
+            root = self._qml.rootObject()
             document = {"currentPage": 1, "pages": [{"strokes": []}]}
             if root and hasattr(root, "getBoardDocument"):
                 document_raw = root.getBoardDocument()
@@ -1574,8 +1636,8 @@ class BoardWindow(QQuickView):
         if self._animation:
             self._is_closing = True
             geom = self.geometry()
-            self._animation.setStartValue(geom.y())
-            self._animation.setEndValue(geom.y() - geom.height())
+            self._animation.setStartValue(geom.topLeft())
+            self._animation.setEndValue(QPoint(geom.x(), geom.y() - geom.height()))
             try:
                 # Disconnect any old connections first to prevent multiple closes
                 self._animation.finished.disconnect(self._on_animation_finished)

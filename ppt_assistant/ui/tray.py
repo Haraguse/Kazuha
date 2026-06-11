@@ -3,7 +3,7 @@ import os
 import sys
 
 from PySide6.QtCore import QObject, QTimer, Qt, QRect, Signal, QSize
-from PySide6.QtGui import QColor, QCursor, QFont, QIcon, QPainter, QPixmap
+from PySide6.QtGui import QColor, QCursor, QFont, QIcon, QPainter, QPixmap, QPen
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QMenu, QSystemTrayIcon, QVBoxLayout, QWidget
 from qfluentwidgets import (
@@ -525,21 +525,26 @@ class ActionConfirmFlyoutView(FlyoutViewBase):
         button_layout.addStretch(1)
 
     def paintEvent(self, e):
-        # Override paintEvent to draw transparent background and a subtle border,
-        # allowing the acrylic effect on the Flyout to show through.
+        # Fill solid background so the flyout has an opaque base
         painter = QPainter(self)
         painter.setRenderHints(QPainter.Antialiasing)
         
-        painter.setBrush(Qt.transparent)
         is_dark = isDarkTheme()
+        bg_color = QColor(47, 47, 47) if is_dark else QColor(255, 255, 255)
         border_color = QColor(255, 255, 255, 20) if is_dark else QColor(0, 0, 0, 10)
-        painter.setPen(border_color)
-        
+
+        painter.setBrush(bg_color)
+        painter.setPen(Qt.NoPen)
+        painter.drawRoundedRect(self.rect(), 8, 8)
+
+        painter.setBrush(Qt.NoBrush)
+        painter.setPen(QPen(border_color, 1))
         painter.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), 8, 8)
 
 
 class SystemTray(QObject):
     show_settings = Signal()
+    show_about = Signal()
     show_board = Signal()
     show_timer = Signal()
     show_spotlight = Signal()
@@ -682,6 +687,8 @@ class SystemTray(QObject):
         self._act_timer.setText(timer_text)
 
     def _init_fallback_menu(self):
+        from qfluentwidgets import qconfig
+        print(f"[Tray] _init_fallback_menu: qconfig.theme={qconfig.theme}", flush=True)
         old = self._fallback_menu
         self._fallback_menu = AcrylicRoundMenu(parent=self._parent)
         self._fallback_menu.aboutToShow.connect(self._update_timer_text)
@@ -693,8 +700,8 @@ class SystemTray(QObject):
         if isinstance(view, MenuActionListWidget):
             view.setIconSize(QSize(18, 18))
             view.setViewportMargins(0, 5, 0, 5)
-            view.setMinimumWidth(200)
-            view.setMaximumWidth(200)
+            view.setMinimumWidth(220)
+            view.setMaximumWidth(220)
             _apply_app_font(view)
             
         self._fallback_menu.setStyleSheet(
@@ -705,9 +712,10 @@ class SystemTray(QObject):
 
         header_icon = self._render_colored_icon(os.path.join(ICON_DIR, "logo.svg"), 18)
         header = Action(header_icon, t("tray.title"), self._fallback_menu)
+        header.triggered.connect(self.show_about.emit)
         self._fallback_menu.addAction(header)
 
-        docs_action = Action(FIF.DOCUMENT, t("tray.docs"), self._fallback_menu)
+        docs_action = Action(FIF.HELP, t("tray.docs"), self._fallback_menu)
         docs_action.triggered.connect(lambda: os.startfile("https://luminalium.sectl.top/"))
         self._fallback_menu.addAction(docs_action)
 
@@ -738,13 +746,27 @@ class SystemTray(QObject):
         act_settings.triggered.connect(self.show_settings.emit)
         self._fallback_menu.addAction(act_settings)
 
-        act_open_program = Action(FIF.FOLDER, t("tray.open_program"), self._fallback_menu)
+        # Directory submenu (must be AcrylicRoundMenu for borderless + consistent style)
+        dir_menu = AcrylicRoundMenu(t("tray.directory"), self._fallback_menu)
+        dir_menu.setIcon(FIF.FOLDER.icon())
+        dir_menu.setItemHeight(32)
+        dir_menu.view.setGraphicsEffect(None)
+        dir_view = dir_menu.view
+        if isinstance(dir_view, MenuActionListWidget):
+            dir_view.setIconSize(QSize(18, 18))
+            dir_view.setViewportMargins(0, 5, 0, 5)
+            dir_view.setMinimumWidth(200)
+            dir_view.setMaximumWidth(200)
+            _apply_app_font(dir_view)
+        act_open_program = Action(t("tray.open_program"), dir_menu)
         act_open_program.triggered.connect(self.open_program_dir.emit)
-        self._fallback_menu.addAction(act_open_program)
+        dir_menu.addAction(act_open_program)
 
-        act_open_user = Action(FIF.FOLDER, t("tray.open_user"), self._fallback_menu)
+        act_open_user = Action(t("tray.open_user"), dir_menu)
         act_open_user.triggered.connect(self.open_user_dir.emit)
-        self._fallback_menu.addAction(act_open_user)
+        dir_menu.addAction(act_open_user)
+
+        self._fallback_menu.addMenu(dir_menu)
 
         if cfg.compatibilityMode.value:
             act_toggle = Action(FIF.APPLICATION, t("tray.toggle"), self._fallback_menu)
@@ -783,10 +805,10 @@ class SystemTray(QObject):
             t("tray.title"),
             self._native_menu,
         )
-        header.setEnabled(False)
+        header.triggered.connect(self.show_about.emit)
         self._native_menu.addAction(header)
 
-        docs_action = Action(FIF.DOCUMENT, t("tray.docs"), self._native_menu)
+        docs_action = Action(FIF.HELP, t("tray.docs"), self._native_menu)
         docs_action.triggered.connect(lambda: os.startfile("https://luminalium.sectl.top/"))
         self._native_menu.addAction(docs_action)
 
@@ -817,13 +839,27 @@ class SystemTray(QObject):
         act_settings.triggered.connect(self.show_settings.emit)
         self._native_menu.addAction(act_settings)
 
-        act_open_program = Action(FIF.FOLDER, t("tray.open_program"), self._native_menu)
+        # Directory submenu
+        dir_menu = AcrylicRoundMenu(t("tray.directory"), self._native_menu)
+        dir_menu.setIcon(FIF.FOLDER.icon())
+        dir_menu.setItemHeight(32)
+        dir_menu.view.setGraphicsEffect(None)
+        dir_view = dir_menu.view
+        if isinstance(dir_view, MenuActionListWidget):
+            dir_view.setIconSize(QSize(18, 18))
+            dir_view.setViewportMargins(0, 5, 0, 5)
+            dir_view.setMinimumWidth(200)
+            dir_view.setMaximumWidth(200)
+            _apply_app_font(dir_view)
+        act_open_program = Action(t("tray.open_program"), dir_menu)
         act_open_program.triggered.connect(self.open_program_dir.emit)
-        self._native_menu.addAction(act_open_program)
+        dir_menu.addAction(act_open_program)
 
-        act_open_user = Action(FIF.FOLDER, t("tray.open_user"), self._native_menu)
+        act_open_user = Action(t("tray.open_user"), dir_menu)
         act_open_user.triggered.connect(self.open_user_dir.emit)
-        self._native_menu.addAction(act_open_user)
+        dir_menu.addAction(act_open_user)
+
+        self._native_menu.addMenu(dir_menu)
 
         if cfg.compatibilityMode.value:
             act_toggle = Action(FIF.APPLICATION, t("tray.toggle"), self._native_menu)

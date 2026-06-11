@@ -9,7 +9,7 @@ import importlib.util
 from typing import Optional
 from multiprocessing.connection import Client
 from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtCore import QObject, Slot, Signal, Qt, QUrl, QTimer, QRect, QEvent, QCoreApplication
+from PySide6.QtCore import QObject, Slot, Signal, Qt, QUrl, QTimer, QRect, QEvent, QCoreApplication, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QColor, QRegion, QGuiApplication, QDesktopServices
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
 from ppt_assistant.core.config import cfg, ROOT_DIR
@@ -2040,6 +2040,37 @@ class OverlayWindow(QWebEngineView):
         cfg.allowRecording.valueChanged.connect(lambda *_: self.update_config())
         cfg.zOrderCheckInterval.valueChanged.connect(lambda *_: self._apply_zorder_timer())
         cfg.disabledTools.valueChanged.connect(lambda *_: self.update_config())
+
+    def show(self):
+        """覆层窗口显示 —— 带淡入动画，拒绝生硬弹出"""
+        if self.isVisible():
+            return
+        if hasattr(self, "_fade_anim") and self._fade_anim is not None:
+            self._fade_anim.stop()
+            self._fade_anim = None
+        self.setWindowOpacity(0.0)
+        super().show()
+        self._fade_anim = QPropertyAnimation(self, b"windowOpacity")
+        self._fade_anim.setDuration(200)
+        self._fade_anim.setStartValue(0.0)
+        self._fade_anim.setEndValue(1.0)
+        self._fade_anim.setEasingCurve(QEasingCurve.OutCubic)
+        self._fade_anim.start()
+
+    def hide(self):
+        """覆层窗口隐藏 —— 带淡出动画"""
+        if not self.isVisible():
+            return
+        if hasattr(self, "_fade_anim") and self._fade_anim is not None:
+            self._fade_anim.stop()
+            self._fade_anim = None
+        self._fade_anim = QPropertyAnimation(self, b"windowOpacity")
+        self._fade_anim.setDuration(150)
+        self._fade_anim.setStartValue(self.windowOpacity())
+        self._fade_anim.setEndValue(0.0)
+        self._fade_anim.setEasingCurve(QEasingCurve.InCubic)
+        self._fade_anim.finished.connect(lambda: super(OverlayWindow, self).hide())
+        self._fade_anim.start()
 
     def showEvent(self, event):
         self._ensure_runtime_initialized()

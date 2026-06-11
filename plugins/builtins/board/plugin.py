@@ -1,3 +1,5 @@
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QApplication
 from plugins.interface import AssistantPlugin
 from .board_window import BoardWindow
 
@@ -26,22 +28,46 @@ class BoardPlugin(AssistantPlugin):
             self.window.deleteLater()
         self.window = None
 
-    def execute(self):
-        # Re-create window if closed or create for the first time.
-        # A QQuickView that has been closed cannot be re-shown safely
-        # because its QML scene graph is destroyed on close.
+    def _activate_window(self):
         if not self.window:
+            return
+        try:
+            self.window.activateWindow()
+            self.window.raise_()
+        except Exception:
+            pass
+
+    def execute(self):
+        if self.window:
+            self._activate_window()
+            return
+
+        # Defer window creation to next event loop iteration so the UI
+        # doesn't freeze while the QML scene graph loads.
+        QTimer.singleShot(0, self._create_and_show)
+
+    def _create_and_show(self):
+        if self.window:
+            return
+        try:
             self.window = BoardWindow()
             self.window.window_fully_closed.connect(self._on_window_fully_closed)
-
-        if self.window.isVisible():
-            self.window.requestActivate()
-            self.window.raise_()
-        else:
+            QApplication.processEvents()
             self.window.show()
             self.window.raise_()
-            self.window.requestActivate()
+            self.window.activateWindow()
             self.window.raise_()
+        except Exception as e:
+            print(f"[BoardPlugin] Failed to create board window: {e}")
+            import traceback
+            traceback.print_exc()
+            if self.window is not None:
+                try:
+                    self.window.window_fully_closed.disconnect(self._on_window_fully_closed)
+                    self.window.deleteLater()
+                except Exception:
+                    pass
+                self.window = None
 
     def set_pen_color(self, r, g, b):
         if self.window:

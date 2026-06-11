@@ -5,7 +5,7 @@ import sys
 from typing import Optional, Callable
 from PySide6.QtCore import QObject, QThread, QTimer, Signal
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import isDarkTheme, Theme
+from qfluentwidgets import Theme
 
 
 class SystemThemeWatcher(QObject):
@@ -54,7 +54,8 @@ class SystemThemeWatcher(QObject):
     def _check_theme(self):
         """Check if system theme has changed"""
         try:
-            current_is_dark = isDarkTheme()
+            from ppt_assistant.core.config import _get_system_is_dark
+            current_is_dark = _get_system_is_dark()
             
             if self._last_is_dark is None:
                 # First check, store the value

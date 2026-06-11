@@ -15035,7 +15035,7 @@
     function removeSelectedToolbarApp() {
       if (selectedToolbarAppPaths.length === 0) return;
       if (selectedToolbarAppPaths.includes(SECRANDOM_TOOLBAR_ITEM_PATH)) {
-        showToastMessage("若要删除SecRandom点名项，请在'设置>联动'中关闭对SecRandom的联动，此时点名项会自动删除");
+        showToastMessage("若要删除「SecRandom 点名」项，请在'「设置」->「联动」'中关闭 「SecRandom 联动」，此时「SecRandom 点名」项会自动删除");
         return;
       }
       if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.remove_quick_launch_app) {
@@ -15841,7 +15841,8 @@
 
       layout.classList.add('three-island');
 
-      const revealUpdateContent = () => {
+      const revealUpdateContent = (e) => {
+        if (e && e.target !== layout) return;
         if (revealUpdateContent._done) return;
         revealUpdateContent._done = true;
         layout.removeEventListener('transitionend', revealUpdateContent);
@@ -15855,8 +15856,7 @@
       if (animationsDisabled()) {
         revealUpdateContent();
       } else {
-        layout.addEventListener('transitionend', revealUpdateContent, { once: true });
-        setTimeout(revealUpdateContent, 520);
+        setTimeout(() => revealUpdateContent({target: layout}), 150);
       }
     }
 
@@ -15885,7 +15885,8 @@
 
       layout.classList.remove('three-island');
 
-      const onTransitionEnd = () => {
+      const onTransitionEnd = (e) => {
+        if (e && e.target !== layout) return;
         if (onTransitionEnd._done) return;
         onTransitionEnd._done = true;
         layout.removeEventListener('transitionend', onTransitionEnd);
@@ -15956,10 +15957,7 @@
       if (animationsDisabled()) {
         onTransitionEnd();
       } else {
-        layout.addEventListener('transitionend', onTransitionEnd, { once: true });
-        setTimeout(() => {
-          onTransitionEnd();
-        }, 500);
+        setTimeout(() => onTransitionEnd({target: layout}), 80);
       }
     }
 

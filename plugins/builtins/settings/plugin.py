@@ -7,7 +7,7 @@ from PySide6.QtCore import QTimer
 
 from plugins.interface import AssistantPlugin
 from plugins.webview_window_utils import bring_window_to_front
-from ppt_assistant.core.config import SETTINGS_PATH
+from ppt_assistant.core.config import get_active_settings_path
 
 
 def _use_external_webview_process() -> bool:
@@ -33,7 +33,7 @@ def _build_webview_runner_command(html_path, title, width, height, custom_border
 
 def _build_linux_webview_env():
     env = os.environ.copy()
-    env["SETTINGS_PATH"] = SETTINGS_PATH
+    env["SETTINGS_PATH"] = get_active_settings_path()
     if sys.platform != "linux":
         return env
     if env.get("DISPLAY"):
@@ -140,7 +140,7 @@ class SettingsPlugin(AssistantPlugin):
         return self.process
 
     def _get_use_native_title_bar(self):
-        settings = self._load_json_file(SETTINGS_PATH)
+        settings = self._load_json_file(get_active_settings_path())
         return settings.get("General", {}).get("UseNativeTitleBar", False)
 
     def _ensure_window(self):
@@ -157,7 +157,7 @@ class SettingsPlugin(AssistantPlugin):
 
         api = wv.Api()
         api.set_in_process(True)
-        api.settings = self._load_json_file(SETTINGS_PATH)
+        api.settings = self._load_json_file(get_active_settings_path())
         api.version = self._load_json_file(version_path)
         api.platform = sys.platform  # Pass platform info to frontend
 

@@ -178,10 +178,6 @@ if __name__ == "__main__":
             run_memory_cleaner(parent_pid, interval)
         sys.exit(0)
 
-    if "--watchdog" in sys.argv:
-        _run_watchdog_process()
-        sys.exit(0)
-
 from PySide6.QtWidgets import (
     QApplication,
     QWidget,
@@ -214,6 +210,20 @@ from ppt_assistant.core.config import (
     FIRST_RUN,
     ROOT_DIR,
 )
+from ppt_assistant.core.system_theme_watcher import SystemThemeWatcherManager
+from ppt_assistant.core.config_base import setThemeColor
+
+
+def _apply_resolved_theme_color(theme_value):
+    """Apply resolved theme to qfluentwidgets engine and accent color.
+    Used by SystemThemeWatcher when AUTO mode resolves to actual system theme.
+    Does NOT write cfg.themeMode (stays as AUTO)."""
+    from qfluentwidgets import qconfig
+    qconfig.theme = theme_value
+    if theme_value == Theme.DARK:
+        setThemeColor("#E1EBFF")
+    else:
+        setThemeColor("#3275F5")
 
 def _get_active_settings_path():
     settings_dir = os.path.dirname(_SETTINGS_PATH_ORIG)
@@ -460,8 +470,6 @@ def _apply_graphics_settings():
     else:
         # Base flags tuned for smoother rendering and lower memory usage
         flags = [
-            "--disable-frame-rate-limit",
-            "--disable-gpu-vsync",
             "--enable-gpu-rasterization",
             "--enable-zero-copy",
             "--enable-features=VaapiVideoDecoder,VaapiVideoEncoder",
@@ -871,10 +879,6 @@ class StartupSplash(QWidget):
         self._pixmap = None
         self._progress_value = 0
         self._status_text = ""
-        self._base_geometry = None
-        self._fade_anim = None
-        self._scale_anim = None
-        self._anim_group = None
 
         icon = load_app_icon()
         if not icon.isNull():
@@ -894,9 +898,8 @@ class StartupSplash(QWidget):
         # 确定主题
         theme_val = cfg.themeMode.value
         if theme_val == Theme.AUTO:
-            from qfluentwidgets import isDarkTheme
-
-            self._is_dark = isDarkTheme()
+            from ppt_assistant.core.config import _get_system_is_dark
+            self._is_dark = _get_system_is_dark()
         else:
             self._is_dark = theme_val == Theme.DARK
 
@@ -1290,6 +1293,26 @@ class StartupSplash(QWidget):
             "}"
         )
 
+    def refresh_theme(self):
+        """Recompute dark state and re-apply splash styles when system theme changes."""
+        if not self.isVisible():
+            return
+        theme_val = cfg.themeMode.value
+        if theme_val == Theme.AUTO:
+            from ppt_assistant.core.config import _get_system_is_dark
+            new_dark = _get_system_is_dark()
+        else:
+            new_dark = theme_val == Theme.DARK
+        if new_dark == self._is_dark:
+            return
+        self._is_dark = new_dark
+        applied_user = self._apply_user_splash()
+        if not applied_user:
+            if self._splash_style == "nina_iseri_1_2" and not self._is_first_run:
+                self._build_ui_nina()
+            else:
+                self._apply_styles()
+
     def _center_on_screen(self):
         screen = QApplication.primaryScreen()
         if not screen:
@@ -1301,84 +1324,8 @@ class StartupSplash(QWidget):
         y = screen_geo.y() + (screen_geo.height() - h) // 2
         self.move(x, y)
 
-    def _get_scaled_geometry(self, scale: float):
-        if self._base_geometry is None:
-            return self.geometry()
-        bg = self._base_geometry
-        new_w = int(bg.width() * scale)
-        new_h = int(bg.height() * scale)
-        dx = (bg.width() - new_w) // 2
-        dy = (bg.height() - new_h) // 2
-        return QRect(bg.x() + dx, bg.y() + dy, new_w, new_h)
-
-    def _relax_size_constraint(self):
-        self._saved_min_size = self.minimumSize()
-        self._saved_max_size = self.maximumSize()
-        self.setMinimumSize(1, 1)
-        self.setMaximumSize(16777215, 16777215)
-
-    def _restore_size_constraint(self):
-        if hasattr(self, "_saved_min_size") and hasattr(self, "_saved_max_size"):
-            self.setMinimumSize(self._saved_min_size)
-            self.setMaximumSize(self._saved_max_size)
-
     def show(self):
-        self.setWindowOpacity(0.0)
         super().show()
-        self._base_geometry = self.geometry()
-        self._relax_size_constraint()
-        scaled_geo = self._get_scaled_geometry(0.96)
-        self.setGeometry(scaled_geo)
-        QTimer.singleShot(50, self._play_fade_in)
-
-    def _play_fade_in(self):
-        if self._anim_group is not None:
-            self._anim_group.stop()
-            self._anim_group = None
-
-        self._fade_anim = QPropertyAnimation(self, b"windowOpacity")
-        self._fade_anim.setDuration(400)
-        self._fade_anim.setStartValue(0.0)
-        self._fade_anim.setEndValue(1.0)
-        self._fade_anim.setEasingCurve(QEasingCurve.OutCubic)
-
-        self._scale_anim = QPropertyAnimation(self, b"geometry")
-        self._scale_anim.setDuration(400)
-        self._scale_anim.setStartValue(self._get_scaled_geometry(0.96))
-        self._scale_anim.setEndValue(self._base_geometry)
-        self._scale_anim.setEasingCurve(QEasingCurve.OutCubic)
-
-        self._anim_group = QParallelAnimationGroup(self)
-        self._anim_group.addAnimation(self._fade_anim)
-        self._anim_group.addAnimation(self._scale_anim)
-        self._anim_group.finished.connect(self._restore_size_constraint)
-        self._anim_group.start()
-
-    def _play_fade_out(self, on_finished_callback=None):
-        if self._anim_group is not None:
-            self._anim_group.stop()
-            self._anim_group = None
-
-        self._relax_size_constraint()
-
-        self._fade_anim = QPropertyAnimation(self, b"windowOpacity")
-        self._fade_anim.setDuration(300)
-        self._fade_anim.setStartValue(1.0)
-        self._fade_anim.setEndValue(0.0)
-        self._fade_anim.setEasingCurve(QEasingCurve.InCubic)
-
-        self._scale_anim = QPropertyAnimation(self, b"geometry")
-        self._scale_anim.setDuration(300)
-        self._scale_anim.setStartValue(self._base_geometry)
-        self._scale_anim.setEndValue(self._get_scaled_geometry(0.96))
-        self._scale_anim.setEasingCurve(QEasingCurve.InCubic)
-
-        self._anim_group = QParallelAnimationGroup(self)
-        self._anim_group.addAnimation(self._fade_anim)
-        self._anim_group.addAnimation(self._scale_anim)
-        if on_finished_callback:
-            self._anim_group.finished.connect(on_finished_callback)
-        self._anim_group.start()
 
     def set_progress(self, value, text_key="initializing"):
         value = min(max(value, 0), 100)
@@ -1421,7 +1368,7 @@ class StartupSplash(QWidget):
             self._progress_value = 100
             self._status_text = "100%"
             self.update()
-            self._play_fade_out(self.close)
+            self.close()
             return
 
         if hasattr(self, "_progress"):
@@ -1430,7 +1377,7 @@ class StartupSplash(QWidget):
             self._percent_label.setText("正在完成启动后操作")
         if hasattr(self, "_spinner"):
             self._spinner.stop()
-        self._play_fade_out(self.close)
+        self.close()
 
 
 class IndeterminateSpinner(QWidget):
@@ -2007,6 +1954,10 @@ def _run_watchdog_process():
             _handle_freeze(f"Heartbeat stale for {elapsed:.1f}s")
             break
 
+if __name__ == "__main__" and "--watchdog" in sys.argv:
+    _run_watchdog_process()
+    sys.exit(0)
+
 def _create_global_mutex():
     if sys.platform == "win32":
         import ctypes
@@ -2046,28 +1997,25 @@ def _handle_multi_instance(app: QApplication):
     for p in psutil.process_iter(["pid", "cmdline"]):
         try:
             pid = p.info.get("pid")
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            continue
-        if pid in (None, 0, current_pid, parent_pid):
-            continue
-        cmd = p.info.get("cmdline") or []
-
-        if "--webview-runner" in cmd:
-            continue
-        if "--memory-cleaner" in cmd:
-            continue
-        if cmd:
-            launcher = os.path.basename(str(cmd[0])).lower()
-            if launcher in ("uv", "uv.exe") and "run" in cmd:
+            if pid in (None, 0, current_pid, parent_pid):
                 continue
+            cmd = p.info.get("cmdline") or []
 
-        try:
-            proc_cwd = p.cwd()
-        except (Exception, psutil.NoSuchProcess, psutil.AccessDenied):
-            proc_cwd = None
+            if "--webview-runner" in cmd:
+                continue
+            if "--memory-cleaner" in cmd:
+                continue
+            if cmd:
+                launcher = os.path.basename(str(cmd[0])).lower()
+                if launcher in ("uv", "uv.exe") and "run" in cmd:
+                    continue
 
-        for part in cmd:
             try:
+                proc_cwd = p.cwd()
+            except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
+                proc_cwd = None
+
+            for part in cmd:
                 if not isinstance(part, str) or not part:
                     continue
                 if part.startswith("-"):
@@ -2081,8 +2029,8 @@ def _handle_multi_instance(app: QApplication):
                 if normalized == current_entry:
                     pids.append(p.info.get("pid"))
                     break
-            except Exception:
-                continue
+        except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
+            continue
 
     if not pids:
         return
@@ -2148,6 +2096,19 @@ def _t(key):
     return key  # Simple fallback if i18n is missing
 
 
+def _init_trace(msg: str):
+    """Write initialization trace to temp file for debugging freezes."""
+    try:
+        import datetime
+        trace_path = os.path.join(tempfile.gettempdir(), "lumi_init_trace.log")
+        with open(trace_path, "a", encoding="utf-8") as f:
+            ts = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+            f.write(f"[{ts}] {msg}\n")
+            f.flush()
+    except Exception:
+        pass
+
+
 class PPTAssistantApp:
     def __init__(self, app: QApplication, splash=None):
         self.app = app
@@ -2159,6 +2120,15 @@ class PPTAssistantApp:
         self._focus_watcher.start()
         self._last_timer_notify_at = 0.0
         self._reloading_overlay = False
+
+        # System theme watcher - detect OS-level dark/light changes and refresh all windows
+        self._theme_watcher = SystemThemeWatcherManager(
+            apply_theme_callback=_apply_resolved_theme_color,
+            get_config_value=lambda: cfg.themeMode.value,
+            on_theme_changed_callback=self._handle_system_theme_refresh,
+        )
+        self._theme_watcher.start()
+
         self._slideshow_running = False
         self._last_slideshow_rect = None
         self._last_slideshow_screen = None
@@ -2262,6 +2232,14 @@ class PPTAssistantApp:
             except Exception:
                 pass
 
+    def _open_settings_about(self):
+        """Open settings window and navigate to the About page."""
+        try:
+            self.settings_plugin.execute()
+            QTimer.singleShot(600, lambda: self._navigate_settings_page("about"))
+        except Exception:
+            pass
+
     def _navigate_settings_page(self, page: str, retries=8):
         try:
             if hasattr(self.settings_plugin, "_window") and self.settings_plugin._window:
@@ -2283,12 +2261,17 @@ class PPTAssistantApp:
             pass
 
     def _init_steps(self):
+        _init_trace("_init_steps: START")
         # Step 1: Basic Config
         yield 10, "loading_config"
+        _init_trace("_init_steps: step 10 - applying theme")
+        reload_cfg()  # Load config from JSON first, otherwise cfg uses defaults!
         _apply_theme_and_color(cfg.themeMode.value)
+        _init_trace("_init_steps: theme applied")
 
         # Step 2: Fonts (loading already done before splash)
         yield 20, "loading_fonts"
+        _init_trace("_init_steps: step 20 - loading fonts")
         self._current_language = _get_current_language()
         data = _load_settings_json()
         profiles = (data.get("Fonts", {}) or {}).get("Profiles", {}) or {}
@@ -2317,10 +2300,13 @@ class PPTAssistantApp:
 
         # Step 3: Monitor (Non-UI logic)
         yield 30, "init_monitor"
+        _init_trace("_init_steps: step 30 - creating PPTMonitor")
         self.monitor = PPTMonitor()
+        _init_trace("_init_steps: PPTMonitor created")
 
         # Step 4: Overlay (UI creation - expensive)
         yield 40, "init_ui"
+        _init_trace("_init_steps: step 40 - creating overlay")
         # Yield to event loop BEFORE creating heavy UI to prevent freeze
         # We can split Overlay creation if needed, but yielding before is key
         pass
@@ -2330,10 +2316,13 @@ class PPTAssistantApp:
         print(
             f"[Main] Overlay window created: {type(self.overlay).__name__}", flush=True
         )
+        _init_trace(f"_init_steps: overlay created ({type(self.overlay).__name__})")
 
         # Step 5: Plugins (IO/Process - expensive)
         yield 60, "loading_plugins"
+        _init_trace("_init_steps: step 60 - loading plugins")
         self._load_plugins()
+        _init_trace("_init_steps: plugins loaded")
         try:
             if FIRST_RUN and hasattr(self, "onboarding_plugin"):
                 p = self.onboarding_plugin
@@ -2347,6 +2336,7 @@ class PPTAssistantApp:
 
         self._open_settings_after_startup = self._consume_open_settings_pending_flag() or self._open_settings_after_startup
         yield 80, "init_tray"
+        _init_trace("_init_steps: step 80 - creating tray")
         print("[Main] Initializing tray...", flush=True)
         if _should_enable_system_tray():
             self.tray = SystemTray()
@@ -2355,30 +2345,39 @@ class PPTAssistantApp:
                 "[Main] System tray disabled or unavailable. Set LUMINALIUM_ENABLE_TRAY=1 to force-enable it."
             )
         print("[Main] Tray initialization finished.", flush=True)
+        _init_trace("_init_steps: tray created")
 
         # Step 7: Finalize connections
         yield 85, "finalizing"
+        _init_trace("_init_steps: step 85 - binding overlay")
         print("[Main] Binding overlay to monitor...", flush=True)
         self.overlay.set_monitor(self.monitor)
         if hasattr(self.overlay, "set_timer_manager"):
             self.overlay.set_timer_manager(self._timer_manager)
         print("[Main] Overlay bound to monitor.", flush=True)
+        _init_trace("_init_steps: overlay bound")
 
         yield 90, "finalizing"
+        _init_trace("_init_steps: step 90 - connecting signals")
         print("[Main] Connecting app signals...", flush=True)
         self._connect_signals()
         print("[Main] App signals connected.", flush=True)
+        _init_trace("_init_steps: signals connected")
 
         yield 95, "finalizing"
+        _init_trace("_init_steps: step 95 - starting services")
         print("[Main] Starting PPT monitor...", flush=True)
         self.monitor.start_monitoring()
+        _init_trace("_init_steps: monitor started")
         print(
             f"[Main] PPT monitor start requested. compatibilityMode={cfg.compatibilityMode.value}",
             flush=True,
         )
         self._start_resource_monitor()
+        _init_trace("_init_steps: resource monitor started")
         if not self._start_memory_cleaner():
             self._setup_gc_timer()
+        _init_trace("_init_steps: memory cleaner / GC done")
         
         # Start Update Service
         try:
@@ -2387,15 +2386,18 @@ class PPTAssistantApp:
             print("[Main] Update service started on port 28423", flush=True)
         except Exception as e:
             print(f"[Main] Failed to start update service: {e}", flush=True)
+        _init_trace("_init_steps: update service done")
 
         if cfg.compatibilityMode.value:
             print("[APP] Showing overlay in compatibility mode")
             self.overlay.show()
+            _init_trace("_init_steps: overlay shown (compat mode)")
 
         if self._splash is not None:
             print("[Main] Finishing splash...", flush=True)
             self._splash.finish()
             print("[Main] Splash finished.", flush=True)
+        _init_trace("_init_steps: splash finished")
             
         if getattr(self, "_open_settings_after_startup", False) and hasattr(self, "settings_plugin"):
             QTimer.singleShot(200, self.settings_plugin.execute)
@@ -2408,17 +2410,23 @@ class PPTAssistantApp:
         if getattr(self, "_pending_protocol_url", None):
             url = self._pending_protocol_url
             QTimer.singleShot(600, lambda: self.handle_protocol_url(url))
+        _init_trace("_init_steps: DONE")
 
     def _perform_init_step(self):
         try:
+            _init_trace(f"_perform_init_step: calling next()")
             progress, text = next(self._init_gen)
+            _init_trace(f"_perform_init_step: got ({progress}, {text})")
             self.update_splash(progress, text)
+            _init_trace(f"_perform_init_step: splash updated")
             # Schedule next step immediately but allow event loop to breathe
             QTimer.singleShot(0, self._perform_init_step)
         except StopIteration:
+            _init_trace("_perform_init_step: StopIteration - init complete")
             pass  # Done
         except Exception as e:
             print(f"Initialization error: {e}")
+            _init_trace(f"_perform_init_step: ERROR - {e}")
             sys.exit(1)
 
     def _start_onboarding_wait_loop(self):
@@ -2728,20 +2736,27 @@ class PPTAssistantApp:
         )
 
         if self.tray is not None:
-            self.tray.show_settings.connect(self.settings_plugin.execute)
-            self.tray.show_board.connect(self.board_plugin.execute)
-            self.tray.show_timer.connect(self.timer_plugin.execute)
-            self.tray.show_spotlight.connect(self.spotlight_plugin.execute)
-            self.tray.show_logs.connect(self.logs_plugin.execute)
+            if hasattr(self, "settings_plugin"):
+                self.tray.show_settings.connect(self.settings_plugin.execute)
+                self.tray.show_about.connect(self._open_settings_about)
+            if hasattr(self, "board_plugin"):
+                self.tray.show_board.connect(self.board_plugin.execute)
+            if hasattr(self, "timer_plugin"):
+                self.tray.show_timer.connect(self.timer_plugin.execute)
+            if hasattr(self, "spotlight_plugin"):
+                self.tray.show_spotlight.connect(self.spotlight_plugin.execute)
+            if hasattr(self, "logs_plugin"):
+                self.tray.show_logs.connect(self.logs_plugin.execute)
             self.tray.toggle_overlay.connect(self.toggle_overlay_visibility)
             self.tray.open_program_dir.connect(self._open_program_directory)
             self.tray.open_user_dir.connect(self._open_user_directory)
             self.tray.restart_app.connect(self._restart_from_tray)
             self.tray.exit_app.connect(self._exit_from_tray)
 
-        self.timer_plugin.background_mode_entered.connect(
-            self._on_timer_background_mode
-        )
+        if hasattr(self, "timer_plugin"):
+            self.timer_plugin.background_mode_entered.connect(
+                self._on_timer_background_mode
+            )
 
         self._timer_manager.finished.connect(self._on_timer_finished)
 
@@ -3155,6 +3170,7 @@ class PPTAssistantApp:
 
                     if theme_mode_changed or theme_id_changed:
                         self.overlay.update_theme()
+                        self._notify_settings_theme_changed()
 
                     if cfg.compatibilityMode.value != old_compat:
                         self.overlay.update_config()
@@ -3167,7 +3183,12 @@ class PPTAssistantApp:
 
             if theme_mode_changed:
                 if self.tray is not None:
-                    self.tray._update_icon()
+                    self.tray.refresh_menu()
+                if self._splash is not None and self._splash.isVisible():
+                    try:
+                        self._splash.refresh_theme()
+                    except Exception:
+                        pass
 
             if new_lang != old_lang or cfg.compatibilityMode.value != old_compat:
                 if self.tray is not None:
@@ -3338,8 +3359,60 @@ class PPTAssistantApp:
                 if hasattr(plugin, "set_pen_color"):
                     plugin.set_pen_color(r, g, b)
 
+    def _handle_system_theme_refresh(self):
+        """Called when system theme changes and app is in AUTO mode.
+        Refreshes all open windows to reflect the new theme."""
+        print(f"[Main] System theme refresh triggered", flush=True)
+        if self._splash and self._splash.isVisible():
+            try:
+                self._splash.refresh_theme()
+            except Exception:
+                pass
+        if self.overlay:
+            try:
+                self.overlay.update_theme()
+            except Exception:
+                pass
+        if self.tray:
+            try:
+                self.tray.refresh_menu()
+            except Exception:
+                pass
+        self._notify_settings_theme_changed()
+
+    def _notify_settings_theme_changed(self):
+        """Push theme update to the settings window if it is open."""
+        try:
+            plugin = getattr(self, "settings_plugin", None)
+            if plugin is None:
+                return
+            win = getattr(plugin, "_window", None)
+            if win is None:
+                return
+            import json as _json
+            theme_mode_raw = cfg.themeMode.value
+            theme_mode_str = (
+                "Light" if theme_mode_raw == Theme.LIGHT else
+                "Dark" if theme_mode_raw == Theme.DARK else
+                "Auto"
+            )
+            theme_id = cfg.themeId.value
+            js = (
+                f"if (typeof updateTheme === 'function') "
+                f"updateTheme({_json.dumps(theme_mode_str)}, {_json.dumps(theme_id)});"
+                f"if(typeof window.__applyUnifiedTheme==='function')window.__applyUnifiedTheme();"
+            )
+            win.page().runJavaScript(js)
+        except Exception:
+            pass
+
     def cleanup(self):
         """Cleanup app resources and terminate subprocesses."""
+        if hasattr(self, "_theme_watcher"):
+            try:
+                self._theme_watcher.stop()
+            except Exception:
+                pass
         if hasattr(self, "monitor"):
             self.monitor.stop_monitoring()
         try:
@@ -3470,10 +3543,13 @@ if __name__ == "__main__":
     from PySide6.QtCore import qInstallMessageHandler
     qInstallMessageHandler(_qt_message_handler)
     print("[Main] Qt message handler installed", flush=True)
+    _init_trace("main: creating global mutex")
     print("[Main] Creating global mutex...", flush=True)
     _create_global_mutex()
+    _init_trace("main: global mutex created")
     print("[Main] Checking multi-instance state...", flush=True)
     _handle_multi_instance(app)
+    _init_trace("main: multi-instance check done")
     print("[Main] Multi-instance check finished.", flush=True)
 
     # Initialize log manager to capture application logs
@@ -3489,6 +3565,9 @@ if __name__ == "__main__":
         "error": cfg.showError.value if hasattr(cfg, "showError") else True,
     }
     log_manager.set_filters(log_filters)
+
+    from ppt_assistant.core.config import reload_cfg, _get_system_is_dark as _sys_dark
+    reload_cfg()  # Load settings.json so all cfg values reflect user config
 
     show_splash = True
     try:
@@ -3528,7 +3607,9 @@ if __name__ == "__main__":
         print("[Main] Startup splash shown.", flush=True)
 
     print("[Main] Creating PPTAssistantApp...", flush=True)
+    _init_trace("main: creating PPTAssistantApp")
     app_instance = PPTAssistantApp(app, splash)
+    _init_trace("main: PPTAssistantApp created")
     
     if _pending_protocol_url:
         app_instance._pending_protocol_url = _pending_protocol_url

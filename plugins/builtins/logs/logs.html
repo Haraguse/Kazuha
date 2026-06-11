@@ -1035,9 +1035,8 @@
       const appName = getText("app.name") || "Luminalium";
       const parts = [];
       if (pageText) parts.push(pageText);
-      parts.push(appText);
-      parts.push(appName);
-      return parts.join(" - ");
+      if (appText) parts.push(appText);
+      return parts.join(" - ") + " | " + appName;
     }
 
     function updateWindowTitleFromActive() {

@@ -483,12 +483,6 @@ class PPTWorker(QObject):
                 candidates.append(getattr(app, "ActivePresentation", None))
             except Exception:
                 pass
-            try:
-                presentations = getattr(app, "Presentations", None)
-                if presentations is not None and self._safe_count(presentations) > 0:
-                    candidates.append(presentations(1))
-            except Exception:
-                pass
 
         for candidate in candidates:
             if candidate is not None:
@@ -1746,12 +1740,6 @@ class PPTWorker(QObject):
             presentation = getattr(app, "ActivePresentation", None)
             if presentation is not None:
                 return presentation
-        except Exception:
-            pass
-        try:
-            presentations = getattr(app, "Presentations", None)
-            if presentations is not None and self._safe_count(presentations) > 0:
-                return presentations(1)
         except Exception:
             pass
         return None

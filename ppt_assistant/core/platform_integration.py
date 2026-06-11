@@ -250,3 +250,59 @@ def remove_window_border_delayed(widget) -> None:
 
     from PySide6.QtCore import QTimer
     QTimer.singleShot(0, _do_remove)
+
+
+# ---------------------------------------------------------------------------
+#  原生窗口动画  ( AnimateWindow  )
+# ---------------------------------------------------------------------------
+
+_AW_HOR_POSITIVE = 0x00000001
+_AW_HOR_NEGATIVE = 0x00000002
+_AW_VER_POSITIVE = 0x00000004
+_AW_VER_NEGATIVE = 0x00000008
+_AW_CENTER = 0x00000010
+_AW_HIDE = 0x00010000
+_AW_ACTIVATE = 0x00020000
+_AW_SLIDE = 0x00040000
+_AW_BLEND = 0x00080000
+
+
+def animate_window_show(widget, duration_ms: int = 200) -> bool:
+    """
+    Windows 原生窗口显示动画 —— 淡入效果。
+    成功返回 True，非 Windows / 失败返回 False，调用方应回退到 Qt 动画。
+    """
+    if sys.platform != "win32":
+        return False
+    try:
+        import ctypes
+
+        hwnd = int(widget.winId())
+        user32 = ctypes.windll.user32
+
+        # 先把窗口在 Win32 层面隐藏，再让 AnimateWindow 动画显示
+        # Qt 层已经 show() 过了（widget.isVisible() == True），所以不影响 Qt 状态
+        user32.ShowWindow(hwnd, 0)  # SW_HIDE
+        user32.AnimateWindow(hwnd, int(duration_ms), _AW_BLEND)
+        widget.setWindowOpacity(1.0)
+        return True
+    except Exception:
+        return False
+
+
+def animate_window_hide(widget, duration_ms: int = 150) -> bool:
+    """
+    Windows 原生窗口隐藏动画 —— 淡出效果。
+    成功返回 True，调用后窗口已隐藏，无需再调 hide()。
+    """
+    if sys.platform != "win32":
+        return False
+    try:
+        import ctypes
+
+        hwnd = int(widget.winId())
+        user32 = ctypes.windll.user32
+        user32.AnimateWindow(hwnd, int(duration_ms), _AW_BLEND | _AW_HIDE)
+        return True
+    except Exception:
+        return False

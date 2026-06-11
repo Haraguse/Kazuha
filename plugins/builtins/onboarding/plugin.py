@@ -7,7 +7,7 @@ from PySide6.QtCore import QTimer
 
 from plugins.interface import AssistantPlugin
 from plugins.in_process_window_handle import InProcessWindowHandle
-from ppt_assistant.core.config import SETTINGS_PATH
+from ppt_assistant.core.config import get_active_settings_path
 
 
 class OnboardingPlugin(AssistantPlugin):
@@ -57,7 +57,7 @@ class OnboardingPlugin(AssistantPlugin):
         root_dir = os.path.dirname(os.path.dirname(os.path.dirname(base_dir)))
         main_path = os.path.join(root_dir, "main.py")
         env = os.environ.copy()
-        env["SETTINGS_PATH"] = SETTINGS_PATH
+        env["SETTINGS_PATH"] = get_active_settings_path()
         env["ONBOARDING_PREVIEW"] = "true" if preview else "false"
         title = "Onboarding Preview" if preview else "Onboarding"
         width = "960"
@@ -131,11 +131,12 @@ class OnboardingPlugin(AssistantPlugin):
 
         api = wv.Api()
         api.set_in_process(True)
-        api.settings = self._load_json_file(SETTINGS_PATH)
+        settings_path = get_active_settings_path()
+        api.settings = self._load_json_file(settings_path)
         api.version = self._load_json_file(version_path)
 
         previous_preview = os.environ.get("ONBOARDING_PREVIEW")
-        os.environ["SETTINGS_PATH"] = SETTINGS_PATH
+        os.environ["SETTINGS_PATH"] = settings_path
         os.environ["ONBOARDING_PREVIEW"] = "true" if preview else "false"
         try:
             title = "Onboarding Preview" if preview else "Onboarding"

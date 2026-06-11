@@ -261,36 +261,35 @@ if not os.path.exists(PLUGINS_DIR):
     except:
         pass
 
-FIRST_RUN = not os.path.exists(SETTINGS_PATH)
-
-def _apply_active_profile():
-    global SETTINGS_PATH
-    settings_dir = os.path.dirname(SETTINGS_PATH)
+def get_active_settings_path():
+    settings_path = SETTINGS_PATH
+    settings_dir = os.path.dirname(settings_path)
     active_marker = os.path.join(settings_dir, "_active")
     if not os.path.exists(active_marker):
-        return
+        return settings_path
     try:
         with open(active_marker, "r", encoding="utf-8") as f:
             profile_name = f.read().strip()
         if not profile_name or profile_name == "default":
-            return
+            return settings_path
         profile_path = os.path.join(settings_dir, profile_name + ".json")
         if not os.path.exists(profile_path):
-            return
-        SETTINGS_PATH = profile_path
+            return settings_path
+        return profile_path
     except Exception:
-        pass
+        return settings_path
 
-_apply_active_profile()
+FIRST_RUN = not os.path.exists(SETTINGS_PATH)
+FIRST_RUN = not os.path.exists(SETTINGS_PATH)
 
-qconfig.load(SETTINGS_PATH, cfg)
 
 
 def _load_settings_json():
-    if not os.path.exists(SETTINGS_PATH):
+    settings_path = SETTINGS_PATH
+    if not os.path.exists(settings_path):
         return {}
     try:
-        with open(SETTINGS_PATH, "rb") as f:
+        with open(settings_path, "rb") as f:
             raw = f.read()
     except Exception:
         return {}
@@ -358,6 +357,32 @@ def _on_register_url_protocol_changed():
         print(f"Error changing URL protocol registration: {e}")
 
 
+import sys as _sys
+
+
+def _get_system_is_dark() -> bool:
+    """Read the actual OS-level dark/light setting from Windows registry.
+    Completely independent of qfluentwidgets' qconfig.theme."""
+    if _sys.platform == "win32":
+        try:
+            import winreg
+            key = winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+            )
+            value, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+            winreg.CloseKey(key)
+            return value == 0  # 0 = dark, 1 = light
+        except Exception:
+            pass
+    # Fallback for non-Windows or registry read failure
+    try:
+        from qfluentwidgets import isDarkTheme
+        return isDarkTheme()
+    except Exception:
+        return False
+
+
 def _apply_theme_and_color(theme_value):
     if isinstance(theme_value, Theme):
         qconfig.theme = theme_value
@@ -366,6 +391,11 @@ def _apply_theme_and_color(theme_value):
             qconfig.theme = Theme(theme_value)
         except Exception:
             qconfig.theme = Theme.LIGHT
+
+    # Resolve AUTO to actual system theme for color AND qfluentwidgets engine
+    if qconfig.theme == Theme.AUTO:
+        qconfig.theme = Theme.DARK if _get_system_is_dark() else Theme.LIGHT
+        print(f"[Config] _apply_theme_and_color: AUTO resolved to qconfig.theme={qconfig.theme}", flush=True)
 
     if qconfig.theme == Theme.DARK:
         setThemeColor("#E1EBFF")
@@ -380,6 +410,7 @@ _save_debounce_timer = None
 
 
 def _do_save_cfg():
+    settings_path = SETTINGS_PATH
     old_data = _load_settings_json()
 
     qconfig.save()
@@ -398,7 +429,7 @@ def _do_save_cfg():
                 merged[cat][key] = value
 
     try:
-        with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
+        with open(settings_path, "w", encoding="utf-8") as f:
             json.dump(merged, f, indent=4, ensure_ascii=False)
     except Exception:
         pass
