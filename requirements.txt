@@ -18,11 +18,6 @@ propcache==0.4.1
 psutil==7.2.2
 pyinstaller==6.20.0
 pyinstaller-hooks-contrib==2026.4
-PyQt-Fluent-Widgets==1.11.2
-PyQt5==5.15.11
-PyQt5-Frameless-Window==0.8.1
-PyQt5-Qt5==5.15.2
-PyQt5_sip==12.18.0
 PySide6==6.11.0
 PySide6-Fluent-Widgets==1.11.2
 PySide6_Addons==6.11.0
