@@ -596,10 +596,27 @@ def _apply_chromium_flags():
         ])
 
     if _is_virtual_gpu():
+        # VM / 低端显卡环境：强制软件渲染，避免黑屏
+        os.environ["QT_OPENGL"] = "software"
+        os.environ["QSG_RHI_BACKEND"] = "software"
+        os.environ["QT_QUICK_BACKEND"] = "software"
+        os.environ["QTWEBENGINE_DISABLE_GPU"] = "1"
+        # 移除冲突的 GPU 加速 flag
+        for gpu_flag in (
+            "--enable-gpu-rasterization",
+            "--enable-zero-copy",
+            "--enable-features=GpuRasterization",
+            "--ignore-gpu-blocklist",
+            "--gpu-memory-buffer-budget=134217728",
+        ):
+            if gpu_flag in flags:
+                flags.remove(gpu_flag)
         flags.extend(
             [
                 "--disable-gpu",
                 "--disable-gpu-compositing",
+                "--disable-gpu-rasterization",
+                "--enable-unsafe-swiftshader",
             ]
         )
 
@@ -675,8 +692,15 @@ def _is_virtual_gpu():
         "citrix",
         "xen",
         "bochs",
+        "rdpdd",
+        "rdp chain",
+        "idriver",
+        "vnc",
+        "microsoft remote display",
     ]
     _VIRTUAL_GPU = any(k in hay for k in keywords)
+    if _VIRTUAL_GPU:
+        print(f"[WebView] Virtual GPU or headless environment detected: {hay[:200]}", flush=True)
     return _VIRTUAL_GPU
 
 
@@ -1676,6 +1700,7 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             if category not in data:
                 data[category] = {}
             data[category][key] = value
+            os.makedirs(os.path.dirname(active_path), exist_ok=True)
             with open(active_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
             self.settings = data
@@ -2379,9 +2404,14 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
         ) as f:
             json.dump(dialog_data, f)
             temp_path = f.name
-        subprocess.Popen(
-            [sys.executable, __file__, "--dialog", temp_path], creationflags=0x08000000
-        )
+        if getattr(sys, "frozen", False):
+            subprocess.Popen(
+                [sys.executable, "--dialog", temp_path], creationflags=0x08000000
+            )
+        else:
+            subprocess.Popen(
+                [sys.executable, __file__, "--dialog", temp_path], creationflags=0x08000000
+            )
 
     @Slot(str, str)
     def show_font_warning(self, font_name=None, font_lang=None):
@@ -2422,9 +2452,14 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             dialog_data["overrideSettings"] = temp_settings
             with open(temp_path, "w", encoding="utf-8") as f:
                 json.dump(dialog_data, f)
-        subprocess.Popen(
-            [sys.executable, __file__, "--dialog", temp_path], creationflags=0x08000000
-        )
+        if getattr(sys, "frozen", False):
+            subprocess.Popen(
+                [sys.executable, "--dialog", temp_path], creationflags=0x08000000
+            )
+        else:
+            subprocess.Popen(
+                [sys.executable, __file__, "--dialog", temp_path], creationflags=0x08000000
+            )
 
     @Slot(result="QVariant")
     def get_dialog_data(self):
@@ -4231,7 +4266,14 @@ class MainWindow(QWebEngineView):
             self._setup_loading_overlay(title)
         self.loadStarted.connect(self._on_load_started)
         self.loadFinished.connect(self._on_load_finished)
-        target_url = QUrl.fromUserInput(url)
+        _url_str = str(url).strip()
+        if os.path.isabs(_url_str) or (
+            not _url_str.startswith(("http://", "https://", "file://", "data:", "about:", "qrc:"))
+            and (_url_str.startswith("/") or (_url_str[0:1].isalpha() and len(_url_str) > 1 and _url_str[1:2] == ":"))
+        ):
+            target_url = QUrl.fromLocalFile(_url_str)
+        else:
+            target_url = QUrl.fromUserInput(_url_str)
         if self._defer_load:
             self._pending_url = target_url
             # Fallback: if showEvent doesn't fire, still kick the initial load

@@ -9,32 +9,49 @@ def register_url_protocol():
     try:
         import winreg
         key_path = r"Software\Classes\luminalium"
+
+        # コマンドラインを構築
+        if getattr(sys, "frozen", False):
+            exe_path = os.path.abspath(sys.executable)
+            new_cmd = f'"{exe_path}" "%1"'
+            icon_path = f'"{exe_path}",0'
+        else:
+            main_py = os.path.abspath(__file__)
+            python_exe = os.path.abspath(sys.executable)
+            # pythonw.exe でCMD窓を出さずに起動
+            pythonw_exe = python_exe.replace("python.exe", "pythonw.exe")
+            if not os.path.exists(pythonw_exe):
+                pythonw_exe = python_exe
+            new_cmd = f'"{pythonw_exe}" "{main_py}" "%1"'
+            icon_path = f'"{pythonw_exe}",0'
+
+        # 既存のコマンドが最新かチェック、古い or なければ再登録
         try:
-            existing_key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_READ)
-            winreg.CloseKey(existing_key)
-            return
+            cmd_key = winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                key_path + r"\shell\open\command",
+                0,
+                winreg.KEY_READ,
+            )
+            old_cmd = winreg.QueryValue(cmd_key, "")
+            winreg.CloseKey(cmd_key)
+            if old_cmd == new_cmd:
+                return  # すでに最新
         except FileNotFoundError:
             pass
+
         key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
         winreg.SetValue(key, "", winreg.REG_SZ, "URL:Luminalium Protocol")
         winreg.SetValueEx(key, "URL Protocol", 0, winreg.REG_SZ, "")
 
         icon_key = winreg.CreateKey(key, "DefaultIcon")
-        if getattr(sys, "frozen", False):
-            exe_path = os.path.abspath(sys.executable)
-            winreg.SetValue(icon_key, "", winreg.REG_SZ, f'"{exe_path}",0')
-            cmd_str = f'"{exe_path}" "%1"'
-        else:
-            main_py = os.path.abspath(__file__)
-            python_exe = os.path.abspath(sys.executable)
-            winreg.SetValue(icon_key, "", winreg.REG_SZ, f'"{python_exe}",0')
-            cmd_str = f'"{python_exe}" "{main_py}" "%1"'
+        winreg.SetValue(icon_key, "", winreg.REG_SZ, icon_path)
+        winreg.CloseKey(icon_key)
 
         cmd_key = winreg.CreateKey(key, r"shell\open\command")
-        winreg.SetValue(cmd_key, "", winreg.REG_SZ, cmd_str)
-
+        winreg.SetValue(cmd_key, "", winreg.REG_SZ, new_cmd)
         winreg.CloseKey(cmd_key)
-        winreg.CloseKey(icon_key)
+
         winreg.CloseKey(key)
     except Exception as e:
         print(f"Failed to register URL protocol: {e}")
@@ -170,6 +187,12 @@ if __name__ == "__main__":
         _wv.main()
         sys.exit(0)
 
+    if "--dialog" in sys.argv or "--crash-file" in sys.argv:
+        import plugins.webview_runner as _wv
+
+        _wv.main()
+        sys.exit(0)
+
     if "--memory-cleaner" in sys.argv:
         from ppt_assistant.core.memory_cleaner import run_memory_cleaner
         parent_pid = int(os.environ.get("LUMINALIUM_PARENT_PID", "0"))
@@ -247,6 +270,7 @@ from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.linux_focus_watcher import LinuxFocusWatcher
 from ppt_assistant.core.win_focus_watcher import WindowsFocusWatcher
 from ppt_assistant.core.resource_monitor import SystemResourceMonitor
+from ppt_assistant.core.classisland_monitor import ClassIslandMonitor
 from ppt_assistant.core.platform_integration import open_path
 from ppt_assistant.core.windows_notifications import (
     configure_current_process_for_notifications,
@@ -414,6 +438,78 @@ def _force_directwrite_font_engine():
     print("[Main] DirectWrite font engine forced.", flush=True)
 
 
+_VIRTUAL_GPU_MAIN = None
+
+
+def _is_virtual_gpu() -> bool:
+    """检测是否运行在虚拟机或低端显卡环境（无可用 GPU 加速）"""
+    global _VIRTUAL_GPU_MAIN
+    if _VIRTUAL_GPU_MAIN is not None:
+        return _VIRTUAL_GPU_MAIN
+    if sys.platform != "win32":
+        _VIRTUAL_GPU_MAIN = False
+        return _VIRTUAL_GPU_MAIN
+    names = []
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class DISPLAY_DEVICEW(ctypes.Structure):
+            _fields_ = [
+                ("cb", wintypes.DWORD),
+                ("DeviceName", wintypes.WCHAR * 32),
+                ("DeviceString", wintypes.WCHAR * 128),
+                ("StateFlags", wintypes.DWORD),
+                ("DeviceID", wintypes.WCHAR * 128),
+                ("DeviceKey", wintypes.WCHAR * 128),
+            ]
+
+        user32 = ctypes.windll.user32
+        i = 0
+        while True:
+            dd = DISPLAY_DEVICEW()
+            dd.cb = ctypes.sizeof(DISPLAY_DEVICEW)
+            if not user32.EnumDisplayDevicesW(None, i, ctypes.byref(dd), 0):
+                break
+            for field in (dd.DeviceString, dd.DeviceID, dd.DeviceName):
+                try:
+                    if field:
+                        names.append(str(field).lower())
+                except Exception:
+                    continue
+            i += 1
+    except Exception:
+        _VIRTUAL_GPU_MAIN = False
+        return _VIRTUAL_GPU_MAIN
+
+    hay = " ".join(names)
+    keywords = [
+        "vmware",
+        "virtualbox",
+        "vbox",
+        "svga",
+        "qxl",
+        "virtio",
+        "parallels",
+        "hyper-v",
+        "microsoft basic display",
+        "basic display adapter",
+        "remote display",
+        "citrix",
+        "xen",
+        "bochs",
+        "rdpdd",
+        "rdp chain",
+        "idriver",
+        "vnc",
+        "microsoft remote display",
+    ]
+    _VIRTUAL_GPU_MAIN = any(k in hay for k in keywords)
+    if _VIRTUAL_GPU_MAIN:
+        print(f"[Main] Virtual GPU or headless environment detected: {hay[:200]}", flush=True)
+    return _VIRTUAL_GPU_MAIN
+
+
 def _apply_graphics_settings():
     if sys.platform == "linux":
         qpa_platform = str(os.environ.get("QT_QPA_PLATFORM", "")).strip().lower()
@@ -452,8 +548,10 @@ def _apply_graphics_settings():
 
     _force_directwrite_font_engine()
 
-    use_software_webengine = _is_compatibility_mode_enabled() or _env_flag_enabled(
-        "LUMINALIUM_WEBENGINE_SOFTWARE", False
+    use_software_webengine = (
+        _is_compatibility_mode_enabled()
+        or _env_flag_enabled("LUMINALIUM_WEBENGINE_SOFTWARE", False)
+        or _is_virtual_gpu()
     )
 
     if use_software_webengine:
@@ -465,7 +563,7 @@ def _apply_graphics_settings():
             "--disable-gpu",
             "--disable-gpu-compositing",
             "--disable-gpu-rasterization",
-            "--disable-software-rasterizer",
+            "--no-sandbox",
         ]
     else:
         # Base flags tuned for smoother rendering and lower memory usage
@@ -2139,6 +2237,7 @@ class PPTAssistantApp:
         self._onboarding_wait_timer = None
         self._onboarding_restart_started = False
         self._resource_monitor = None
+        self._classisland_monitor = None
         self._memory_cleaner_process = None
         self._gc_timer = None
         self._open_settings_after_startup = False
@@ -2324,7 +2423,12 @@ class PPTAssistantApp:
         self._load_plugins()
         _init_trace("_init_steps: plugins loaded")
         try:
-            if FIRST_RUN and hasattr(self, "onboarding_plugin"):
+            if not hasattr(self, "onboarding_plugin") or self.onboarding_plugin is None:
+                from plugins.builtins.onboarding.plugin import OnboardingPlugin
+                plugin = OnboardingPlugin()
+                plugin.set_context(self)
+                self.onboarding_plugin = plugin
+            if FIRST_RUN:
                 p = self.onboarding_plugin
                 p.execute(preview=False)
                 if self._splash:
@@ -2375,6 +2479,8 @@ class PPTAssistantApp:
         )
         self._start_resource_monitor()
         _init_trace("_init_steps: resource monitor started")
+        self._start_classisland_monitor()
+        _init_trace("_init_steps: classisland monitor started")
         if not self._start_memory_cleaner():
             self._setup_gc_timer()
         _init_trace("_init_steps: memory cleaner / GC done")
@@ -2494,6 +2600,13 @@ class PPTAssistantApp:
                     self._settings_mtime = os.path.getmtime(SETTINGS_PATH)
             except Exception:
                 pass
+            if not os.path.exists(SETTINGS_PATH):
+                try:
+                    os.makedirs(os.path.dirname(SETTINGS_PATH), exist_ok=True)
+                    with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
+                        json.dump({}, f)
+                except Exception:
+                    pass
             self.restart()
 
         QTimer.singleShot(220, _restart_after_onboarding_close)
@@ -2604,6 +2717,21 @@ class PPTAssistantApp:
                 print("[APP] Resource monitor started")
         except Exception as e:
             print(f"[APP] Failed to start resource monitor: {e}")
+
+    def _start_classisland_monitor(self):
+        """启动 ClassIsland 联动监测"""
+        if sys.platform != "win32":
+            return
+        try:
+            if self._classisland_monitor is None:
+                self._classisland_monitor = ClassIslandMonitor(self.app)
+                self._classisland_monitor.set_notification_callback(
+                    send_windows_notification
+                )
+                self._classisland_monitor.start()
+                print("[APP] ClassIsland monitor started")
+        except Exception as e:
+            print(f"[APP] Failed to start ClassIsland monitor: {e}")
 
     def _stop_resource_monitor(self):
         try:
@@ -3422,6 +3550,11 @@ class PPTAssistantApp:
             pass
         if hasattr(self, "settings_plugin"):
             self.settings_plugin.terminate()
+        if hasattr(self, "_classisland_monitor") and self._classisland_monitor:
+            try:
+                self._classisland_monitor.stop()
+            except Exception:
+                pass
         if hasattr(self, "overlay"):
             self.overlay.cleanup()
         # Stop watchdog heartbeat so the watchdog subprocess exits cleanly

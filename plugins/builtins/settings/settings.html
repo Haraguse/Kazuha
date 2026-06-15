@@ -16179,7 +16179,7 @@
     function navigateToSection(sectionKey) {
       const layout = document.getElementById('layout');
       if (layout) layout.classList.remove('three-island');
-      const validSections = ['main','theme','fonts','board-in-board','plugins','storage','notifications','window','about','update'];
+      const validSections = ['main','theme','fonts','board-in-board','plugins','storage','notifications','window','about','update','statusbar'];
       if (!validSections.includes(sectionKey)) sectionKey = 'main';
       if (sectionKey === 'update') {
         showUpdate();

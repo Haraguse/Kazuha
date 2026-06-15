@@ -280,7 +280,6 @@ def get_active_settings_path():
         return settings_path
 
 FIRST_RUN = not os.path.exists(SETTINGS_PATH)
-FIRST_RUN = not os.path.exists(SETTINGS_PATH)
 
 
 

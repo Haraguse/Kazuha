@@ -89,7 +89,7 @@ def _collect_data_entries(root_dir):
                 continue
             if os.path.splitext(name)[1].lower() not in STATIC_PPT_ASSET_EXTENSIONS:
                 continue
-            data_entries.append((os.path.relpath(src, root_dir), f"ppt_assistant/ui/{name}"))
+            data_entries.append((os.path.relpath(src, root_dir), f"ppt_assistant/ui"))
     return [
         (src, dst)
         for src, dst in data_entries
