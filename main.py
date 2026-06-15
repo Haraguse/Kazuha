@@ -3602,16 +3602,55 @@ if __name__ == "__main__":
         route = parse_luminalium_url(arg)
         if route is not None:
             _pending_protocol_url = arg
-            try:
-                from urllib.parse import quote
-                import urllib.request
-                encoded_url = quote(arg, safe='')
-                urllib.request.urlopen(
-                    f"http://127.0.0.1:28423/api/protocol/handle?url={encoded_url}", timeout=1
-                )
+            # 既存インスタンスにURLを転送、新インスタンス起動を防止
+            forwarded = False
+            import socket
+            from urllib.parse import quote
+            import urllib.request
+
+            # ポート疎通確認＋HTTP転送（最大5回リトライ、指数バックオフ）
+            for attempt in range(5):
+                try:
+                    # まずポートが開いてるか簡易チェック
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.settimeout(0.3)
+                    result = sock.connect_ex(('127.0.0.1', 28423))
+                    sock.close()
+                    if result != 0:
+                        raise ConnectionRefusedError("port not ready")
+
+                    encoded_url = quote(arg, safe='')
+                    timeout = 1.0 + attempt * 0.5  # 1.0, 1.5, 2.0, 2.5, 3.0
+                    urllib.request.urlopen(
+                        f"http://127.0.0.1:28423/api/protocol/handle?url={encoded_url}",
+                        timeout=timeout,
+                    )
+                    forwarded = True
+                    break
+                except Exception:
+                    time.sleep(0.2 * (attempt + 1))
+
+            if forwarded:
                 sys.exit(0)
-            except Exception:
-                pass
+            else:
+                # ポートが開いてる=既存インスタンスがいるがHTTP応答なし → フラグファイルに書き込んで終了
+                # ポートが閉じてる=既存インスタンスなし → このまま新規起動
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(0.3)
+                port_open = sock.connect_ex(('127.0.0.1', 28423)) == 0
+                sock.close()
+                if port_open:
+                    print("[Main] HTTP forwarding failed but port is open, writing protocol URL to flag file", flush=True)
+                    try:
+                        app_dir = Path(sys.executable).parent if getattr(sys, "frozen", False) else Path(__file__).parent
+                        protocol_flag = app_dir / "_internal" / ".protocol_url"
+                        protocol_flag.parent.mkdir(exist_ok=True)
+                        protocol_flag.write_text(arg, encoding="utf-8")
+                    except Exception as fe:
+                        print(f"[Main] Failed to write protocol flag: {fe}", flush=True)
+                    sys.exit(0)
+                else:
+                    print("[Main] No existing instance detected, starting new instance", flush=True)
             break
             
     if cfg.registerUrlProtocol.value:

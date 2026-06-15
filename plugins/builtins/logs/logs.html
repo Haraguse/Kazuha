@@ -492,109 +492,6 @@
       font-family: var(--font-stack);
     }
 
-    /* --- Stats Grid --- */
-    .stats-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px 32px;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    .stat-card {
-      padding: 20px 24px;
-      border-radius: 12px;
-      border: 1px solid var(--divider);
-      background: var(--bg-surface);
-      transition: background 0.15s;
-    }
-
-    .stat-card:hover {
-      background: var(--item-hover);
-    }
-
-    .stat-label {
-      font-size: 12px;
-      color: var(--text-secondary);
-      font-weight: 600;
-      margin-bottom: 6px;
-      letter-spacing: 0.5px;
-    }
-
-    .stat-value {
-      font-size: 32px;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .stat-card.debug .stat-value {
-      color: #888;
-    }
-
-    .stat-card.info .stat-value {
-      color: var(--accent-blue);
-    }
-
-    .stat-card.warn .stat-value {
-      color: #FF9D00;
-    }
-
-    .stat-card.error .stat-value {
-      color: #E74C3C;
-    }
-
-    /* --- System Info --- */
-    .system-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px 32px;
-    }
-
-    .info-group {
-      border-radius: 12px;
-      border: 1px solid var(--card-border);
-      background: var(--card-bg);
-      box-shadow: var(--shadow-main);
-      overflow: hidden;
-    }
-
-    .info-item {
-      min-height: 52px;
-      padding: 14px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      border-bottom: 1px solid var(--divider);
-      transition: background 0.15s;
-    }
-
-    .info-item:last-child {
-      border-bottom: none;
-    }
-
-    .info-item:hover {
-      background: var(--item-hover);
-    }
-
-    .info-label {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-primary);
-    }
-
-    .info-value {
-      font-size: 13px;
-      color: var(--text-secondary);
-      font-family: "Cascadia Code", "Consolas", monospace;
-      text-align: right;
-    }
-
     /* --- Dialog --- */
     .dialog-overlay {
       position: fixed;
@@ -729,14 +626,6 @@
         <div class="nav-icon icon-logs"></div>
         <span data-i18n="nav.logs">日志</span>
       </div>
-      <div class="nav-item" data-target="view-stats" data-title-key="title.stats">
-        <div class="nav-icon icon-stats"></div>
-        <span data-i18n="nav.stats">统计</span>
-      </div>
-      <div class="nav-item" data-target="view-system" data-title-key="title.system">
-        <div class="nav-icon icon-system"></div>
-        <span data-i18n="nav.system">系统</span>
-      </div>
     </div>
 
     <div class="content-area">
@@ -782,36 +671,6 @@
             </div>
           </div>
         </section>
-
-        <section id="view-stats" class="view-section">
-          <div class="stats-container">
-            <div class="stats-grid">
-              <div class="stat-card debug">
-                <div class="stat-label">DEBUG</div>
-                <div class="stat-value" id="stat-debug">0</div>
-              </div>
-              <div class="stat-card info">
-                <div class="stat-label">INFO</div>
-                <div class="stat-value" id="stat-info">0</div>
-              </div>
-              <div class="stat-card warn">
-                <div class="stat-label">WARN</div>
-                <div class="stat-value" id="stat-warn">0</div>
-              </div>
-              <div class="stat-card error">
-                <div class="stat-label">ERROR</div>
-                <div class="stat-value" id="stat-error">0</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="view-system" class="view-section">
-          <div class="system-container">
-            <div class="info-group" id="systemInfoGroup">
-            </div>
-          </div>
-        </section>
       </main>
     </div>
   </div>
@@ -838,11 +697,7 @@
         "app.logs": "日志",
         "app.name": "荧素万演",
         "nav.logs": "日志",
-        "nav.stats": "统计",
-        "nav.system": "系统",
         "title.logs": "运行日志",
-        "title.stats": "日志统计",
-        "title.system": "系统信息",
         "diagnostics.export": "导出",
         "diagnostics.clear": "清空",
         "diagnostics.search": "搜索日志...",
@@ -850,16 +705,6 @@
         "diagnostics.clear.title": "清空日志",
         "diagnostics.clear.confirm": "确定要清空所有日志吗？此操作不可撤销。",
         "dialog.cancel": "取消",
-        "diagnostics.system.appVersion": "应用版本",
-        "diagnostics.system.os": "操作系统",
-        "diagnostics.system.processor": "处理器",
-        "diagnostics.system.arch": "架构",
-        "diagnostics.system.pythonVersion": "Python 版本",
-        "diagnostics.system.startTime": "启动时间",
-        "diagnostics.system.uptime": "运行时长",
-        "diagnostics.system.hours": "时",
-        "diagnostics.system.minutes": "分",
-        "diagnostics.system.seconds": "秒",
         "diagnostics.export.header": "时间,级别,消息",
         "general.devWatermark": "开发中版本/技术预览版本\n不保证最终品质 （{version}）"
       },
@@ -867,11 +712,7 @@
         "app.logs": "日誌",
         "app.name": "Luminalium",
         "nav.logs": "日誌",
-        "nav.stats": "統計",
-        "nav.system": "系統",
         "title.logs": "運行日誌",
-        "title.stats": "日誌統計",
-        "title.system": "系統資訊",
         "diagnostics.export": "匯出",
         "diagnostics.clear": "清空",
         "diagnostics.search": "搜尋日誌...",
@@ -879,16 +720,6 @@
         "diagnostics.clear.title": "清空日誌",
         "diagnostics.clear.confirm": "確定要清空所有日誌嗎？此操作不可撤銷。",
         "dialog.cancel": "取消",
-        "diagnostics.system.appVersion": "應用版本",
-        "diagnostics.system.os": "作業系統",
-        "diagnostics.system.processor": "處理器",
-        "diagnostics.system.arch": "架構",
-        "diagnostics.system.pythonVersion": "Python 版本",
-        "diagnostics.system.startTime": "啟動時間",
-        "diagnostics.system.uptime": "運行時長",
-        "diagnostics.system.hours": "時",
-        "diagnostics.system.minutes": "分",
-        "diagnostics.system.seconds": "秒",
         "diagnostics.export.header": "時間,級別,訊息",
         "general.devWatermark": "開發中版本/技術預覽版本\n不保證最終品質 （{version}）"
       },
@@ -896,11 +727,7 @@
         "app.logs": "ログ",
         "app.name": "ルマイナリウム",
         "nav.logs": "ログ",
-        "nav.stats": "統計",
-        "nav.system": "システム",
         "title.logs": "実行ログ",
-        "title.stats": "ログ統計",
-        "title.system": "システム情報",
         "diagnostics.export": "エクスポート",
         "diagnostics.clear": "クリア",
         "diagnostics.search": "ログを検索...",
@@ -908,16 +735,6 @@
         "diagnostics.clear.title": "ログをクリア",
         "diagnostics.clear.confirm": "すべてのログをクリアしますか？この操作は元に戻せません。",
         "dialog.cancel": "キャンセル",
-        "diagnostics.system.appVersion": "アプリバージョン",
-        "diagnostics.system.os": "オペレーティングシステム",
-        "diagnostics.system.processor": "プロセッサ",
-        "diagnostics.system.arch": "アーキテクチャ",
-        "diagnostics.system.pythonVersion": "Python バージョン",
-        "diagnostics.system.startTime": "起動時刻",
-        "diagnostics.system.uptime": "稼働時間",
-        "diagnostics.system.hours": "時間",
-        "diagnostics.system.minutes": "分",
-        "diagnostics.system.seconds": "秒",
         "diagnostics.export.header": "時刻,レベル,メッセージ",
         "general.devWatermark": "開発中バージョン/テクニカルプレビュー\n品質は保証されません （{version}）"
       },
@@ -925,11 +742,7 @@
         "app.logs": "Logs",
         "app.name": "Luminalium",
         "nav.logs": "Logs",
-        "nav.stats": "Stats",
-        "nav.system": "System",
         "title.logs": "Runtime Logs",
-        "title.stats": "Log Statistics",
-        "title.system": "System Info",
         "diagnostics.export": "Export",
         "diagnostics.clear": "Clear",
         "diagnostics.search": "Search logs...",
@@ -937,16 +750,6 @@
         "diagnostics.clear.title": "Clear Logs",
         "diagnostics.clear.confirm": "Are you sure you want to clear all logs? This action cannot be undone.",
         "dialog.cancel": "Cancel",
-        "diagnostics.system.appVersion": "App Version",
-        "diagnostics.system.os": "Operating System",
-        "diagnostics.system.processor": "Processor",
-        "diagnostics.system.arch": "Architecture",
-        "diagnostics.system.pythonVersion": "Python Version",
-        "diagnostics.system.startTime": "Start Time",
-        "diagnostics.system.uptime": "Uptime",
-        "diagnostics.system.hours": "h",
-        "diagnostics.system.minutes": "m",
-        "diagnostics.system.seconds": "s",
         "diagnostics.export.header": "Time,Level,Message",
         "general.devWatermark": "In-Development/Technical Preview\nFinal quality not guaranteed ({version})"
       }
@@ -1124,9 +927,7 @@
 
     /* --- Sidebar Nav Icons --- */
     const NAV_ICONS = {
-      "icon-logs": 'data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="14 2 14 8 20 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-      "icon-stats": 'data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M18 20V10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 20V4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 20v-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-      "icon-system": 'data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="2"/></svg>'
+      "icon-logs": 'data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="14 2 14 8 20 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
     };
 
     function initNavIcons() {
@@ -1166,9 +967,6 @@
         const text = getText(titleKey);
         pageTitle.textContent = text || pageTitle.textContent;
         updateWindowTitleFromActive();
-
-        if (targetId === 'view-stats') updateStatsFromAPI();
-        else if (targetId === 'view-system') updateSystemInfo();
       });
     });
 
@@ -1178,7 +976,6 @@
     let activeLevels = { debug: true, info: true, warn: true, error: true };
     let searchText = "";
     let autoRefreshTimer = null;
-    let systemInfoTimer = null;
     let lastLogIndex = -1;
     let isAutoScroll = true;
     let _filterDebounceTimer = null;
@@ -1225,8 +1022,6 @@
 
       loadLogsFromAPI();
       autoRefreshTimer = setInterval(() => { incrementalRefresh().catch(() => {}); }, REFRESH_INTERVAL);
-      updateSystemInfo();
-      systemInfoTimer = setInterval(() => { updateSystemInfo().catch(() => {}); }, REFRESH_INTERVAL);
     }
 
     if (window.pywebview) onPyWebViewReady();
@@ -1356,25 +1151,6 @@
       viewer.scrollTop = viewer.scrollHeight;
     }
 
-    async function updateStatsFromAPI() {
-      if (window.pywebview?.api?.get_log_stats) {
-        try {
-          const stats = await window.pywebview.api.get_log_stats();
-          document.getElementById("stat-debug").textContent = stats.debug || 0;
-          document.getElementById("stat-info").textContent = stats.info || 0;
-          document.getElementById("stat-warn").textContent = stats.warn || 0;
-          document.getElementById("stat-error").textContent = stats.error || 0;
-          return;
-        } catch (e) { }
-      }
-      const stats = { debug: 0, info: 0, warn: 0, error: 0 };
-      logs.forEach(log => { if (stats[log.level] !== undefined) stats[log.level]++; });
-      document.getElementById("stat-debug").textContent = stats.debug;
-      document.getElementById("stat-info").textContent = stats.info;
-      document.getElementById("stat-warn").textContent = stats.warn;
-      document.getElementById("stat-error").textContent = stats.error;
-    }
-
     window.toggleLevel = async function (level) {
       activeLevels[level] = !activeLevels[level];
       document.querySelector(`[data-level="${level}"]`).classList.toggle("active");
@@ -1400,7 +1176,6 @@
       filteredLogs = [];
       lastLogIndex = -1;
       renderLogsFull();
-      updateStatsFromAPI();
       closeClearDialog();
     };
 
@@ -1413,51 +1188,6 @@
       link.setAttribute("download", `logs_${Date.now()}.csv`);
       link.click();
     };
-
-    async function updateSystemInfo() {
-      const grid = document.getElementById("systemInfoGroup");
-      if (window.pywebview?.api?.get_system_info) {
-        try {
-          const sysInfo = await window.pywebview.api.get_system_info();
-          const info = [
-            { label: getText("diagnostics.system.appVersion") || "应用版本", value: sysInfo.app_version || "Unknown" },
-            { label: getText("diagnostics.system.os") || "操作系统", value: sysInfo.platform + " " + sysInfo.platform_version },
-            { label: getText("diagnostics.system.processor") || "处理器", value: sysInfo.processor || "Unknown" },
-            { label: getText("diagnostics.system.arch") || "架构", value: sysInfo.architecture },
-            { label: getText("diagnostics.system.pythonVersion") || "Python 版本", value: sysInfo.python_version || "Unknown" },
-            { label: getText("diagnostics.system.startTime") || "启动时间", value: new Date(Date.now() - performance.now()).toLocaleString() },
-            { label: getText("diagnostics.system.uptime") || "运行时长", value: formatUptime() }
-          ];
-          grid.innerHTML = info.map(item => `
-            <div class="info-item">
-              <div class="info-label">${item.label}</div>
-              <div class="info-value">${item.value}</div>
-            </div>
-          `).join("");
-        } catch (e) { loadFallbackSystemInfo(); }
-      } else loadFallbackSystemInfo();
-    }
-
-    function loadFallbackSystemInfo() {
-      const info = [
-        { label: getText("diagnostics.system.appVersion") || "应用版本", value: "1.3.5.1" },
-        { label: getText("diagnostics.system.uptime") || "运行时长", value: formatUptime() }
-      ];
-      document.getElementById("systemInfoGroup").innerHTML = info.map(item => `
-        <div class="info-item">
-          <div class="info-label">${item.label}</div>
-          <div class="info-value">${item.value}</div>
-        </div>
-      `).join("");
-    }
-
-    function formatUptime() {
-      const uptime = Math.round(performance.now() / 1000);
-      const hours = Math.floor(uptime / 3600);
-      const minutes = Math.floor((uptime % 3600) / 60);
-      const seconds = uptime % 60;
-      return `${hours}${getText("diagnostics.system.hours") || "h"} ${minutes}${getText("diagnostics.system.minutes") || "m"} ${seconds}${getText("diagnostics.system.seconds") || "s"}`;
-    }
 
     function escapeHtml(text) {
       if (!text) return "";
