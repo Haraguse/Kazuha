@@ -18,7 +18,6 @@ class OnboardingPlugin(AssistantPlugin):
         self._api = None
         self._wv = None
         self._preview = False
-        QTimer.singleShot(1500, self._prewarm_webview)
 
     def get_name(self):
         return "引导"

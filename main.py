@@ -395,7 +395,7 @@ def _is_windows7():
     except Exception:
         return False
 
-
+    
 def _get_screen_refresh_rate():
     try:
         import ctypes
@@ -574,18 +574,24 @@ def _apply_graphics_settings():
             "--ignore-gpu-blocklist",
             "--enable-hardware-overlays",
             # Memory and performance optimizations
-            "--js-flags=--max-old-space-size=256",
+            "--js-flags=--max-old-space-size=64",
             "--disable-site-isolation-trials",
-            "--renderer-process-limit=2",
+            "--renderer-process-limit=1",
             "--disable-features=Translate",
             "--disable-logging",
             "--enable-low-res-tiling",
+            "--max-decoded-image-size-bytes=10485760",
+            "--disk-cache-size=10485760",
+            "--aggressive-cache-discard",
         ]
 
         # Get refresh rate for target FPS
         rate = _get_screen_refresh_rate()
         target_fps = rate * 3
         os.environ["LUMINALIUM_TARGET_FPS"] = str(target_fps)
+
+        if sys.platform == "win32":
+            flags.append("--gpu-memory-buffer-budget=67108864")
 
     # Windows 7 Fallback
     if _is_windows7():
@@ -2250,7 +2256,7 @@ class PPTAssistantApp:
         # Flag watcher for external settings requests
         self._flag_timer = QTimer(self.app)
         self._flag_timer.timeout.connect(self._check_flags)
-        self._flag_timer.start(1000)
+        self._flag_timer.start(5000)
 
         # Start async initialization
         self._init_gen = self._init_steps()
@@ -2391,7 +2397,7 @@ class PPTAssistantApp:
             os.path.getmtime(SETTINGS_PATH) if os.path.exists(SETTINGS_PATH) else 0
         )
         self._settings_timer = QTimer()
-        self._settings_timer.setInterval(500)
+        self._settings_timer.setInterval(1000)
         self._settings_timer.timeout.connect(self._check_settings_changed)
         self._settings_timer.start()
 
@@ -2437,6 +2443,8 @@ class PPTAssistantApp:
                 return
         except Exception:
             pass
+
+        # Staggered WebEngine prewarm is scheduled after init completes.
 
         self._open_settings_after_startup = self._consume_open_settings_pending_flag() or self._open_settings_after_startup
         yield 80, "init_tray"
@@ -2516,6 +2524,7 @@ class PPTAssistantApp:
         if getattr(self, "_pending_protocol_url", None):
             url = self._pending_protocol_url
             QTimer.singleShot(600, lambda: self.handle_protocol_url(url))
+        self._schedule_webengine_prewarm()
         _init_trace("_init_steps: DONE")
 
     def _perform_init_step(self):
@@ -2742,6 +2751,43 @@ class PPTAssistantApp:
         except Exception as e:
             print(f"[APP] Error stopping resource monitor: {e}")
 
+    def _schedule_webengine_prewarm(self):
+        """Staggered prewarm: engine → shell → background HTML load."""
+
+        def _warm_engine():
+            try:
+                from plugins.webview_runner import _warmup_webengine
+                _warmup_webengine(retain_placeholder=True)
+                print("[APP] WebEngine engine prewarm done", flush=True)
+            except Exception as e:
+                print(f"[APP] WebEngine engine prewarm failed: {e}", flush=True)
+
+        def _warm_settings_shell():
+            try:
+                plugin = getattr(self, "settings_plugin", None)
+                if plugin is None:
+                    return
+                if plugin._window is not None and not plugin._hidden:
+                    return
+                plugin.prewarm(shell=True)
+                print("[APP] Settings shell prewarm done", flush=True)
+            except Exception as e:
+                print(f"[APP] Settings shell prewarm failed: {e}", flush=True)
+
+        def _warm_settings_content():
+            try:
+                plugin = getattr(self, "settings_plugin", None)
+                if plugin is None:
+                    return
+                plugin.prewarm_load_content()
+                print("[APP] Settings content prewarm done", flush=True)
+            except Exception as e:
+                print(f"[APP] Settings content prewarm failed: {e}", flush=True)
+
+        QTimer.singleShot(800, _warm_engine)
+        QTimer.singleShot(1600, _warm_settings_shell)
+        QTimer.singleShot(3200, _warm_settings_content)
+
     def _start_memory_cleaner(self):
         try:
             if self._memory_cleaner_process is not None:
@@ -2754,7 +2800,7 @@ class PPTAssistantApp:
             main_path = os.path.join(base_dir, "main.py")
             env = os.environ.copy()
             env["LUMINALIUM_PARENT_PID"] = str(os.getpid())
-            env["LUMINALIUM_MEMCLEAN_INTERVAL"] = "45"
+            env["LUMINALIUM_MEMCLEAN_INTERVAL"] = "30"
             creationflags = (
                 0x08000000 | 0x00000008
             )
@@ -2792,10 +2838,10 @@ class PPTAssistantApp:
             if self._memory_cleaner_process is not None and self._memory_cleaner_process.poll() is None:
                 return
             self._gc_timer = QTimer(self.app)
-            self._gc_timer.setInterval(120000)
+            self._gc_timer.setInterval(60000)
             self._gc_timer.timeout.connect(self._on_gc_tick)
             self._gc_timer.start()
-            print("[APP] GC timer started (120s interval)", flush=True)
+            print("[APP] GC timer started (60s interval)", flush=True)
         except Exception as e:
             print(f"[APP] Failed to setup GC timer: {e}", flush=True)
 
@@ -2812,9 +2858,27 @@ class PPTAssistantApp:
     def _on_gc_tick(self):
         try:
             import gc
-            collected = gc.collect(1)
+            collected = 0
+            for gen in range(3):
+                collected += gc.collect(gen)
+            gc.collect()
             if collected > 0:
                 print(f"[APP] GC collected {collected} objects", flush=True)
+            # Trim working set on Windows to release unused pages
+            if sys.platform == "win32":
+                try:
+                    import ctypes
+                    handle = ctypes.windll.kernel32.GetCurrentProcess()
+                    ctypes.windll.kernel32.SetProcessWorkingSetSize(handle, -1, -1)
+                    ctypes.windll.kernel32.SetProcessWorkingSetSize(handle, -1, -1)
+                except Exception:
+                    pass
+            # Clean up shared WebEngine profile cache periodically
+            try:
+                from plugins.webview_runner import _cleanup_shared_profile
+                _cleanup_shared_profile()
+            except Exception:
+                pass
         except Exception as e:
             print(f"[APP] GC tick error: {e}", flush=True)
 

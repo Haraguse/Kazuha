@@ -4,7 +4,6 @@ import math
 import json
 import time
 import ctypes
-import tempfile
 import importlib.util
 from typing import Optional
 from multiprocessing.connection import Client
@@ -48,6 +47,7 @@ if _skip_webengine_import_at_startup():
     _WEBENGINE_IMPORT_SKIPPED = True
 else:
     from PySide6.QtWebEngineWidgets import QWebEngineView
+    from PySide6.QtWebEngineCore import QWebEnginePage
 
     _WEBENGINE_IMPORT_SKIPPED = False
 
@@ -812,6 +812,13 @@ class OverlayWindow(QWebEngineView):
     def __init__(self):
         super().__init__()
 
+        # Use shared profile to avoid creating a second set of Chromium processes
+        try:
+            from plugins.webview_runner import _get_shared_profile
+            self.setPage(QWebEnginePage(_get_shared_profile(), self))
+        except Exception:
+            pass
+
         self._page_ready = False
         self._pending_scripts = []
         self._runtime_initialized = False
@@ -884,8 +891,9 @@ class OverlayWindow(QWebEngineView):
         self.status_timer = None
         self._current_page = 1
         self._total_pages = 1
-        self._thumbnail_prefetch_before = 2
-        self._thumbnail_prefetch_after = 4
+        self._thumbnail_prefetch_before = 1
+        self._thumbnail_prefetch_after = 2
+        self._icon_cache_max = 32
 
         screen = QGuiApplication.primaryScreen()
         if screen:
@@ -900,6 +908,17 @@ class OverlayWindow(QWebEngineView):
         self._max_reload_attempts = 3
         self._crash_recovery_timer = None
         self._memory_timer = None
+
+    def _cache_file_icon(self, path, icon_data):
+        if not path or not icon_data:
+            return
+        max_size = getattr(self, "_icon_cache_max", 32)
+        if len(self._icon_cache) >= max_size and path not in self._icon_cache:
+            try:
+                self._icon_cache.pop(next(iter(self._icon_cache)))
+            except StopIteration:
+                pass
+        self._icon_cache[path] = icon_data
 
     def update_accent_color(self, hex_color):
         if self.page():
@@ -1049,36 +1068,6 @@ class OverlayWindow(QWebEngineView):
         self._runtime_initialized = True
         print("[Overlay] Initializing WebEngine runtime...", flush=True)
         try:
-            profile = self.page().profile()
-            cache_path = os.path.join(tempfile.gettempdir(), "luminalium_overlay_cache")
-
-            if os.path.exists(cache_path):
-                try:
-                    import shutil
-
-                    cache_size = sum(
-                        os.path.getsize(os.path.join(dirpath, filename))
-                        for dirpath, dirnames, filenames in os.walk(cache_path)
-                        for filename in filenames
-                    )
-                    if cache_size > 500 * 1024 * 1024:
-                        print(
-                            f"[Overlay] Clearing corrupted cache ({cache_size / 1024 / 1024:.1f}MB)",
-                            file=sys.stderr,
-                        )
-                        shutil.rmtree(cache_path, ignore_errors=True)
-                except Exception as e:
-                    print(f"[Overlay] Error checking cache: {e}", file=sys.stderr)
-
-            try:
-                profile.setCachePath(cache_path)
-                profile.setPersistentStoragePath(cache_path)
-                profile.setHttpCacheType(profile.HttpCacheType.DiskHttpCache)
-                profile.setHttpCacheMaximumSize(50 * 1024 * 1024)
-            except Exception as e:
-                print(f"[Overlay] Failed to set disk cache, falling back to memory: {e}")
-                profile.setHttpCacheType(profile.HttpCacheType.MemoryHttpCache)
-
             settings = self.page().settings()
             from PySide6.QtWebEngineCore import QWebEngineSettings
 
@@ -1095,7 +1084,7 @@ class OverlayWindow(QWebEngineView):
                 if attr is not None:
                     settings.setAttribute(attr, enabled)
         except Exception as e:
-            print(f"[Overlay] Error configuring profile: {e}", file=sys.stderr)
+            print(f"[Overlay] Error configuring page settings: {e}", file=sys.stderr)
 
         if self._wayland_compatible_mode:
             self.page().setBackgroundColor(QColor("#101010"))
@@ -1758,7 +1747,7 @@ class OverlayWindow(QWebEngineView):
                 else:
                     icon_data = get_file_icon_base64(path)
                     if icon_data:
-                        self._icon_cache[path] = icon_data
+                        self._cache_file_icon(path, icon_data)
 
                 apps_list.append({"name": name, "path": path, "icon": icon_data})
 
@@ -2088,6 +2077,13 @@ class OverlayWindow(QWebEngineView):
     def hideEvent(self, event):
         self._stop_memory_timer()
         self._refresh_status_services()
+        # Final cleanup on hide
+        try:
+            page = self.page()
+            if page is not None:
+                page.clearMemoryCaches()
+        except Exception:
+            pass
         super().hideEvent(event)
 
     def _start_memory_timer(self):
@@ -2207,7 +2203,20 @@ class OverlayWindow(QWebEngineView):
         self.reset_tool_state_ui("select")
 
     def on_slideshow_end_cleanup(self):
-        pass
+        self._pending_thumbnails.clear()
+        self._cached_thumbnails.clear()
+        self._icon_cache.clear()
+        if self._background_thumbnail_timer is not None:
+            try:
+                self._background_thumbnail_timer.stop()
+            except Exception:
+                pass
+            self._background_thumbnail_timer = None
+        try:
+            from ppt_assistant.core.icon_helper import clear_thumbnail_cache
+            clear_thumbnail_cache()
+        except Exception:
+            pass
 
     def _mark_ui_alive(self):
         pass

@@ -66,6 +66,7 @@ _EXISTING_WINDOW_NOTIFY_MESSAGE = 0
 _SHARED_PROFILE = None
 _WEBENGINE_WARMUP_PAGE = None
 _WEBENGINE_WARMUP_DONE = False
+_WEBENGINE_WARMUP_RETAINED = False
 
 if sys.platform == "win32":
     try:
@@ -153,58 +154,6 @@ def _resolve_misans_font_path() -> str | None:
         if path and os.path.exists(path):
             return path
     return None
-
-
-def _resolve_window_loader_qml_path() -> str | None:
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.join(base_dir, "WindowLoadingOverlay.qml")
-    return path if os.path.exists(path) else None
-
-
-def _resolve_window_loader_title(window_tag, title, settings=None):
-    language = "zh-cn"
-    if isinstance(settings, dict):
-        try:
-            language = (
-                str((settings.get("General", {}) or {}).get("Language", "zh-CN"))
-                .strip()
-                .lower()
-            )
-        except Exception:
-            language = "zh-cn"
-    title_maps = {
-        "zh-cn": {
-            "settings": "设置",
-            "timer": "计时器",
-            "onboarding": "欢迎使用",
-        },
-        "zh-tw": {
-            "settings": "設定",
-            "timer": "計時器",
-            "onboarding": "歡迎使用",
-        },
-        "yue-hk": {
-            "settings": "設定",
-            "timer": "計時器",
-            "onboarding": "歡迎使用",
-        },
-        "ja-jp": {
-            "settings": "設定",
-            "timer": "タイマー",
-            "onboarding": "ようこそ",
-        },
-        "en-us": {
-            "settings": "Settings",
-            "timer": "Timer",
-            "onboarding": "Welcome",
-        },
-    }
-    title_map = title_maps.get(language, title_maps["zh-cn"])
-    mapped = title_map.get(str(window_tag or "").strip().lower())
-    if mapped:
-        return mapped
-    fallback = str(title or "").strip()
-    return fallback or "Luminalium"
 
 
 def _get_user_root_dir() -> str:
@@ -443,7 +392,7 @@ def _configure_profile(profile):
             os.makedirs(cache_path, exist_ok=True)
             profile.setCachePath(cache_path)
             profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
-            profile.setHttpCacheMaximumSize(20 * 1024 * 1024)
+            profile.setHttpCacheMaximumSize(10 * 1024 * 1024)
         else:
             profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.MemoryHttpCache)
 
@@ -481,9 +430,58 @@ def _get_shared_profile():
     return _configure_profile(_SHARED_PROFILE)
 
 
-def _warmup_webengine():
-    global _WEBENGINE_WARMUP_PAGE, _WEBENGINE_WARMUP_DONE
-    if _WEBENGINE_WARMUP_DONE:
+def _cleanup_shared_profile():
+    """Clear shared profile caches to free memory."""
+    global _SHARED_PROFILE
+    if _SHARED_PROFILE is not None:
+        try:
+            _SHARED_PROFILE.clearHttpCache()
+        except Exception:
+            pass
+        try:
+            _SHARED_PROFILE.clearAllVisitedLinks()
+        except Exception:
+            pass
+
+
+def _trim_webengine_memory():
+    try:
+        import gc
+        for gen in range(3):
+            gc.collect(gen)
+        if sys.platform == "win32":
+            try:
+                handle = ctypes.windll.kernel32.GetCurrentProcess()
+                ctypes.windll.kernel32.SetProcessWorkingSetSize(handle, -1, -1)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
+def _release_warmup_placeholder():
+    """Drop the retained placeholder page once a real view takes over."""
+    global _WEBENGINE_WARMUP_PAGE, _WEBENGINE_WARMUP_RETAINED
+    page = _WEBENGINE_WARMUP_PAGE
+    _WEBENGINE_WARMUP_PAGE = None
+    _WEBENGINE_WARMUP_RETAINED = False
+    if page is None:
+        return
+    try:
+        page.clearMemoryCaches()
+    except Exception:
+        pass
+    try:
+        page.deleteLater()
+    except Exception:
+        pass
+
+
+def _warmup_webengine(retain_placeholder=False):
+    global _WEBENGINE_WARMUP_PAGE, _WEBENGINE_WARMUP_DONE, _WEBENGINE_WARMUP_RETAINED
+    if _WEBENGINE_WARMUP_DONE and not _WEBENGINE_WARMUP_RETAINED:
+        return
+    if _WEBENGINE_WARMUP_RETAINED and _WEBENGINE_WARMUP_PAGE is not None:
         return
     try:
         profile = _get_shared_profile()
@@ -494,18 +492,27 @@ def _warmup_webengine():
         page.setBackgroundColor(Qt.transparent)
 
         def _finish(*_args):
-            global _WEBENGINE_WARMUP_PAGE, _WEBENGINE_WARMUP_DONE
-            if _WEBENGINE_WARMUP_DONE:
+            global _WEBENGINE_WARMUP_PAGE, _WEBENGINE_WARMUP_DONE, _WEBENGINE_WARMUP_RETAINED
+            if _WEBENGINE_WARMUP_DONE and not _WEBENGINE_WARMUP_RETAINED:
                 return
             _WEBENGINE_WARMUP_DONE = True
+            if retain_placeholder:
+                _WEBENGINE_WARMUP_RETAINED = True
+                return
             _WEBENGINE_WARMUP_PAGE = None
+            _WEBENGINE_WARMUP_RETAINED = False
+            try:
+                page.clearMemoryCaches()
+            except Exception:
+                pass
             try:
                 page.deleteLater()
             except Exception:
                 pass
+            _trim_webengine_memory()
 
         page.loadFinished.connect(_finish)
-        QTimer.singleShot(1500, _finish)
+        QTimer.singleShot(800, _finish)
         page.setHtml(
             "<!doctype html><html><head></head><body></body></html>",
             QUrl("about:blank"),
@@ -513,6 +520,7 @@ def _warmup_webengine():
         _WEBENGINE_WARMUP_PAGE = page
     except Exception:
         _WEBENGINE_WARMUP_DONE = True
+        _WEBENGINE_WARMUP_RETAINED = False
 
 
 def _should_defer_initial_load(url, title, explicit_defer=False):
@@ -570,13 +578,14 @@ def _apply_chromium_flags():
         "--wm-window-animations-disabled",
         "--renderer-process-limit=1",
         "--max-decoded-image-size-bytes=10485760",
-        "--disk-cache-size=20971520",
+        "--disk-cache-size=10485760",
         "--max-active-webgl-contexts=1",
         "--disable-features=BackForwardCache,VaapiVideoDecoder,MediaFoundationVideoCapture,HardwareMediaKeyHandling,Translate",
-        "--js-flags=--max-old-space-size=128",
+        "--js-flags=--max-old-space-size=64",
         "--num-raster-threads=2",
         "--disable-site-isolation-trials",
         "--enable-low-res-tiling",
+        "--aggressive-cache-discard",
     ]
 
     if not is_onboarding_process:
@@ -591,7 +600,7 @@ def _apply_chromium_flags():
 
     if sys.platform == "win32":
         flags.extend([
-            "--gpu-memory-buffer-budget=134217728",
+            "--gpu-memory-buffer-budget=67108864",
             "--disable-gpu-shader-disk-cache",
         ])
 
@@ -905,6 +914,7 @@ def _pin_to_taskbar(enable):
 
 class Api(QObject):
     storage_info_ready = Signal(dict)
+    _ICON_CACHE_MAX = 32
 
     def __init__(self, window=None):
         super().__init__()
@@ -923,6 +933,16 @@ class Api(QObject):
 
     def set_window(self, window):
         self._window = window
+
+    def _cache_file_icon(self, path, icon_data):
+        if not path or not icon_data:
+            return
+        if len(self._icon_cache) >= self._ICON_CACHE_MAX and path not in self._icon_cache:
+            try:
+                self._icon_cache.pop(next(iter(self._icon_cache)))
+            except StopIteration:
+                pass
+        self._icon_cache[path] = icon_data
 
     def _on_storage_info_ready(self, full):
         self._storage_cache = full
@@ -1475,7 +1495,7 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             else:
                 icon_data = get_file_icon_base64(path)
                 if icon_data:
-                    self._icon_cache[path] = icon_data
+                    self._cache_file_icon(path, icon_data)
             if icon_data:
                 app["icon"] = icon_data
         return apps
@@ -3840,274 +3860,6 @@ def _get_unified_theme_js():
     return f"""\n(function(){{var TD={theme_json};function AT(){{var r=document.documentElement;if(!r)return;var s=window.initialSettings||{{}};var a=s.Appearance||{{}};var d=a.ResolvedIsDark;var tid=a.ThemeId||'default';var v=d?'dark':'light';var b=TD['default'].light;for(var k in b)r.style.setProperty(k,b[k]);if(d){{var db=TD['default'].dark;for(var k in db)r.style.setProperty(k,db[k]);}}if(tid!=='default'&&TD[tid]&&TD[tid][v]){{var t=TD[tid][v];for(var k in t)r.style.setProperty(k,t[k]);}}r.style.setProperty('--accent-color','var(--accent-blue)');r.style.setProperty('--overlay-dialog-mask',d?'rgba(0,0,0,0.35)':'rgba(0,0,0,0.2)');r.style.setProperty('--overlay-dialog-shadow',d?'0 16px 40px rgba(0,0,0,0.45)':'0 12px 30px rgba(0,0,0,0.18)');r.style.setProperty('--overlay-dialog-bg','var(--overlay-popup-bg)');r.style.setProperty('--overlay-dialog-border','var(--overlay-popup-border)');r.style.setProperty('--overlay-dialog-title','var(--text-primary)');r.style.setProperty('--overlay-dialog-text','var(--text-secondary)');r.style.setProperty('--overlay-control-bg','var(--card-bg)');r.style.setProperty('--overlay-control-hover','var(--item-hover)');r.style.setProperty('--overlay-control-active','var(--overlay-button-active)');r.style.setProperty('--overlay-text-primary','var(--text-primary)');r.style.setProperty('--overlay-text-secondary','var(--text-secondary)');r.style.setProperty('--overlay-popup-shadow','none');r.style.setProperty('--overlay-thumb-bg',d?'var(--accent-blue)':'#FFFFFF');r.style.setProperty('--overlay-thumb-icon',d?'var(--bg-app)':'var(--accent-blue)');r.setAttribute('data-theme',d?'dark':'light');r.setAttribute('data-theme-variant',v);r.setAttribute('data-theme-id',tid);}}if(document.documentElement){{AT();}}else{{document.addEventListener('DOMContentLoaded',AT);}}window.__applyUnifiedTheme=AT;}})();"""
 
 
-class _LightweightLoadingOverlay(QWidget):
-    def __init__(self, parent=None, show_window_controls=False):
-        super().__init__(parent)
-        self.setWindowFlags(
-            Qt.FramelessWindowHint | Qt.Tool | Qt.WindowDoesNotAcceptFocus | Qt.WindowStaysOnTopHint
-        )
-        if sys.platform == "win32":
-            from ppt_assistant.core.platform_integration import remove_window_border_delayed
-            remove_window_border_delayed(self)
-        self._dark_mode = True
-        self._show_window_controls = show_window_controls
-        self._fade_anim = None
-        self._window_opacity = 1.0
-
-        self._title_label = QLabel(self)
-        self._title_label.setAlignment(Qt.AlignCenter)
-        self._title_label.setWordWrap(True)
-
-        self._brand_logo = QLabel(self)
-        self._brand_logo.setFixedSize(24, 24)
-        self._brand_logo.setAlignment(Qt.AlignCenter)
-
-        self._brand_text = QLabel("Luminalium", self)
-        self._brand_text.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-
-        self._btn_min = QPushButton("\uE921", self)
-        self._btn_max = QPushButton("\uE922", self)
-        self._btn_close = QPushButton("\uE8BB", self)
-        for btn in (self._btn_min, self._btn_max, self._btn_close):
-            btn.setFixedSize(46, 32)
-            btn.setFocusPolicy(Qt.NoFocus)
-            btn.setCursor(Qt.ArrowCursor)
-        self._btn_min.clicked.connect(self._on_minimize)
-        self._btn_max.clicked.connect(self._on_maximize)
-        self._btn_close.clicked.connect(self._on_close)
-        self._update_controls_visibility()
-
-        self._apply_theme()
-
-    def set_show_window_controls(self, show: bool):
-        self._show_window_controls = show
-        self._update_controls_visibility()
-        self._do_layout()
-
-    def _update_controls_visibility(self):
-        for btn in (self._btn_min, self._btn_max, self._btn_close):
-            btn.setVisible(self._show_window_controls)
-
-    def set_dark_mode(self, dark: bool):
-        self._dark_mode = dark
-        self._apply_theme()
-
-    def _apply_theme(self):
-        if self._dark_mode:
-            bg = "#141414"
-            title_color = "#F2F2F2"
-            brand_color = "#B8B8B8"
-            btn_color = "#C8C8C8"
-            btn_hover_bg = "#2A2A2A"
-            btn_close_hover = "#C42B1C"
-            btn_close_hover_fg = "#FFFFFF"
-        else:
-            bg = "#FFFFFF"
-            title_color = "#111111"
-            brand_color = "#444444"
-            btn_color = "#444444"
-            btn_hover_bg = "#E5E5E5"
-            btn_close_hover = "#C42B1C"
-            btn_close_hover_fg = "#FFFFFF"
-
-        self.setAutoFillBackground(True)
-        palette = self.palette()
-        palette.setColor(self.backgroundRole(), QColor(bg))
-        self.setPalette(palette)
-
-        h = max(1, self.height())
-        title_px = max(28, min(48, int(h * 0.07)))
-        brand_px = max(11, min(15, int(h * 0.02)))
-
-        font_family = "MiSans VF, Segoe UI, sans-serif"
-        title_font = QFont(font_family, title_px)
-        title_font.setWeight(QFont.DemiBold)
-        self._title_label.setFont(title_font)
-        self._title_label.setStyleSheet(
-            f"color: {title_color}; background: transparent; border: none;"
-        )
-
-        brand_font = QFont(font_family, brand_px)
-        brand_font.setWeight(QFont.Medium)
-        brand_font.setLetterSpacing(QFont.AbsoluteSpacing, 0.35)
-        self._brand_text.setFont(brand_font)
-        self._brand_text.setStyleSheet(
-            f"color: {brand_color}; background: transparent; border: none;"
-        )
-
-        btn_font = QFont("Segoe MDL2 Assets", 10)
-        for btn in (self._btn_min, self._btn_max, self._btn_close):
-            btn.setFont(btn_font)
-        btn_style = (
-            f"QPushButton {{ color: {btn_color}; background: transparent; border: none; }}"
-            f"QPushButton:hover {{ background: {btn_hover_bg}; }}"
-        )
-        close_style = (
-            f"QPushButton {{ color: {btn_color}; background: transparent; border: none; }}"
-            f"QPushButton:hover {{ background: {btn_close_hover}; color: {btn_close_hover_fg}; }}"
-        )
-        self._btn_min.setStyleSheet(btn_style)
-        self._btn_max.setStyleSheet(btn_style)
-        self._btn_close.setStyleSheet(close_style)
-
-    def set_title(self, text: str):
-        self._title_label.setText(text)
-
-    def set_logo(self, path: str):
-        if path and os.path.exists(path):
-            pixmap = QPixmap(path).scaled(
-                24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation
-            )
-            self._brand_logo.setPixmap(pixmap)
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self._do_layout()
-        self._apply_theme()
-
-    def _do_layout(self):
-        w = self.width()
-        h = self.height()
-        if w <= 0 or h <= 0:
-            return
-
-        if self._show_window_controls:
-            btn_w = 46
-            self._btn_close.move(w - btn_w, 0)
-            self._btn_max.move(w - btn_w * 2, 0)
-            self._btn_min.move(w - btn_w * 3, 0)
-
-        center_w = min(w * 0.74, 620)
-        x_center = (w - center_w) / 2
-
-        title_hint = self._title_label.sizeHint()
-        valign_offset = (h - title_hint.height()) / 2
-        self._title_label.setGeometry(
-            int(x_center), int(valign_offset), int(center_w),
-            title_hint.height()
-        )
-
-        brand_h = max(self._brand_logo.sizeHint().height(),
-                      self._brand_text.sizeHint().height())
-        brand_total_w = self._brand_logo.width() + 12 + self._brand_text.sizeHint().width()
-        brand_x = (w - brand_total_w) / 2
-        bottom_margin = max(22, h * 0.045)
-        brand_y = h - bottom_margin - brand_h
-
-        self._brand_logo.setGeometry(
-            int(brand_x), int(brand_y + (brand_h - self._brand_logo.height()) / 2),
-            24, 24
-        )
-        self._brand_text.setGeometry(
-            int(brand_x + 24 + 12),
-            int(brand_y + (brand_h - self._brand_text.sizeHint().height()) / 2),
-            int(self._brand_text.sizeHint().width()),
-            int(self._brand_text.sizeHint().height())
-        )
-
-    def _on_minimize(self):
-        try:
-            hwnd = self._get_owner_hwnd()
-            if hwnd:
-                ctypes.windll.user32.SendMessageW(hwnd, 0x0112, 0xF020, 0)
-            else:
-                for w in QGuiApplication.topLevelWindows():
-                    if w.isVisible() and w != self.windowHandle():
-                        w.showMinimized()
-                        break
-        except Exception:
-            pass
-
-    def _on_maximize(self):
-        try:
-            hwnd = self._get_owner_hwnd()
-            if hwnd:
-                style = ctypes.windll.user32.GetWindowLongW(hwnd, -16)
-                if style & 0x01000000:
-                    ctypes.windll.user32.SendMessageW(hwnd, 0x0112, 0xF120, 0)
-                    self._btn_max.setText("\uE922")
-                else:
-                    ctypes.windll.user32.SendMessageW(hwnd, 0x0112, 0xF030, 0)
-                    self._btn_max.setText("\uE923")
-            else:
-                for w in QGuiApplication.topLevelWindows():
-                    if w.isVisible() and w != self.windowHandle():
-                        if w.windowState() & Qt.WindowMaximized:
-                            w.showNormal()
-                            self._btn_max.setText("\uE922")
-                        else:
-                            w.showMaximized()
-                            self._btn_max.setText("\uE923")
-                        break
-        except Exception:
-            pass
-
-    def _on_close(self):
-        try:
-            hwnd = self._get_owner_hwnd()
-            if hwnd:
-                ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
-            else:
-                for w in QGuiApplication.topLevelWindows():
-                    if w.isVisible() and w != self.windowHandle():
-                        w.close()
-                        break
-        except Exception:
-            pass
-
-    def _get_owner_hwnd(self):
-        try:
-            if sys.platform != "win32":
-                return 0
-            own_hwnd = int(self.winId())
-            owner = ctypes.windll.user32.GetWindow(own_hwnd, 3)
-            if owner:
-                return owner
-            fw = ctypes.windll.user32.GetForegroundWindow()
-            if fw and fw != own_hwnd:
-                return fw
-            return 0
-        except Exception:
-            return 0
-
-    def fade_out(self, duration_ms=420):
-        try:
-            if self._fade_anim is not None:
-                try:
-                    self._fade_anim.stop()
-                    self._fade_anim.deleteLater()
-                except Exception:
-                    pass
-            from PySide6.QtCore import QPropertyAnimation, QEasingCurve
-
-            self._fade_anim = QPropertyAnimation(self, b"windowOpacity", self)
-            self._fade_anim.setDuration(duration_ms)
-            self._fade_anim.setStartValue(1.0)
-            self._fade_anim.setEndValue(0.0)
-            self._fade_anim.setEasingCurve(QEasingCurve.Type.InOutQuad)
-            self._fade_anim.finished.connect(self._on_fade_out_done)
-            self._fade_anim.start()
-        except Exception:
-            self.hide()
-
-    def _on_fade_out_done(self):
-        self.hide()
-        self.setWindowOpacity(1.0)
-
-    def show_faded(self):
-        if self._fade_anim is not None:
-            try:
-                self._fade_anim.stop()
-                self._fade_anim.deleteLater()
-            except Exception:
-                pass
-            self._fade_anim = None
-        self.setWindowOpacity(1.0)
-        self.show()
-        self.raise_()
-        self._do_layout()
-
-
 class MainWindow(QWebEngineView):
     def __init__(
         self,
@@ -4120,6 +3872,7 @@ class MainWindow(QWebEngineView):
         custom_border=False,
         defer_load=False,
         frameless=False,
+        defer_until_show=False,
     ):
         super().__init__()
         self.setPage(QWebEnginePage(_get_shared_profile(), self))
@@ -4158,10 +3911,6 @@ class MainWindow(QWebEngineView):
         self._pending_load_timer = None
         self._did_hard_refresh = False
         self._window_tag = self._detect_window_tag(url, title)
-        self._loading_overlay = None
-        self._loading_overlay_hide_timer = None
-        # Disable loading overlay for onboarding to avoid QML/OpenGL issues
-        self._loading_overlay_enabled = self._window_tag in ("settings", "timer")
         self._render_crash_count = 0
         self._max_reload_attempts = 3
         self._crash_recovery_timer = None
@@ -4262,8 +4011,6 @@ class MainWindow(QWebEngineView):
             self.page().scripts().insert(onboarding_render_script)
         if self._custom_border:
             self._inject_custom_border()
-        if self._loading_overlay_enabled:
-            self._setup_loading_overlay(title)
         self.loadStarted.connect(self._on_load_started)
         self.loadFinished.connect(self._on_load_finished)
         _url_str = str(url).strip()
@@ -4276,12 +4023,13 @@ class MainWindow(QWebEngineView):
             target_url = QUrl.fromUserInput(_url_str)
         if self._defer_load:
             self._pending_url = target_url
-            # Fallback: if showEvent doesn't fire, still kick the initial load
-            # to avoid a stuck onboarding window.
-            self._pending_load_timer = QTimer(self)
-            self._pending_load_timer.setSingleShot(True)
-            self._pending_load_timer.timeout.connect(self._ensure_pending_load)
-            self._pending_load_timer.start(200)
+            if not defer_until_show:
+                # Fallback: if showEvent doesn't fire, still kick the initial load
+                # to avoid a stuck onboarding window.
+                self._pending_load_timer = QTimer(self)
+                self._pending_load_timer.setSingleShot(True)
+                self._pending_load_timer.timeout.connect(self._ensure_pending_load)
+                self._pending_load_timer.start(200)
         else:
             self.load(target_url)
         self.loadFinished.connect(
@@ -4297,30 +4045,6 @@ class MainWindow(QWebEngineView):
         self._apply_backdrop()
 
         self.renderProcessTerminated.connect(self._on_render_process_terminated)
-
-    def _setup_loading_overlay(self, title):
-        try:
-            show_controls = self._frameless
-            overlay = _LightweightLoadingOverlay(show_window_controls=show_controls)
-            logo_path = _resolve_logo_svg_path()
-            overlay.set_title(
-                _resolve_window_loader_title(
-                    self._window_tag, title, getattr(self.api, "settings", {})
-                )
-            )
-            overlay.set_logo(logo_path)
-            overlay.set_dark_mode(bool(_resolve_theme_dark(self._theme_mode)))
-            self._loading_overlay = overlay
-            self._loading_overlay_hide_timer = QTimer(self)
-            self._loading_overlay_hide_timer.setSingleShot(True)
-            self._loading_overlay_hide_timer.timeout.connect(
-                self._hide_loading_overlay_window
-            )
-            self._sync_loading_overlay_geometry()
-            overlay.show_faded()
-            self._setup_memory_timer()
-        except Exception as exc:
-            print(f"[WebView] Failed to create loading overlay: {exc}", file=sys.stderr)
 
     def _setup_memory_timer(self):
         try:
@@ -4376,59 +4100,11 @@ class MainWindow(QWebEngineView):
         finally:
             self._pending_url = None
 
-    def _sync_loading_overlay_geometry(self):
-        if self._loading_overlay is None:
-            return
-        try:
-            overlay = self._loading_overlay
-            geo = self.geometry()
-            top_left = self.mapToGlobal(QPoint(0, 0))
-            overlay.move(top_left)
-            overlay.resize(geo.width(), geo.height())
-            self._raise_loading_overlay()
-        except Exception:
-            pass
-
-    def _raise_loading_overlay(self):
-        if self._loading_overlay is None:
-            return
-        try:
-            self._loading_overlay.raise_()
-        except Exception:
-            pass
-
-    def _set_loading_overlay_visible(self, loading):
-        if self._loading_overlay is None:
-            return
-        if self._loading_overlay_hide_timer is not None:
-            self._loading_overlay_hide_timer.stop()
-        overlay = self._loading_overlay
-        if loading:
-            overlay.set_dark_mode(bool(_resolve_theme_dark(self._theme_mode)))
-            self._sync_loading_overlay_geometry()
-            overlay.show_faded()
-        else:
-            overlay.fade_out()
-        if not loading and self._loading_overlay_hide_timer is not None:
-            self._loading_overlay_hide_timer.start(620)
-
-    def _hide_loading_overlay_window(self):
-        if self._loading_overlay is None:
-            return
-        try:
-            self._loading_overlay.fade_out()
-        except Exception:
-            pass
-
     def _on_load_started(self):
-        if self._loading_overlay_enabled:
-            self._set_loading_overlay_visible(True)
+        pass
 
     def _on_load_finished(self, _ok):
         self._render_crash_count = 0
-        if not self._loading_overlay_enabled:
-            return
-        QTimer.singleShot(120, lambda: self._set_loading_overlay_visible(False))
         QTimer.singleShot(500, self._on_memory_tick)
 
     def _on_render_process_terminated(self, status, exit_code):
@@ -5061,8 +4737,6 @@ body {
     def update_theme_mode(self, theme_mode):
         self._theme_mode = theme_mode
         self._apply_page_background()
-        if self._loading_overlay is not None:
-            self._loading_overlay.set_dark_mode(bool(_resolve_theme_dark(self._theme_mode)))
         self._apply_backdrop()
 
     def apply_animation_preference(self, disabled):
@@ -5084,11 +4758,10 @@ body {
             )
         except Exception:
             pass
-        if self._loading_overlay is not None:
-            pass
 
     def showEvent(self, event):
         super().showEvent(event)
+        self._setup_memory_timer()
         if not self._centered:
             self._centered = True
             QTimer.singleShot(0, self._center_on_screen)
@@ -5102,14 +4775,6 @@ body {
             except Exception:
                 pass
             self._pending_load_timer = None
-        self._sync_loading_overlay_geometry()
-        if self._loading_overlay is not None:
-            try:
-                if self._loading_overlay.isVisible():
-                    self._loading_overlay.show()
-                    self._raise_loading_overlay()
-            except Exception:
-                pass
         self._apply_page_background()
         self._apply_backdrop()
         if self._frameless:
@@ -5185,18 +4850,12 @@ body {
 
     def moveEvent(self, event):
         super().moveEvent(event)
-        self._sync_loading_overlay_geometry()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        self._sync_loading_overlay_geometry()
 
     def hideEvent(self, event):
-        if self._loading_overlay is not None:
-            try:
-                self._loading_overlay.hide()
-            except Exception:
-                pass
+        self._stop_memory_timer()
         super().hideEvent(event)
 
     def closeEvent(self, event):
@@ -5213,22 +4872,6 @@ body {
             except Exception:
                 pass
             self._pending_load_timer = None
-        if self._loading_overlay_hide_timer is not None:
-            try:
-                self._loading_overlay_hide_timer.stop()
-            except Exception:
-                pass
-            self._loading_overlay_hide_timer = None
-        if self._loading_overlay is not None:
-            try:
-                self._loading_overlay.close()
-            except Exception:
-                pass
-            try:
-                self._loading_overlay.deleteLater()
-            except Exception:
-                pass
-            self._loading_overlay = None
         super().closeEvent(event)
 
 

@@ -13,7 +13,6 @@ class LogsPlugin(AssistantPlugin):
         self._window = None
         self._api = None
         self._wv = None
-        QTimer.singleShot(1500, self._prewarm_webview)
 
     def get_name(self):
         return "日志"

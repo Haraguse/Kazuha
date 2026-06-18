@@ -1,13 +1,15 @@
 import os
 import json
 import sys
+import gc
 import subprocess
 
 from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QApplication
 
 from plugins.interface import AssistantPlugin
 from plugins.webview_window_utils import bring_window_to_front
-from ppt_assistant.core.config import get_active_settings_path
+from ppt_assistant.core.config import get_active_settings_path, cfg
 
 
 def _use_external_webview_process() -> bool:
@@ -68,8 +70,8 @@ class SettingsPlugin(AssistantPlugin):
         self._api = None
         self._wv = None
         self._context = None
-        if not _use_external_webview_process():
-            QTimer.singleShot(1200, self._prewarm_webview)
+        self._hidden = False
+        self._close_blocked = False
 
     def get_name(self):
         return ""
@@ -89,12 +91,60 @@ class SettingsPlugin(AssistantPlugin):
         except Exception:
             pass
 
+    def prewarm(self, shell=True):
+        """Warm shared Chromium; optionally keep a hidden defer-load settings shell."""
+        if _use_external_webview_process():
+            return
+        try:
+            wv = self._ensure_webview_module()
+            wv._warmup_webengine(retain_placeholder=True)
+            if not shell:
+                return
+            if self._window is not None:
+                if not self._hidden:
+                    return
+                return
+            wv._release_warmup_placeholder()
+            self._ensure_window(show_if_hidden=False)
+            if self._window is not None:
+                try:
+                    if not self._window.isVisible():
+                        self._window.hide()
+                except Exception:
+                    pass
+            self._hidden = True
+            self._close_blocked = False
+        except Exception:
+            pass
+
+    def prewarm_load_content(self):
+        """Background-load settings.html into the hidden shell."""
+        if _use_external_webview_process():
+            return
+        if self._window is None or not self._hidden:
+            return
+        try:
+            pending = getattr(self._window, "_pending_url", None)
+            if pending is None:
+                return
+            self._ensure_webview_module()._release_warmup_placeholder()
+            self._window._ensure_pending_load()
+            print("[Settings] Background content prewarm started", flush=True)
+        except Exception:
+            pass
+
     def _ensure_webview_module(self):
         if self._wv is None:
             import plugins.webview_runner as webview_runner
 
             self._wv = webview_runner
         return self._wv
+
+    def _should_hide_on_close(self):
+        try:
+            return bool(cfg.hideOnClose.value)
+        except Exception:
+            return True
 
     def _load_json_file(self, path):
         if not path or not os.path.exists(path):
@@ -123,12 +173,80 @@ class SettingsPlugin(AssistantPlugin):
             self._window = None
             self._api = None
             self.process = None
+            self._hidden = False
             return False
 
     def _on_window_destroyed(self, *_args):
+        if self._close_blocked:
+            return
         self._window = None
         self._api = None
         self.process = None
+        self._hidden = False
+
+    def _intercept_close(self, event):
+        if not self._should_hide_on_close():
+            self._close_blocked = False
+            event.accept()
+            return
+        if self._close_blocked:
+            event.accept()
+            return
+        self._hide_window()
+        event.ignore()
+
+    def _hide_window(self):
+        if self._window is None:
+            return
+        self._close_blocked = True
+        try:
+            self._window.hide()
+        except Exception:
+            pass
+        self._hidden = True
+        self._release_webengine_resources()
+        QApplication.processEvents()
+
+    def _restore_window(self):
+        if self._window is None or not self._hidden:
+            return
+        self._close_blocked = False
+        self._hidden = False
+        try:
+            pending = getattr(self._window, "_pending_url", None)
+            if self._window.isMinimized():
+                self._window.showNormal()
+            else:
+                self._window.show()
+            if pending is not None and getattr(self._window, "_pending_url", None) is not None:
+                try:
+                    self._window._ensure_pending_load()
+                except Exception:
+                    pass
+            self._window.raise_()
+            self._window.activateWindow()
+            bring_window_to_front(int(self._window.winId()))
+        except RuntimeError:
+            self._window = None
+            self._api = None
+            self._hidden = False
+
+    def _release_webengine_resources(self):
+        # Only trim process working set on hide; keep page content for fast restore.
+        try:
+            for gen in range(3):
+                gc.collect(gen)
+            gc.collect()
+        except Exception:
+            pass
+        if sys.platform == "win32":
+            try:
+                import ctypes
+                handle = ctypes.windll.kernel32.GetCurrentProcess()
+                ctypes.windll.kernel32.SetProcessWorkingSetSize(handle, -1, -1)
+                ctypes.windll.kernel32.SetProcessWorkingSetSize(handle, -1, -1)
+            except Exception:
+                pass
 
     def _launch_external_window(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -143,8 +261,10 @@ class SettingsPlugin(AssistantPlugin):
         settings = self._load_json_file(get_active_settings_path())
         return settings.get("General", {}).get("UseNativeTitleBar", False)
 
-    def _ensure_window(self):
+    def _ensure_window(self, show_if_hidden=True):
         if self._window is not None:
+            if self._hidden and show_if_hidden:
+                self._restore_window()
             return self._window
 
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -153,16 +273,14 @@ class SettingsPlugin(AssistantPlugin):
         version_path = os.path.join(root_dir, "version.json")
 
         wv = self._ensure_webview_module()
-        wv._warmup_webengine()
+        wv._warmup_webengine(retain_placeholder=False)
 
         api = wv.Api()
         api.set_in_process(True)
         api.settings = self._load_json_file(get_active_settings_path())
         api.version = self._load_json_file(version_path)
-        api.platform = sys.platform  # Pass platform info to frontend
+        api.platform = sys.platform
 
-        # 为api添加trigger_resource_alert方法
-        # 使用lambda创建可调用的方法
         api.trigger_resource_alert = lambda: self.trigger_resource_alert()
         api.quit_app_for_update = lambda: self.quit_app_for_update()
 
@@ -171,14 +289,36 @@ class SettingsPlugin(AssistantPlugin):
         use_native = api.settings.get("General", {}).get("UseNativeTitleBar", False)
         frameless = not use_native
         window = wv.MainWindow(
-            "Settings", html_path, api, 1256, 734, theme_mode, frameless, defer_load, frameless=frameless
+            "Settings",
+            html_path,
+            api,
+            1256,
+            734,
+            theme_mode,
+            frameless,
+            defer_load,
+            frameless=frameless,
+            defer_until_show=True,
         )
         window.setMinimumWidth(1099)
+
+        original_close_event = window.closeEvent
+
+        def patched_close_event(event):
+            if self._should_hide_on_close():
+                self._intercept_close(event)
+            else:
+                self._close_blocked = False
+                original_close_event(event)
+
+        window.closeEvent = patched_close_event
         window.destroyed.connect(self._on_window_destroyed)
 
         self._api = api
         self._window = window
         self.process = None
+        self._hidden = False
+        self._close_blocked = False
         return window
 
     def execute(self):
@@ -186,6 +326,10 @@ class SettingsPlugin(AssistantPlugin):
             if self.process is not None and self.process.poll() is None:
                 return
             self._launch_external_window()
+            return
+
+        if self._hidden:
+            self._restore_window()
             return
 
         if self._focus_existing_window(show_toast=True):
@@ -201,6 +345,8 @@ class SettingsPlugin(AssistantPlugin):
             pass
 
     def terminate(self):
+        self._close_blocked = False
+        self._hidden = False
         if self.process is not None and self.process.poll() is None:
             try:
                 self.process.terminate()

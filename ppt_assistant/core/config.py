@@ -188,6 +188,9 @@ class Config(QConfig):
     useNativeTitleBar = ConfigItem(
         "General", "UseNativeTitleBar", False, BoolValidator(), restart=True
     )
+    hideOnClose = ConfigItem(
+        "General", "HideOnClose", True, BoolValidator(), restart=False
+    )
 
     overlayScreen = ConfigItem("Overlay", "OverlayScreen", "Auto", restart=False)
 

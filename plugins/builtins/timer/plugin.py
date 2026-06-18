@@ -1,6 +1,7 @@
 import os
 import json
 import sys
+import gc
 import threading
 import subprocess
 
@@ -9,8 +10,8 @@ from PySide6.QtCore import Signal, Slot, QTimer
 
 from plugins.interface import AssistantPlugin
 from plugins.in_process_window_handle import InProcessWindowHandle
-from ppt_assistant.core.config import SETTINGS_PATH
-from ppt_assistant.core.timer_manager import TimerManager
+from plugins.webview_window_utils import bring_window_to_front
+from ppt_assistant.core.config import SETTINGS_PATH, cfg
 
 
 def _use_external_webview_process() -> bool:
@@ -136,22 +137,56 @@ class TimerPlugin(AssistantPlugin):
         self._window = None
         self._api = None
         self._wv = None
-        self._timer_manager = TimerManager()
-        self.start_requested.connect(self._timer_manager.start)
-        self.pause_requested.connect(self._timer_manager.pause)
-        self.resume_requested.connect(self._timer_manager.resume)
-        self.stop_requested.connect(self._timer_manager.stop)
-        self.finish_requested.connect(self._timer_manager.finish)
-        self.add_time_requested.connect(self._timer_manager.add_time)
-        self.update_time_requested.connect(self._timer_manager.update_time)
-        if not _use_external_webview_process():
-            QTimer.singleShot(1500, self._prewarm_webview)
+        self._hidden = False
+        self._close_blocked = False
+        self._timer_manager = None  # Will be set when context is assigned
+        self.start_requested.connect(self._on_start)
+        self.pause_requested.connect(self._on_pause)
+        self.resume_requested.connect(self._on_resume)
+        self.stop_requested.connect(self._on_stop)
+        self.finish_requested.connect(self._on_finish)
+        self.add_time_requested.connect(self._on_add_time)
+        self.update_time_requested.connect(self._on_update_time)
 
     def get_name(self):
         return "计时器"
 
     def get_icon(self):
         return "timer.svg"
+
+    def set_context(self, context):
+        super().set_context(context)
+        # Use the main app's TimerManager to avoid creating a duplicate
+        if hasattr(context, "_timer_manager"):
+            self._timer_manager = context._timer_manager
+
+    def _on_start(self, seconds):
+        if self._timer_manager:
+            self._timer_manager.start(seconds)
+
+    def _on_pause(self):
+        if self._timer_manager:
+            self._timer_manager.pause()
+
+    def _on_resume(self):
+        if self._timer_manager:
+            self._timer_manager.resume()
+
+    def _on_stop(self):
+        if self._timer_manager:
+            self._timer_manager.stop()
+
+    def _on_finish(self):
+        if self._timer_manager:
+            self._timer_manager.finish()
+
+    def _on_add_time(self, seconds):
+        if self._timer_manager:
+            self._timer_manager.add_time(seconds)
+
+    def _on_update_time(self, total_seconds):
+        if self._timer_manager:
+            self._timer_manager.update_time(total_seconds)
 
     def _prewarm_webview(self):
         try:
@@ -160,6 +195,32 @@ class TimerPlugin(AssistantPlugin):
                 self._wv._warmup_webengine()
         except Exception:
             pass
+
+    def prewarm(self, shell=False):
+        """Warm shared Chromium only; timer window stays on-demand."""
+        if _use_external_webview_process():
+            return
+        try:
+            wv = self._ensure_webview_module()
+            wv._warmup_webengine()
+            if not shell:
+                return
+            self._ensure_window()
+            if self._window is not None:
+                try:
+                    self._window.hide()
+                except Exception:
+                    pass
+            self._hidden = True
+            self._close_blocked = True
+        except Exception:
+            pass
+
+    def _should_hide_on_close(self):
+        try:
+            return bool(cfg.hideOnClose.value)
+        except Exception:
+            return True
 
     def _ensure_webview_module(self):
         if self._wv is None:
@@ -197,11 +258,71 @@ class TimerPlugin(AssistantPlugin):
             return False
 
     def _on_window_destroyed(self, *_args):
+        if self._close_blocked:
+            return
         self._window = None
         self._api = None
         self.process = None
-        if self._timer_manager.is_running:
+        if self._timer_manager and self._timer_manager.is_running:
             self.background_mode_entered.emit()
+
+    def _intercept_close(self, event):
+        if not self._should_hide_on_close():
+            self._close_blocked = False
+            event.accept()
+            return
+        if self._close_blocked:
+            event.accept()
+            return
+        self._hide_window()
+        event.ignore()
+
+    def _hide_window(self):
+        if self._window is None:
+            return
+        self._close_blocked = True
+        try:
+            self._window.hide()
+        except Exception:
+            pass
+        self._hidden = True
+        self._release_webengine_resources()
+        QApplication.processEvents()
+
+    def _restore_window(self):
+        if self._window is None or not self._hidden:
+            return
+        self._close_blocked = False
+        self._hidden = False
+        try:
+            self._ensure_window()
+            if self._window.isMinimized():
+                self._window.showNormal()
+            else:
+                self._window.show()
+            self._window.raise_()
+            self._window.activateWindow()
+            bring_window_to_front(int(self._window.winId()))
+        except RuntimeError:
+            self._window = None
+            self._api = None
+            self._hidden = False
+
+    def _release_webengine_resources(self):
+        try:
+            for gen in range(3):
+                gc.collect(gen)
+            gc.collect()
+        except Exception:
+            pass
+        if sys.platform == "win32":
+            try:
+                import ctypes
+                handle = ctypes.windll.kernel32.GetCurrentProcess()
+                ctypes.windll.kernel32.SetProcessWorkingSetSize(handle, -1, -1)
+                ctypes.windll.kernel32.SetProcessWorkingSetSize(handle, -1, -1)
+            except Exception:
+                pass
 
     def _handle_external_timer_line(self, line: str):
         text = str(line or "").strip()
@@ -239,7 +360,7 @@ class TimerPlugin(AssistantPlugin):
             pass
         if self.process is process:
             self.process = None
-            if self._timer_manager.is_running:
+            if self._timer_manager and self._timer_manager.is_running:
                 self.background_mode_entered.emit()
 
     def _launch_external_window(self, html_path, width, height, assets_path):
@@ -247,11 +368,11 @@ class TimerPlugin(AssistantPlugin):
             {
                 "ASSETS_PATH": assets_path,
                 "TIMER_REMAINING": str(
-                    int(max(0, self._timer_manager.remaining_seconds))
+                    int(max(0, self._timer_manager.remaining_seconds if self._timer_manager else 0))
                 ),
-                "TIMER_TOTAL": str(int(max(0, self._timer_manager.total_seconds))),
+                "TIMER_TOTAL": str(int(max(0, self._timer_manager.total_seconds if self._timer_manager else 0))),
                 "TIMER_IS_RUNNING": "true"
-                if self._timer_manager.is_running
+                if (self._timer_manager and self._timer_manager.is_running)
                 else "false",
             }
         )
@@ -334,8 +455,20 @@ class TimerPlugin(AssistantPlugin):
             not use_native,
             defer_load,
             frameless=not use_native,
+            defer_until_show=True,
         )
         window.destroyed.connect(self._on_window_destroyed)
+
+        original_close_event = window.closeEvent
+
+        def patched_close_event(event):
+            if self._should_hide_on_close():
+                self._intercept_close(event)
+            else:
+                self._close_blocked = False
+                original_close_event(event)
+
+        window.closeEvent = patched_close_event
 
         self._api = api
         self._window = window
@@ -346,7 +479,11 @@ class TimerPlugin(AssistantPlugin):
         if _use_external_webview_process():
             if self.process is not None and self.process.poll() is None:
                 return
-            self._ensure_window()
+            self._launch_external_window()
+            return
+
+        if self._hidden:
+            self._restore_window()
             return
 
         if self._focus_existing_window(show_toast=True):
@@ -357,10 +494,13 @@ class TimerPlugin(AssistantPlugin):
         try:
             self._window.raise_()
             self._window.activateWindow()
+            bring_window_to_front(int(self._window.winId()))
         except Exception:
             pass
 
     def terminate(self):
+        self._close_blocked = False
+        self._hidden = False
         if self.process and self.process.poll() is None:
             self.process.terminate()
         self._window = None
