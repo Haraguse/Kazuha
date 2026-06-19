@@ -578,14 +578,13 @@ def _apply_chromium_flags():
         "--wm-window-animations-disabled",
         "--renderer-process-limit=1",
         "--max-decoded-image-size-bytes=10485760",
-        "--disk-cache-size=10485760",
+        "--disk-cache-size=20971520",
         "--max-active-webgl-contexts=1",
         "--disable-features=BackForwardCache,VaapiVideoDecoder,MediaFoundationVideoCapture,HardwareMediaKeyHandling,Translate",
-        "--js-flags=--max-old-space-size=64",
+        "--js-flags=--max-old-space-size=256",
         "--num-raster-threads=2",
         "--disable-site-isolation-trials",
         "--enable-low-res-tiling",
-        "--aggressive-cache-discard",
     ]
 
     if not is_onboarding_process:
@@ -600,7 +599,7 @@ def _apply_chromium_flags():
 
     if sys.platform == "win32":
         flags.extend([
-            "--gpu-memory-buffer-budget=67108864",
+            "--gpu-memory-buffer-budget=134217728",
             "--disable-gpu-shader-disk-cache",
         ])
 
