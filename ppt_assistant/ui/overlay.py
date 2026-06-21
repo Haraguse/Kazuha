@@ -1074,8 +1074,6 @@ class OverlayWindow(QWebEngineView):
             for attr_name, enabled in [
                 ("LocalStorageEnabled", False),
                 ("SessionStorageEnabled", False),
-                ("WebGLEnabled", False),
-                ("Accelerated2dCanvasEnabled", False),
                 ("ScrollAnimatorEnabled", not cfg.disableAnimations.value),
                 ("LocalContentCanAccessFileUrls", True),
                 ("LocalContentCanAccessRemoteUrls", True),
@@ -1320,22 +1318,6 @@ class OverlayWindow(QWebEngineView):
         # Use exponential backoff: 100ms, 500ms, 1500ms
         delay = min(100 * (2 ** (self._render_crash_count - 1)), 2000)
         print(f"[Overlay] Scheduling reload in {delay}ms")
-
-        # If this is the second crash, try disabling GPU acceleration
-        if self._render_crash_count == 2:
-            try:
-                print("[Overlay] Disabling GPU acceleration due to repeated crashes")
-                settings = self.page().settings()
-                from PySide6.QtWebEngineCore import QWebEngineSettings
-
-                settings.setAttribute(
-                    QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, False
-                )
-                settings.setAttribute(
-                    QWebEngineSettings.WebAttribute.WebGLEnabled, False
-                )
-            except Exception as e:
-                print(f"[Overlay] Error disabling GPU: {e}")
 
         # Cancel any pending reload timer
         if self._crash_recovery_timer is not None:

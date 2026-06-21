@@ -1080,10 +1080,10 @@ class SystemTray(QObject):
             if os.path.exists(logo_path):
                 self.tray_icon.setIcon(QIcon(logo_path))
 
-    def show_message(self, title, message):
+    def show_message(self, title, message, image_path=None):
         if sys.platform == "win32":
             try:
-                if send_windows_notification(title, message):
+                if send_windows_notification(title, message, image_path=image_path):
                     return
             except Exception:
                 pass

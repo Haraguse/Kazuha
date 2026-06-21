@@ -395,19 +395,6 @@ def _is_windows7():
     except Exception:
         return False
 
-    
-def _get_screen_refresh_rate():
-    try:
-        import ctypes
-
-        user32 = ctypes.windll.user32
-        hdc = user32.GetDC(0)
-        rate = ctypes.windll.gdi32.GetDeviceCaps(hdc, 116)  # VREFRESH
-        user32.ReleaseDC(0, hdc)
-        return rate if rate > 1 else 60
-    except:
-        return 60
-
 
 def _env_flag_enabled(name: str, default: bool = False) -> bool:
     raw = os.environ.get(name)
@@ -438,160 +425,13 @@ def _force_directwrite_font_engine():
     print("[Main] DirectWrite font engine forced.", flush=True)
 
 
-_VIRTUAL_GPU_MAIN = None
-
-
-def _is_virtual_gpu() -> bool:
-    """检测是否运行在虚拟机或低端显卡环境（无可用 GPU 加速）"""
-    global _VIRTUAL_GPU_MAIN
-    if _VIRTUAL_GPU_MAIN is not None:
-        return _VIRTUAL_GPU_MAIN
-    if sys.platform != "win32":
-        _VIRTUAL_GPU_MAIN = False
-        return _VIRTUAL_GPU_MAIN
-    names = []
-    try:
-        import ctypes
-        from ctypes import wintypes
-
-        class DISPLAY_DEVICEW(ctypes.Structure):
-            _fields_ = [
-                ("cb", wintypes.DWORD),
-                ("DeviceName", wintypes.WCHAR * 32),
-                ("DeviceString", wintypes.WCHAR * 128),
-                ("StateFlags", wintypes.DWORD),
-                ("DeviceID", wintypes.WCHAR * 128),
-                ("DeviceKey", wintypes.WCHAR * 128),
-            ]
-
-        user32 = ctypes.windll.user32
-        i = 0
-        while True:
-            dd = DISPLAY_DEVICEW()
-            dd.cb = ctypes.sizeof(DISPLAY_DEVICEW)
-            if not user32.EnumDisplayDevicesW(None, i, ctypes.byref(dd), 0):
-                break
-            for field in (dd.DeviceString, dd.DeviceID, dd.DeviceName):
-                try:
-                    if field:
-                        names.append(str(field).lower())
-                except Exception:
-                    continue
-            i += 1
-    except Exception:
-        _VIRTUAL_GPU_MAIN = False
-        return _VIRTUAL_GPU_MAIN
-
-    hay = " ".join(names)
-    keywords = [
-        "vmware",
-        "virtualbox",
-        "vbox",
-        "svga",
-        "qxl",
-        "virtio",
-        "parallels",
-        "hyper-v",
-        "microsoft basic display",
-        "basic display adapter",
-        "remote display",
-        "citrix",
-        "xen",
-        "bochs",
-        "rdpdd",
-        "rdp chain",
-        "idriver",
-        "vnc",
-        "microsoft remote display",
-    ]
-    _VIRTUAL_GPU_MAIN = any(k in hay for k in keywords)
-    if _VIRTUAL_GPU_MAIN:
-        print(f"[Main] Virtual GPU or headless environment detected: {hay[:200]}", flush=True)
-    return _VIRTUAL_GPU_MAIN
-
-
 def _apply_graphics_settings():
     if sys.platform == "linux":
-        qpa_platform = str(os.environ.get("QT_QPA_PLATFORM", "")).strip().lower()
-        has_x11_display = bool(os.environ.get("DISPLAY"))
         os.environ["QTWEBENGINE_DISABLE_SANDBOX"] = "1"
-        flags = [
-            "--disable-gpu",
-            "--disable-gpu-compositing",
-            "--enable-software-rasterizer",
-            "--no-sandbox",
-        ]
-        if qpa_platform == "xcb" and has_x11_display:
-            flag = "--disable-features=UseOzonePlatform"
-            if flag not in flags:
-                flags.append(flag)
-        current = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
-        merged = current.split()
-        for flag in flags:
-            if flag not in merged:
-                merged.append(flag)
-        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(merged)
-        print(
-            "[Main] Linux graphics settings:"
-            f" qpa={qpa_platform or 'unset'}"
-            f" flags={os.environ.get('QTWEBENGINE_CHROMIUM_FLAGS', '')}",
-            flush=True,
-        )
         return
 
-    # Configure rendering backend for best performance
-    # Use native OpenGL for smooth rendering
-    os.environ["QT_OPENGL"] = "desktop"
-    os.environ["QT_VULKAN_DISABLE"] = "1"
-    # Let Qt automatically choose the best RHI backend
-    # Don't force QSG_RHI_BACKEND to allow fallback
-
-    _force_directwrite_font_engine()
-
-    use_software_webengine = (
-        _is_compatibility_mode_enabled()
-        or _env_flag_enabled("LUMINALIUM_WEBENGINE_SOFTWARE", False)
-        or _is_virtual_gpu()
-    )
-
-    if use_software_webengine:
-        os.environ["QSG_RHI_BACKEND"] = "software"
-        os.environ["QT_QUICK_BACKEND"] = "software"
-        os.environ["QT_OPENGL"] = "software"
-        os.environ["QTWEBENGINE_DISABLE_GPU"] = "1"
-        flags = [
-            "--disable-gpu",
-            "--disable-gpu-compositing",
-            "--disable-gpu-rasterization",
-            "--no-sandbox",
-        ]
-    else:
-        # Base flags tuned for smoother rendering and lower memory usage
-        flags = [
-            "--enable-gpu-rasterization",
-            "--enable-zero-copy",
-            "--enable-features=VaapiVideoDecoder,VaapiVideoEncoder",
-            "--ignore-gpu-blocklist",
-            "--enable-hardware-overlays",
-            # Memory and performance optimizations
-            "--js-flags=--max-old-space-size=64",
-            "--disable-site-isolation-trials",
-            "--renderer-process-limit=1",
-            "--disable-features=Translate",
-            "--disable-logging",
-            "--enable-low-res-tiling",
-            "--max-decoded-image-size-bytes=10485760",
-            "--disk-cache-size=10485760",
-            "--aggressive-cache-discard",
-        ]
-
-        # Get refresh rate for target FPS
-        rate = _get_screen_refresh_rate()
-        target_fps = rate * 3
-        os.environ["LUMINALIUM_TARGET_FPS"] = str(target_fps)
-
-        if sys.platform == "win32":
-            flags.append("--gpu-memory-buffer-budget=67108864")
+    if sys.platform == "win32":
+        _force_directwrite_font_engine()
 
     # Windows 7 Fallback
     if _is_windows7():
@@ -608,13 +448,6 @@ def _apply_graphics_settings():
                 if path not in existing.split(os.pathsep):
                     os.environ["PATH"] = path + os.pathsep + existing
                 break
-
-    current = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
-    merged = current.split()
-    for flag in flags:
-        if flag not in merged:
-            merged.append(flag)
-    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(merged)
 
 
 def _should_enable_system_tray() -> bool:
@@ -2444,7 +2277,10 @@ class PPTAssistantApp:
         except Exception:
             pass
 
-        # Staggered WebEngine prewarm is scheduled after init completes.
+        if hasattr(self, "settings_plugin") and self.settings_plugin is not None:
+            self.settings_plugin.prewarm()
+        # Timer plugin prewarming disabled to save memory (~50-100MB per hidden WebEngine window)
+        # It will be created on-demand when the user opens the timer
 
         self._open_settings_after_startup = self._consume_open_settings_pending_flag() or self._open_settings_after_startup
         yield 80, "init_tray"
@@ -2524,7 +2360,6 @@ class PPTAssistantApp:
         if getattr(self, "_pending_protocol_url", None):
             url = self._pending_protocol_url
             QTimer.singleShot(600, lambda: self.handle_protocol_url(url))
-        self._schedule_webengine_prewarm()
         _init_trace("_init_steps: DONE")
 
     def _perform_init_step(self):
@@ -2751,43 +2586,6 @@ class PPTAssistantApp:
         except Exception as e:
             print(f"[APP] Error stopping resource monitor: {e}")
 
-    def _schedule_webengine_prewarm(self):
-        """Staggered prewarm: engine → shell → background HTML load."""
-
-        def _warm_engine():
-            try:
-                from plugins.webview_runner import _warmup_webengine
-                _warmup_webengine(retain_placeholder=True)
-                print("[APP] WebEngine engine prewarm done", flush=True)
-            except Exception as e:
-                print(f"[APP] WebEngine engine prewarm failed: {e}", flush=True)
-
-        def _warm_settings_shell():
-            try:
-                plugin = getattr(self, "settings_plugin", None)
-                if plugin is None:
-                    return
-                if plugin._window is not None and not plugin._hidden:
-                    return
-                plugin.prewarm(shell=True)
-                print("[APP] Settings shell prewarm done", flush=True)
-            except Exception as e:
-                print(f"[APP] Settings shell prewarm failed: {e}", flush=True)
-
-        def _warm_settings_content():
-            try:
-                plugin = getattr(self, "settings_plugin", None)
-                if plugin is None:
-                    return
-                plugin.prewarm_load_content()
-                print("[APP] Settings content prewarm done", flush=True)
-            except Exception as e:
-                print(f"[APP] Settings content prewarm failed: {e}", flush=True)
-
-        QTimer.singleShot(800, _warm_engine)
-        QTimer.singleShot(1600, _warm_settings_shell)
-        QTimer.singleShot(3200, _warm_settings_content)
-
     def _start_memory_cleaner(self):
         try:
             if self._memory_cleaner_process is not None:
@@ -2885,7 +2683,14 @@ class PPTAssistantApp:
     def _on_resource_alert(self, title: str, message: str):
         try:
             if hasattr(self, "tray") and self.tray:
-                self.tray.show_message(title, message)
+                if getattr(sys, "frozen", False):
+                    base_dir = os.path.dirname(sys.executable)
+                else:
+                    base_dir = os.path.dirname(os.path.abspath(__file__))
+                image_path = os.path.join(base_dir, "icons", "performance-warning-image.png")
+                if not os.path.exists(image_path):
+                    image_path = None
+                self.tray.show_message(title, message, image_path=image_path)
         except Exception as e:
             print(f"[APP] Error sending resource alert: {e}")
 
@@ -3721,9 +3526,6 @@ if __name__ == "__main__":
         register_url_protocol()
     _check_post_update()
     _apply_graphics_settings()
-    # Use Desktop OpenGL for better compatibility with Qt6
-    QCoreApplication.setAttribute(Qt.AA_UseDesktopOpenGL)
-    QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     print("[Main] Creating QApplication...", flush=True)
     app = QApplication(sys.argv)
     print("[Main] QApplication created.", flush=True)

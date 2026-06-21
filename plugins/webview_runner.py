@@ -316,19 +316,6 @@ def _is_win11():
         return False
 
 
-def _get_screen_refresh_rate():
-    try:
-        import ctypes
-
-        user32 = ctypes.windll.user32
-        hdc = user32.GetDC(0)
-        rate = ctypes.windll.gdi32.GetDeviceCaps(hdc, 116)  # VREFRESH
-        user32.ReleaseDC(0, hdc)
-        return rate if rate > 1 else 60
-    except:
-        return 60
-
-
 def _configure_profile(profile):
     if profile is None:
         return None
@@ -547,170 +534,6 @@ def _should_defer_initial_load(url, title, explicit_defer=False):
         except Exception:
             pass
     return False
-
-
-def _is_onboarding_webview_process():
-    for arg in sys.argv:
-        text = str(arg or "").strip().lower()
-        if "onboarding.html" in text or text == "onboarding" or "onboarding preview" in text:
-            return True
-    return False
-
-
-def _should_disable_webview_gpu_features(window_tag=None):
-    if _is_virtual_gpu() or _is_windows7():
-        return True
-    return str(window_tag or "").strip().lower() == "onboarding"
-
-
-def _apply_chromium_flags():
-    _maybe_add_vxkex_path()
-    is_onboarding_process = _is_onboarding_webview_process()
-    flags = [
-        "--disable-renderer-backgrounding",
-        "--disable-background-timer-throttling",
-        "--disable-backgrounding-occluded-windows",
-        "--disable-breakpad",
-        "--disable-component-update",
-        "--disable-print-preview",
-        "--disable-speech-api",
-        "--disable-web-security",
-        "--wm-window-animations-disabled",
-        "--renderer-process-limit=1",
-        "--max-decoded-image-size-bytes=10485760",
-        "--disk-cache-size=10485760",
-        "--max-active-webgl-contexts=1",
-        "--disable-features=BackForwardCache,VaapiVideoDecoder,MediaFoundationVideoCapture,HardwareMediaKeyHandling,Translate",
-        "--js-flags=--max-old-space-size=64",
-        "--num-raster-threads=2",
-        "--disable-site-isolation-trials",
-        "--enable-low-res-tiling",
-        "--aggressive-cache-discard",
-    ]
-
-    if not is_onboarding_process:
-        flags.extend(
-            [
-                "--enable-zero-copy",
-                "--enable-features=GpuRasterization",
-                "--enable-gpu-rasterization",
-                "--ignore-gpu-blocklist",
-            ]
-        )
-
-    if sys.platform == "win32":
-        flags.extend([
-            "--gpu-memory-buffer-budget=67108864",
-            "--disable-gpu-shader-disk-cache",
-        ])
-
-    if _is_virtual_gpu():
-        # VM / 低端显卡环境：强制软件渲染，避免黑屏
-        os.environ["QT_OPENGL"] = "software"
-        os.environ["QSG_RHI_BACKEND"] = "software"
-        os.environ["QT_QUICK_BACKEND"] = "software"
-        os.environ["QTWEBENGINE_DISABLE_GPU"] = "1"
-        # 移除冲突的 GPU 加速 flag
-        for gpu_flag in (
-            "--enable-gpu-rasterization",
-            "--enable-zero-copy",
-            "--enable-features=GpuRasterization",
-            "--ignore-gpu-blocklist",
-            "--gpu-memory-buffer-budget=134217728",
-        ):
-            if gpu_flag in flags:
-                flags.remove(gpu_flag)
-        flags.extend(
-            [
-                "--disable-gpu",
-                "--disable-gpu-compositing",
-                "--disable-gpu-rasterization",
-                "--enable-unsafe-swiftshader",
-            ]
-        )
-
-    rate = _get_screen_refresh_rate()
-    target_fps = rate * 3
-    os.environ["LUMINALIUM_TARGET_FPS"] = str(target_fps)
-
-    current = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
-    if current:
-        merged = current.split()
-        if "--disable-gpu-shader-disk-cache" in merged:
-            merged.remove("--disable-gpu-shader-disk-cache")
-        for flag in flags:
-            if flag not in merged:
-                merged.append(flag)
-        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(merged)
-    else:
-        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(flags)
-
-
-_VIRTUAL_GPU = None
-
-
-def _is_virtual_gpu():
-    global _VIRTUAL_GPU
-    if _VIRTUAL_GPU is not None:
-        return _VIRTUAL_GPU
-    names = []
-    try:
-        from ctypes import wintypes
-
-        class DISPLAY_DEVICEW(ctypes.Structure):
-            _fields_ = [
-                ("cb", wintypes.DWORD),
-                ("DeviceName", wintypes.WCHAR * 32),
-                ("DeviceString", wintypes.WCHAR * 128),
-                ("StateFlags", wintypes.DWORD),
-                ("DeviceID", wintypes.WCHAR * 128),
-                ("DeviceKey", wintypes.WCHAR * 128),
-            ]
-
-        user32 = ctypes.windll.user32
-        i = 0
-        while True:
-            dd = DISPLAY_DEVICEW()
-            dd.cb = ctypes.sizeof(DISPLAY_DEVICEW)
-            if not user32.EnumDisplayDevicesW(None, i, ctypes.byref(dd), 0):
-                break
-            for field in (dd.DeviceString, dd.DeviceID, dd.DeviceName):
-                try:
-                    if field:
-                        names.append(str(field).lower())
-                except Exception:
-                    continue
-            i += 1
-    except Exception:
-        _VIRTUAL_GPU = False
-        return _VIRTUAL_GPU
-
-    hay = " ".join(names)
-    keywords = [
-        "vmware",
-        "virtualbox",
-        "vbox",
-        "svga",
-        "qxl",
-        "virtio",
-        "parallels",
-        "hyper-v",
-        "microsoft basic display",
-        "basic display adapter",
-        "remote display",
-        "citrix",
-        "xen",
-        "bochs",
-        "rdpdd",
-        "rdp chain",
-        "idriver",
-        "vnc",
-        "microsoft remote display",
-    ]
-    _VIRTUAL_GPU = any(k in hay for k in keywords)
-    if _VIRTUAL_GPU:
-        print(f"[WebView] Virtual GPU or headless environment detected: {hay[:200]}", flush=True)
-    return _VIRTUAL_GPU
 
 
 def _get_wallpaper_path():
@@ -1744,6 +1567,27 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
                 self.update_settings(data)
         except Exception as e:
             print(f"Error saving settings: {e}", file=sys.stderr)
+
+    @Slot(str, str, bool)
+    def preview_theme(self, theme_mode, theme_id, is_dark):
+        if not self._window:
+            return
+        theme_mode = str(theme_mode or "Auto")
+        theme_id = str(theme_id or "default")
+        is_dark = bool(is_dark)
+        if not isinstance(self.settings, dict):
+            self.settings = {}
+        appearance = self.settings.setdefault("Appearance", {})
+        appearance["ThemeMode"] = theme_mode
+        appearance["ThemeId"] = theme_id
+        appearance["ResolvedIsDark"] = is_dark
+        self._window._theme_mode = theme_mode
+        self._window._theme_dark_override = is_dark
+        try:
+            self._window._apply_page_background()
+            _apply_window_theme(int(self._window.winId()), is_dark)
+        except Exception:
+            pass
 
     def _get_profiles_dir(self):
         settings_path = self._get_settings_path()
@@ -3901,6 +3745,7 @@ class MainWindow(QWebEngineView):
             self._center_on_screen()
         self._centered = False
         self._theme_mode = theme_mode
+        self._theme_dark_override = None
         self._custom_border = custom_border
         self._defer_load = defer_load
         self._mini_mode = False
@@ -3923,11 +3768,6 @@ class MainWindow(QWebEngineView):
         self.winId()
         self._apply_page_background()
         settings = self.page().settings()
-        allow_gpu = not _should_disable_webview_gpu_features(self._window_tag)
-        settings.setAttribute(
-            QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, allow_gpu
-        )
-        settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, allow_gpu)
         settings.setAttribute(
             QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True
         )
@@ -3957,7 +3797,9 @@ class MainWindow(QWebEngineView):
         )
         if "Appearance" not in settings_dict:
             settings_dict["Appearance"] = {}
-        settings_dict["Appearance"]["ResolvedIsDark"] = _resolve_theme_dark(theme_mode)
+        appearance = settings_dict["Appearance"]
+        mode = appearance.get("ThemeMode", theme_mode)
+        appearance["ResolvedIsDark"] = _resolve_theme_dark(mode)
 
         settings_json = json.dumps(settings_dict, ensure_ascii=False)
         settings_script = QWebEngineScript()
@@ -3996,19 +3838,6 @@ class MainWindow(QWebEngineView):
         )
         preview_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         self.page().scripts().insert(preview_script)
-        if self._window_tag == "onboarding":
-            onboarding_render_script = QWebEngineScript()
-            onboarding_render_script.setSourceCode(
-                "try {"
-                "window.__LUMINALIUM_GPU_SAFE_EFFECTS = true;"
-                "document.documentElement.setAttribute('data-gpu-safe-effects', 'true');"
-                "} catch (e) {}"
-            )
-            onboarding_render_script.setInjectionPoint(
-                QWebEngineScript.InjectionPoint.DocumentCreation
-            )
-            onboarding_render_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
-            self.page().scripts().insert(onboarding_render_script)
         if self._custom_border:
             self._inject_custom_border()
         self.loadStarted.connect(self._on_load_started)
@@ -4141,23 +3970,6 @@ class MainWindow(QWebEngineView):
         delay = min(100 * (2 ** (self._render_crash_count - 1)), 2000)
         print(f"[WebView] Scheduling reload in {delay}ms", file=sys.stderr)
 
-        # If this is the second crash, try disabling GPU acceleration
-        if self._render_crash_count == 2:
-            try:
-                print(
-                    "[WebView] Disabling GPU acceleration due to repeated crashes",
-                    file=sys.stderr,
-                )
-                settings = self.page().settings()
-                settings.setAttribute(
-                    QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, False
-                )
-                settings.setAttribute(
-                    QWebEngineSettings.WebAttribute.WebGLEnabled, False
-                )
-            except Exception as e:
-                print(f"[WebView] Error disabling GPU: {e}", file=sys.stderr)
-
         # Cancel any pending reload timer
         if self._crash_recovery_timer is not None:
             try:
@@ -4172,6 +3984,12 @@ class MainWindow(QWebEngineView):
         self._crash_recovery_timer.timeout.connect(self.reload)
         self._crash_recovery_timer.start(delay)
 
+    def _effective_is_dark(self):
+        override = getattr(self, "_theme_dark_override", None)
+        if override is not None:
+            return bool(override)
+        return _resolve_theme_dark(self._theme_mode)
+
     def _apply_page_background(self):
         if self._mini_mode:
             self.page().setBackgroundColor(Qt.transparent)
@@ -4181,7 +3999,7 @@ class MainWindow(QWebEngineView):
             try:
                 self.setAutoFillBackground(True)
                 palette = self.palette()
-                is_dark = _resolve_theme_dark(self._theme_mode)
+                is_dark = self._effective_is_dark()
                 bg_color = QColor(24, 24, 24) if is_dark else QColor(255, 255, 255)
                 palette.setColor(self.backgroundRole(), bg_color)
                 self.setPalette(palette)
@@ -4190,7 +4008,7 @@ class MainWindow(QWebEngineView):
             _safe_set_widget_attr(self, getattr(Qt, "WA_OpaquePaintEvent", None), True)
             _safe_set_widget_attr(self, Qt.WA_TranslucentBackground, False)
             _safe_set_widget_attr(self, getattr(Qt, "WA_NoSystemBackground", None), False)
-            is_dark = _resolve_theme_dark(self._theme_mode)
+            is_dark = self._effective_is_dark()
             if is_dark:
                 self.page().setBackgroundColor(QColor(24, 24, 24))
             else:
@@ -4205,7 +4023,7 @@ class MainWindow(QWebEngineView):
         try:
             self.setAutoFillBackground(True)
             palette = self.palette()
-            is_dark = _resolve_theme_dark(self._theme_mode)
+            is_dark = self._effective_is_dark()
             bg_color = QColor(24, 24, 24) if is_dark else QColor(255, 255, 255)
             palette.setColor(self.backgroundRole(), bg_color)
             self.setPalette(palette)
@@ -4214,7 +4032,7 @@ class MainWindow(QWebEngineView):
         _safe_set_widget_attr(self, getattr(Qt, "WA_OpaquePaintEvent", None), True)
         _safe_set_widget_attr(self, Qt.WA_TranslucentBackground, False)
         _safe_set_widget_attr(self, getattr(Qt, "WA_NoSystemBackground", None), False)
-        is_dark = _resolve_theme_dark(self._theme_mode)
+        is_dark = self._effective_is_dark()
         if is_dark:
             self.page().setBackgroundColor(QColor(24, 24, 24))
         else:
@@ -4726,6 +4544,7 @@ body {
             self._theme_mode,
             getattr(self.api, "settings", {}),
             getattr(self, "_window_tag", ""),
+            is_dark=self._effective_is_dark(),
         )
         self.update()
 
@@ -4875,7 +4694,7 @@ body {
         super().closeEvent(event)
 
 
-def apply_win11_aesthetics(window, theme_mode=None, settings=None, window_tag=""):
+def apply_win11_aesthetics(window, theme_mode=None, settings=None, window_tag="", is_dark=None):
     try:
         hwnd = int(window.winId())
         dwmapi = ctypes.windll.dwmapi
@@ -4883,7 +4702,9 @@ def apply_win11_aesthetics(window, theme_mode=None, settings=None, window_tag=""
         dwmapi.DwmSetWindowAttribute(
             hwnd, 33, ctypes.byref(corner_preference), ctypes.sizeof(corner_preference)
         )
-        _apply_window_theme(hwnd, _resolve_theme_dark(theme_mode))
+        if is_dark is None:
+            is_dark = _resolve_theme_dark(theme_mode)
+        _apply_window_theme(hwnd, bool(is_dark))
         icon_path = _resolve_logo_ico_path()
         if icon_path and os.path.exists(icon_path):
             user32 = ctypes.windll.user32
@@ -4908,7 +4729,7 @@ def apply_win11_aesthetics(window, theme_mode=None, settings=None, window_tag=""
 
 
 def main():
-    _apply_chromium_flags()
+    _maybe_add_vxkex_path()
     app = QApplication(sys.argv)
     _warmup_webengine()
     icon = _load_app_icon()

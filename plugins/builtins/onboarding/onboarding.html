@@ -6028,6 +6028,18 @@ html, body {
       document.documentElement.setAttribute("data-theme", variant);
       document.documentElement.setAttribute("data-theme-id", themeId);
       document.documentElement.setAttribute("data-theme-variant", variant);
+
+      window.initialSettings = window.initialSettings || {};
+      window.initialSettings.Appearance = window.initialSettings.Appearance || {};
+      window.initialSettings.Appearance.ThemeMode = mode;
+      window.initialSettings.Appearance.ThemeId = themeId;
+      window.initialSettings.Appearance.ResolvedIsDark = isDark;
+      if (typeof window.__applyUnifiedTheme === "function") {
+        window.__applyUnifiedTheme();
+      }
+      if (window.pywebview?.api?.preview_theme) {
+        window.pywebview.api.preview_theme(mode, themeId, isDark);
+      }
     }
 
     // Custom Select Logic
@@ -6073,6 +6085,9 @@ html, body {
 
     // Init
     function init(settings) {
+      if (!settings && window.initialSettings) {
+        settings = window.initialSettings;
+      }
       if (settings) {
         if (settings.General?.Language) {
           state.config.language = settings.General.Language;
@@ -6633,15 +6648,23 @@ makes it unnecessary.
     }, 4500);
 
     // Boot
-    if (window.pywebview) {
-      window.pywebview.api.get_settings().then(init);
-    } else {
-      window.addEventListener("pywebviewready", () => {
-        window.pywebview.api.get_settings().then(init);
-      });
-      // Dev fallback
-      init(); 
+    function bootOnboarding() {
+      if (window.initialSettings) {
+        init(window.initialSettings);
+      }
+      const loadSettings = () => {
+        if (window.pywebview?.api?.get_settings) {
+          return window.pywebview.api.get_settings().then(init);
+        }
+        return Promise.resolve();
+      };
+      if (window.pywebview) {
+        loadSettings();
+      } else {
+        window.addEventListener("pywebviewready", loadSettings, { once: true });
+      }
     }
+    bootOnboarding();
   </script>
 </body>
 </html>

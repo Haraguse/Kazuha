@@ -307,6 +307,7 @@ def send_windows_notification(
     work_dir: str | None = None,
     icon_path: str | None = None,
     args: str | None = None,
+    image_path: str | None = None,
 ) -> bool:
     if sys.platform != "win32":
         return False
@@ -357,10 +358,23 @@ def send_windows_notification(
         if action_items:
             actions_xml = f"<actions>{''.join(action_items)}</actions>"
 
+    image_xml = ""
+    if image_path:
+        image_src = image_path
+        if "://" not in image_path:
+            image_src = Path(image_path).as_uri()
+        image_xml = (
+            '<image'
+            f' src="{html.escape(image_src, quote=True)}"'
+            ' placement="hero"'
+            " />"
+        )
+
     xml_content = (
         f"<toast{launch_attr}>"
         "<visual>"
         '<binding template="ToastGeneric">'
+        f"{image_xml}"
         f"<text>{escaped_title}</text>"
         f"<text>{escaped_message}</text>"
         "</binding>"

@@ -40,25 +40,8 @@ def _build_linux_webview_env():
         return env
     if env.get("DISPLAY"):
         env["QT_QPA_PLATFORM"] = "xcb"
-    # env["QT_OPENGL"] = "software"
-    # env["QT_RHI_BACKEND"] = "software"
-    # env["QT_VULKAN_DISABLE"] = "1"
-    # env["QT_QUICK_BACKEND"] = "software"
-    # env["QT_XCB_FORCE_SOFTWARE_OPENGL"] = "1"
     env["QTWEBENGINE_DISABLE_SANDBOX"] = "1"
     env["DEFER_WEBENGINE_LOAD"] = "1"
-    flags = [
-        "--disable-gpu",
-        "--disable-gpu-compositing",
-        "--enable-software-rasterizer",
-        "--disable-vulkan",
-        "--no-sandbox",
-    ]
-    merged = str(env.get("QTWEBENGINE_CHROMIUM_FLAGS", "")).split()
-    for flag in flags:
-        if flag not in merged:
-            merged.append(flag)
-    env["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(merged).strip()
     return env
 
 

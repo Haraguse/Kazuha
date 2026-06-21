@@ -12,7 +12,7 @@ _NOTIFICATION_TEXTS = {
     "ja-JP": {
         "title": "ステータスバーをオフにしますか？",
         "message": (
-            "ClassIsland をご利用中のようです。"
+            "ClassIsland / Class Widgets をご利用中のようです。"
             "本ソフトのステータスバー機能をオフにすると、"
             "より快適な表示体験が得られます。"
             "ステータスバーをオフにしますか？"
@@ -22,7 +22,7 @@ _NOTIFICATION_TEXTS = {
     "zh-TW": {
         "title": "要關閉狀態列嗎？",
         "message": (
-            "偵測到您正在使用 ClassIsland，"
+            "偵測到您正在使用 ClassIsland 或 Class Widgets，"
             "將本軟體狀態列功能關閉可確保您整體體驗更佳，"
             "要關閉本軟體的狀態列嗎？"
         ),
@@ -31,7 +31,7 @@ _NOTIFICATION_TEXTS = {
     "yue-HK": {
         "title": "你個腦係咪有問題呀？",
         "message": (
-            "ClassIsland 都行緊啦，你仲唔閂咗 Luminalium 個狀態欄佢？"
+            "ClassIsland / Class Widgets 都行緊啦，你仲唔閂咗 Luminalium 個狀態欄佢？"
             "你若果唔想條賓周被我割咗去，就快啲開設置將 Luminalium 個狀態欄閂咗佢！"
             "如果唔係，等住被啲垃圾體驗割走你條賓周啦！"
         ),
@@ -40,7 +40,7 @@ _NOTIFICATION_TEXTS = {
     "en-US": {
         "title": "Turn off status bar?",
         "message": (
-            "It looks like you're using ClassIsland. "
+            "It looks like you're using ClassIsland or Class Widgets. "
             "Turning off the status bar feature in this app "
             "can improve your overall experience. "
             "Would you like to turn it off?"
@@ -52,7 +52,7 @@ _NOTIFICATION_TEXTS = {
 _DEFAULT_NOTIFICATION = {
     "title": "要关闭状态栏么？",
     "message": (
-        "检测到您正在使用 ClassIsland，"
+        "检测到您正在使用 ClassIsland 或 Class Widgets，"
         "将本软件状态栏功能关闭可保证您整体的体验更佳，"
         "要关闭本软件的状态栏么？"
     ),
