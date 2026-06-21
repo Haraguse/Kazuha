@@ -7,12 +7,12 @@ import traceback
 
 import psutil
 
-_MEMORY_LIMIT_MB = 128
-_SELF_LIMIT_MB = 20
-_PARENT_LIMIT_MB = 128
+_MEMORY_LIMIT_MB = 256
+_SELF_LIMIT_MB = 32
+_PARENT_LIMIT_MB = 256
 _CHECK_INTERVAL_S = 5
 _AGGRESSIVE_INTERVAL_S = 2
-_CLEAN_CYCLE_S = 10
+_CLEAN_CYCLE_S = 15
 
 
 def _get_rss_mb(pid: int) -> float:
@@ -24,7 +24,6 @@ def _get_rss_mb(pid: int) -> float:
 
 def _empty_working_set(handle: ctypes.c_void_p):
     try:
-        ctypes.windll.kernel32.SetProcessWorkingSetSize(handle, -1, -1)
         ctypes.windll.kernel32.SetProcessWorkingSetSize(handle, -1, -1)
     except Exception:
         pass
@@ -46,9 +45,7 @@ def _trim_pid_windows(pid: int) -> bool:
         if not handle:
             return False
         try:
-            for _ in range(3):
-                _empty_working_set(handle)
-                time.sleep(0.05)
+            _empty_working_set(handle)
 
             try:
                 ntdll = ctypes.windll.ntdll
@@ -156,7 +153,7 @@ def _is_process_alive(pid: int) -> bool:
 
 
 def run_memory_cleaner(parent_pid: int, interval_seconds: int = 30) -> None:
-    gc.set_threshold(300, 5, 5)
+    gc.set_threshold(700, 10, 10)
     gc.enable()
 
     check_interval = max(5, interval_seconds)

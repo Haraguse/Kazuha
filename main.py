@@ -433,6 +433,51 @@ def _apply_graphics_settings():
     if sys.platform == "win32":
         _force_directwrite_font_engine()
 
+    use_software_webengine = (
+        _is_compatibility_mode_enabled()
+        or _env_flag_enabled("LUMINALIUM_WEBENGINE_SOFTWARE", False)
+        or _is_virtual_gpu()
+    )
+
+    if use_software_webengine:
+        os.environ["QSG_RHI_BACKEND"] = "software"
+        os.environ["QT_QUICK_BACKEND"] = "software"
+        os.environ["QT_OPENGL"] = "software"
+        os.environ["QTWEBENGINE_DISABLE_GPU"] = "1"
+        flags = [
+            "--disable-gpu",
+            "--disable-gpu-compositing",
+            "--disable-gpu-rasterization",
+            "--no-sandbox",
+        ]
+    else:
+        # Base flags tuned for smoother rendering and lower memory usage
+        flags = [
+            "--enable-gpu-rasterization",
+            "--enable-zero-copy",
+            "--enable-features=VaapiVideoDecoder,VaapiVideoEncoder",
+            "--ignore-gpu-blocklist",
+            "--enable-hardware-overlays",
+            # Memory and performance optimizations
+            "--js-flags=--max-old-space-size=64",
+            "--disable-site-isolation-trials",
+            "--renderer-process-limit=1",
+            "--disable-features=Translate",
+            "--disable-logging",
+            "--enable-low-res-tiling",
+            "--max-decoded-image-size-bytes=10485760",
+            "--disk-cache-size=10485760",
+            "--aggressive-cache-discard",
+        ]
+
+        # Get refresh rate for target FPS
+        rate = _get_screen_refresh_rate()
+        target_fps = rate * 3
+        os.environ["LUMINALIUM_TARGET_FPS"] = str(target_fps)
+
+        if sys.platform == "win32":
+            flags.append("--gpu-memory-buffer-budget=67108864")
+
     # Windows 7 Fallback
     if _is_windows7():
         candidates = [
@@ -2636,10 +2681,10 @@ class PPTAssistantApp:
             if self._memory_cleaner_process is not None and self._memory_cleaner_process.poll() is None:
                 return
             self._gc_timer = QTimer(self.app)
-            self._gc_timer.setInterval(60000)
+            self._gc_timer.setInterval(120000)
             self._gc_timer.timeout.connect(self._on_gc_tick)
             self._gc_timer.start()
-            print("[APP] GC timer started (60s interval)", flush=True)
+            print("[APP] GC timer started (120s interval)", flush=True)
         except Exception as e:
             print(f"[APP] Failed to setup GC timer: {e}", flush=True)
 
@@ -2656,27 +2701,9 @@ class PPTAssistantApp:
     def _on_gc_tick(self):
         try:
             import gc
-            collected = 0
-            for gen in range(3):
-                collected += gc.collect(gen)
-            gc.collect()
+            collected = gc.collect(2)
             if collected > 0:
                 print(f"[APP] GC collected {collected} objects", flush=True)
-            # Trim working set on Windows to release unused pages
-            if sys.platform == "win32":
-                try:
-                    import ctypes
-                    handle = ctypes.windll.kernel32.GetCurrentProcess()
-                    ctypes.windll.kernel32.SetProcessWorkingSetSize(handle, -1, -1)
-                    ctypes.windll.kernel32.SetProcessWorkingSetSize(handle, -1, -1)
-                except Exception:
-                    pass
-            # Clean up shared WebEngine profile cache periodically
-            try:
-                from plugins.webview_runner import _cleanup_shared_profile
-                _cleanup_shared_profile()
-            except Exception:
-                pass
         except Exception as e:
             print(f"[APP] GC tick error: {e}", flush=True)
 

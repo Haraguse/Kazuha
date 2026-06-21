@@ -303,7 +303,6 @@ class TimerPlugin(AssistantPlugin):
                 import ctypes
                 handle = ctypes.windll.kernel32.GetCurrentProcess()
                 ctypes.windll.kernel32.SetProcessWorkingSetSize(handle, -1, -1)
-                ctypes.windll.kernel32.SetProcessWorkingSetSize(handle, -1, -1)
             except Exception:
                 pass
 

@@ -1,3 +1,6 @@
+# OpenCode working files
+.omo/
+
 # Build outputs
 dist/
 build/
