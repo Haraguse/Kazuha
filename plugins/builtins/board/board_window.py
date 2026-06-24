@@ -1148,7 +1148,7 @@ class BoardWindow(QWidget):
         self._qml = QQuickWidget(self)
         self._qml.setResizeMode(QQuickWidget.SizeRootObjectToView)
 
-        qmlRegisterType(NativeBoardItem, "KazuhaBoard", 1, 0, "NativeBoardItem")
+        qmlRegisterType(NativeBoardItem, "KazuhaBoard", 1, 0, "NativeBoardItem") # 记得改！这里名字换了吧……
 
         self.setWindowTitle(self._WINDOW_TITLE)
 

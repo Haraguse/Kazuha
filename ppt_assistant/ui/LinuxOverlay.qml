@@ -616,10 +616,15 @@ Rectangle {
     // ==================== Center Area (for flipper positioning) ====================
     Item {
         id: centerArea
-        anchors.top: statusBar.bottom
+        anchors.top: parent.top
+        anchors.topMargin: showStatusBar ? statusBar.height : 0
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
+
+        Behavior on anchors.topMargin {
+            NumberAnimation { duration: disableAnimations ? 0 : 300 }
+        }
 
         // ==================== Left Flipper ====================
         Rectangle {
@@ -1207,9 +1212,9 @@ Rectangle {
                 anchors.horizontalCenter: toolbarPosition === "left" || toolbarPosition === "right" ? undefined : parent.horizontalCenter
                 anchors.verticalCenter: toolbarPosition === "left" || toolbarPosition === "right" ? parent.verticalCenter : undefined
 
-                anchors.top: toolbarPosition === "bottom" ? undefined : (toolbarPosition === "top" ? undefined : undefined)
+                anchors.top: toolbarPosition === "top" ? parent.bottom : undefined
                 anchors.bottom: toolbarPosition === "bottom" ? parent.top : undefined
-                anchors.left: toolbarPosition === "left" ? undefined : undefined
+                anchors.left: toolbarPosition === "left" ? parent.right : undefined
                 anchors.right: toolbarPosition === "right" ? parent.left : undefined
 
                 anchors.bottomMargin: toolbarPosition === "bottom" ? 6 * uiScale : 0
@@ -1556,8 +1561,9 @@ Rectangle {
 
         Column {
             id: colorPickerContent
-            anchors.fill: parent
-            anchors.margins: 16 * uiScale
+            x: 16 * uiScale
+            y: 16 * uiScale
+            width: parent.width - 32 * uiScale
             spacing: 12 * uiScale
 
             // Tab headers
@@ -1704,8 +1710,9 @@ Rectangle {
 
         Column {
             id: eraserContent
-            anchors.fill: parent
-            anchors.margins: 16 * uiScale
+            x: 16 * uiScale
+            y: 16 * uiScale
+            width: parent.width - 32 * uiScale
             spacing: 12 * uiScale
 
             // Slider container (for slide mode)
@@ -1822,8 +1829,9 @@ Rectangle {
 
             Column {
                 id: inkPromptContent
-                anchors.fill: parent
-                anchors.margins: 22 * uiScale
+                x: 22 * uiScale
+                y: 22 * uiScale
+                width: parent.width - 44 * uiScale
                 spacing: 12 * uiScale
 
                 Text {

@@ -56,6 +56,11 @@ class OnboardingPlugin(AssistantPlugin):
         root_dir = os.path.dirname(os.path.dirname(os.path.dirname(base_dir)))
         main_path = os.path.join(root_dir, "main.py")
         env = os.environ.copy()
+        env.setdefault("NO_AT_BRIDGE", "1")
+        env.setdefault("QT_ACCESSIBILITY", "0")
+        _cur = env.get("QTWEBENGINE_CHROMIUM_FLAGS", "")
+        if "--disable-renderer-accessibility" not in _cur:
+	        env["QTWEBENGINE_CHROMIUM_FLAGS"] = (_cur + " --disable-renderer-accessibility").strip()
         env["SETTINGS_PATH"] = get_active_settings_path()
         env["ONBOARDING_PREVIEW"] = "true" if preview else "false"
         title = "Onboarding Preview" if preview else "Onboarding"

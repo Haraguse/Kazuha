@@ -41,6 +41,11 @@ def _build_linux_webview_env():
     if env.get("DISPLAY"):
         env["QT_QPA_PLATFORM"] = "xcb"
     env["QTWEBENGINE_DISABLE_SANDBOX"] = "1"
+    env.setdefault("NO_AT_BRIDGE", "1")
+    env.setdefault("QT_ACCESSIBILITY", "0")
+    _cur = env.get("QTWEBENGINE_CHROMIUM_FLAGS", "")
+    if "--disable-renderer-accessibility" not in _cur:
+	    env["QTWEBENGINE_CHROMIUM_FLAGS"] = (_cur + " --disable-renderer-accessibility").strip()
     env["DEFER_WEBENGINE_LOAD"] = "1"
     return env
 
