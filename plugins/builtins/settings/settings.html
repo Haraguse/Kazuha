@@ -1300,6 +1300,9 @@
                   opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
+    .content-body {
+      position: relative;
+    }
 
     .layout.three-island .content {
       transform: none;
@@ -5910,7 +5913,7 @@
     </div>
   </div>
   <div id="toast-message" class="toast-container">
-    <div id="toast-text" class="toast-text">已经存在打开的窗口！</div>
+    <div id="toast-text" class="toast-text"></div>
   </div>
   <div id="performance-overlay" class="performance-overlay" aria-hidden="true">
     <div class="performance-overlay-card">
@@ -14426,6 +14429,15 @@
       if (cat === "Toolbar") {
         renderToolbarPreview();
       }
+      if (cat === "Debug") {
+        if (key === "ShowLog") toggleLogPanel(newState);
+        if (key === "RtlTest") applyRtlTest(newState);
+        if (key === "RotateTest") applyRotateTest(newState);
+        if (key === "SimulateOverlayUnsupported") updateOverlayUIForPlatform();
+      }
+    }
+
+    function toggleDisabledTool(toolId) {
       if (cat === "Debug") {
         if (key === "ShowLog") toggleLogPanel(newState);
         if (key === "RtlTest") applyRtlTest(newState);

@@ -227,7 +227,7 @@ class TimerPlugin(AssistantPlugin):
         except Exception:
             return {}
 
-    def _focus_existing_window(self, show_toast=False):
+    def _focus_existing_window(self):
         if self._window is None:
             return False
         try:
@@ -236,8 +236,6 @@ class TimerPlugin(AssistantPlugin):
             self._window.show()
             self._window.raise_()
             self._window.activateWindow()
-            if show_toast and self._api is not None:
-                self._api.notify_existing_window("已经存在打开的窗口！")
             return True
         except RuntimeError:
             self._window = None
@@ -473,7 +471,7 @@ class TimerPlugin(AssistantPlugin):
             self._restore_window()
             return
 
-        if self._focus_existing_window(show_toast=True):
+        if self._focus_existing_window():
             return
 
         self._ensure_window()

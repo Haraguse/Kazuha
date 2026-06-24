@@ -62,19 +62,10 @@ DWMWA_BORDER_COLOR = 34
 DWMWA_CAPTION_COLOR = 35
 DWMWA_TEXT_COLOR = 36
 _DWM_COLOR_DEFAULT = 0xFFFFFFFF
-_EXISTING_WINDOW_NOTIFY_MESSAGE = 0
 _SHARED_PROFILE = None
 _WEBENGINE_WARMUP_PAGE = None
 _WEBENGINE_WARMUP_DONE = False
 _WEBENGINE_WARMUP_RETAINED = False
-
-if sys.platform == "win32":
-    try:
-        _EXISTING_WINDOW_NOTIFY_MESSAGE = ctypes.windll.user32.RegisterWindowMessageW(
-            "Luminalium.WebView.NotifyExistingWindow"
-        )
-    except Exception:
-        _EXISTING_WINDOW_NOTIFY_MESSAGE = 0
 
 def _safe_set_widget_attr(widget, attr, enabled):
     if attr is None:
@@ -954,115 +945,6 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
                 0,
             )
             ctypes.windll.user32.FlashWindowEx(ctypes.byref(info))
-        except Exception:
-            pass
-
-    def _show_existing_window_toast(self, message):
-        if not self._window:
-            return
-        toast_text = str(message or "已经存在打开的窗口！")
-        js = f"""
-(function() {{
-    try {{
-        const message = {json.dumps(toast_text, ensure_ascii=False)};
-        const showExistingToast = () => {{
-            const toast = document.getElementById("toast-message");
-            const text = document.getElementById("toast-text");
-            if (!toast || !text) {{
-                return false;
-            }}
-            text.textContent = message;
-            if (window.__luminaliumExistingWindowToastTimer) {{
-                clearTimeout(window.__luminaliumExistingWindowToastTimer);
-            }}
-            toast.classList.add("show");
-            window.__luminaliumExistingWindowToastTimer = window.setTimeout(() => {{
-                toast.classList.remove("show");
-            }}, 2200);
-            return true;
-        }};
-        if (typeof window.showExistingWindowToast === "function") {{
-            window.showExistingWindowToast(message);
-        }} else if (!showExistingToast()) {{
-            let style = document.getElementById("luminalium-existing-window-toast-style");
-            if (!style) {{
-                style = document.createElement("style");
-                style.id = "luminalium-existing-window-toast-style";
-                style.textContent = `
-                    .luminalium-existing-window-toast {{
-                        position: fixed;
-                        left: 50%;
-                        bottom: 60px;
-                        transform: translateX(-50%) translateY(20px);
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 8px;
-                        min-width: 220px;
-                        max-width: min(calc(100vw - 32px), 420px);
-                        padding: 10px 18px;
-                        border-radius: 999px;
-                        background: rgba(30, 30, 30, 0.88);
-                        color: #FFFFFF;
-                        font-size: 13px;
-                        line-height: 1.4;
-                        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
-                        opacity: 0;
-                        pointer-events: none;
-                        transition: opacity 0.2s ease, transform 0.2s ease;
-                        z-index: 2147483647;
-                    }}
-                    .luminalium-existing-window-toast.show {{
-                        opacity: 1;
-                        transform: translateX(-50%) translateY(0);
-                    }}
-                    .luminalium-existing-window-toast__icon {{
-                        width: 10px;
-                        height: 10px;
-                        flex: 0 0 auto;
-                        border-radius: 50%;
-                        background: #3275F5;
-                        box-shadow: 0 0 0 4px rgba(50, 117, 245, 0.18);
-                    }}
-                    .luminalium-existing-window-toast__text {{
-                        white-space: nowrap;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                    }}
-                    [data-theme="dark"] .luminalium-existing-window-toast {{
-                        background: rgba(45, 45, 45, 0.92);
-                        border: 0.5px solid rgba(255, 255, 255, 0.14);
-                    }}
-                `;
-                (document.head || document.documentElement).appendChild(style);
-            }}
-            let toast = document.getElementById("luminalium-existing-window-toast");
-            if (!toast) {{
-                toast = document.createElement("div");
-                toast.id = "luminalium-existing-window-toast";
-                toast.className = "luminalium-existing-window-toast";
-                toast.innerHTML = '<div class="luminalium-existing-window-toast__icon"></div><div class="luminalium-existing-window-toast__text"></div>';
-                (document.body || document.documentElement).appendChild(toast);
-            }}
-            const text = toast.querySelector(".luminalium-existing-window-toast__text");
-            if (text) {{
-                text.textContent = message;
-            }}
-            if (window.__luminaliumExistingWindowToastTimer) {{
-                clearTimeout(window.__luminaliumExistingWindowToastTimer);
-            }}
-            toast.classList.add("show");
-            window.__luminaliumExistingWindowToastTimer = window.setTimeout(() => {{
-                toast.classList.remove("show");
-            }}, 2200);
-        }}
-        try {{
-            window.dispatchEvent(new CustomEvent("luminalium:existing-window-toast", {{ detail: {{ message }} }}));
-        }} catch (eventError) {{}}
-    }} catch (e) {{}}
-}})();
-"""
-        try:
-            self._window.page().runJavaScript(js)
         except Exception:
             pass
 
@@ -2229,11 +2111,6 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             self._flash_window()
 
     @Slot(str)
-    def notify_existing_window(self, message):
-        self.show_window()
-        self._show_existing_window_toast = lambda x: None
-
-    @Slot(str)
     def open_browser(self, url):
         import webbrowser
 
@@ -2455,7 +2332,6 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
                     self._logs_window.show()
                     self._logs_window.raise_()
                     self._logs_window.activateWindow()
-                    self._show_existing_window_toast("已经存在打开的窗口！")
                     return
                 except RuntimeError:
                     self._logs_window = None
@@ -4164,6 +4040,29 @@ body {
     background: #C42B1C !important;
     color: #fff !important;
 }
+.title-bar-btn.title-bar-log {
+    min-width: 106px;
+    padding: 0 10px;
+    font-size: 12px;
+    justify-content: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.title-bar-btn.title-bar-log .title-bar-log-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+}
+.title-bar-btn.title-bar-log .title-bar-log-icon svg {
+    width: 20px;
+    height: 20px;
+}
+.title-bar-btn.title-bar-log .title-bar-log-label {
+    display: inline-block;
+}
 """
         else:
             css = """
@@ -4198,13 +4097,30 @@ body {
     def _inject_title_bar_html(self):
         if not self._frameless:
             return
+        log_button_html = ""
+        if getattr(self, '_window_tag', '') == 'settings':
+            log_button_html = (
+                '<button class="title-bar-btn title-bar-log" id="btn-logs" title="\u6253\u5f00\u65e5\u5fd7" onclick="window.pywebview.api.open_logs_window()">'
+                '<span class="title-bar-log-icon">'
+                '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor">'
+                '<path d="M5 3 H15 L19 7 V21 H5 Z"/>'
+                '<path d="M15 3 V7 H19" fill="#FFFFFF" opacity="0.4"/>'
+                '<rect x="8" y="11" width="8" height="1.4" rx="0.7" fill="#FFFFFF" opacity="0.95"/>'
+                '<rect x="8" y="14" width="8" height="1.4" rx="0.7" fill="#FFFFFF" opacity="0.95"/>'
+                '<rect x="8" y="17" width="5" height="1.4" rx="0.7" fill="#FFFFFF" opacity="0.95"/>'
+                '</svg>'
+                '</span>'
+                '<span class="title-bar-log-label">\u65e5\u5fd7</span>'
+                '</button>'
+            )
         title_bar_html = (
             '<div class="title-bar" id="title-bar">'
             '<div class="title-bar-icon" id="title-bar-icon">'
-            '<div class="title-bar-icon-close-toast" id="title-bar-icon-close-toast">\u518d\u6b21\u70b9\u51fb\u6309\u94ae\u4ee5\u5173\u95ed\u7a97\u53e3</div>'
+            '<div class="title-bar-icon-close-toast" id="title-bar-icon-close-toast">\u518d\u6b21\u51fb\u94ae\u4ee5\u5173\u95ed\u7a97\u53e3</div>'
             '</div>'
             '<div class="title-bar-title" id="title-bar-text"></div>'
             '<div class="title-bar-controls">'
+            + log_button_html +
             '<button class="title-bar-btn" id="btn-minimize" title="\u6700\u5c0f\u5316" onclick="window.pywebview.api.minimize_window()">'
             '<span class="title-bar-icon-glyph">\uE921</span>'
             '</button>'
@@ -4431,27 +4347,12 @@ body {
         y = geo.y() + (geo.height() - self.height()) // 2
         self.move(x, y)
 
-    def _handle_existing_window_notification(self):
-        api = getattr(self, "api", None)
-        if api is not None and hasattr(api, "notify_existing_window"):
-            api.notify_existing_window("已经存在打开的窗口！")
-            return
-        if self.isMinimized():
-            self.showNormal()
-        self.show()
-        self.raise_()
-        self.activateWindow()
-
     def nativeEvent(self, eventType, message):
         try:
             import ctypes.wintypes
             msg_ptr = int(message)
             if msg_ptr:
                 msg = ctypes.wintypes.MSG.from_address(msg_ptr)
-                if _EXISTING_WINDOW_NOTIFY_MESSAGE and msg.message == _EXISTING_WINDOW_NOTIFY_MESSAGE:
-                    QTimer.singleShot(0, self._handle_existing_window_notification)
-                    return True, 0
-
                 if msg.message == 0x0084:  # WM_NCHITTEST
                     if getattr(self, "_mini_mode", False) or self._frameless:
                         from PySide6.QtGui import QCursor
@@ -4460,7 +4361,11 @@ body {
                         w, h = self.width(), self.height()
 
                         title_bar_h = 40 if self.isMaximized() else 32
-                        btn_area_left = w - 138
+                        if getattr(self, '_window_tag', '') == 'settings':
+                            # settings window has the extra log button.
+                            btn_area_left = w - 220
+                        else:
+                            btn_area_left = w - 138
 
                         if y < title_bar_h and x < btn_area_left:
                             return True, 2  # HTCAPTION
