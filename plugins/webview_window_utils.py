@@ -2,8 +2,6 @@ import ctypes
 import sys
 from ctypes import wintypes
 
-_EXISTING_WINDOW_NOTIFY_MESSAGE = "Luminalium.WebView.NotifyExistingWindow"
-
 
 def find_window(title, pid=None):
     if sys.platform != "win32":
@@ -55,17 +53,3 @@ def bring_window_to_front(hwnd):
     if attached:
         user32.AttachThreadInput(cur_thread, fg_thread, False)
     return True
-
-
-def notify_existing_window(hwnd):
-    if sys.platform != "win32" or not hwnd:
-        return False
-    try:
-        user32 = ctypes.windll.user32
-        message = user32.RegisterWindowMessageW(_EXISTING_WINDOW_NOTIFY_MESSAGE)
-        if not message:
-            return False
-        user32.PostMessageW(hwnd, message, 0, 0)
-        return True
-    except Exception:
-        return False

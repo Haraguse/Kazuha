@@ -139,7 +139,7 @@ class SettingsPlugin(AssistantPlugin):
         except Exception:
             return {}
 
-    def _focus_existing_window(self, show_toast=False):
+    def _focus_existing_window(self):
         if self._window is None:
             return False
         try:
@@ -149,8 +149,6 @@ class SettingsPlugin(AssistantPlugin):
             self._window.raise_()
             self._window.activateWindow()
             bring_window_to_front(int(self._window.winId()))
-            if show_toast and self._api is not None:
-                self._api.notify_existing_window("已经存在打开的窗口！")
             return True
         except RuntimeError:
             self._window = None
@@ -183,6 +181,7 @@ class SettingsPlugin(AssistantPlugin):
             return
         self._close_blocked = True
         try:
+            self._window.setWindowOpacity(1.0)
             self._window.hide()
         except Exception:
             pass
@@ -197,6 +196,12 @@ class SettingsPlugin(AssistantPlugin):
         self._hidden = False
         try:
             pending = getattr(self._window, "_pending_url", None)
+            # Ensure background color is applied before showing to avoid white flash
+            try:
+                self._window.setWindowOpacity(0.0)
+                self._window._apply_page_background()
+            except Exception:
+                pass
             if self._window.isMinimized():
                 self._window.showNormal()
             else:
@@ -209,6 +214,9 @@ class SettingsPlugin(AssistantPlugin):
             self._window.raise_()
             self._window.activateWindow()
             bring_window_to_front(int(self._window.winId()))
+            # Restore opacity after a short delay to let Chromium render
+            from PySide6.QtCore import QTimer as _QTimer
+            _QTimer.singleShot(80, lambda: self._window.setWindowOpacity(1.0))
         except RuntimeError:
             self._window = None
             self._api = None
@@ -314,10 +322,15 @@ class SettingsPlugin(AssistantPlugin):
             self._restore_window()
             return
 
-        if self._focus_existing_window(show_toast=True):
+        if self._focus_existing_window():
             return
 
         self._ensure_window()
+        try:
+            self._window.setWindowOpacity(0.0)
+            self._window._apply_page_background()
+        except Exception:
+            pass
         self._window.show()
         try:
             self._window.raise_()
@@ -325,6 +338,8 @@ class SettingsPlugin(AssistantPlugin):
             bring_window_to_front(int(self._window.winId()))
         except Exception:
             pass
+        from PySide6.QtCore import QTimer as _QTimer
+        _QTimer.singleShot(80, lambda: self._window.setWindowOpacity(1.0))
 
     def terminate(self):
         self._close_blocked = False

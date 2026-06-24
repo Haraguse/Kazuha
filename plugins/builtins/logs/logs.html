@@ -403,9 +403,11 @@
     font-family: "Cascadia Code", "Consolas", "Menlo", monospace;
     font-size: 12px;
     line-height: 1.7;
+    user-select: text;
 }
 
     .log-entry {
+      user-select: text;
       display: flex;
       gap: 12px;
       padding: 4px 8px;
@@ -415,6 +417,64 @@
 
     .log-entry:hover {
       background: var(--item-hover);
+    }
+
+    .log-entry.selected {
+      background: rgba(59, 130, 246, 0.12);
+      border-radius: 0;
+    }
+
+    .log-entry.selected-single {
+      border-radius: 6px;
+    }
+
+    .log-entry.selected-start {
+      border-top-left-radius: 6px;
+      border-top-right-radius: 6px;
+    }
+
+    .log-entry.selected-end {
+      border-bottom-left-radius: 6px;
+      border-bottom-right-radius: 6px;
+    }
+
+    .custom-context-menu {
+      position: fixed;
+      background: var(--bg-surface, #ffffff);
+      border: 1px solid var(--divider, rgba(0, 0, 0, 0.1));
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      padding: 6px 0;
+      min-width: 160px;
+      z-index: 9999;
+      font-size: 13px;
+      color: var(--text-primary, #333);
+      backdrop-filter: blur(20px);
+      background: var(--bg-card);
+    }
+
+    .custom-context-menu-item {
+      padding: 8px 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+
+    .custom-context-menu-item:hover {
+      background: var(--bg-app, rgba(0, 0, 0, 0.05));
+    }
+
+    .custom-context-menu-item.disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .custom-context-menu-divider {
+      height: 1px;
+      background: var(--divider, rgba(0, 0, 0, 0.1));
+      margin: 4px 0;
     }
 
     .log-time {
@@ -633,13 +693,9 @@
         <header class="header-inline">
           <div class="page-title" id="pageTitle" data-i18n="title.logs">运行日志</div>
           <div class="header-actions">
-            <button class="header-btn" onclick="exportLogs()">
-              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              <span data-i18n="diagnostics.export">导出</span>
-            </button>
-            <button class="header-btn danger" onclick="clearLogs()">
-              <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-              <span data-i18n="diagnostics.clear">清空</span>
+            <button class="header-btn" onclick="copySelectedLogs()">
+              <svg viewBox="0 0 24 24"><path d="M8 5H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-3"></path><polyline points="16 3 16 8 21 8"></polyline></svg>
+              复制选中
             </button>
           </div>
         </header>
@@ -672,20 +728,6 @@
           </div>
         </section>
       </main>
-    </div>
-  </div>
-
-  <div class="dialog-overlay" id="clearDialog">
-    <div class="dialog-card">
-      <div class="dialog-icon-area">
-        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-      </div>
-      <div class="dialog-title" data-i18n="diagnostics.clear.title">清空日志</div>
-      <div class="dialog-desc" data-i18n="diagnostics.clear.confirm">确定要清空所有日志吗？此操作不可撤销。</div>
-      <div class="dialog-buttons">
-        <button class="dialog-btn cancel" onclick="closeClearDialog()" data-i18n="dialog.cancel">取消</button>
-        <button class="dialog-btn confirm" onclick="confirmClearLogs()" data-i18n="diagnostics.clear">清空</button>
-      </div>
     </div>
   </div>
 
@@ -979,6 +1021,9 @@
     let lastLogIndex = -1;
     let isAutoScroll = true;
     let _filterDebounceTimer = null;
+    let selectedLogElements = new Set();
+    let lastSelectedLogIndex = -1;
+    let anchorSelectedLogIndex = -1;
     const MAX_RENDER = 500;
     const REFRESH_INTERVAL = 2000;
 
@@ -1030,9 +1075,37 @@
     document.addEventListener('DOMContentLoaded', () => {
       const viewer = document.getElementById("logViewer");
       if (viewer) {
+        viewer.setAttribute("tabindex", "0");
         viewer.addEventListener('scroll', () => {
           isAutoScroll = (viewer.scrollTop + viewer.clientHeight) >= (viewer.scrollHeight - 30);
         });
+        viewer.addEventListener('click', event => {
+          if (event.target === viewer) {
+            clearLogSelection();
+          }
+        });
+        viewer.addEventListener('contextmenu', event => {
+          const entry = event.target.closest('.log-entry');
+          if (!entry) return;
+          event.preventDefault();
+          event.stopPropagation();
+          showLogContextMenu(event.clientX, event.clientY);
+        });
+      }
+
+      createLogContextMenu();
+    });
+
+    document.addEventListener('keydown', async event => {
+      if (!event.ctrlKey && !event.metaKey) {
+        return;
+      }
+      if (event.key.toLowerCase() !== 'c') {
+        return;
+      }
+      if (selectedLogElements.size > 0) {
+        event.preventDefault();
+        await copySelectedLogs();
       }
     });
 
@@ -1086,11 +1159,215 @@
       renderLogsFull();
     }
 
-    function createLogEntryEl(log) {
+    function createLogEntryEl(log, index) {
       const div = document.createElement("div");
       div.className = "log-entry";
+      div.dataset.logIndex = String(index);
       div.innerHTML = `<div class="log-time">${log.time}</div><div class="log-level ${log.level}">${log.level.toUpperCase()}</div><div class="log-message">${escapeHtml(log.message)}</div>`;
+      div.addEventListener("click", event => onLogEntryClick(event, div));
       return div;
+    }
+
+    function onLogEntryClick(event, entry) {
+      const viewer = document.getElementById("logViewer");
+      const entries = Array.from(viewer.querySelectorAll(".log-entry"));
+      const clickedIndex = entries.indexOf(entry);
+      if (clickedIndex < 0) {
+        return;
+      }
+      viewer.focus();
+
+      const hasModifier = event.ctrlKey || event.metaKey;
+      const anchorIndex = anchorSelectedLogIndex >= 0 ? anchorSelectedLogIndex : lastSelectedLogIndex;
+
+      if (event.shiftKey && anchorIndex >= 0) {
+        const start = Math.min(anchorIndex, clickedIndex);
+        const end = Math.max(anchorIndex, clickedIndex);
+        if (!hasModifier) {
+          selectedLogElements.clear();
+        }
+        for (let i = start; i <= end; i += 1) {
+          selectedLogElements.add(entries[i]);
+        }
+      } else if (hasModifier) {
+        if (selectedLogElements.has(entry)) {
+          selectedLogElements.delete(entry);
+          if (selectedLogElements.size === 0) {
+            anchorSelectedLogIndex = -1;
+          }
+        } else {
+          selectedLogElements.add(entry);
+          anchorSelectedLogIndex = clickedIndex;
+        }
+      } else {
+        selectedLogElements.clear();
+        selectedLogElements.add(entry);
+        anchorSelectedLogIndex = clickedIndex;
+      }
+
+      lastSelectedLogIndex = clickedIndex;
+      updateLogSelection();
+    }
+
+    function updateLogSelection() {
+      const viewer = document.getElementById("logViewer");
+      const entries = Array.from(viewer.querySelectorAll(".log-entry"));
+      const selectedIndices = new Set(
+        Array.from(selectedLogElements).map(entry => Number(entry.dataset.logIndex))
+      );
+
+      entries.forEach(entry => {
+        entry.classList.toggle("selected", selectedIndices.has(Number(entry.dataset.logIndex)));
+        entry.classList.remove("selected-start", "selected-middle", "selected-end", "selected-single");
+      });
+
+      const selectedEntries = entries.filter(entry => selectedIndices.has(Number(entry.dataset.logIndex)));
+      for (let i = 0; i < selectedEntries.length; i += 1) {
+        const current = Number(selectedEntries[i].dataset.logIndex);
+        const prev = i > 0 ? Number(selectedEntries[i - 1].dataset.logIndex) : null;
+        const next = i < selectedEntries.length - 1 ? Number(selectedEntries[i + 1].dataset.logIndex) : null;
+        const hasPrev = prev !== null && prev === current - 1;
+        const hasNext = next !== null && next === current + 1;
+
+        if (hasPrev && hasNext) {
+          selectedEntries[i].classList.add("selected-middle");
+        } else if (hasPrev) {
+          selectedEntries[i].classList.add("selected-end");
+        } else if (hasNext) {
+          selectedEntries[i].classList.add("selected-start");
+        } else {
+          selectedEntries[i].classList.add("selected-single");
+        }
+      }
+    }
+
+    function clearLogSelection() {
+      selectedLogElements.clear();
+      lastSelectedLogIndex = -1;
+      anchorSelectedLogIndex = -1;
+      updateLogSelection();
+    }
+
+    async function copySelectedLogs() {
+      if (selectedLogElements.size === 0) {
+        return;
+      }
+      const lines = Array.from(selectedLogElements)
+        .sort((a, b) => Number(a.dataset.logIndex) - Number(b.dataset.logIndex))
+        .map(entry => {
+          const time = entry.querySelector(".log-time")?.textContent?.trim() || "";
+          const level = entry.querySelector(".log-level")?.textContent?.trim() || "";
+          const message = entry.querySelector(".log-message")?.textContent?.trim() || "";
+          return `${time} ${level} ${message}`;
+        });
+      const text = lines.join("\n");
+      try {
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.copy_text_to_clipboard) {
+          const ok = await window.pywebview.api.copy_text_to_clipboard(text);
+          if (ok) {
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("pywebview copy_text_to_clipboard failed:", err);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return;
+        } catch (err) {
+          console.warn("Clipboard write failed:", err);
+        }
+      }
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      textarea.style.pointerEvents = "none";
+      textarea.style.left = "-9999px";
+      textarea.style.top = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      textarea.setSelectionRange(0, textarea.value.length);
+      try {
+        const success = document.execCommand("copy");
+        if (!success) {
+          console.warn("document.execCommand(copy) returned false");
+        }
+      } catch (err) {
+        console.warn("document.execCommand(copy) failed:", err);
+      }
+      document.body.removeChild(textarea);
+    }
+
+    function createLogContextMenu() {
+      const menu = document.createElement("div");
+      menu.id = "log-context-menu";
+      menu.className = "custom-context-menu";
+      menu.style.display = "none";
+      document.body.appendChild(menu);
+
+      const hideMenu = () => {
+        menu.style.display = "none";
+      };
+
+      document.addEventListener("click", (ev) => {
+        if (!menu.contains(ev.target)) {
+          hideMenu();
+        }
+      });
+
+      document.addEventListener("contextmenu", (ev) => {
+        if (!menu.contains(ev.target)) {
+          hideMenu();
+        }
+      });
+    }
+
+    function showLogContextMenu(x, y) {
+      const menu = document.getElementById("log-context-menu");
+      if (!menu) return;
+      const hasSelection = selectedLogElements.size > 0;
+      menu.innerHTML = "";
+
+      const addItem = (text, onClick, disabled = false) => {
+        const item = document.createElement("div");
+        item.className = "custom-context-menu-item" + (disabled ? " disabled" : "");
+        item.textContent = text;
+        item.onclick = (ev) => {
+          if (disabled) return;
+          onClick();
+          menu.style.display = "none";
+        };
+        menu.appendChild(item);
+      };
+
+      addItem("复制选中", () => {
+        copySelectedLogs();
+      }, !hasSelection);
+      addItem("取消选择", () => {
+        clearLogSelection();
+      }, !hasSelection);
+
+      menu.style.display = "block";
+      menu.style.left = x + "px";
+      menu.style.top = y + "px";
+
+      setTimeout(() => {
+        const rect = menu.getBoundingClientRect();
+        let finalLeft = x;
+        let finalTop = y;
+        if (finalLeft + rect.width > window.innerWidth) {
+          finalLeft = window.innerWidth - rect.width - 8;
+        }
+        if (finalTop + rect.height > window.innerHeight) {
+          finalTop = window.innerHeight - rect.height - 8;
+        }
+        menu.style.left = `${finalLeft}px`;
+        menu.style.top = `${finalTop}px`;
+      }, 0);
     }
 
     function appendLogEntries(newLogs) {
@@ -1099,9 +1376,9 @@
       if (emptyState) emptyState.remove();
 
       const frag = document.createDocumentFragment();
-      for (const log of newLogs) {
-        frag.appendChild(createLogEntryEl(log));
-        logs.push(log);
+      for (let i = 0; i < newLogs.length; i += 1) {
+        frag.appendChild(createLogEntryEl(newLogs[i], viewer.querySelectorAll('.log-entry').length + i));
+        logs.push(newLogs[i]);
       }
       viewer.appendChild(frag);
 
@@ -1143,11 +1420,12 @@
         : filteredLogs;
 
       const frag = document.createDocumentFragment();
-      for (const log of displayLogs) {
-        frag.appendChild(createLogEntryEl(log));
+      for (let i = 0; i < displayLogs.length; i += 1) {
+        frag.appendChild(createLogEntryEl(displayLogs[i], i));
       }
       viewer.innerHTML = '';
       viewer.appendChild(frag);
+      clearLogSelection();
       viewer.scrollTop = viewer.scrollHeight;
     }
 

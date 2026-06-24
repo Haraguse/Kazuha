@@ -1,6 +1,7 @@
 import shutil
 import sys
 import os
+import ctypes
 from pathlib import Path
 
 def register_url_protocol():
@@ -208,7 +209,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QProgressBar,
 )
-from PySide6.QtCore import Qt, QTimer, Slot, QPoint, QCoreApplication, QEvent, QObject, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QRect
+from PySide6.QtCore import Qt, QTimer, Slot, QPoint, QCoreApplication, QEvent, QObject, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QRect, QEventLoop
 from PySide6.QtGui import (
     QFontDatabase,
     QFont,
@@ -305,6 +306,7 @@ SPLASH_I18N = {
         "loading_config": "加载配置",
         "loading_fonts": "加载字体",
         "init_monitor": "启动监视器",
+        "prepare_ui_env": "准备界面环境",
         "init_ui": "创建界面",
         "loading_plugins": "加载插件",
         "loading_settings": "加载设置",
@@ -322,6 +324,7 @@ SPLASH_I18N = {
         "loading_config": "載入設定",
         "loading_fonts": "載入字型",
         "init_monitor": "啟動監視器",
+        "prepare_ui_env": "準備介面環境",
         "init_ui": "建立介面",
         "loading_plugins": "載入插件",
         "loading_settings": "載入設定",
@@ -339,6 +342,7 @@ SPLASH_I18N = {
         "loading_config": "撈緊設定",
         "loading_fonts": "撈緊字型",
         "init_monitor": "啟動監視器",
+        "prepare_ui_env": "準備介面環境",
         "init_ui": "砌緊介面",
         "loading_plugins": "載入插件",
         "loading_settings": "載入設定",
@@ -356,6 +360,7 @@ SPLASH_I18N = {
         "loading_config": "設定を読み込み中",
         "loading_fonts": "フォントを読み込み中",
         "init_monitor": "モニターを起動中",
+        "prepare_ui_env": "UI環境を準備中",
         "init_ui": "UIを作成中",
         "loading_plugins": "プラグインを読み込み中",
         "loading_settings": "設定を読み込み中",
@@ -373,6 +378,7 @@ SPLASH_I18N = {
         "loading_config": "Loading config",
         "loading_fonts": "Loading fonts",
         "init_monitor": "Starting monitor",
+        "prepare_ui_env": "Preparing UI environment",
         "init_ui": "Creating UI",
         "loading_plugins": "Loading plugins",
         "loading_settings": "Loading settings",
@@ -396,6 +402,17 @@ def _is_windows7():
         return False
 
 
+def _get_screen_refresh_rate() -> int:
+    try:
+        user32 = ctypes.windll.user32
+        hdc = user32.GetDC(0)
+        rate = ctypes.windll.gdi32.GetDeviceCaps(hdc, 116)  # VREFRESH
+        user32.ReleaseDC(0, hdc)
+        return rate if rate > 1 else 60
+    except Exception:
+        return 60
+
+
 def _env_flag_enabled(name: str, default: bool = False) -> bool:
     raw = os.environ.get(name)
     if raw is None:
@@ -414,6 +431,74 @@ def _is_compatibility_mode_enabled() -> bool:
         )
     except Exception:
         return False
+
+
+_VIRTUAL_GPU = None
+
+
+def _is_virtual_gpu() -> bool:
+    global _VIRTUAL_GPU
+    if _VIRTUAL_GPU is not None:
+        return _VIRTUAL_GPU
+
+    names = []
+    try:
+        from ctypes import wintypes
+
+        class DISPLAY_DEVICEW(ctypes.Structure):
+            _fields_ = [
+                ("cb", wintypes.DWORD),
+                ("DeviceName", wintypes.WCHAR * 32),
+                ("DeviceString", wintypes.WCHAR * 128),
+                ("StateFlags", wintypes.DWORD),
+                ("DeviceID", wintypes.WCHAR * 128),
+                ("DeviceKey", wintypes.WCHAR * 128),
+            ]
+
+        user32 = ctypes.windll.user32
+        i = 0
+        while True:
+            dd = DISPLAY_DEVICEW()
+            dd.cb = ctypes.sizeof(DISPLAY_DEVICEW)
+            if not user32.EnumDisplayDevicesW(None, i, ctypes.byref(dd), 0):
+                break
+            for field in (dd.DeviceString, dd.DeviceID, dd.DeviceName):
+                try:
+                    if field:
+                        names.append(str(field).lower())
+                except Exception:
+                    continue
+            i += 1
+    except Exception:
+        _VIRTUAL_GPU = False
+        return _VIRTUAL_GPU
+
+    hay = " ".join(names)
+    keywords = [
+        "vmware",
+        "virtualbox",
+        "vbox",
+        "svga",
+        "qxl",
+        "virtio",
+        "parallels",
+        "hyper-v",
+        "microsoft basic display",
+        "basic display adapter",
+        "remote display",
+        "citrix",
+        "xen",
+        "bochs",
+        "rdpdd",
+        "rdp chain",
+        "idriver",
+        "vnc",
+        "microsoft remote display",
+    ]
+    _VIRTUAL_GPU = any(k in hay for k in keywords)
+    if _VIRTUAL_GPU:
+        print(f"[Main] Virtual GPU or headless environment detected: {hay[:200]}", flush=True)
+    return _VIRTUAL_GPU
 
 
 def _force_directwrite_font_engine():
@@ -2275,7 +2360,7 @@ class PPTAssistantApp:
             os.path.getmtime(SETTINGS_PATH) if os.path.exists(SETTINGS_PATH) else 0
         )
         self._settings_timer = QTimer()
-        self._settings_timer.setInterval(1000)
+        self._settings_timer.setInterval(200)
         self._settings_timer.timeout.connect(self._check_settings_changed)
         self._settings_timer.start()
 
@@ -2286,6 +2371,68 @@ class PPTAssistantApp:
         _init_trace("_init_steps: step 30 - creating PPTMonitor")
         self.monitor = PPTMonitor()
         _init_trace("_init_steps: PPTMonitor created")
+
+        # Step 3.5: Preload WebEngine + settings page (block until page fully loaded)
+        yield 35, "prepare_ui_env"
+        _init_trace("_init_steps: step 35 - warming up WebEngine + settings page")
+        try:
+            from plugins.webview_runner import _warmup_webengine
+            import plugins.webview_runner as _wv_mod
+            _warmup_webengine(retain_placeholder=True)
+
+            # Create settings plugin early and preload settings.html
+            if not hasattr(self, "settings_plugin") or self.settings_plugin is None:
+                from plugins.builtins.settings.plugin import SettingsPlugin
+                self.settings_plugin = SettingsPlugin()
+                self.settings_plugin.set_context(self)
+
+            sp = self.settings_plugin
+            sp.prewarm(shell=True)
+            sp.prewarm_load_content()
+
+            # Wait for the settings page to finish loading
+            _ui_env_loop = QEventLoop()
+            _ui_env_deadline = 15000  # ms safety cap
+            _ui_env_timeout = QTimer()
+            _ui_env_timeout.setSingleShot(True)
+            _ui_env_timeout.timeout.connect(_ui_env_loop.quit)
+            _ui_env_poll = QTimer()
+            _ui_env_poll.setInterval(100)
+            _ui_env_loaded = {"done": False}
+
+            def _check_page_loaded():
+                w = getattr(sp, "_window", None)
+                if w is None:
+                    return
+                # Check if the page has finished loading via the window's load state
+                page = None
+                try:
+                    page = w.page()
+                except Exception:
+                    page = None
+                if page is None:
+                    return
+                # Use runJavaScript to check document.readyState
+                def _on_ready(result):
+                    if isinstance(result, str) and result == "complete":
+                        _ui_env_loaded["done"] = True
+                        _ui_env_poll.stop()
+                        _ui_env_loop.quit()
+                try:
+                    page.runJavaScript("document.readyState", _on_ready)
+                except Exception:
+                    pass
+
+            _ui_env_poll.timeout.connect(_check_page_loaded)
+            _ui_env_timeout.start(_ui_env_deadline)
+            _ui_env_poll.start()
+            _ui_env_loop.exec()
+            _ui_env_poll.stop()
+            _ui_env_timeout.stop()
+            _init_trace("_init_steps: settings page loaded" if _ui_env_loaded["done"] else "_init_steps: settings page load timeout")
+        except Exception as e:
+            print(f"[Main] UI env preload skipped: {e}", flush=True)
+            _init_trace(f"_init_steps: UI env preload error - {e}")
 
         # Step 4: Overlay (UI creation - expensive)
         yield 40, "init_ui"
@@ -2323,7 +2470,8 @@ class PPTAssistantApp:
             pass
 
         if hasattr(self, "settings_plugin") and self.settings_plugin is not None:
-            self.settings_plugin.prewarm()
+            # Settings page already preloaded during cold-start (step 35)
+            pass
         # Timer plugin prewarming disabled to save memory (~50-100MB per hidden WebEngine window)
         # It will be created on-demand when the user opens the timer
 
@@ -2533,6 +2681,11 @@ class PPTAssistantApp:
             self.plugins.append(plugin)
 
             if cls_name == "SettingsPlugin":
+                if getattr(self, "settings_plugin", None) is not None:
+                    # Already created during cold-start preload; just register it
+                    self.plugins.append(self.settings_plugin)
+                    QTimer.singleShot(0, self._load_next_builtin_plugin)
+                    return
                 self.settings_plugin = plugin
             elif cls_name == "OnboardingPlugin":
                 self.onboarding_plugin = plugin
@@ -2737,17 +2890,17 @@ class PPTAssistantApp:
             self._on_focus_on_slideshow_changed
         )
 
-        self.overlay.request_next.connect(self.monitor.go_next)
-        self.overlay.request_prev.connect(self.monitor.go_previous)
-        self.overlay.request_goto.connect(self.monitor.go_to_slide)
-        self.overlay.request_clear.connect(self.monitor.clear_screen)
-        self.overlay.request_end.connect(self.monitor.end_show)
+        self.overlay.request_next.connect(self.monitor.go_next, Qt.QueuedConnection)
+        self.overlay.request_prev.connect(self.monitor.go_previous, Qt.QueuedConnection)
+        self.overlay.request_goto.connect(self.monitor.go_to_slide, Qt.QueuedConnection)
+        self.overlay.request_clear.connect(self.monitor.clear_screen, Qt.QueuedConnection)
+        self.overlay.request_end.connect(self.monitor.end_show, Qt.QueuedConnection)
 
-        self.overlay.request_ptr_arrow.connect(lambda: self.monitor.set_pointer_type(1))
-        self.overlay.request_ptr_pen.connect(lambda: self.monitor.set_pointer_type(2))
-        self.overlay.request_ptr_highlighter.connect(lambda: self.monitor.set_pointer_type(3))
+        self.overlay.request_ptr_arrow.connect(lambda: self.monitor.set_pointer_type(1), Qt.QueuedConnection)
+        self.overlay.request_ptr_pen.connect(lambda: self.monitor.set_pointer_type(2), Qt.QueuedConnection)
+        self.overlay.request_ptr_highlighter.connect(lambda: self.monitor.set_pointer_type(3), Qt.QueuedConnection)
         self.overlay.request_ptr_eraser.connect(
-            lambda: self.monitor.set_pointer_type(5)
+            lambda: self.monitor.set_pointer_type(5), Qt.QueuedConnection
         )
         self.overlay.request_pen_color.connect(self.monitor.set_pen_color)
         self.overlay.request_thumbnail.connect(
@@ -3173,7 +3326,8 @@ class PPTAssistantApp:
                 if not self._reloading_overlay:
                     self._reload_timer.start()
             else:
-                if self.overlay:
+                overlay = getattr(self, "overlay", None)
+                if overlay:
                     if new_rebuild_at and new_rebuild_at != old_rebuild_at:
                         if not self._reloading_overlay:
                             self._reload_timer.start()
@@ -3190,18 +3344,18 @@ class PPTAssistantApp:
                     )
 
                     if status_bar_changed:
-                        self.overlay.update_config()
+                        overlay.update_config()
 
                     if theme_mode_changed or theme_id_changed:
-                        self.overlay.update_theme()
+                        overlay.update_theme()
                         self._notify_settings_theme_changed()
 
                     if cfg.compatibilityMode.value != old_compat:
-                        self.overlay.update_config()
+                        overlay.update_config()
                         if cfg.compatibilityMode.value:
-                            self.overlay.show()
+                            overlay.show()
                         elif not self._slideshow_running:
-                            self.overlay.hide()
+                            overlay.hide()
 
             # Layout mode change is now handled by auto-reload above, no restart prompt needed
 
@@ -3257,22 +3411,22 @@ class PPTAssistantApp:
                 new_overlay.set_timer_manager(self._timer_manager)
 
             # Re-connect signals
-            new_overlay.request_next.connect(self.monitor.go_next)
-            new_overlay.request_prev.connect(self.monitor.go_previous)
-            new_overlay.request_goto.connect(self.monitor.go_to_slide)
-            new_overlay.request_clear.connect(self.monitor.clear_screen)
-            new_overlay.request_end.connect(self.monitor.end_show)
+            new_overlay.request_next.connect(self.monitor.go_next, Qt.QueuedConnection)
+            new_overlay.request_prev.connect(self.monitor.go_previous, Qt.QueuedConnection)
+            new_overlay.request_goto.connect(self.monitor.go_to_slide, Qt.QueuedConnection)
+            new_overlay.request_clear.connect(self.monitor.clear_screen, Qt.QueuedConnection)
+            new_overlay.request_end.connect(self.monitor.end_show, Qt.QueuedConnection)
             new_overlay.request_ptr_arrow.connect(
-                lambda: self.monitor.set_pointer_type(1)
+                lambda: self.monitor.set_pointer_type(1), Qt.QueuedConnection
             )
             new_overlay.request_ptr_pen.connect(
-                lambda: self.monitor.set_pointer_type(2)
+                lambda: self.monitor.set_pointer_type(2), Qt.QueuedConnection
             )
             new_overlay.request_ptr_highlighter.connect(
-                lambda: self.monitor.set_pointer_type(3)
+                lambda: self.monitor.set_pointer_type(3), Qt.QueuedConnection
             )
             new_overlay.request_ptr_eraser.connect(
-                lambda: self.monitor.set_pointer_type(5)
+                lambda: self.monitor.set_pointer_type(5), Qt.QueuedConnection
             )
             new_overlay.request_pen_color.connect(self.monitor.set_pen_color)
             new_overlay.request_thumbnail.connect(
