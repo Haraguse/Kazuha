@@ -1723,7 +1723,10 @@ class CrashHandler:
             env["LUMINALIUM_WATCHDOG_FOR"] = str(os.getpid())
             env["LUMINALIUM_HEARTBEAT_PATH"] = self._heartbeat_path or ""
 
-            creationflags = 0x08000000 | 0x00000008  # CREATE_NO_WINDOW | DETACHED_PROCESS
+            if sys.platform == "win32":
+                creationflags = 0x08000000 | 0x00000008  # CREATE_NO_WINDOW | DETACHED_PROCESS
+            else:
+                creationflags = 0
 
             if getattr(sys, "frozen", False):
                 cmd = [sys.executable, "--watchdog"]

@@ -21,6 +21,7 @@ __pycache__/
 *.so
 .Python
 venv/
+.venv/
 .env/
 
 # IDE
@@ -37,3 +38,6 @@ settings.json
 settings.json
 /scripts/smtc_helper/obj
 /scripts/smtc_helper/obj
+
+# Shit
+Luminalium2WPS
