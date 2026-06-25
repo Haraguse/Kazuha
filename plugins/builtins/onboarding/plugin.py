@@ -60,7 +60,7 @@ class OnboardingPlugin(AssistantPlugin):
         env.setdefault("QT_ACCESSIBILITY", "0")
         _cur = env.get("QTWEBENGINE_CHROMIUM_FLAGS", "")
         if "--disable-renderer-accessibility" not in _cur:
-	        env["QTWEBENGINE_CHROMIUM_FLAGS"] = (_cur + " --disable-renderer-accessibility").strip()
+            env["QTWEBENGINE_CHROMIUM_FLAGS"] = (_cur + " --disable-renderer-accessibility").strip()
         env["SETTINGS_PATH"] = get_active_settings_path()
         env["ONBOARDING_PREVIEW"] = "true" if preview else "false"
         title = "Onboarding Preview" if preview else "Onboarding"
