@@ -9,7 +9,6 @@
       <map>
         <entry key="LUMINALIUM_DISABLE_LOG_CAPTURE" value="0" />
         <entry key="LUMINALIUM_WEBENGINE_SOFTWARE" value="false" />
-        <entry key="QT_LOGGING_RULES" value="qt.qml*=true;qt.quick*=true" />
       </map>
     </option>
     <option name="runType" value="SCRIPT" />
