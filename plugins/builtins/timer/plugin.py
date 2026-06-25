@@ -349,6 +349,7 @@ class TimerPlugin(AssistantPlugin):
                 self.background_mode_entered.emit()
 
     def _launch_external_window(self, html_path, width, height, assets_path):
+        print(f"[TimerPlugin] _launch_external_window START", flush=True)
         env = _build_linux_webview_env(
             {
                 "ASSETS_PATH": assets_path,
@@ -370,17 +371,31 @@ class TimerPlugin(AssistantPlugin):
             height,
             not use_native,
         )
+        print(f"[TimerPlugin] Spawning subprocess: {' '.join(cmd)}", flush=True)
+        print(f"[TimerPlugin] ENV keys: {list(env.keys())}", flush=True)
+        
+        # Redirect stderr to a log file for debugging
+        import tempfile
+        stderr_log = tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='_timer_stderr.log', encoding='utf-8')
+        stderr_log_path = stderr_log.name
+        stderr_log.close()
+        print(f"[TimerPlugin] Subprocess stderr -> {stderr_log_path}", flush=True)
+        
+        stderr_f = open(stderr_log_path, 'w', encoding='utf-8')
+        
         process = subprocess.Popen(
             cmd,
             env=env,
             close_fds=True,
             stdout=subprocess.PIPE,
+            stderr=stderr_f,
             stdin=subprocess.DEVNULL,
             text=True,
             encoding="utf-8",
             errors="replace",
             bufsize=1,
         )
+        print(f"[TimerPlugin] Subprocess spawned, PID={process.pid}", flush=True)
         self.process = process
         watcher = threading.Thread(
             target=self._watch_external_timer_process,
@@ -461,19 +476,25 @@ class TimerPlugin(AssistantPlugin):
         return window
 
     def execute(self):
+        print(f"[TimerPlugin] execute() called, use_external={_use_external_webview_process()}, process={self.process}", flush=True)
         if _use_external_webview_process():
             if self.process is not None and self.process.poll() is None:
+                print(f"[TimerPlugin] External process already running", flush=True)
                 return
+            print(f"[TimerPlugin] Launching external window", flush=True)
             self._launch_external_window()
             return
 
         if self._hidden:
+            print(f"[TimerPlugin] Restoring hidden window", flush=True)
             self._restore_window()
             return
 
         if self._focus_existing_window():
+            print(f"[TimerPlugin] Focused existing window", flush=True)
             return
 
+        print(f"[TimerPlugin] Creating new window", flush=True)
         self._ensure_window()
         self._window.show()
         try:
@@ -482,6 +503,7 @@ class TimerPlugin(AssistantPlugin):
             bring_window_to_front(int(self._window.winId()))
         except Exception:
             pass
+        print(f"[TimerPlugin] Window shown", flush=True)
 
     def terminate(self):
         self._close_blocked = False

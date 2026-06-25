@@ -2149,6 +2149,13 @@ def _handle_multi_instance(app: QApplication):
                 launcher = os.path.basename(str(cmd[0])).lower()
                 if launcher in ("uv", "uv.exe") and "run" in cmd:
                     continue
+                # Skip if parent process is uv (spawned by uv run)
+                try:
+                    parent = psutil.Process(pid).parent()
+                    if parent and os.path.basename(parent.name()).lower() in ("uv", "uv.exe"):
+                        continue
+                except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
+                    pass
 
             try:
                 proc_cwd = p.cwd()
@@ -2174,6 +2181,9 @@ def _handle_multi_instance(app: QApplication):
 
     if not pids:
         return
+    
+    # 过滤掉遍历过程中已经死亡的进程
+    pids = [pid for pid in pids if psutil.pid_exists(pid)]
 
     print(f"[Main] Existing Luminalium instance candidates: {pids}", flush=True)
 
@@ -2198,9 +2208,26 @@ def _handle_multi_instance(app: QApplication):
 
     if sys.platform.startswith("linux"):
         print(
-            "[Main] Existing instance detected on Linux; continuing without WebView multi-instance dialog.",
+            "[Main] Existing instance detected on Linux; verifying if process is actually alive...",
             flush=True,
         )
+        # Verify the process is actually our instance, not a PID reuse
+        alive_verified = []
+        for pid in pids:
+            try:
+                proc = psutil.Process(pid)
+                # Check if it's actually python running main.py
+                cmdline = proc.cmdline()
+                if any('main.py' in arg for arg in cmdline):
+                    alive_verified.append(pid)
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        
+        if not alive_verified:
+            print("[Main] No verified Luminalium instances found, continuing startup.", flush=True)
+            return
+        
+        print(f"[Main] Verified instances: {alive_verified}. Continuing without multi-instance dialog.", flush=True)
         return
 
     lang = _get_current_language()
@@ -2341,7 +2368,14 @@ class PPTAssistantApp:
                 self.timer_plugin.execute()
         elif action == "board":
             if hasattr(self, "board_plugin"):
-                self.board_plugin.execute()
+                print(f"[Protocol] Executing board_plugin.execute()", flush=True)
+                try:
+                    self.board_plugin.execute()
+                    print(f"[Protocol] board_plugin.execute() returned OK", flush=True)
+                except Exception as e:
+                    print(f"[Protocol] board_plugin.execute() raised: {e}", flush=True)
+                    import traceback
+                    traceback.print_exc()
 
     def _restart_timer_from_notification(self):
         seconds = 0
@@ -2525,6 +2559,15 @@ class PPTAssistantApp:
         yield 60, "loading_plugins"
         _init_trace("_init_steps: step 60 - loading plugins")
         self._load_plugins()
+        
+        # Wait for plugins to finish loading (async via QTimer.singleShot)
+        _init_trace("_init_steps: waiting for plugins to load...")
+        while self._plugin_index < len(self._plugin_paths):
+            QCoreApplication.processEvents()
+            import time
+            time.sleep(0.01)
+        _init_trace("_init_steps: all builtin plugins loaded")
+        
         _init_trace("_init_steps: plugins loaded")
         try:
             if not hasattr(self, "onboarding_plugin") or self.onboarding_plugin is None:
@@ -2948,6 +2991,7 @@ class PPTAssistantApp:
             print(f"[APP] Error sending resource alert: {e}")
 
     def _connect_signals(self):
+        _init_trace("_connect_signals: ENTRY")
         self.monitor.slideshow_started.connect(self.on_slideshow_start)
         self.monitor.slideshow_ended.connect(self.on_slideshow_end)
         self.monitor.slideshow_started.connect(
@@ -2986,13 +3030,39 @@ class PPTAssistantApp:
         )
 
         if self.tray is not None:
+            _init_trace(f"_connect_signals: tray is not None, board_plugin exists: {hasattr(self, 'board_plugin')}, timer_plugin exists: {hasattr(self, 'timer_plugin')}")
+            print(f"[Tray] Connecting signals, board_plugin exists: {hasattr(self, 'board_plugin')}, timer_plugin exists: {hasattr(self, 'timer_plugin')}", flush=True)
             if hasattr(self, "settings_plugin"):
                 self.tray.show_settings.connect(self.settings_plugin.execute)
                 self.tray.show_about.connect(self._open_settings_about)
             if hasattr(self, "board_plugin"):
-                self.tray.show_board.connect(self.board_plugin.execute)
+                _init_trace("_connect_signals: connecting board_plugin")
+                print(f"[Tray] Connecting board_plugin signal", flush=True)
+                def _board_exec_wrapped():
+                    print(f"[Tray] board_plugin.execute() called from tray", flush=True)
+                    try:
+                        self.board_plugin.execute()
+                        print(f"[Tray] board_plugin.execute() returned OK", flush=True)
+                    except Exception as e:
+                        print(f"[Tray] board_plugin.execute() raised: {e}", flush=True)
+                        import traceback
+                        traceback.print_exc()
+                self.tray.show_board.connect(_board_exec_wrapped)
+                _init_trace("_connect_signals: board_plugin signal connected")
+                print(f"[Tray] board_plugin signal connected", flush=True)
             if hasattr(self, "timer_plugin"):
-                self.tray.show_timer.connect(self.timer_plugin.execute)
+                print(f"[Tray] Connecting timer_plugin signal", flush=True)
+                def _timer_exec_wrapped():
+                    print(f"[Tray] timer_plugin.execute() called from tray", flush=True)
+                    try:
+                        self.timer_plugin.execute()
+                        print(f"[Tray] timer_plugin.execute() returned OK", flush=True)
+                    except Exception as e:
+                        print(f"[Tray] timer_plugin.execute() raised: {e}", flush=True)
+                        import traceback
+                        traceback.print_exc()
+                self.tray.show_timer.connect(_timer_exec_wrapped)
+                print(f"[Tray] timer_plugin signal connected", flush=True)
             if hasattr(self, "spotlight_plugin"):
                 self.tray.show_spotlight.connect(self.spotlight_plugin.execute)
             if hasattr(self, "logs_plugin"):
@@ -3947,4 +4017,9 @@ if __name__ == "__main__":
         
     print("[Main] PPTAssistantApp created.", flush=True)
     crash_handler.set_app_instance(app_instance)
-    sys.exit(app.exec())
+
+    # === Diagnostic: instrument app.exec() return ===
+    print("[Main] Entering app.exec()...", flush=True)
+    _exec_rc = app.exec()
+    print(f"[Main] app.exec() returned rc={_exec_rc}", flush=True)
+    sys.exit(_exec_rc)

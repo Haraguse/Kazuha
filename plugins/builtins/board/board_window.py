@@ -4,7 +4,7 @@ import json
 import ctypes
 import ctypes.wintypes
 from PySide6.QtQuickWidgets import QQuickWidget
-from PySide6.QtQuick import QQuickPaintedItem
+from PySide6.QtQuick import QQuickPaintedItem, QQuickView
 from PySide6.QtQml import qmlRegisterType
 from PySide6.QtCore import (
     QUrl,
@@ -960,8 +960,8 @@ class NativeBoardItem(QQuickPaintedItem):
         painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
 
-# Register the native board item as a QML type
-qmlRegisterType(NativeBoardItem, "KazuhaBoard", 1, 0, "NativeBoardItem")
+# Register the native board item as a QML type (moved to BoardWindow.__init__ to avoid threading issues)
+# qmlRegisterType(NativeBoardItem, "KazuhaBoard", 1, 0, "NativeBoardItem")
 
 
 class SaveStrokesDialogBridge(QObject):
@@ -1135,7 +1135,11 @@ class BoardWindow(QWidget):
     window_fully_closed = Signal()
 
     def __init__(self):
+        from main import _init_trace
+        _init_trace("[BoardWindow] __init__ START")
+        print(f"[BoardWindow] __init__ START", flush=True)
         super().__init__()
+        _init_trace("[BoardWindow] super().__init__() done")
         self._is_closing = False
         self._animation = None
         self._native_filter = None
@@ -1145,10 +1149,15 @@ class BoardWindow(QWidget):
         # QQuickWidget uses QQuickRenderControl internally, which avoids
         # the GPU context deadlock that QQuickView triggers on Windows
         # when QWebEngineView is already using the GPU.
+        print(f"[BoardWindow] Creating QQuickWidget", flush=True)
         self._qml = QQuickWidget(self)
         self._qml.setResizeMode(QQuickWidget.SizeRootObjectToView)
+        print(f"[BoardWindow] QQuickWidget created", flush=True)
 
-        qmlRegisterType(NativeBoardItem, "KazuhaBoard", 1, 0, "NativeBoardItem") # 记得改！这里名字换了吧……
+        # Register KazuhaBoard type once (moved from module level to avoid threading issues)
+        _init_trace("[BoardWindow] Registering KazuhaBoard QML type")
+        qmlRegisterType(NativeBoardItem, "KazuhaBoard", 1, 0, "NativeBoardItem")
+        _init_trace("[BoardWindow] KazuhaBoard registered")
 
         self.setWindowTitle(self._WINDOW_TITLE)
 
@@ -1164,11 +1173,16 @@ class BoardWindow(QWidget):
                 | Qt.WindowMaximizeButtonHint
             )
 
+        from main import _init_trace
+        _init_trace("[BoardWindow] setWindowFlags done")
+        
         icon = load_app_icon()
         if not icon.isNull():
             self.setWindowIcon(icon)
 
+        _init_trace("[BoardWindow] Creating BoardBackend")
         self.backend = BoardBackend(self)
+        _init_trace("[BoardWindow] BoardBackend created, setting context properties")
         self._qml.rootContext().setContextProperty("backend", self.backend)
         self._qml.rootContext().setContextProperty("windowTitle", self._WINDOW_TITLE)
         self._qml.rootContext().setContextProperty(
@@ -1275,18 +1289,26 @@ class BoardWindow(QWidget):
         cfg.showToolbarText.valueChanged.connect(self._on_show_tool_text_changed)
 
         qml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Board.qml")
+        print(f"[BoardWindow] qml_path={qml_path}", flush=True)
 
         # Process pending events before loading QML to keep UI responsive
         QApplication.processEvents()
 
+        from main import _init_trace
+        _init_trace(f"[BoardWindow] About to setSource: {qml_path}")
+        print(f"[BoardWindow] Calling QQuickWidget.setSource()...", flush=True)
         self._qml.setSource(QUrl.fromLocalFile(qml_path))
+        _init_trace(f"[BoardWindow] setSource done, status={self._qml.status()}")
+        print(f"[BoardWindow] setSource() returned, status={self._qml.status()}", flush=True)
         # Allow event loop to process during QML scene graph initialization
         QApplication.processEvents()
 
         # Check for QML errors
         if self._qml.status() == QQuickWidget.Status.Error:
             errors = [str(e) for e in self._qml.errors()]
-            print(f"[BoardWindow] QML errors: {' | '.join(errors)}")
+            from main import _init_trace
+            _init_trace(f"[BoardWindow] QML ERROR: {' | '.join(errors)}")
+            print(f"[BoardWindow] QML errors: {' | '.join(errors)}", flush=True)
 
         # Set initial size
         self.resize(800, 600)
@@ -1331,6 +1353,7 @@ class BoardWindow(QWidget):
 
         # Flush pending events so the event loop stays responsive
         QApplication.processEvents()
+        print(f"[BoardWindow] __init__ END (SUCCESS)", flush=True)
 
     def changeEvent(self, event):
         """Override to detect window state changes (QWidget doesn't have windowStateChanged signal)."""
