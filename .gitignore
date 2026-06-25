@@ -4,7 +4,6 @@
 # Build outputs
 dist/
 build/
-internalSMTCHelper/
 .codex_tmp/
 .dotnet_appdata/
 .dotnet_home/
@@ -12,7 +11,7 @@ internalSMTCHelper/
 .nuget/
 .vscode/
 scripts/smtc_helper/obj/
-
+scripts/smtc_helper/bin/
 
 # Python
 __pycache__/
@@ -35,9 +34,3 @@ venv/
 .DS_Store
 Thumbs.db
 settings.json
-settings.json
-/scripts/smtc_helper/obj
-/scripts/smtc_helper/obj
-
-# Shit
-Luminalium2WPS
