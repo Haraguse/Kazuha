@@ -796,6 +796,8 @@ Rectangle {
         width: 300
         height: 230
         visible: false
+        opacity: 0
+        scale: 0.92
         z: 100
         radius: 12
         color: root.popupBackgroundColor !== "" ? root.popupBackgroundColor : (darkBackground ? "#202020" : "#FFFFFF")
@@ -803,9 +805,25 @@ Rectangle {
         border.width: 1
         clip: true
 
+        Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+
         property bool opened: visible
-        function open()  { visible = true;  }
-        function close() { visible = false; }
+        function open()  {
+            closeTimer.stop();
+            visible = true;
+            // Reset to start values for the scale-in animation
+            openTimer.start();
+        }
+        function close() {
+            openTimer.stop();
+            opacity = 0;
+            scale = 0.92;
+            closeTimer.start();
+        }
+
+        Timer { id: openTimer; interval: 10; onTriggered: { if (colorPopup.visible) { colorPopup.opacity = 1; colorPopup.scale = 1.0; } } }
+        Timer { id: closeTimer; interval: 200; onTriggered: { colorPopup.visible = false; } }
 
         property int activeTab: 0
         property string hoveredColorName: ""
@@ -902,17 +920,22 @@ Rectangle {
             
             // Content Area
             Item {
+                id: contentArea
                 anchors.top: tabHeader.bottom
                 anchors.bottom: infoBox.top
                 anchors.left: parent.left
                 anchors.right: parent.right
+                clip: true
                 
                 // Theme Colors
                 Grid {
-                    visible: colorPopup.activeTab === 0
+                    id: themeGrid
                     columns: 10
                     spacing: 6
                     anchors.centerIn: parent
+                    opacity: colorPopup.activeTab === 0 ? 1 : 0
+                    enabled: opacity > 0.1
+                    Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
                     
                     Repeater {
                         model: themeColors
@@ -923,6 +946,9 @@ Rectangle {
                             radius: 4
                             border.width: 1
                             border.color: darkBackground ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
+
+                            Behavior on scale { NumberAnimation { duration: 100 } }
+                            Behavior on border.color { ColorAnimation { duration: 100 } }
                             
                             MouseArea {
                                 anchors.fill: parent
@@ -956,10 +982,13 @@ Rectangle {
                 
                 // Standard Colors
                 Grid {
-                    visible: colorPopup.activeTab === 1
+                    id: standardGrid
                     columns: 10
                     spacing: 6
                     anchors.centerIn: parent
+                    opacity: colorPopup.activeTab === 1 ? 1 : 0
+                    enabled: opacity > 0.1
+                    Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
                     
                     Repeater {
                         model: standardColors
@@ -970,6 +999,9 @@ Rectangle {
                             radius: 4
                             border.width: 1
                             border.color: darkBackground ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
+
+                            Behavior on scale { NumberAnimation { duration: 100 } }
+                            Behavior on border.color { ColorAnimation { duration: 100 } }
                             
                             MouseArea {
                                 anchors.fill: parent
@@ -1167,6 +1199,8 @@ Rectangle {
         width: 260
         height: 120
         visible: false
+        opacity: 0
+        scale: 0.92
         z: 100
         radius: 12
         color: root.popupBackgroundColor !== "" ? root.popupBackgroundColor : (darkBackground ? "#202020" : "#FFFFFF")
@@ -1174,9 +1208,24 @@ Rectangle {
         border.width: 1
         clip: true
 
+        Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+
         property bool opened: visible
-        function open()  { visible = true;  }
-        function close() { visible = false; }
+        function open()  {
+            erCloseTimer.stop();
+            visible = true;
+            erOpenTimer.start();
+        }
+        function close() {
+            erOpenTimer.stop();
+            opacity = 0;
+            scale = 0.92;
+            erCloseTimer.start();
+        }
+
+        Timer { id: erOpenTimer; interval: 10; onTriggered: { if (eraserPopup.visible) { eraserPopup.opacity = 1; eraserPopup.scale = 1.0; } } }
+        Timer { id: erCloseTimer; interval: 200; onTriggered: { eraserPopup.visible = false; } }
 
         Column {
             anchors.fill: parent
