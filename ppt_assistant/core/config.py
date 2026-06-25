@@ -201,11 +201,10 @@ class Config(QConfig):
         OptionsValidator(["Always", "Never", "HideOnAutoStart", "TimeRange"]),
         restart=False,
     )
-    splashStyle = OptionsConfigItem(
+    splashStyle = ConfigItem(
         "General",
         "SplashStyle",
         "default",
-        OptionsValidator(["default", "nina_iseri_1_2"]),
         restart=False,
     )
     showDetailedSplash = ConfigItem(

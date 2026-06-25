@@ -13502,6 +13502,7 @@
     }
 
     var overlayThemeList = [];
+    var splashStyleList = [];
 
     function updateOverlayTheme(theme) {
       if (!settings.Appearance) settings.Appearance = {};
@@ -13620,15 +13621,53 @@
       });
     }
 
+    function loadSplashStyles() {
+      const select = document.getElementById("sel-General-SplashStyle");
+      if (!select) return;
+
+      const applyOptions = (splashes) => {
+        const current = settings.General?.SplashStyle || "default";
+        const list = [{ id: "default", name: getText("general.splashStyle.default") || "默认" }];
+        (splashes || []).forEach(splash => {
+          if (!splash || splash.id === "default") return;
+          list.push({ id: splash.id, name: splash.name || splash.id });
+        });
+        if (!list.some(s => s.id === current)) {
+          list.push({ id: current, name: current });
+        }
+        splashStyleList = list;
+        select.innerHTML = "";
+        list.forEach(splash => {
+          const option = document.createElement("option");
+          option.value = splash.id;
+          option.textContent = splash.name || splash.id;
+          if (splash.id === current) option.selected = true;
+          select.appendChild(option);
+        });
+        renderSplashGallery(current);
+      };
+
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.get_splash_styles) {
+        window.pywebview.api.get_splash_styles().then(res => {
+          if (Array.isArray(res)) {
+            applyOptions(res);
+          } else {
+            applyOptions([]);
+          }
+        }).catch(() => applyOptions([]));
+      } else {
+        applyOptions([]);
+      }
+    }
+
     function renderSplashGallery(currentStyle) {
       const gallery = document.getElementById("splash-gallery");
       if (!gallery) return;
-      const styles = [
-        { id: "default", nameKey: "general.splashStyle.default", fallback: "默认", preview: "../../../user/splash/default/preview.png" },
-        { id: "nina_iseri_1_2", nameKey: "general.splashStyle.nina", fallback: "Nina Iseri - 1.2", preview: "../../../user/splash/nina_iseri_1_2/preview.png" }
+      const list = Array.isArray(splashStyleList) && splashStyleList.length > 0 ? splashStyleList : [
+        { id: "default", name: getText("general.splashStyle.default") || "默认" }
       ];
       gallery.innerHTML = "";
-      styles.forEach(style => {
+      list.forEach(style => {
         const item = document.createElement("div");
         item.className = "media-gallery-item" + (style.id === currentStyle ? " active" : "");
         item.onclick = () => setSplashStyle(style.id);
@@ -13638,14 +13677,31 @@
 
         const img = document.createElement("img");
         img.className = "media-gallery-img";
-        img.src = style.preview;
         const fallback = document.createElement("div");
         fallback.className = "media-gallery-fallback";
         fallback.textContent = getText("general.splashStyle.preview") || "预览";
-        img.onerror = () => {
+
+        if (style.id === "default") {
           img.style.display = "none";
           fallback.style.display = "flex";
-        };
+        } else {
+          img.src = `../../../user/splash/${style.id}/preview.png`;
+          img.onerror = () => {
+            if (img.dataset.retry !== "1") {
+              img.dataset.retry = "1";
+              img.src = `../../../user/splash/${style.id}/preview.jpg`;
+            } else if (img.dataset.retry !== "2") {
+              img.dataset.retry = "2";
+              img.src = `../../../users/splash/${style.id}/preview.png`;
+            } else if (img.dataset.retry !== "3") {
+              img.dataset.retry = "3";
+              img.src = `../../../users/splash/${style.id}/preview.jpg`;
+            } else {
+              img.style.display = "none";
+              fallback.style.display = "flex";
+            }
+          };
+        }
 
         preview.appendChild(img);
         preview.appendChild(fallback);
@@ -13659,7 +13715,7 @@
 
         const name = document.createElement("div");
         name.className = "media-gallery-name";
-        name.textContent = getText(style.nameKey) || style.fallback;
+        name.textContent = style.name || style.id;
 
         item.appendChild(preview);
         item.appendChild(name);
@@ -13694,6 +13750,7 @@
       isHydratingSettingsUI = true;
       try {
         loadOverlayThemes();
+        loadSplashStyles();
         const lang = settings.General && settings.General.Language;
         if (lang) currentLanguage = lang;
         applyAnimationPreference();

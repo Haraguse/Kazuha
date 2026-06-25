@@ -190,6 +190,38 @@ def _list_user_themes() -> list[dict]:
     return results
 
 
+def _list_user_splashes() -> list[dict]:
+    root_dir = _get_user_root_dir()
+    splash_dir = os.path.join(root_dir, "user", "splash")
+    if not os.path.isdir(splash_dir):
+        splash_dir = os.path.join(root_dir, "users", "splash")
+
+    results: list[dict] = []
+    if not os.path.isdir(splash_dir):
+        return results
+    for name in os.listdir(splash_dir):
+        theme_dir = os.path.join(splash_dir, name)
+        if not os.path.isdir(theme_dir):
+            continue
+        manifest_path = os.path.join(theme_dir, "manifest.json")
+        preview_png = os.path.join(theme_dir, "preview.png")
+        preview_jpg = os.path.join(theme_dir, "preview.jpg")
+        splash_py = os.path.join(theme_dir, "splash.py")
+        if not os.path.exists(splash_py):
+            continue
+        if not os.path.exists(manifest_path):
+            continue
+        if not (os.path.exists(preview_png) or os.path.exists(preview_jpg)):
+            continue
+        try:
+            with open(manifest_path, "r", encoding="utf-8-sig") as f:
+                data = json.load(f)
+        except Exception:
+            continue
+        results.append({"id": name, "name": data.get("name", name)})
+    return results
+
+
 def _load_app_icon() -> QIcon:
     path = _resolve_logo_ico_path()
     if not path:
@@ -1064,6 +1096,10 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
     @Slot(result="QVariant")
     def get_overlay_themes(self):
         return _list_user_themes()
+
+    @Slot(result="QVariant")
+    def get_splash_styles(self):
+        return _list_user_splashes()
 
     @Slot(str, result=str)
     def get_toolbar_icon(self, icon_name):

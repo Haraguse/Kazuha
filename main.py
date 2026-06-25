@@ -1026,7 +1026,8 @@ class StartupSplash(QWidget):
 			and not self._is_first_run
 			and _is_dev_preview_version(self._version_raw)
 		):
-			self._dev_watermark = QLabel(self._container)
+			dev_wm_parent = getattr(self, "_container", self)
+			self._dev_watermark = QLabel(dev_wm_parent)
 			i18n_table = SPLASH_I18N.get(self._language, SPLASH_I18N["zh-CN"])
 			suffix = self._version_raw.split(".")[-1]
 			w_type = i18n_table.get(f"watermark.{suffix}", "")
@@ -1046,8 +1047,8 @@ class StartupSplash(QWidget):
 
 			self._dev_watermark.resize(320, 36)
 			self._dev_watermark.move(
-				self._container.width() - self._dev_watermark.width() - 16,
-				self._container.height() - self._dev_watermark.height() - 12,
+				dev_wm_parent.width() - self._dev_watermark.width() - 16,
+				dev_wm_parent.height() - self._dev_watermark.height() - 12,
 			)
 		_try_install_window_icon_filter(self)
 
