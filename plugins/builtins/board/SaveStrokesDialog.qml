@@ -14,16 +14,14 @@ Rectangle {
     property string confirmText: typeof dialogConfirmText !== "undefined" ? dialogConfirmText : ""
     property string discardText: typeof dialogDiscardText !== "undefined" ? dialogDiscardText : ""
     property string cancelText: typeof dialogCancelText !== "undefined" ? dialogCancelText : ""
-    property string bgApp: typeof dialogBgApp !== "undefined" ? dialogBgApp : "rgba(255, 255, 255, 0.6)"
-    property string textPrimary: typeof dialogTextPrimary !== "undefined" ? dialogTextPrimary : "#191919"
-    property string textSecondary: typeof dialogTextSecondary !== "undefined" ? dialogTextSecondary : "#666666"
-    property string accentBlue: typeof dialogAccent !== "undefined" ? dialogAccent : "#3275F5"
-    property string divider: typeof dialogDivider !== "undefined" ? dialogDivider : "rgba(0, 0, 0, 0.08)"
-    property string itemHover: typeof dialogItemHover !== "undefined" ? dialogItemHover : "rgba(0, 0, 0, 0.04)"
-    property string buttonActive: typeof dialogButtonActive !== "undefined" ? dialogButtonActive : "rgba(0, 0, 0, 0.12)"
-    property string cardShadow: typeof dialogCardShadow !== "undefined" ? dialogCardShadow : "rgba(0, 0, 0, 0.03)"
-    property bool darkMode: typeof dialogDarkMode !== "undefined" ? dialogDarkMode : false
-    property string fontFamily: typeof dialogFontFamily !== "undefined" ? dialogFontFamily : ""
+    property color bgApp:        typeof dialogBgApp !== "undefined" ? dialogBgApp : "#FAFFFFFF"
+    property color textPrimary:  typeof dialogTextPrimary !== "undefined" ? dialogTextPrimary : "#191919"
+    property color textSecondary:typeof dialogTextSecondary !== "undefined" ? dialogTextSecondary : "#666666"
+    property color accentBlue:   typeof dialogAccent !== "undefined" ? dialogAccent : "#3275F5"
+    property color divider:      typeof dialogDivider !== "undefined" ? dialogDivider : "#14000000"
+    property color itemHover:    typeof dialogItemHover !== "undefined" ? dialogItemHover : "#0A000000"
+    property color buttonActive: typeof dialogButtonActive !== "undefined" ? dialogButtonActive : "#1E000000"
+    property string fontFamily:  typeof dialogFontFamily !== "undefined" ? dialogFontFamily : ""
 
     Keys.onEscapePressed: {
         if (typeof dialogBridge !== "undefined" && dialogBridge) {
@@ -46,12 +44,8 @@ Rectangle {
             if (buttonRoot.accent) {
                 return buttonRoot.hovered ? accentBlue : "transparent"
             }
-            if (buttonRoot.pressed) {
-                return buttonActive
-            }
-            if (buttonRoot.hovered) {
-                return itemHover
-            }
+            if (buttonRoot.pressed) return buttonActive
+            if (buttonRoot.hovered) return itemHover
             return "transparent"
         }
         border.width: 1
@@ -61,16 +55,16 @@ Rectangle {
             ColorAnimation { duration: 150 }
         }
 
-            Text {
-                id: buttonLabel
-                anchors.centerIn: parent
-                text: buttonRoot.label
-                color: buttonRoot.accent
-                   ? (buttonRoot.hovered ? "#FFFFFF" : accentBlue)
-                   : (buttonRoot.hovered || buttonRoot.pressed ? textPrimary : textSecondary)
-                font.family: root.fontFamily
-                font.pixelSize: 13
-                font.weight: Font.Medium
+        Text {
+            id: buttonLabel
+            anchors.centerIn: parent
+            text: buttonRoot.label
+            color: buttonRoot.accent
+               ? (buttonRoot.hovered ? "#FFFFFF" : accentBlue)
+               : (buttonRoot.hovered || buttonRoot.pressed ? textPrimary : textSecondary)
+            font.family: root.fontFamily
+            font.pixelSize: 13
+            font.weight: Font.Medium
 
             Behavior on color {
                 ColorAnimation { duration: 150 }
@@ -127,14 +121,6 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.bottom: footer.top
                 anchors.bottomMargin: 16
-
-                Rectangle {
-                    id: cardShadow
-                    anchors.fill: parent
-                    anchors.topMargin: darkMode ? 4 : 2
-                    radius: 12
-                    color: root.cardShadow
-                }
 
                 Rectangle {
                     id: contentCard

@@ -462,8 +462,6 @@ class LinuxQmlOverlayWindow(QWidget):
         if self._qml_ready:
             return True
         try:
-            from PySide6.QtCore import qInstallMessageHandler
-            
             print("[Overlay] Initializing Linux QML scene...", flush=True)
             self._view = QQuickWidget(self)
             self._view.setResizeMode(QQuickWidget.SizeRootObjectToView)
@@ -477,14 +475,7 @@ class LinuxQmlOverlayWindow(QWidget):
                 os.path.dirname(os.path.abspath(__file__)), "LinuxOverlay.qml"
             )
             print(f"[Overlay] Loading Linux QML overlay: {qml_path}", flush=True)
-            
-            # Temporarily disable Qt message handler to prevent deadlock during QML loading
-            original_handler = qInstallMessageHandler(None)
-            try:
-                self._view.setSource(QUrl.fromLocalFile(qml_path))
-            finally:
-                qInstallMessageHandler(original_handler)
-                
+            self._view.setSource(QUrl.fromLocalFile(qml_path))
             if self._view.status() == QQuickWidget.Error:
                 errors = [str(err.toString()) for err in self._view.errors()]
                 raise RuntimeError(
