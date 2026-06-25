@@ -4084,27 +4084,50 @@ if __name__ == "__main__":
 	# Install Qt message handler to catch Qt-level fatal errors
 	# (e.g. "Must construct a QApplication before a QWidget")
 	def _qt_message_handler(mode, context, message):
+		"""
+		Qt消息处理器 - 直接输出到真实的stderr/stdout，不经过Python的日志重定向
+		这样可以避免GIL争夺和死锁问题
+		"""
 		msg_str = str(message) if message else ""
-		if mode <= 2:  # QtWarningMsg or QtCriticalMsg
-			print(f"[Qt-{mode}] {msg_str}", flush=True)
-		if mode == 0:  # QtDebugMsg - skip
+		
+		# 使用 sys.__stderr__ 和 sys.__stdout__ 直接输出，绕过任何Python层的拦截
+		try:
+			if mode == 0:  # QtDebugMsg
+				# 调试消息输出到stdout（通常不显示，除非设置了环境变量）
+				sys.__stdout__.write(f"[Qt-Debug] {msg_str}\n")
+				sys.__stdout__.flush()
+			elif mode == 1:  # QtInfoMsg
+				sys.__stdout__.write(f"[Qt-Info] {msg_str}\n")
+				sys.__stdout__.flush()
+			elif mode == 2:  # QtWarningMsg
+				sys.__stderr__.write(f"[Qt-Warning] {msg_str}\n")
+				sys.__stderr__.flush()
+			elif mode == 3:  # QtCriticalMsg
+				sys.__stderr__.write(f"[Qt-Critical] {msg_str}\n")
+				sys.__stderr__.flush()
+			elif mode == 4:  # QtFatalMsg
+				error_msg = f"Qt Fatal Error: {msg_str}\n\nFile: {context.file}\nLine: {context.line}\nFunction: {context.function}"
+				sys.__stderr__.write(f"[Qt-Fatal] {error_msg}\n")
+				sys.__stderr__.flush()
+				
+				# Write to crash log immediately
+				try:
+					cld = os.path.join(
+						os.environ.get("APPDATA", tempfile.gettempdir()),
+						"Luminalium",
+						"crash_logs",
+					)
+					os.makedirs(cld, exist_ok=True)
+					clp = os.path.join(cld, f"qtfatal_{os.getpid()}_{int(time.time())}.log")
+					with open(clp, "w", encoding="utf-8") as f:
+						f.write(error_msg)
+					sys.__stdout__.write(f"[CrashHandler] Qt fatal log written to {clp}\n")
+					sys.__stdout__.flush()
+				except Exception:
+					pass
+		except Exception:
+			# 如果输出失败，静默忽略（避免递归错误）
 			pass
-		elif mode == 4:  # QtFatalMsg
-			error_msg = f"Qt Fatal Error: {msg_str}\n\nFile: {context.file}\nLine: {context.line}\nFunction: {context.function}"
-			# Write to crash log immediately
-			try:
-				cld = os.path.join(
-					os.environ.get("APPDATA", tempfile.gettempdir()),
-					"Luminalium",
-					"crash_logs",
-				)
-				os.makedirs(cld, exist_ok=True)
-				clp = os.path.join(cld, f"qtfatal_{os.getpid()}_{int(time.time())}.log")
-				with open(clp, "w", encoding="utf-8") as f:
-					f.write(error_msg)
-				print(f"[CrashHandler] Qt fatal log written to {clp}", flush=True)
-			except Exception:
-				pass
 
 	from PySide6.QtCore import qInstallMessageHandler
 
@@ -4120,7 +4143,7 @@ if __name__ == "__main__":
 	print("[Main] Multi-instance check finished.", flush=True)
 
 	# Initialize log manager to capture application logs
-	from ppt_assistant.core.log_manager import get_log_manager, init_log_manager
+	from ppt_assistant.core.log_manager import get_log_manager, init_log_manager, get_logger
 
 	init_log_manager()
 	# Load log level settings from config
@@ -4132,6 +4155,10 @@ if __name__ == "__main__":
 		"error": cfg.showError.value if hasattr(cfg, "showError") else True,
 	}
 	log_manager.set_filters(log_filters)
+	
+	# Get logger for main module
+	logger = get_logger("main")
+	logger.info("Log manager initialized with filters: %s", log_filters)
 
 	from ppt_assistant.core.config import reload_cfg
 
