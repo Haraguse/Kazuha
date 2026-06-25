@@ -24,6 +24,7 @@ from PySide6.QtCore import (
     QPropertyAnimation,
     QEasingCurve,
     QAbstractNativeEventFilter,
+    qInstallMessageHandler,
 )
 from PySide6.QtGui import QColor, QIcon, QAction, QGuiApplication, QPainter, QImage, QPen
 from PySide6.QtWidgets import QApplication, QFileDialog, QWidget, QVBoxLayout
@@ -997,10 +998,15 @@ class SaveStrokesDialog(QQuickView):
 
     def __init__(self, owner_window, title, text, save_text, discard_text, cancel_text):
         super().__init__()
+        self._window_icon_filter_guard = WindowIconFilterGuard()
+        self._window_icon_filter_guard.suspend()
+        self._qt_message_handler_guard = QtMessageHandlerGuard()
+        self._qt_message_handler_guard.suspend()
         self._owner_window = owner_window
         self._result = self.ResultCancel
         self._loop = None
         self._closing = False
+        self.destroyed.connect(lambda *_: self._restore_qml_guards())
 
         self.setResizeMode(QQuickView.SizeRootObjectToView)
         self.setTitle(title)
@@ -1054,7 +1060,10 @@ class SaveStrokesDialog(QQuickView):
         qml_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "SaveStrokesDialog.qml"
         )
-        self.setSource(QUrl.fromLocalFile(qml_path))
+        try:
+            self.setSource(QUrl.fromLocalFile(qml_path))
+        finally:
+            self._restore_qt_message_handler()
         root = self.rootObject()
         width = (
             int(root.property("implicitWidth"))
@@ -1103,6 +1112,7 @@ class SaveStrokesDialog(QQuickView):
             self.hide()
             self.close()
         finally:
+            self._restore_qml_guards()
             if self._loop is not None and self._loop.isRunning():
                 self._loop.quit()
 
@@ -1112,7 +1122,22 @@ class SaveStrokesDialog(QQuickView):
             self._closing = True
             if self._loop is not None and self._loop.isRunning():
                 self._loop.quit()
+        self._restore_qml_guards()
         super().closeEvent(event)
+
+    def _restore_window_icon_filter(self):
+        guard = getattr(self, "_window_icon_filter_guard", None)
+        if guard is not None:
+            guard.resume()
+
+    def _restore_qt_message_handler(self):
+        guard = getattr(self, "_qt_message_handler_guard", None)
+        if guard is not None:
+            guard.resume()
+
+    def _restore_qml_guards(self):
+        self._restore_qt_message_handler()
+        self._restore_window_icon_filter()
 
     @classmethod
     def ask(cls, owner_window, title, text, save_text, discard_text, cancel_text):
@@ -1135,6 +1160,58 @@ def _apply_dwm_shadow(hwnd):
         pass
 
 
+class WindowIconFilterGuard:
+    """Temporarily disable the app's top-level icon event filter for QML windows."""
+
+    def __init__(self):
+        self._active = False
+
+    def suspend(self):
+        if self._active:
+            return
+        app = QApplication.instance()
+        suspend = getattr(app, "suspend_window_icon_filter", None) if app else None
+        if callable(suspend):
+            suspend()
+            self._active = True
+
+    def resume(self):
+        if not self._active:
+            return
+        self._active = False
+        app = QApplication.instance()
+        resume = getattr(app, "resume_window_icon_filter", None) if app else None
+        if callable(resume):
+            resume()
+
+
+class QtMessageHandlerGuard:
+    """Temporarily restore Qt's default message handler while QML is active."""
+
+    def __init__(self):
+        self._active = False
+        self._previous_handler = None
+
+    def suspend(self):
+        if self._active:
+            return
+        try:
+            self._previous_handler = qInstallMessageHandler(None)
+            self._active = True
+        except Exception:
+            self._previous_handler = None
+
+    def resume(self):
+        if not self._active:
+            return
+        self._active = False
+        try:
+            qInstallMessageHandler(self._previous_handler)
+        except Exception:
+            pass
+        self._previous_handler = None
+
+
 class BoardWindow(QWidget):
     _WINDOW_TITLE = "小黑板 - Luminalium"
 
@@ -1144,10 +1221,15 @@ class BoardWindow(QWidget):
 
     def __init__(self):
         super().__init__()
+        self._window_icon_filter_guard = WindowIconFilterGuard()
+        self._window_icon_filter_guard.suspend()
+        self._qt_message_handler_guard = QtMessageHandlerGuard()
+        self._qt_message_handler_guard.suspend()
         self._is_closing = False
         self._animation = None
         self._native_filter = None
         self._qml = None
+        self.destroyed.connect(lambda *_: self._restore_qml_guards())
 
         # Create QQuickWidget as child — fills the entire QWidget.
         # QQuickWidget uses QQuickRenderControl internally, which avoids
@@ -1293,10 +1375,13 @@ class BoardWindow(QWidget):
 
         # Process pending events before loading QML to keep UI responsive
         QApplication.processEvents()
-
-        self._qml.setSource(QUrl.fromLocalFile(qml_path))
-        # Allow event loop to process during QML scene graph initialization
-        QApplication.processEvents()
+        
+        try:
+            self._qml.setSource(QUrl.fromLocalFile(qml_path))
+            # Allow event loop to process during QML scene graph initialization
+            QApplication.processEvents()
+        finally:
+            self._restore_qt_message_handler()
 
         # Check for QML errors
         if self._qml.status() == QQuickWidget.Status.Error:
@@ -1346,6 +1431,20 @@ class BoardWindow(QWidget):
 
         # Flush pending events so the event loop stays responsive
         QApplication.processEvents()
+
+    def _restore_window_icon_filter(self):
+        guard = getattr(self, "_window_icon_filter_guard", None)
+        if guard is not None:
+            guard.resume()
+
+    def _restore_qt_message_handler(self):
+        guard = getattr(self, "_qt_message_handler_guard", None)
+        if guard is not None:
+            guard.resume()
+
+    def _restore_qml_guards(self):
+        self._restore_qt_message_handler()
+        self._restore_window_icon_filter()
 
     def changeEvent(self, event):
         """Override to detect window state changes (QWidget doesn't have windowStateChanged signal)."""
@@ -1651,6 +1750,7 @@ class BoardWindow(QWidget):
         if self.windowState() & (Qt.WindowFullScreen | Qt.WindowMaximized):
             self._force_close = True
             super().close()
+            self._restore_qml_guards()
             self.window_fully_closed.emit()
             return
 
@@ -1669,6 +1769,7 @@ class BoardWindow(QWidget):
         else:
             self._force_close = True
             super().close()
+            self._restore_qml_guards()
             self.window_fully_closed.emit()
 
     def _on_animation_finished(self):
@@ -1677,11 +1778,13 @@ class BoardWindow(QWidget):
             super().close()
             # Reset for next time if the object is reused
             self._is_closing = False
+            self._restore_qml_guards()
             self.window_fully_closed.emit()
 
     def closeEvent(self, event):
         if getattr(self, "_force_close", False):
             super().closeEvent(event)
+            self._restore_qml_guards()
             return
 
         # Intercept manual close (X button) to play animation
