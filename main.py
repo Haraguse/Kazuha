@@ -2202,6 +2202,8 @@ def _handle_multi_instance(app: QApplication):
 				continue
 			if "--memory-cleaner" in cmd:
 				continue
+			if "--watchdog" in cmd:
+				continue
 			if cmd:
 				launcher = os.path.basename(str(cmd[0])).lower()
 				if launcher in ("uv", "uv.exe") and "run" in cmd:
