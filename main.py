@@ -562,10 +562,6 @@ def _force_directwrite_font_engine():
 def _apply_graphics_settings():
 	if sys.platform == "linux":
 		os.environ["QTWEBENGINE_DISABLE_SANDBOX"] = "1"
-		# Disable a11y to avoid QAccessibleCache crash with Qt WebEngine on
-		# KDE/AT-SPI. See `D:\sectl\PID7233.txt` for the SIGSEGV stack going
-		# through `QAccessibleCache::deleteInterface` -> QDebug stream of a
-		# destroyed `QAccessibleInterface*`.
 		os.environ.setdefault("NO_AT_BRIDGE", "1")
 		os.environ.setdefault("QT_ACCESSIBILITY", "0")
 		extra_chrome_flags = "--disable-renderer-accessibility"
@@ -1917,8 +1913,8 @@ def _run_watchdog_process():
 		return
 
 	main_pid = int(pid_str)
-	HUNG_TIMEOUT = 3  # consecutive hung checks before declaring freeze
-	HEARTBEAT_TIMEOUT = 15  # seconds without heartbeat = frozen
+	HUNG_TIMEOUT = 6  # consecutive hung checks before declaring freeze
+	HEARTBEAT_TIMEOUT = 75  # seconds without heartbeat = frozen
 	CHECK_INTERVAL = 5  # check every 5 seconds
 
 	print(f"[Watchdog] Monitoring PID {main_pid}", flush=True)

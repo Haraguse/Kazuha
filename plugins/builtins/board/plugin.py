@@ -46,10 +46,15 @@ class BoardPlugin(AssistantPlugin):
 
         # Defer window creation to next event loop iteration so the UI
         # doesn't freeze while the QML scene graph loads.
-        print(f"[BoardPlugin] Deferring window creation via QTimer.singleShot", flush=True)
+        print(
+            f"[BoardPlugin] Deferring window creation via QTimer.singleShot", flush=True
+        )
         QTimer.singleShot(0, self._create_and_show)
 
     def _create_and_show(self):
+        from PySide6.QtCore import qInstallMessageHandler
+
+        original_handler = qInstallMessageHandler(None)
         print(f"[BoardPlugin] _create_and_show() called", flush=True)
         if self.window:
             print(f"[BoardPlugin] window already exists, aborting create", flush=True)
@@ -70,10 +75,13 @@ class BoardPlugin(AssistantPlugin):
         except Exception as e:
             print(f"[BoardPlugin] Failed to create board window: {e}", flush=True)
             import traceback
+
             traceback.print_exc()
             if self.window is not None:
                 try:
-                    self.window.window_fully_closed.disconnect(self._on_window_fully_closed)
+                    self.window.window_fully_closed.disconnect(
+                        self._on_window_fully_closed
+                    )
                     self.window.deleteLater()
                 except Exception:
                     pass

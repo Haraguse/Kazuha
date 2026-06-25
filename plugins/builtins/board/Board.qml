@@ -189,80 +189,50 @@ Rectangle {
     function ensureBoardPages() {
         if (!isArrayLike(boardPages) || boardPages.length === 0) {
             boardPages = [createEmptyBoardPage()];
-        } else {
-            var normalizedPages = [];
-            for (var i = 0; i < boardPages.length; i++) {
-                normalizedPages.push(normalizeBoardPage(boardPages[i]));
-            }
-            boardPages = normalizedPages;
+        } else if (boardPages.length > 1) {
+            boardPages = [normalizeBoardPage(boardPages[0])];
         }
-        if (currentBoardPage < 1) {
-            currentBoardPage = 1;
-        }
-        if (currentBoardPage > boardPages.length) {
-            currentBoardPage = boardPages.length;
-        }
+        currentBoardPage = 1;
     }
 
     function persistCurrentPageToModel() {
         ensureBoardPages();
-        var pageIndex = Math.max(0, Math.min(boardPages.length - 1, currentBoardPage - 1));
-        var page = normalizeBoardPage(boardPages[pageIndex] || createEmptyBoardPage());
+        var page = normalizeBoardPage(boardPages[0] || createEmptyBoardPage());
         page.strokes = cloneStrokeList(canvas.getStrokes());
-        boardPages[pageIndex] = page;
-        boardPages = boardPages.slice(0);
+        boardPages = [page];
         return page;
     }
 
     function applyCurrentBoardPage() {
         ensureBoardPages();
-        var pageIndex = Math.max(0, Math.min(boardPages.length - 1, currentBoardPage - 1));
-        var page = normalizeBoardPage(boardPages[pageIndex] || createEmptyBoardPage());
+        var page = normalizeBoardPage(boardPages[0] || createEmptyBoardPage());
         canvas.setStrokes(page.strokes);
     }
 
     function getBoardDocument() {
-        persistCurrentPageToModel();
-        var pagesOut = [];
-        for (var i = 0; i < boardPages.length; i++) {
-            var page = normalizeBoardPage(boardPages[i]);
-            pagesOut.push({
-                strokes: cloneStrokeList(page.strokes),
-                thumb: ""
-            });
-        }
+        var page = persistCurrentPageToModel();
         return {
-            currentPage: currentBoardPage,
-            pages: pagesOut
+            currentPage: 1,
+            pages: [{ strokes: cloneStrokeList(page.strokes), thumb: "" }]
         };
     }
 
     function setBoardDocument(documentData) {
-        var pages = [];
-        var currPage = 1;
+        var strokes = [];
         if (isArrayLike(documentData)) {
-            pages = [{ strokes: cloneStrokeList(documentData), thumb: "" }];
-        } else if (documentData && isArrayLike(documentData.pages) && documentData.pages.length > 0) {
-            for (var i = 0; i < documentData.pages.length; i++) {
-                pages.push(normalizeBoardPage(documentData.pages[i]));
-            }
-            currPage = parseInt(documentData.currentPage || 1);
-            if (isNaN(currPage)) currPage = 1;
+            strokes = cloneStrokeList(documentData);
+        } else if (documentData && isArrayLike(documentData.pages)) {
+            strokes = cloneStrokeList((documentData.pages[0] || {}).strokes || []);
         }
-        if (pages.length === 0) {
-            pages = [createEmptyBoardPage()];
-            currPage = 1;
-        }
-        boardPages = pages;
-        currentBoardPage = Math.max(1, Math.min(boardPages.length, currPage));
+        boardPages = [{ strokes: strokes, thumb: "" }];
+        currentBoardPage = 1;
         applyCurrentBoardPage();
     }
 
-    // FIXME: Component.onCompleted causes crash on Linux, need to investigate ensureBoardPages/applyCurrentBoardPage
-    // Component.onCompleted: {
-    //     ensureBoardPages();
-    //     applyCurrentBoardPage();
-    // }
+    Component.onCompleted: {
+        ensureBoardPages();
+        applyCurrentBoardPage();
+    }
 
     // ── Main drawing area (below title bar) ─────────────────────────────────
     // Main Content Area
@@ -318,13 +288,12 @@ Rectangle {
             readonly property bool canUndo: undoStack.length > 0
             readonly property bool canRedo: redoStack.length > 0
 
-            // FIXME: requestRepaintAll() is not defined anywhere, commenting out to prevent freeze
-            // onWidthChanged: {
-            //     requestRepaintAll();
-            // }
-            // onHeightChanged: {
-            //     requestRepaintAll();
-            // }
+            onWidthChanged: {
+                requestRepaintAll();
+            }
+            onHeightChanged: {
+                requestRepaintAll();
+            }
             
             function drawLine(ctx, line, w, h) {
                 // Compatibility for scripts that call drawLine on canvas.
@@ -807,10 +776,7 @@ Rectangle {
         anchors.fill: board
         z: 98
         enabled: colorPopup.visible || eraserPopup.visible
-        onClicked: {
-            colorPopup.close();
-            eraserPopup.close();
-        }
+        onClicked: { colorPopup.close(); eraserPopup.close(); }
     }
 
     // Color Popup (pure QtQuick – no QtQuick.Controls)
@@ -1199,7 +1165,7 @@ Rectangle {
                 ? toolbar.y - height - 12
                 : toolbar.y + (toolbar.height - height) / 2
         width: 260
-        height: 190
+        height: 120
         visible: false
         z: 100
         radius: 12
@@ -1276,93 +1242,6 @@ Rectangle {
                 text: canvas ? Math.round(canvas.eraserWidth) : 20
                 color: darkBackground ? "#AAA" : "#666"
                 font.pixelSize: 11
-            }
-
-            Rectangle {
-                width: parent.width
-                height: 1
-                color: darkBackground ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.08)
-            }
-
-            Text {
-                text: slideClearText
-                color: darkBackground ? "#AAA" : "#666"
-                font.pixelSize: 12
-            }
-
-            Rectangle {
-                id: clearSliderContainer
-                width: parent.width
-                height: 44
-                radius: 22
-                color: darkBackground ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.06)
-
-                Text {
-                    anchors.centerIn: parent
-                    text: slideClearHintText
-                    color: darkBackground ? Qt.rgba(1,1,1,0.4) : Qt.rgba(0,0,0,0.4)
-                    font.pixelSize: 13
-                    opacity: 1.0 - (clearThumb.x / (parent.width - clearThumb.width - 4))
-                }
-
-                Rectangle {
-                    id: clearThumb
-                    width: 40
-                    height: 40
-                    radius: 20
-                    color: darkBackground ? "#FFFFFF" : "#FFFFFF"
-                    y: 2
-                    x: 2
-
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: 20
-                        height: 20
-                        color: "transparent"
-
-                        Image {
-                            id: clearThumbIcon
-                            source: iconsDir + "Clear.svg"
-                            width: 20
-                            height: 20
-                            anchors.centerIn: parent
-                            sourceSize: Qt.size(20, 20)
-                            visible: false
-                        }
-
-                        ShaderEffect {
-                            anchors.fill: clearThumbIcon
-                            property variant source: clearThumbIcon
-                            property color overlayColor: "#333333"
-
-                            fragmentShader: "
-                                varying highp vec2 qt_TexCoord0;
-                                uniform sampler2D source;
-                                uniform highp vec4 overlayColor;
-                                void main() {
-                                    highp vec4 tex = texture2D(source, qt_TexCoord0);
-                                    gl_FragColor = vec4(overlayColor.rgb, tex.a);
-                                }
-                            "
-                        }
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        drag.target: parent
-                        drag.axis: Drag.XAxis
-                        drag.minimumX: 2
-                        drag.maximumX: clearSliderContainer.width - clearThumb.width - 2
-
-                        onReleased: {
-                            if (clearThumb.x > (clearSliderContainer.width - clearThumb.width - 2) * 0.8) {
-                                if (canvas) canvas.clear()
-                                eraserPopup.close()
-                            }
-                            clearThumb.x = 2
-                        }
-                    }
-                }
             }
         }
     } // end eraserPopup
@@ -1707,14 +1586,14 @@ Rectangle {
 
     Rectangle {
         id: fullscreenToggle
-        width: toolbar.capThickness
-        height: toolbar.capThickness
+        width: toolbar.height
+        height: toolbar.height
         radius: toolbar.radius
         color: toolbar.color
         border.color: toolbar.border.color
         border.width: toolbar.border.width
-        anchors.left: board.left
-        anchors.verticalCenter: toolbar.verticalCenter
+        anchors.left:       board.left
+        anchors.bottom:     toolbar.bottom
         anchors.leftMargin: 20
         z: 91
 
@@ -1728,41 +1607,9 @@ Rectangle {
         }
 
         MouseArea {
-            id: fullscreenMouse
             anchors.fill: parent
-            hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: if (backend) backend.toggleFullscreen()
-        }
-    }
-
-    Rectangle {
-        id: savePageButton
-        width: toolbar.capThickness
-        height: toolbar.capThickness
-        radius: toolbar.radius
-        color: toolbar.color
-        border.color: toolbar.border.color
-        border.width: toolbar.border.width
-        anchors.right: board.right
-        anchors.verticalCenter: toolbar.verticalCenter
-        anchors.rightMargin: 20
-        z: 91
-
-        Text {
-            anchors.centerIn: parent
-            text: "PNG"
-            color: "white"
-            font.pixelSize: 12
-            font.bold: true
-        }
-
-        MouseArea {
-            id: savePngMouse
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: if (backend) backend.saveCurrentPageAsPng()
         }
     }
 

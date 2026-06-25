@@ -35,6 +35,9 @@ class LogCaptureStream(io.StringIO):
 		self.buffer = ""
 
 	def write(self, s: str) -> int:
+		if threading.current_thread() is not threading.main_thread():
+			# 直接丢弃非主线程的日志
+			return len(s)
 		if isinstance(s, str):
 			self.buffer += s
 			# 检查是否有完整的行
