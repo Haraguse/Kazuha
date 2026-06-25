@@ -3797,12 +3797,46 @@ if __name__ == "__main__":
 		# return; that wrapping has SEGV'd in libpyside6 on Linux/xcb.
 		# See `D:\sectl\DeathLogX11.log` for the reference stack.
 		def _install_window_icon_filter_on(target):
+			if getattr(app, "_window_icon_filter_suspended", 0) > 0:
+				return
 			if target is None or not target.isWindow():
 				return
 			try:
 				target.installEventFilter(app._window_icon_filter)
 			except Exception:
 				pass
+
+		def _remove_window_icon_filter_from(target):
+			if target is None:
+				return
+			try:
+				target.removeEventFilter(app._window_icon_filter)
+			except Exception:
+				pass
+
+		def _suspend_window_icon_filter():
+			app._window_icon_filter_suspended = getattr(
+				app, "_window_icon_filter_suspended", 0
+			) + 1
+			if app._window_icon_filter_suspended != 1:
+				return
+			for w in app.topLevelWidgets():
+				_remove_window_icon_filter_from(w)
+
+		def _resume_window_icon_filter():
+			count = getattr(app, "_window_icon_filter_suspended", 0)
+			if count <= 0:
+				app._window_icon_filter_suspended = 0
+				return
+			app._window_icon_filter_suspended = count - 1
+			if app._window_icon_filter_suspended != 0:
+				return
+			for w in app.topLevelWidgets():
+				_install_window_icon_filter_on(w)
+
+		app._window_icon_filter_suspended = 0
+		app.suspend_window_icon_filter = _suspend_window_icon_filter
+		app.resume_window_icon_filter = _resume_window_icon_filter
 
 		# Install on already-existing top-level widgets.
 		for w in app.topLevelWidgets():
