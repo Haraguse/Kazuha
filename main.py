@@ -3846,10 +3846,18 @@ if __name__ == "__main__":
 
 	# Install Qt message handler to catch Qt-level fatal errors
 	# (e.g. "Must construct a QApplication before a QWidget")
+	def _write_native_stderr(text):
+		stream = sys.__stderr__ or sys.stderr
+		try:
+			stream.write(text)
+			stream.flush()
+		except Exception:
+			pass
+
 	def _qt_message_handler(mode, context, message):
 		msg_str = str(message) if message else ""
 		if mode <= 2:  # QtWarningMsg or QtCriticalMsg
-			print(f"[Qt-{mode}] {msg_str}", flush=True)
+			_write_native_stderr(f"[Qt-{mode}] {msg_str}\n")
 		if mode == 0:  # QtDebugMsg - skip
 			pass
 		elif mode == 4:  # QtFatalMsg
@@ -3864,7 +3872,7 @@ if __name__ == "__main__":
 				clp = os.path.join(cld, f"qtfatal_{os.getpid()}_{int(time.time())}.log")
 				with open(clp, "w", encoding="utf-8") as f:
 					f.write(error_msg)
-				print(f"[CrashHandler] Qt fatal log written to {clp}", flush=True)
+				_write_native_stderr(f"[CrashHandler] Qt fatal log written to {clp}\n")
 			except Exception:
 				pass
 

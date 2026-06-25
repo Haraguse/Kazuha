@@ -4,12 +4,29 @@
 
 import sys
 import io
+import logging
 import threading
 from datetime import datetime
 from collections import deque
-from typing import List, Dict, Literal
+from typing import List, Dict, Literal, Optional
 
 LogLevel = Literal["debug", "info", "warn", "error"]
+
+
+class NullTextStream(io.TextIOBase):
+    """Writable no-op stream used when a GUI process has no console stream."""
+
+    encoding = "utf-8"
+    errors = None
+
+    def write(self, s: str) -> int:
+        return len(s) if isinstance(s, str) else 0
+
+    def flush(self):
+        pass
+
+    def writable(self):
+        return True
 
 
 class LogEntry:
@@ -25,32 +42,120 @@ class LogEntry:
         return {"time": self.timestamp, "level": self.level, "message": self.message, "_idx": self._index}
 
 
-class LogCaptureStream(io.StringIO):
-    """捕获输出流的自定义 StringIO"""
+class LogCaptureStream(io.TextIOBase):
+    """Tee stdout/stderr to the original stream and the in-memory log manager."""
 
-    def __init__(self, manager: "LogManager", level: LogLevel):
+    def __init__(self, manager: "LogManager", level: LogLevel, original_stream):
         super().__init__()
         self.manager = manager
         self.level = level
+        self.original_stream = original_stream or NullTextStream()
         self.buffer = ""
+        self._lock = threading.RLock()
+
+    @property
+    def encoding(self):
+        return getattr(self.original_stream, "encoding", None) or "utf-8"
+
+    @property
+    def errors(self):
+        return getattr(self.original_stream, "errors", None)
+
+    @property
+    def closed(self):
+        return False
+
+    def isatty(self):
+        isatty = getattr(self.original_stream, "isatty", None)
+        return bool(isatty()) if callable(isatty) else False
+
+    def fileno(self):
+        fileno = getattr(self.original_stream, "fileno", None)
+        if callable(fileno):
+            return fileno()
+        raise OSError("underlying stream has no file descriptor")
 
     def write(self, s: str) -> int:
-        if isinstance(s, str):
+        if not isinstance(s, str):
+            s = str(s)
+
+        with self._lock:
+            self._write_original(s)
+
             self.buffer += s
-            # 检查是否有完整的行
-            if "\n" in self.buffer or "\r" in self.buffer:
-                lines = self.buffer.split("\n")
-                for line in lines[:-1]:
-                    if line.strip():
-                        self.manager.add_log(self.level, line.strip())
-                self.buffer = lines[-1]
-        return len(s) if isinstance(s, str) else 0
+            self._drain_complete_lines()
+        return len(s)
 
     def flush(self):
-        # 在 flush 时处理剩余的缓冲
-        if self.buffer.strip():
-            self.manager.add_log(self.level, self.buffer.strip())
-            self.buffer = ""
+        with self._lock:
+            try:
+                self.original_stream.flush()
+            except Exception:
+                pass
+            if self.buffer.strip():
+                self.manager.add_log(self.level, self.buffer.strip())
+                self.buffer = ""
+
+    def _drain_complete_lines(self):
+        start = 0
+        lines = []
+        i = 0
+        while i < len(self.buffer):
+            char = self.buffer[i]
+            if char in "\r\n":
+                lines.append(self.buffer[start:i])
+                if char == "\r" and i + 1 < len(self.buffer) and self.buffer[i + 1] == "\n":
+                    i += 1
+                start = i + 1
+            i += 1
+
+        if not lines:
+            return
+
+        self.buffer = self.buffer[start:]
+        for line in lines:
+            if line.strip():
+                self.manager.add_log(self.level, line.strip())
+
+    def _write_original(self, s: str):
+        try:
+            self.original_stream.write(s)
+            return
+        except UnicodeEncodeError:
+            encoding = self.encoding or "utf-8"
+            safe_text = s.encode(encoding, errors="replace").decode(encoding, errors="replace")
+            try:
+                self.original_stream.write(safe_text)
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def writable(self):
+        return True
+
+
+class LogManagerHandler(logging.Handler):
+    """Logging handler that stores formatted records in LogManager."""
+
+    LEVEL_MAP = {
+        logging.DEBUG: "debug",
+        logging.INFO: "info",
+        logging.WARNING: "warn",
+        logging.ERROR: "error",
+        logging.CRITICAL: "error",
+    }
+
+    def __init__(self, manager: "LogManager"):
+        super().__init__()
+        self.manager = manager
+
+    def emit(self, record: logging.LogRecord):
+        try:
+            level = self.LEVEL_MAP.get(record.levelno, "info")
+            self.manager.add_log(level, self.format(record))
+        except Exception:
+            self.handleError(record)
 
 
 class LogManager:
@@ -67,13 +172,35 @@ class LogManager:
         self._original_stderr = sys.stderr
         self._capture_streams = {}
         self._total_count = 0
+        self._logging_handler: Optional[LogManagerHandler] = None
+        self._console_handler: Optional[logging.Handler] = None
+        self._installed = False
 
     def start_capture(self):
         """开始捕获 stdout 和 stderr"""
-        self._capture_streams["stdout"] = LogCaptureStream(self, "info")
-        self._capture_streams["stderr"] = LogCaptureStream(self, "error")
+        if self._installed:
+            return
+
+        self._original_stdout = sys.stdout
+        self._original_stderr = sys.stderr
+        self._capture_streams["stdout"] = LogCaptureStream(self, "info", self._original_stdout)
+        self._capture_streams["stderr"] = LogCaptureStream(self, "error", self._original_stderr)
         sys.stdout = self._capture_streams["stdout"]
         sys.stderr = self._capture_streams["stderr"]
+
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.DEBUG)
+
+        self._logging_handler = LogManagerHandler(self)
+        self._logging_handler.setLevel(logging.DEBUG)
+        self._logging_handler.setFormatter(logging.Formatter("[%(name)s] %(message)s"))
+        root_logger.addHandler(self._logging_handler)
+
+        self._console_handler = logging.StreamHandler(self._original_stderr or NullTextStream())
+        self._console_handler.setLevel(logging.DEBUG)
+        self._console_handler.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
+        root_logger.addHandler(self._console_handler)
+        self._installed = True
 
     def stop_capture(self):
         """停止捕获并恢复原始输出"""
@@ -85,6 +212,15 @@ class LogManager:
         sys.stdout = self._original_stdout
         sys.stderr = self._original_stderr
         self._capture_streams.clear()
+
+        root_logger = logging.getLogger()
+        for handler in (self._logging_handler, self._console_handler):
+            if handler is not None:
+                root_logger.removeHandler(handler)
+                handler.close()
+        self._logging_handler = None
+        self._console_handler = None
+        self._installed = False
 
     def add_log(self, level: LogLevel, message: str):
         """添加日志项"""
@@ -196,3 +332,8 @@ def init_log_manager():
     manager = get_log_manager()
     manager.start_capture()
     return manager
+
+
+def get_logger(name: str = "luminalium") -> logging.Logger:
+    """获取标准 logging logger。"""
+    return logging.getLogger(name)
