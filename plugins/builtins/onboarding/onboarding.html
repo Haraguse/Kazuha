@@ -2652,115 +2652,6 @@
       pointer-events: auto;
     }
 
-    /* Generic Custom Select */
-    .custom-select-container {
-      position: relative;
-      min-width: 140px;
-      display: inline-block;
-    }
-
-    .custom-select-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--bg-surface);
-      color: var(--text-primary);
-      border: 1px solid var(--divider);
-      padding: 6px 32px;
-      border-radius: 999px;
-      font-family: inherit;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.2s;
-      min-height: 32px;
-      position: relative;
-    }
-
-    .custom-select-toggle:hover {
-      background-color: var(--item-hover);
-    }
-
-    .custom-select-label {
-      flex: 1;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      text-align: center;
-    }
-
-    .custom-select-icon {
-      width: 16px;
-      height: 16px;
-      flex-shrink: 0;
-      background-repeat: no-repeat;
-      background-position: center;
-      background-size: 16px;
-      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23888"><path d="M7 10l5 5 5-5z"/></svg>');
-      transition: transform 0.2s;
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      margin-top: -8px;
-    }
-
-    [data-theme="dark"] .custom-select-icon {
-      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ccc"><path d="M7 10l5 5 5-5z"/></svg>');
-    }
-    
-    .custom-select-container.open .custom-select-icon {
-      transform: rotate(180deg);
-    }
-
-    .custom-select-menu {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: calc(100% + 4px);
-      top: auto;
-      max-height: 240px;
-      overflow-y: auto;
-      background: var(--bg-surface);
-      border-radius: 8px;
-      border: 1px solid var(--divider);
-      box-shadow: 0 -4px 24px var(--shadow-color);
-      z-index: 20;
-
-      display: block;
-      opacity: 0;
-      transform: scaleY(0.6) translateY(15px);
-      transform-origin: bottom center;
-      transition: opacity 0.1s ease, transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-      visibility: hidden;
-      pointer-events: none;
-    }
-
-    .custom-select-container.open .custom-select-menu {
-      opacity: 1;
-      transform: scaleY(1) translateY(0);
-      visibility: visible;
-      pointer-events: auto;
-    }
-
-    .custom-select-option {
-      padding: 8px 12px;
-      font-size: 13px;
-      cursor: pointer;
-      color: var(--text-primary);
-      white-space: nowrap;
-      transition: background 0.1s;
-      text-align: left;
-    }
-
-    .custom-select-option:hover {
-      background: var(--item-hover);
-    }
-
-    .custom-select-option.selected {
-      background: var(--item-hover);
-      color: var(--accent-blue);
-      font-weight: 500;
-    }
-
     .font-dropdown-menu-header {
       position: sticky;
       top: 0;
@@ -3561,12 +3452,38 @@
       background-color: var(--item-hover);
     }
 
+    .custom-select-container.disabled {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .custom-select-container.disabled .custom-select-toggle {
+      cursor: not-allowed;
+    }
+
     .custom-select-label {
       flex: 1;
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
       margin-right: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .custom-select-text {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .custom-select-color-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid var(--divider);
+      flex-shrink: 0;
     }
 
     .custom-select-icon {
@@ -3583,7 +3500,7 @@
     [data-theme="dark"] .custom-select-icon {
       background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ccc"><path d="M7 10l5 5 5-5z"/></svg>');
     }
-    
+
     .custom-select-container.open .custom-select-icon {
       transform: rotate(180deg);
     }
@@ -3600,7 +3517,7 @@
       border: 1px solid var(--divider);
       box-shadow: 0 8px 24px var(--shadow-color);
       z-index: 20;
-      
+
       display: block;
       opacity: 0;
       transform: scaleY(0.9) translateY(-10px);
@@ -3624,6 +3541,9 @@
       color: var(--text-primary);
       white-space: nowrap;
       transition: background 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .custom-select-option:hover {
@@ -3895,6 +3815,18 @@
       transform: scaleY(1) translateY(0);
     }
     
+    /* Fix: Keep language selector text centered in hero footer */
+    .hero-footer .custom-select-toggle {
+      justify-content: center;
+    }
+
+    .hero-footer .custom-select-label {
+      text-align: center;
+      margin-right: 0;
+      display: block;
+      gap: 0;
+    }
+
     .hero-footer.intro-hidden {
       opacity: 0;
       pointer-events: none;
@@ -4162,9 +4094,24 @@
       flex-direction: column;
       justify-content: flex-start;
       flex: 1;
-      overflow: hidden;
+      overflow-y: auto;
+      overflow-x: hidden;
       padding-right: 4px;
       position: relative;
+    }
+
+    .step-content::-webkit-scrollbar {
+      width: 6px;
+    }
+    .step-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .step-content::-webkit-scrollbar-thumb {
+      background: var(--text-secondary);
+      border-radius: 3px;
+    }
+    .step-content::-webkit-scrollbar-thumb:hover {
+      background: var(--text-primary);
     }
 
     .actions {
@@ -4284,24 +4231,45 @@ html, body {
 
 /* Settings Group & Items */
 .settings-group {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  background: var(--card-bg);
+  border-radius: 12px;
   margin-bottom: 24px;
   width: 100%;
+  border: 1px solid var(--card-border);
   position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
 }
 
 .settings-item {
-  background: var(--card-bg);
-  border-radius: 12px !important;
-  border: 1px solid var(--card-border);
   padding: 16px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   min-height: 60px;
-  transition: background 0.15s, transform 0.15s;
+  border-bottom: 1px solid var(--card-border);
+  transition: background 0.15s;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.settings-item:last-child {
+  border-bottom: none;
+}
+
+.settings-item:first-child {
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.settings-item:last-child {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.settings-item.no-divider {
+  border-bottom: none;
 }
 
 .settings-item:hover {
@@ -4310,7 +4278,7 @@ html, body {
 
 /* Compact variant for the "Presentation UI" step only */
 .settings-group.settings-group-compact {
-  gap: 10px;
+  /* gap: 10px; removed since we use borders */
 }
 
 .settings-group.settings-group-compact .settings-item {
@@ -4916,7 +4884,7 @@ html, body {
     // Resources
     const langResources = {
       "zh-CN": {
-        steps: ["免责声明", "语言选择", "外观风格", "默认行为", "放映界面", "通知与启动", "准备就绪"],
+        steps: ["免责声明", "个性化", "字体", "联动", "窗口", "状态栏", "通知", "准备就绪"],
         gpl: "查看 GPL 证书",
         disclaimer: {
           title: "免责声明与许可证",
@@ -4936,27 +4904,60 @@ html, body {
           "mung-bean": "绿色",
           "orange-wish": "橙色"
         },
-        defaultBehavior: {
-          title: "默认行为",
-          desc: "决定启动与异常时的处理方式",
-          runAtStartup: { label: "开机自动启动", desc: "登录后自动运行" },
-          crash: {
-            label: "异常退出处理",
-            desc: "选择应用异常时的处理方式",
-            analyzer: "查看崩溃分析器",
-            exit: "退出并关闭应用",
-            restartSilent: "静默重启（无启动画面）",
-            toast: "仅通知系统提醒"
-          }
+        personalize: {
+          title: "个性化",
+          desc: "选择外观模式与配色方案",
+          colorSchemeTitle: "配色方案",
+          colorSchemeDesc: "选择一个主题并预览效果"
         },
-        overlay: {
-          title: "放映界面",
-          desc: "调整放映时的工具栏与状态显示",
-          autoShowOverlay: { label: "自动显示工具栏", desc: "检测到放映时自动出现" },
-          showStatusBar: { label: "顶部状态栏", desc: "在悬浮窗顶部显示时间" },
-          scale: "整体缩放",
-          popWindowScale: "弹窗缩放",
-          safeArea: "屏幕边距"
+        fonts: {
+          title: "字体",
+          desc: "设置应用界面显示字体",
+          custom: { label: "自定义字体", desc: "启用后可手动选择各个界面的显示字体" },
+          hint: "字体详细配置可在“设置 → 字体”中调整"
+        },
+        linkage: {
+          title: "联动",
+          desc: "与第三方应用集成联动",
+          secRandom: { label: "启用 SecRandom 联动", desc: "开启后在 PPT 悬浮工具栏中显示 SecRandom 点名按钮，点击后通过 IPC 接口触发快速点名" }
+        },
+        window: {
+          title: "窗口",
+          desc: "调整悬浮窗口的位置与缩放",
+          toolbarPosition: { label: "工具栏位置", desc: "调整悬浮工具栏停靠在屏幕的上、下、左或右侧" },
+          positionBottom: "底部",
+          positionTop: "顶部",
+          positionLeft: "左侧",
+          positionRight: "右侧",
+          safeArea: { label: "屏幕内安全区", desc: "给工具栏额外留出离屏幕边缘的距离，适合避开任务栏等区域" },
+          scale: { label: "组件缩放倍率", desc: "缩放悬浮工具栏及相关面板的整体大小" },
+          popWindowScale: { label: "色板缩放倍率", desc: "调整取色板等弹出面板的缩放倍率" },
+          autoShow: { label: "自动显示工具栏", desc: "检测到放映时自动出现" },
+          useNativeTitleBar: { label: "使用原生窗口标题栏", desc: "开启后所有窗口将使用系统原生标题栏。更改后重启应用生效" }
+        },
+        statusbar: {
+          title: "状态栏",
+          desc: "配置悬浮窗顶部状态栏的显示内容",
+          showStatusBar: { label: "顶部状态栏", desc: "在悬浮窗顶部显示时间、媒体、音量、网络和电池等系统状态" },
+          showTime: { label: "显示时间", desc: "在状态栏左侧显示时间和日期" },
+          showSeconds: { label: "显示秒", desc: "为状态栏时间追加秒数，仅在已开启“显示时间”时生效" },
+          showBattery: { label: "显示电池", desc: "显示电量百分比与电池图标" },
+          showVolume: { label: "显示音量", desc: "显示当前系统音量百分比" },
+          showNetwork: { label: "显示网络", desc: "显示当前网络连接状态图标" },
+          showMusic: { label: "显示音乐", desc: "显示系统媒体会话中的正在播放信息；没有媒体时会自动隐藏" }
+        },
+        notifications: {
+          title: "通知",
+          desc: "配置系统通知与提醒方式",
+          resourceMonitorInterval: { label: "性能检测通知间隔", desc: "设置系统资源性能检测的通知间隔时间" },
+          timerNotify: { label: "倒计时结束系统通知", desc: "倒计时结束时是否发送系统通知提醒" },
+          interval30s: "30 秒",
+          interval5min: "5 分钟",
+          interval10min: "10 分钟",
+          interval30min: "30 分钟",
+          interval45min: "45 分钟",
+          interval1hour: "1 小时",
+          intervalNever: "永不"
         },
         finish: { title: "恭喜！", desc: "你已完成了全部的基本设置", text: "设置向导结束", sub: "如需后续更改配置，请点击任务栏托盘图标访问“设置”。若要立即开始，请关闭此窗口并在 PowerPoint 中打开任意演示文稿。", hint: "关闭窗口即可完成设置向导。", hintExpanded: "上一步   •   完成   •   重来" },
         btn: { next: "下一步", prev: "返回", finish: "完成" },
@@ -4969,7 +4970,7 @@ html, body {
         }
       },
       "zh-TW": {
-        steps: ["免責聲明", "外觀風格", "預設行為", "放映介面", "準備就緒"],
+        steps: ["免責聲明", "個性化", "字體", "聯動", "視窗", "狀態列", "通知", "準備就緒"],
         gpl: "檢視 GPL 授權條款",
         disclaimer: {
           title: "免責聲明與許可證",
@@ -4989,27 +4990,60 @@ html, body {
           "mung-bean": "綠色",
           "orange-wish": "橙色"
         },
-        defaultBehavior: {
-          title: "預設行為",
-          desc: "決定啟動與異常時的處理方式",
-          runAtStartup: { label: "開機自動啟動", desc: "登入後自動啟動" },
-          crash: {
-            label: "異常結束處理",
-            desc: "選擇程式異常時的處理方式",
-            analyzer: "檢視當機分析器",
-            exit: "直接結束應用程式",
-            restartSilent: "背景重啟（無啟動畫面）",
-            toast: "僅發送 Windows 通知"
-          }
+        personalize: {
+          title: "個性化",
+          desc: "選擇外觀模式與配色方案",
+          colorSchemeTitle: "配色方案",
+          colorSchemeDesc: "選擇一個主題並預覽效果"
         },
-        overlay: {
-          title: "放映介面",
-          desc: "調整放映時工具列與狀態顯示",
-          autoShowOverlay: { label: "自動顯示工具列", desc: "偵測放映時自動出現" },
-          showStatusBar: { label: "頂部狀態列", desc: "在懸浮視窗頂部顯示時間" },
-          scale: "整體縮放",
-          popWindowScale: "彈窗縮放",
-          safeArea: "螢幕邊距"
+        fonts: {
+          title: "字體",
+          desc: "設定應用程式介面字體",
+          custom: { label: "自定義字體", desc: "啟用後可手動選擇各個介面的顯示字體" },
+          hint: "字體詳細設定可在「設定 → 字體」中調整"
+        },
+        linkage: {
+          title: "聯動",
+          desc: "與第三方應用程式整合聯動",
+          secRandom: { label: "啟用 SecRandom 聯動", desc: "開啟後在 PPT 懸浮工具列中顯示 SecRandom 點名按鈕" }
+        },
+        window: {
+          title: "視窗",
+          desc: "調整懸浮視窗的位置與縮放",
+          toolbarPosition: { label: "工具列位置", desc: "調整懸浮工具列停靠在螢幕的上、下、左或右側" },
+          positionBottom: "底部",
+          positionTop: "頂部",
+          positionLeft: "左側",
+          positionRight: "右側",
+          safeArea: { label: "螢幕內安全區", desc: "給工具列額外留出離螢幕邊緣的距離" },
+          scale: { label: "元件縮放倍率", desc: "縮放懸浮工具列及相關面板的整體大小" },
+          popWindowScale: { label: "色板縮放倍率", desc: "調整彈出面板的縮放倍率" },
+          autoShow: { label: "自動顯示工具列", desc: "偵測到放映時自動出現" },
+          useNativeTitleBar: { label: "使用原生視窗標題列", desc: "開啟後所有視窗將使用系統原生標題列。更改後重啟應用程式生效" }
+        },
+        statusbar: {
+          title: "狀態列",
+          desc: "設定懸浮視窗頂部狀態列的顯示內容",
+          showStatusBar: { label: "頂部狀態列", desc: "在懸浮視窗頂部顯示時間、媒體、音量、網路和電池等系統狀態" },
+          showTime: { label: "顯示時間", desc: "在狀態列左側顯示時間和日期" },
+          showSeconds: { label: "顯示秒", desc: "為狀態列時間追加秒數" },
+          showBattery: { label: "顯示電池", desc: "顯示電量百分比與電池圖示" },
+          showVolume: { label: "顯示音量", desc: "顯示目前系統音量百分比" },
+          showNetwork: { label: "顯示網路", desc: "顯示目前網路連線狀態圖示" },
+          showMusic: { label: "顯示音樂", desc: "顯示系統媒體工作階段中的播放資訊" }
+        },
+        notifications: {
+          title: "通知",
+          desc: "設定系統通知與提醒方式",
+          resourceMonitorInterval: { label: "效能偵測通知間隔", desc: "設定系統資源效能偵測的通知間隔時間" },
+          timerNotify: { label: "倒數計時結束系統通知", desc: "倒數計時結束時是否發送系統通知提醒" },
+          interval30s: "30 秒",
+          interval5min: "5 分鐘",
+          interval10min: "10 分鐘",
+          interval30min: "30 分鐘",
+          interval45min: "45 分鐘",
+          interval1hour: "1 小時",
+          intervalNever: "永不"
         },
         finish: { title: "恭喜！", desc: "您已完成了全部的基本設定", text: "設定精靈結束", sub: "如需後續更改設定，請點擊工作列系統匣圖示並選擇「設定」。若要立即開始，請關閉此視窗並在 PowerPoint 中開啟任意簡報。", hint: "關閉視窗即可完成設定精靈。", hintExpanded: "上一步   •   完成   •   重來" },
         btn: { next: "下一步", prev: "返回", finish: "完成" },
@@ -5022,7 +5056,7 @@ html, body {
         }
       },
       "yue-HK": {
-        steps: ["免責聲明", "外觀風格", "預設行為", "放映介面", "準備就緒"],
+        steps: ["免責聲明", "個性化", "字體", "聯動", "視窗", "狀態列", "通知", "準備就緒"],
         gpl: "睇一睇 GPL 授權",
         disclaimer: {
           title: "免責聲明同許可證",
@@ -5043,27 +5077,60 @@ html, body {
           "mung-bean": "綠色",
           "orange-wish": "橙色"
         },
-        defaultBehavior: {
-          title: "預設行為",
-          desc: "決定啟動同異常時點處理",
-          runAtStartup: { label: "開機自啟", desc: "登入後自動啟動" },
-          crash: {
-            label: "異常退出處理",
-            desc: "揀程式異常時嘅處理方式",
-            analyzer: "查看當機分析器",
-            exit: "即刻退出程式",
-            restartSilent: "背景重啟（唔顯示啟動畫面）",
-            toast: "淨係發系統通知"
-          }
+        personalize: {
+          title: "個性化",
+          desc: "揀你鍾意嘅外觀同配色",
+          colorSchemeTitle: "配色方案",
+          colorSchemeDesc: "揀個主題嚟預覽效果"
         },
-        overlay: {
-          title: "放映介面",
-          desc: "調整放映時工具列同狀態顯示",
-          autoShowOverlay: { label: "自動顯示工具列", desc: "檢測到放映就自動出現" },
-          showStatusBar: { label: "頂部狀態列", desc: "喺頂部顯示時間" },
-          scale: "整體縮放",
-          popWindowScale: "彈窗縮放",
-          safeArea: "屏幕邊距"
+        fonts: {
+          title: "字體",
+          desc: "設定應用程式介面字體",
+          custom: { label: "自定義字體", desc: "開咗之後可以手動揀各個介面嘅字體" },
+          hint: "字體詳細設定喺「設定 → 字體」度改"
+        },
+        linkage: {
+          title: "聯動",
+          desc: "同第三方應用整合聯動",
+          secRandom: { label: "啟用 SecRandom 聯動", desc: "開咗就喺 PPT 工具列顯示 SecRandom 點名按鈕" }
+        },
+        window: {
+          title: "視窗",
+          desc: "調整懸浮視窗嘅位置同縮放",
+          toolbarPosition: { label: "工具列位置", desc: "調整工具列停喺上、下、左定右" },
+          positionBottom: "底部",
+          positionTop: "頂部",
+          positionLeft: "左側",
+          positionRight: "右側",
+          safeArea: { label: "屏幕內安全區", desc: "畀工具列多留啲離屏幕邊嘅距離" },
+          scale: { label: "元件縮放倍率", desc: "縮放工具列同面板嘅整體大小" },
+          popWindowScale: { label: "色板縮放倍率", desc: "調整彈出面板嘅縮放倍率" },
+          autoShow: { label: "自動顯示工具列", desc: "檢測到放映就自動出現" },
+          useNativeTitleBar: { label: "使用原生視窗標題列", desc: "開咗之後所有視窗用系統原生標題列。改完要重啟" }
+        },
+        statusbar: {
+          title: "狀態列",
+          desc: "設定懸浮視窗頂部狀態列嘅內容",
+          showStatusBar: { label: "頂部狀態列", desc: "喺頂部顯示時間、媒體、音量、網絡同電池" },
+          showTime: { label: "顯示時間", desc: "喺狀態列左側顯示時間同日期" },
+          showSeconds: { label: "顯示秒", desc: "為時間追加秒數" },
+          showBattery: { label: "顯示電池", desc: "顯示電量百分比同電池圖示" },
+          showVolume: { label: "顯示音量", desc: "顯示系統音量百分比" },
+          showNetwork: { label: "顯示網絡", desc: "顯示網絡連接狀態圖示" },
+          showMusic: { label: "顯示音樂", desc: "顯示正在播放嘅媒體資訊" }
+        },
+        notifications: {
+          title: "通知",
+          desc: "設定系統通知同提醒方式",
+          resourceMonitorInterval: { label: "性能檢測通知間隔", desc: "設定系統資源性能檢測嘅通知間隔" },
+          timerNotify: { label: "倒計時結束系統通知", desc: "倒計時結束時係咪發系統通知" },
+          interval30s: "30 秒",
+          interval5min: "5 分鐘",
+          interval10min: "10 分鐘",
+          interval30min: "30 分鐘",
+          interval45min: "45 分鐘",
+          interval1hour: "1 小時",
+          intervalNever: "永不"
         },
         finish: { title: "搞掂！", desc: "你已完成晒基本設定", text: "設定精靈完結", sub: "之後要改設定就去托盤「設定」。要即刻開始就關咗呢個窗口，再喺 PowerPoint 開個簡報。", hint: "關閉視窗即可完成設定精靈。", hintExpanded: "上一步   •   完成   •   重來" },
         btn: { next: "下一步", prev: "返回", finish: "完成" },
@@ -5076,7 +5143,7 @@ html, body {
         }
       },
       "en-US": {
-        steps: ["Disclaimer", "Appearance", "Default Behavior", "Presentation UI", "Ready"],
+        steps: ["Disclaimer", "Personalize", "Fonts", "Linkage", "Window", "Status Bar", "Notifications", "Ready"],
         gpl: "View GPL License",
         disclaimer: {
           title: "Disclaimer & License",
@@ -5096,27 +5163,60 @@ html, body {
           "mung-bean": "Green",
           "orange-wish": "Orange"
         },
-        defaultBehavior: {
-          title: "Default Behavior",
-          desc: "Choose how the app starts and reacts to crashes",
-          runAtStartup: { label: "Run at startup", desc: "Start automatically after sign-in" },
-          crash: {
-            label: "Crash response",
-            desc: "Select what happens after an unexpected exit",
-            analyzer: "Open crash analyzer",
-            exit: "Exit immediately",
-            restartSilent: "Restart silently (no splash)",
-            toast: "Only show a Windows notification"
-          }
+        personalize: {
+          title: "Personalize",
+          desc: "Choose your appearance mode and color scheme",
+          colorSchemeTitle: "Color Scheme",
+          colorSchemeDesc: "Select a theme and preview effects"
         },
-        overlay: {
-          title: "Presentation UI",
-          desc: "Control toolbar and status display during slides",
-          autoShowOverlay: { label: "Auto-show toolbar", desc: "Appear when slideshow starts" },
-          showStatusBar: { label: "Top status bar", desc: "Show time on the overlay" },
-          scale: "Overall scale",
-          popWindowScale: "Popup scale",
-          safeArea: "Screen padding"
+        fonts: {
+          title: "Fonts",
+          desc: "Configure app interface fonts",
+          custom: { label: "Custom fonts", desc: "When enabled, you can manually select display fonts for each interface" },
+          hint: "Detailed font settings are available in Settings → Fonts"
+        },
+        linkage: {
+          title: "Linkage",
+          desc: "Integrate with third-party applications",
+          secRandom: { label: "Enable SecRandom linkage", desc: "Show a SecRandom quick-draw button in the PPT toolbar, triggering a draw via IPC" }
+        },
+        window: {
+          title: "Window",
+          desc: "Adjust overlay window position and scaling",
+          toolbarPosition: { label: "Toolbar position", desc: "Dock the toolbar to the top, bottom, left, or right of the screen" },
+          positionBottom: "Bottom",
+          positionTop: "Top",
+          positionLeft: "Left",
+          positionRight: "Right",
+          safeArea: { label: "Screen safe area", desc: "Add extra margin from the screen edge for the toolbar" },
+          scale: { label: "Component scale", desc: "Scale the overlay toolbar and related panels" },
+          popWindowScale: { label: "Popup scale", desc: "Scale pop-up panels like the color picker" },
+          autoShow: { label: "Auto-show toolbar", desc: "Appear automatically when a slideshow is detected" },
+          useNativeTitleBar: { label: "Use native title bar", desc: "All windows will use the system native title bar. Restart required." }
+        },
+        statusbar: {
+          title: "Status Bar",
+          desc: "Configure what appears on the top status bar",
+          showStatusBar: { label: "Top status bar", desc: "Show time, media, volume, network, and battery on the overlay" },
+          showTime: { label: "Show time", desc: "Display time and date on the left of the status bar" },
+          showSeconds: { label: "Show seconds", desc: "Append seconds to the clock; requires Show time" },
+          showBattery: { label: "Show battery", desc: "Display battery percentage and icon" },
+          showVolume: { label: "Show volume", desc: "Display current system volume" },
+          showNetwork: { label: "Show network", desc: "Display current network connection status icon" },
+          showMusic: { label: "Show music", desc: "Display now-playing info from system media sessions" }
+        },
+        notifications: {
+          title: "Notifications",
+          desc: "Configure system notifications and alerts",
+          resourceMonitorInterval: { label: "Performance alert interval", desc: "How often to send system resource alerts" },
+          timerNotify: { label: "Timer end notification", desc: "Send a system notification when the countdown ends" },
+          interval30s: "30 seconds",
+          interval5min: "5 minutes",
+          interval10min: "10 minutes",
+          interval30min: "30 minutes",
+          interval45min: "45 minutes",
+          interval1hour: "1 hour",
+          intervalNever: "Never"
         },
         finish: { title: "Congratulations!", desc: "You have completed all basic settings.", text: "Setup Wizard Complete", sub: "To change settings later, click the tray icon and select 'Settings'. To start, close this window and open any presentation in PowerPoint.", hint: "Close the window to complete the setup wizard.", hintExpanded: "Back   •   Finish   •   Restart" },
         btn: { next: "Next", prev: "Back", finish: "Finish" },
@@ -5129,7 +5229,7 @@ html, body {
         }
       },
       "ja-JP": {
-        steps: ["免責事項", "外観", "既定の動作", "プレゼン表示", "完了"],
+        steps: ["免責事項", "パーソナライズ", "フォント", "連携", "ウィンドウ", "ステータスバー", "通知", "完了"],
         gpl: "GPLライセンスを表示",
         disclaimer: {
           title: "免責事項およびライセンス",
@@ -5149,27 +5249,60 @@ html, body {
           "mung-bean": "緑",
           "orange-wish": "オレンジ"
         },
-        defaultBehavior: {
-          title: "既定の動作",
-          desc: "起動と異常終了時の動作を設定します",
-          runAtStartup: { label: "自動起動", desc: "サインイン後に自動で起動します" },
-          crash: {
-            label: "クラッシュ時の動作",
-            desc: "異常終了後の処理を選択します",
-            analyzer: "クラッシュ解析を開く",
-            exit: "直ちに終了",
-            restartSilent: "バックグラウンド再起動（スプラッシュなし）",
-            toast: "Windows 通知のみ"
-          }
+        personalize: {
+          title: "パーソナライズ",
+          desc: "外観モードとカラースキームを選択",
+          colorSchemeTitle: "カラースキーム",
+          colorSchemeDesc: "テーマを選択してプレビュー"
         },
-        overlay: {
-          title: "プレゼン表示",
-          desc: "ツールバーと状態表示を調整します",
-          autoShowOverlay: { label: "ツールバーを自動表示", desc: "スライド開始時に表示します" },
-          showStatusBar: { label: "上部ステータスバー", desc: "オーバーレイ上部に時刻を表示" },
-          scale: "全体スケール",
-          popWindowScale: "ポップアップスケール",
-          safeArea: "セーフエリア"
+        fonts: {
+          title: "フォント",
+          desc: "アプリのインターフェイスフォントを設定",
+          custom: { label: "カスタムフォント", desc: "有効にすると各インターフェイスのフォントを手動で選択できます" },
+          hint: "詳細なフォント設定は「設定 → フォント」で調整できます"
+        },
+        linkage: {
+          title: "連携",
+          desc: "サードパーティアプリとの連携",
+          secRandom: { label: "SecRandom 連携を有効にする", desc: "PPTツールバーに SecRandom 抽選ボタンを表示します" }
+        },
+        window: {
+          title: "ウィンドウ",
+          desc: "オーバーレイウィンドウの位置とスケールを調整",
+          toolbarPosition: { label: "ツールバーの位置", desc: "ツールバーを画面の上・下・左・右にドッキング" },
+          positionBottom: "下",
+          positionTop: "上",
+          positionLeft: "左",
+          positionRight: "右",
+          safeArea: { label: "画面内セーフエリア", desc: "ツールバーに画面端からの余白を追加" },
+          scale: { label: "コンポーネントスケール", desc: "ツールバーとパネルの全体サイズをスケール" },
+          popWindowScale: { label: "ポップアップスケール", desc: "カラーピッカーなどのポップアップパネルをスケール" },
+          autoShow: { label: "ツールバーを自動表示", desc: "スライドショーが検出されると自動的に表示" },
+          useNativeTitleBar: { label: "ネイティブタイトルバーを使用", desc: "すべてのウィンドウにシステムのネイティブタイトルバーを使用。再起動が必要です" }
+        },
+        statusbar: {
+          title: "ステータスバー",
+          desc: "上部ステータスバーの表示内容を設定",
+          showStatusBar: { label: "上部ステータスバー", desc: "オーバーレイ上部に時刻・メディア・音量・ネットワーク・バッテリーを表示" },
+          showTime: { label: "時刻を表示", desc: "ステータスバーの左側に時刻と日付を表示" },
+          showSeconds: { label: "秒を表示", desc: "時刻に秒を追加（時刻表示が有効な場合のみ）" },
+          showBattery: { label: "バッテリーを表示", desc: "バッテリー残量とアイコンを表示" },
+          showVolume: { label: "音量を表示", desc: "現在のシステム音量を表示" },
+          showNetwork: { label: "ネットワークを表示", desc: "ネットワーク接続状態のアイコンを表示" },
+          showMusic: { label: "音楽を表示", desc: "システムメディアセッションの再生中情報を表示" }
+        },
+        notifications: {
+          title: "通知",
+          desc: "システム通知とアラートの設定",
+          resourceMonitorInterval: { label: "パフォーマンス通知間隔", desc: "システムリソース監視の通知間隔を設定" },
+          timerNotify: { label: "タイマー終了通知", desc: "カウントダウン終了時にシステム通知を送信" },
+          interval30s: "30秒",
+          interval5min: "5分",
+          interval10min: "10分",
+          interval30min: "30分",
+          interval45min: "45分",
+          interval1hour: "1時間",
+          intervalNever: "なし"
         },
         finish: { title: "おめでとうございます！", desc: "基本設定がすべて完了しました", text: "セットアップウィザード完了", sub: "設定を変更するには、タスクトレイアイコンから「設定」を選択してください。開始するには、このウィンドウを閉じてPowerPointでプレゼンテーションを開いてください。", hint: "ウィンドウを閉じると、セットアップウィザードが完了します。", hintExpanded: "戻る   •   完了   •   最初から" },
         btn: { next: "次へ", prev: "戻る", finish: "完了" },
@@ -5185,20 +5318,33 @@ html, body {
 
     // State
     const state = {
-      step: 0, // 0=Hero, 1=Theme, 2=DefaultBehavior, 3=Overlay, 4=Finish
+      step: 0, // 0=Hero, 1=Disclaimer, 2=Personalize, 3=Fonts, 4=Linkage, 5=Window, 6=StatusBar, 7=Notifications, 8=Finish
       config: {
         language: "zh-CN",
         theme: "Light",
         themeId: "default",
-        runAtStartup: false,
-        disableAnimations: false,
-        crashAutoHandleEnabled: false,
-        crashAutoHandleMode: "ShowAnalyzer",
+        // fonts
+        customFont: false,
+        // linkage
+        secRandomEnabled: false,
+        // window
         autoShowOverlay: true,
-        showStatusBar: false,
+        toolbarPosition: "bottom",
         scale: 1.0,
         popWindowScale: 1.0,
-        safeArea: 0
+        safeArea: 0,
+        useNativeTitleBar: false,
+        // statusbar
+        showStatusBar: false,
+        statusBarShowTime: true,
+        statusBarShowSeconds: false,
+        statusBarShowBattery: true,
+        statusBarShowVolume: true,
+        statusBarShowNetwork: true,
+        statusBarShowMusic: true,
+        // notifications
+        resourceMonitorInterval: 300,
+        timerNotifyEnabled: true
       },
       previewMode: false,
       version: ""
@@ -5287,8 +5433,8 @@ html, body {
           `;
         }
       },
-      { // 2
-        id: "theme",
+      { // 2 - 个性化
+        id: "personalize",
         render: (t) => `
           <div class="settings-group">
             <div class="settings-item">
@@ -5302,136 +5448,125 @@ html, body {
                 <div class="theme-option ${state.config.theme === 'Auto' ? 'active' : ''}" onclick="setTheme('Auto')">${t.theme.auto}</div>
               </div>
             </div>
-            
-            <div class="settings-item" style="display: block; padding-top: 16px;">
-               <div class="item-label" style="margin-bottom: 12px;">主题预设</div>
-               <div class="theme-gallery" id="theme-gallery">
-                  ${renderThemeGalleryHTML(t)}
-               </div>
+            <div class="settings-item no-divider" style="flex-direction: column; align-items: flex-start;">
+              <div class="item-info" style="margin-bottom: 16px;">
+                 <div class="item-label">${t.personalize ? t.personalize.colorSchemeTitle || '配色方案' : '配色方案'}</div>
+                 <div class="item-desc">${t.personalize ? t.personalize.colorSchemeDesc || '选择一个主题并预览效果' : '选择一个主题并预览效果'}</div>
+              </div>
+              <div class="theme-gallery" id="theme-gallery">
+                ${renderThemeGalleryHTML(t)}
+              </div>
             </div>
           </div>
         `
       },
-      { // 2
-        id: "defaultBehavior",
+      { // 3 - 字体
+        id: "fonts",
         render: (t) => {
-          const crashEnabled = !!state.config.crashAutoHandleEnabled;
-          /*
-          const disableAnimationsCopy = t.defaultBehavior.disableAnimations || {
-            label: "禁用界面动画",
-            desc: "关闭全局过渡、缩放与滚动动画；开启后各界面会直接切换到最终状态"
-          };
-          */
-          const disableAnimationsCopy = t.defaultBehavior.disableAnimations || {
-            label: "\u7981\u7528\u754c\u9762\u52a8\u753b",
-            desc: "\u5173\u95ed\u5168\u5c40\u8fc7\u6e21\u3001\u7f29\u653e\u4e0e\u6eda\u52a8\u52a8\u753b\uff1b\u5f00\u542f\u540e\u5404\u754c\u9762\u4f1a\u76f4\u63a5\u5207\u6362\u5230\u6700\u7ec8\u72b6\u6001"
-          };
-          const validModes = ["Exit", "RestartSilent", "Toast"];
-          if (!crashEnabled) {
-            state.config.crashAutoHandleMode = "ShowAnalyzer";
-          } else if (!validModes.includes(state.config.crashAutoHandleMode)) {
-            state.config.crashAutoHandleMode = "RestartSilent";
-          }
-          const selected = crashEnabled ? state.config.crashAutoHandleMode : "ShowAnalyzer";
-          const options = crashEnabled
-            ? [
-                { value: "Exit", label: t.defaultBehavior.crash.exit },
-                { value: "RestartSilent", label: t.defaultBehavior.crash.restartSilent },
-                { value: "Toast", label: t.defaultBehavior.crash.toast }
-              ]
-            : [{ value: "ShowAnalyzer", label: t.defaultBehavior.crash.analyzer }];
-          const optionsHtml = options.map(opt => {
-            const selectedAttr = opt.value === selected ? " selected" : "";
-            return `<option value="${opt.value}"${selectedAttr}>${opt.label}</option>`;
-          }).join("");
-
+          const tf = t.fonts || {};
           return `
           <div class="settings-group">
-            <div class="settings-item" onclick="toggleStartup()" style="cursor: pointer;">
+            <div class="settings-item" onclick="toggleCustomFont()" style="cursor: pointer;">
               <div class="item-info">
-                <div class="item-label">${t.defaultBehavior.runAtStartup.label}</div>
-                <div class="item-desc">${t.defaultBehavior.runAtStartup.desc}</div>
+                <div class="item-label">${tf.custom ? tf.custom.label : '自定义字体'}</div>
+                <div class="item-desc">${tf.custom ? tf.custom.desc : '启用后可手动选择各个界面的显示字体'}</div>
               </div>
-              <div class="switch ${state.config.runAtStartup ? 'active' : ''}" style="pointer-events:none;">
-                 <div class="switch-handle"></div>
+              <div class="switch ${state.config.customFont ? 'active' : ''}" style="pointer-events:none;">
+                <div class="switch-handle"></div>
               </div>
             </div>
-
-            <div class="settings-item" onclick="toggleDisableAnimations()" style="cursor: pointer;">
+            <div class="settings-item" style="cursor: default;">
               <div class="item-info">
-                <div class="item-label">${disableAnimationsCopy.label}</div>
-                <div class="item-desc">${disableAnimationsCopy.desc}</div>
-              </div>
-              <div class="switch ${state.config.disableAnimations ? 'active' : ''}" style="pointer-events:none;">
-                 <div class="switch-handle"></div>
-              </div>
-            </div>
-
-            <div class="settings-item" onclick="toggleCrashAutoHandleEnabled()" style="cursor: pointer;">
-              <div class="item-info">
-                <div class="item-label">${t.defaultBehavior.crash.label}</div>
-                <div class="item-desc">${t.defaultBehavior.crash.desc}</div>
-              </div>
-              <div class="item-state crash-auto-handle-state">
-                <select class="styled-select" onclick="event.stopPropagation();" onchange="setCrashAutoHandleMode(this.value)">
-                  ${optionsHtml}
-                </select>
-                <div class="switch ${state.config.crashAutoHandleEnabled ? 'active' : ''}" onclick="event.stopPropagation(); toggleCrashAutoHandleEnabled();">
-                   <div class="switch-handle"></div>
-                </div>
+                <div class="item-desc" style="font-size: 13px; color: var(--text-secondary);">${tf.hint || '字体详细配置可在“设置 → 字体”中调整'}</div>
               </div>
             </div>
           </div>
-        `;
+          `;
         }
       },
-      { // 3
-        id: "overlay",
-        render: (t) => `
+      { // 4 - 联动
+        id: "linkage",
+        render: (t) => {
+          const tl = t.linkage || {};
+          return `
+          <div class="settings-group">
+            <div class="settings-item" onclick="toggleSecRandom()" style="cursor: pointer;">
+              <div class="item-info">
+                <div class="item-label">${tl.secRandom ? tl.secRandom.label : '启用 SecRandom 联动'}</div>
+                <div class="item-desc">${tl.secRandom ? tl.secRandom.desc : '开启后在 PPT 悬浮工具栏中显示 SecRandom 点名按钮，点击后通过 IPC 接口触发快速点名'}</div>
+              </div>
+              <div class="switch ${state.config.secRandomEnabled ? 'active' : ''}" style="pointer-events:none;">
+                <div class="switch-handle"></div>
+              </div>
+            </div>
+          </div>
+          `;
+        }
+      },
+      { // 5 - 窗口
+        id: "window",
+        render: (t) => {
+          const tw = t.window || {};
+          const posOpts = [
+            { value: 'bottom', label: tw.positionBottom || '底部' },
+            { value: 'top', label: tw.positionTop || '顶部' },
+            { value: 'left', label: tw.positionLeft || '左侧' },
+            { value: 'right', label: tw.positionRight || '右侧' }
+          ];
+          const posOptionsHtml = posOpts.map(o => `<option value="${o.value}"${state.config.toolbarPosition === o.value ? ' selected' : ''}>${o.label}</option>`).join('');
+          return `
           <div class="settings-group settings-group-compact">
             <div class="settings-item" onclick="toggleAutoShowOverlay()" style="cursor: pointer;">
               <div class="item-info">
-                <div class="item-label">${t.overlay.autoShowOverlay.label}</div>
-                <div class="item-desc">${t.overlay.autoShowOverlay.desc}</div>
+                <div class="item-label">${tw.autoShow ? tw.autoShow.label : '自动显示工具栏'}</div>
+                <div class="item-desc">${tw.autoShow ? tw.autoShow.desc : '检测到放映时自动出现'}</div>
               </div>
               <div class="switch ${state.config.autoShowOverlay ? 'active' : ''}" style="pointer-events:none;">
-                 <div class="switch-handle"></div>
+                <div class="switch-handle"></div>
               </div>
             </div>
-
-            <div class="settings-item" onclick="toggleShowStatusBar()" style="cursor: pointer;">
+            <div class="settings-item" onclick="toggleNativeTitleBar()" style="cursor: pointer;">
               <div class="item-info">
-                <div class="item-label">${t.overlay.showStatusBar.label}</div>
-                <div class="item-desc">${t.overlay.showStatusBar.desc}</div>
+                <div class="item-label">${tw.useNativeTitleBar ? tw.useNativeTitleBar.label : '使用原生窗口标题栏'}</div>
+                <div class="item-desc">${tw.useNativeTitleBar ? tw.useNativeTitleBar.desc : '开启后所有窗口将使用系统原生标题栏。更改后重启应用生效'}</div>
               </div>
-              <div class="switch ${state.config.showStatusBar ? 'active' : ''}" style="pointer-events:none;">
-                 <div class="switch-handle"></div>
+              <div class="switch ${state.config.useNativeTitleBar ? 'active' : ''}" style="pointer-events:none;">
+                <div class="switch-handle"></div>
               </div>
             </div>
-
             <div class="settings-item">
               <div class="item-info">
-                <div class="item-label">${t.overlay.scale}</div>
+                <div class="item-label">${tw.toolbarPosition ? tw.toolbarPosition.label : '工具栏位置'}</div>
+                <div class="item-desc">${tw.toolbarPosition ? tw.toolbarPosition.desc : '调整悬浮工具栏停靠在屏幕的上、下、左或右侧'}</div>
+              </div>
+              <div class="item-state">
+                <select class="styled-select" onchange="setToolbarPositionConfig(this.value)">${posOptionsHtml}</select>
+              </div>
+            </div>
+            <div class="settings-item">
+              <div class="item-info">
+                <div class="item-label">${tw.scale ? tw.scale.label : '组件缩放倍率'}</div>
+                <div class="item-desc">${tw.scale ? tw.scale.desc : '缩放悬浮工具栏及相关面板的整体大小'}</div>
               </div>
               <div class="slider-container">
                 <input type="range" min="0.5" max="2.0" step="0.05" value="${state.config.scale}" oninput="updateRangeValue('scale', this.value)">
                 <span class="slider-value" id="val-scale">${Number(state.config.scale).toFixed(2)}x</span>
               </div>
             </div>
-            
             <div class="settings-item">
               <div class="item-info">
-                <div class="item-label">${t.overlay.popWindowScale}</div>
+                <div class="item-label">${tw.popWindowScale ? tw.popWindowScale.label : '色板缩放倍率'}</div>
+                <div class="item-desc">${tw.popWindowScale ? tw.popWindowScale.desc : '调整取色板等弹出面板的缩放倍率'}</div>
               </div>
               <div class="slider-container">
-                <input type="range" min="0.5" max="2.0" step="0.05" value="${state.config.popWindowScale}" oninput="updateRangeValue('popWindowScale', this.value)">
+                <input type="range" min="0.5" max="3.0" step="0.1" value="${state.config.popWindowScale}" oninput="updateRangeValue('popWindowScale', this.value)">
                 <span class="slider-value" id="val-popWindowScale">${Number(state.config.popWindowScale).toFixed(2)}x</span>
               </div>
             </div>
-            
             <div class="settings-item">
               <div class="item-info">
-                <div class="item-label">${t.overlay.safeArea}</div>
+                <div class="item-label">${tw.safeArea ? tw.safeArea.label : '屏幕内安全区'}</div>
+                <div class="item-desc">${tw.safeArea ? tw.safeArea.desc : '给工具栏和翻页栏额外留出离屏幕边缘的距离'}</div>
               </div>
               <div class="slider-container">
                 <input type="range" min="0" max="100" step="1" value="${state.config.safeArea}" oninput="updateRangeValue('safeArea', this.value)">
@@ -5439,7 +5574,121 @@ html, body {
               </div>
             </div>
           </div>
-        `
+          `;
+        }
+      },
+      { // 6 - 状态栏
+        id: "statusbar",
+        render: (t) => {
+          const ts = t.statusbar || {};
+          return `
+          <div class="settings-group settings-group-compact">
+            <div class="settings-item" onclick="toggleStatusBarOption('showStatusBar')" style="cursor: pointer;">
+              <div class="item-info">
+                <div class="item-label">${ts.showStatusBar ? ts.showStatusBar.label : '顶部状态栏'}</div>
+                <div class="item-desc">${ts.showStatusBar ? ts.showStatusBar.desc : '在悬浮窗顶部显示时间、媒体、音量、网络和电池等系统状态'}</div>
+              </div>
+              <div class="switch ${state.config.showStatusBar ? 'active' : ''}" style="pointer-events:none;">
+                <div class="switch-handle"></div>
+              </div>
+            </div>
+            <div class="settings-item" onclick="toggleStatusBarOption('statusBarShowTime')" style="cursor: pointer;">
+              <div class="item-info">
+                <div class="item-label">${ts.showTime ? ts.showTime.label : '显示时间'}</div>
+                <div class="item-desc">${ts.showTime ? ts.showTime.desc : '在状态栏左侧显示时间和日期'}</div>
+              </div>
+              <div class="switch ${state.config.statusBarShowTime ? 'active' : ''}" style="pointer-events:none;">
+                <div class="switch-handle"></div>
+              </div>
+            </div>
+            <div class="settings-item" onclick="toggleStatusBarOption('statusBarShowSeconds')" style="cursor: pointer;">
+              <div class="item-info">
+                <div class="item-label">${ts.showSeconds ? ts.showSeconds.label : '显示秒'}</div>
+                <div class="item-desc">${ts.showSeconds ? ts.showSeconds.desc : '为状态栏时间追加秒数'}</div>
+              </div>
+              <div class="switch ${state.config.statusBarShowSeconds ? 'active' : ''}" style="pointer-events:none;">
+                <div class="switch-handle"></div>
+              </div>
+            </div>
+            <div class="settings-item" onclick="toggleStatusBarOption('statusBarShowBattery')" style="cursor: pointer;">
+              <div class="item-info">
+                <div class="item-label">${ts.showBattery ? ts.showBattery.label : '显示电池'}</div>
+                <div class="item-desc">${ts.showBattery ? ts.showBattery.desc : '显示电量百分比与电池图标'}</div>
+              </div>
+              <div class="switch ${state.config.statusBarShowBattery ? 'active' : ''}" style="pointer-events:none;">
+                <div class="switch-handle"></div>
+              </div>
+            </div>
+            <div class="settings-item" onclick="toggleStatusBarOption('statusBarShowVolume')" style="cursor: pointer;">
+              <div class="item-info">
+                <div class="item-label">${ts.showVolume ? ts.showVolume.label : '显示音量'}</div>
+                <div class="item-desc">${ts.showVolume ? ts.showVolume.desc : '显示当前系统音量百分比'}</div>
+              </div>
+              <div class="switch ${state.config.statusBarShowVolume ? 'active' : ''}" style="pointer-events:none;">
+                <div class="switch-handle"></div>
+              </div>
+            </div>
+            <div class="settings-item" onclick="toggleStatusBarOption('statusBarShowNetwork')" style="cursor: pointer;">
+              <div class="item-info">
+                <div class="item-label">${ts.showNetwork ? ts.showNetwork.label : '显示网络'}</div>
+                <div class="item-desc">${ts.showNetwork ? ts.showNetwork.desc : '显示当前网络连接状态图标'}</div>
+              </div>
+              <div class="switch ${state.config.statusBarShowNetwork ? 'active' : ''}" style="pointer-events:none;">
+                <div class="switch-handle"></div>
+              </div>
+            </div>
+            <div class="settings-item" onclick="toggleStatusBarOption('statusBarShowMusic')" style="cursor: pointer;">
+              <div class="item-info">
+                <div class="item-label">${ts.showMusic ? ts.showMusic.label : '显示音乐'}</div>
+                <div class="item-desc">${ts.showMusic ? ts.showMusic.desc : '显示系统媒体会话中的正在播放信息'}</div>
+              </div>
+              <div class="switch ${state.config.statusBarShowMusic ? 'active' : ''}" style="pointer-events:none;">
+                <div class="switch-handle"></div>
+              </div>
+            </div>
+          </div>
+          `;
+        }
+      },
+      { // 7 - 通知
+        id: "notifications",
+        render: (t) => {
+          const tn = t.notifications || {};
+          const intervals = [
+            { value: 30,   label: tn.interval30s   || '30 秒' },
+            { value: 300,  label: tn.interval5min  || '5 分钟' },
+            { value: 600,  label: tn.interval10min || '10 分钟' },
+            { value: 1800, label: tn.interval30min || '30 分钟' },
+            { value: 2700, label: tn.interval45min || '45 分钟' },
+            { value: 3600, label: tn.interval1hour || '1 小时' },
+            { value: 0,    label: tn.intervalNever || '永不' }
+          ];
+          const intervalOptionsHtml = intervals.map(o =>
+            `<option value="${o.value}"${state.config.resourceMonitorInterval === o.value ? ' selected' : ''}>${o.label}</option>`
+          ).join('');
+          return `
+          <div class="settings-group">
+            <div class="settings-item">
+              <div class="item-info">
+                <div class="item-label">${tn.resourceMonitorInterval ? tn.resourceMonitorInterval.label : '性能检测通知间隔'}</div>
+                <div class="item-desc">${tn.resourceMonitorInterval ? tn.resourceMonitorInterval.desc : '设置系统资源性能检测的通知间隔时间'}</div>
+              </div>
+              <div class="item-state">
+                <select class="styled-select" onchange="setResourceMonitorIntervalConfig(Number(this.value))">${intervalOptionsHtml}</select>
+              </div>
+            </div>
+            <div class="settings-item" onclick="toggleTimerNotify()" style="cursor: pointer;">
+              <div class="item-info">
+                <div class="item-label">${tn.timerNotify ? tn.timerNotify.label : '倒计时结束系统通知'}</div>
+                <div class="item-desc">${tn.timerNotify ? tn.timerNotify.desc : '倒计时结束时是否发送系统通知提醒'}</div>
+              </div>
+              <div class="switch ${state.config.timerNotifyEnabled ? 'active' : ''}" style="pointer-events:none;">
+                <div class="switch-handle"></div>
+              </div>
+            </div>
+          </div>
+          `;
+        }
       },
       { // 4
         id: "finish",
@@ -5657,32 +5906,14 @@ html, body {
       }
     };
 
-    window.toggleStartup = () => {
-      state.config.runAtStartup = !state.config.runAtStartup;
+    window.toggleCustomFont = () => {
+      state.config.customFont = !state.config.customFont;
       renderStep();
     };
 
-    window.toggleDisableAnimations = () => {
-      state.config.disableAnimations = !state.config.disableAnimations;
+    window.toggleSecRandom = () => {
+      state.config.secRandomEnabled = !state.config.secRandomEnabled;
       renderStep();
-    };
-
-    window.toggleCrashAutoHandleEnabled = () => {
-      state.config.crashAutoHandleEnabled = !state.config.crashAutoHandleEnabled;
-      if (!state.config.crashAutoHandleEnabled) {
-        state.config.crashAutoHandleMode = "ShowAnalyzer";
-      } else if (!["Exit", "RestartSilent", "Toast"].includes(state.config.crashAutoHandleMode)) {
-        state.config.crashAutoHandleMode = "RestartSilent";
-      }
-      renderStep();
-    };
-
-    window.setCrashAutoHandleMode = (val) => {
-      if (!state.config.crashAutoHandleEnabled) return;
-      if (!["Exit", "RestartSilent", "Toast"].includes(val)) {
-        val = "RestartSilent";
-      }
-      state.config.crashAutoHandleMode = val;
     };
 
     window.toggleAutoShowOverlay = () => {
@@ -5690,8 +5921,26 @@ html, body {
       renderStep();
     };
 
-    window.toggleShowStatusBar = () => {
-      state.config.showStatusBar = !state.config.showStatusBar;
+    window.toggleNativeTitleBar = () => {
+      state.config.useNativeTitleBar = !state.config.useNativeTitleBar;
+      renderStep();
+    };
+
+    window.setToolbarPositionConfig = (val) => {
+      state.config.toolbarPosition = val;
+    };
+
+    window.toggleStatusBarOption = (key) => {
+      state.config[key] = !state.config[key];
+      renderStep();
+    };
+
+    window.setResourceMonitorIntervalConfig = (val) => {
+      state.config.resourceMonitorInterval = val;
+    };
+
+    window.toggleTimerNotify = () => {
+      state.config.timerNotifyEnabled = !state.config.timerNotifyEnabled;
       renderStep();
     };
 
@@ -5942,19 +6191,32 @@ html, body {
 
     async function saveSettings() {
       if (window.pywebview?.api?.save_setting) {
-        const crashMode = state.config.crashAutoHandleEnabled ? state.config.crashAutoHandleMode : "ShowAnalyzer";
+        // appearance / personalize
         await window.pywebview.api.save_setting("General", "Language", state.config.language);
         await window.pywebview.api.save_setting("Appearance", "ThemeMode", state.config.theme);
         await window.pywebview.api.save_setting("Appearance", "ThemeId", state.config.themeId);
-        await window.pywebview.api.save_setting("General", "RunAtStartup", state.config.runAtStartup);
-        await window.pywebview.api.save_setting("General", "DisableAnimations", state.config.disableAnimations);
-        await window.pywebview.api.save_setting("General", "CrashAutoHandleEnabled", state.config.crashAutoHandleEnabled);
-        await window.pywebview.api.save_setting("General", "CrashAutoHandleMode", crashMode);
+        // fonts
+        await window.pywebview.api.save_setting("Fonts", "CustomFont", state.config.customFont);
+        // linkage
+        await window.pywebview.api.save_setting("Linkage", "SecRandomEnabled", state.config.secRandomEnabled);
+        // window
         await window.pywebview.api.save_setting("General", "AutoShowOverlay", state.config.autoShowOverlay);
+        await window.pywebview.api.save_setting("General", "UseNativeTitleBar", state.config.useNativeTitleBar);
+        await window.pywebview.api.save_setting("Overlay", "ToolbarPosition", state.config.toolbarPosition);
         await window.pywebview.api.save_setting("Overlay", "Scale", state.config.scale);
         await window.pywebview.api.save_setting("Overlay", "PopWindowScale", state.config.popWindowScale);
         await window.pywebview.api.save_setting("Overlay", "SafeArea", state.config.safeArea);
+        // statusbar
         await window.pywebview.api.save_setting("Overlay", "ShowStatusBar", state.config.showStatusBar);
+        await window.pywebview.api.save_setting("Overlay", "StatusBarShowTime", state.config.statusBarShowTime);
+        await window.pywebview.api.save_setting("Overlay", "StatusBarShowSeconds", state.config.statusBarShowSeconds);
+        await window.pywebview.api.save_setting("Overlay", "StatusBarShowBattery", state.config.statusBarShowBattery);
+        await window.pywebview.api.save_setting("Overlay", "StatusBarShowVolume", state.config.statusBarShowVolume);
+        await window.pywebview.api.save_setting("Overlay", "StatusBarShowNetwork", state.config.statusBarShowNetwork);
+        await window.pywebview.api.save_setting("Overlay", "StatusBarShowMusic", state.config.statusBarShowMusic);
+        // notifications
+        await window.pywebview.api.save_setting("Notifications", "ResourceMonitorInterval", state.config.resourceMonitorInterval);
+        await window.pywebview.api.save_setting("Notifications", "TimerNotifyEnabled", state.config.timerNotifyEnabled);
       }
     }
 
