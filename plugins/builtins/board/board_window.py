@@ -988,6 +988,8 @@ class SaveStrokesDialog(QQuickView):
 	ResultDiscard = 2
 
 	def __init__(self, owner_window, title, text, save_text, discard_text, cancel_text):
+		from PySide6.QtCore import qInstallMessageHandler
+		
 		super().__init__()
 		self._owner_window = owner_window
 		self._result = self.ResultCancel
@@ -1046,7 +1048,14 @@ class SaveStrokesDialog(QQuickView):
 		qml_path = os.path.join(
 			os.path.dirname(os.path.abspath(__file__)), "SaveStrokesDialog.qml"
 		)
-		self.setSource(QUrl.fromLocalFile(qml_path))
+		
+		# Temporarily disable Qt message handler to prevent deadlock during QML loading
+		# (same issue as BoardWindow - QML loading + message handler can deadlock)
+		original_handler = qInstallMessageHandler(None)
+		try:
+			self.setSource(QUrl.fromLocalFile(qml_path))
+		finally:
+			qInstallMessageHandler(original_handler)
 		root = self.rootObject()
 		width = (
 			int(root.property("implicitWidth"))

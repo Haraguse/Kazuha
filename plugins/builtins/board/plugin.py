@@ -54,10 +54,17 @@ class BoardPlugin(AssistantPlugin):
     def _create_and_show(self):
         from PySide6.QtCore import qInstallMessageHandler
 
+        # Temporarily disable Qt message handler to prevent deadlock during QML loading.
+        # The handler can cause deadlock because:
+        # 1. QML loading triggers Qt debug messages
+        # 2. Message handler writes to sys.__stdout__
+        # 3. But stdout is redirected to PrintCaptureHandler which uses logging
+        # 4. Logging system may acquire locks while QML loader holds other locks → deadlock
         original_handler = qInstallMessageHandler(None)
         print(f"[BoardPlugin] _create_and_show() called", flush=True)
         if self.window:
             print(f"[BoardPlugin] window already exists, aborting create", flush=True)
+            qInstallMessageHandler(original_handler)  # Restore handler before returning
             return
         try:
             print(f"[BoardPlugin] Creating BoardWindow...", flush=True)
@@ -86,6 +93,9 @@ class BoardPlugin(AssistantPlugin):
                 except Exception:
                     pass
                 self.window = None
+        finally:
+            # Always restore the original message handler after window creation
+            qInstallMessageHandler(original_handler)
 
     def set_pen_color(self, r, g, b):
         if self.window:

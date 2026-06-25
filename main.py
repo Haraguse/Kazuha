@@ -4087,6 +4087,9 @@ if __name__ == "__main__":
 		"""
 		Qt消息处理器 - 直接输出到真实的stderr/stdout，不经过Python的日志重定向
 		这样可以避免GIL争夺和死锁问题
+		
+		CRITICAL: This handler must be extremely lightweight and avoid any blocking operations
+		to prevent deadlocks during QML initialization or other Qt internal operations.
 		"""
 		msg_str = str(message) if message else ""
 		
@@ -4110,19 +4113,26 @@ if __name__ == "__main__":
 				sys.__stderr__.write(f"[Qt-Fatal] {error_msg}\n")
 				sys.__stderr__.flush()
 				
-				# Write to crash log immediately
+				# Write to crash log in a non-blocking way using a thread to avoid deadlock
+				# DO NOT perform file I/O directly in the message handler
 				try:
-					cld = os.path.join(
-						os.environ.get("APPDATA", tempfile.gettempdir()),
-						"Luminalium",
-						"crash_logs",
-					)
-					os.makedirs(cld, exist_ok=True)
-					clp = os.path.join(cld, f"qtfatal_{os.getpid()}_{int(time.time())}.log")
-					with open(clp, "w", encoding="utf-8") as f:
-						f.write(error_msg)
-					sys.__stdout__.write(f"[CrashHandler] Qt fatal log written to {clp}\n")
-					sys.__stdout__.flush()
+					import threading
+					def _write_crash_log():
+						try:
+							cld = os.path.join(
+								os.environ.get("APPDATA", tempfile.gettempdir()),
+								"Luminalium",
+								"crash_logs",
+							)
+							os.makedirs(cld, exist_ok=True)
+							clp = os.path.join(cld, f"qtfatal_{os.getpid()}_{int(time.time())}.log")
+							with open(clp, "w", encoding="utf-8") as f:
+								f.write(error_msg)
+							sys.__stdout__.write(f"[CrashHandler] Qt fatal log written to {clp}\n")
+							sys.__stdout__.flush()
+						except Exception:
+							pass
+					threading.Thread(target=_write_crash_log, daemon=True).start()
 				except Exception:
 					pass
 		except Exception:
