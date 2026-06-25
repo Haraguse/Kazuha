@@ -3,10 +3,12 @@
     <option name="args">
       <list />
     </option>
-    <option name="checkSync" value="true" />
+    <option name="checkSync" value="false" />
     <option name="debugJustMyCode" value="false" />
     <option name="env">
-      <map />
+      <map>
+        <entry key="LUMINALIUM_DISABLE_LOG_CAPTURE" value="1" />
+      </map>
     </option>
     <option name="runType" value="SCRIPT" />
     <option name="scriptOrModule" value="main.py" />
