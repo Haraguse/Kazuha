@@ -2,8 +2,8 @@
 .omo/
 
 # Build outputs
-dist/
-build/
+/dist/
+/build/
 .codex_tmp/
 .dotnet_appdata/
 .dotnet_home/
