@@ -477,8 +477,6 @@ _TRANSLATIONS = {
         "watermark.3": "Release Preview",
         "watermark.4": "重新评估版本",
         "overlay.dev_watermark": "{type}\n不保证最终品质 （{version}）",
-        "toolbar.theme_colors": "主题颜色",
-        "toolbar.standard_colors": "标准颜色",
         "toolbar.pen_size": "画笔粗细",
         "toolbar.eraser_size": "橡皮粗细",
         "toolbar.eraser_point": "掠区擦除",
@@ -499,8 +497,6 @@ _TRANSLATIONS = {
         "watermark.3": "Release Preview",
         "watermark.4": "重新評估版本",
         "overlay.dev_watermark": "{type}\n不保證最終品質 （{version}）",
-        "toolbar.theme_colors": "主題顏色",
-        "toolbar.standard_colors": "標準顏色",
         "toolbar.pen_size": "畫筆粗細",
         "toolbar.eraser_size": "橡皮粗細",
         "toolbar.eraser_point": "掠區擦除",
@@ -521,8 +517,6 @@ _TRANSLATIONS = {
         "watermark.3": "Release Preview",
         "watermark.4": "重新評估版本",
         "overlay.dev_watermark": "{type}\n品質唔包，出事唔好屌我 ({version})",
-        "toolbar.theme_colors": "主題色",
-        "toolbar.standard_colors": "標準色",
         "toolbar.pen_size": "畫筆粗細",
         "toolbar.eraser_size": "橡皮粗細",
         "toolbar.eraser_point": "掠區擦除",
@@ -543,8 +537,6 @@ _TRANSLATIONS = {
         "watermark.3": "Release Preview",
         "watermark.4": "Re-evaluation",
         "overlay.dev_watermark": "{type}\nQuality not guaranteed ({version})",
-        "toolbar.theme_colors": "Theme Colors",
-        "toolbar.standard_colors": "Standard Colors",
         "toolbar.pen_size": "Pen Size",
         "toolbar.eraser_size": "Eraser Size",
         "toolbar.eraser_point": "Point Eraser",
@@ -565,8 +557,6 @@ _TRANSLATIONS = {
         "watermark.3": "Release Preview",
         "watermark.4": "再評価バージョン",
         "overlay.dev_watermark": "{type}\n品質は保証されません ({version})",
-        "toolbar.theme_colors": "テーマの色",
-        "toolbar.standard_colors": "標準の色",
         "toolbar.pen_size": "ペンの太さ",
         "toolbar.eraser_size": "消しゴムの太さ",
         "toolbar.eraser_point": "部分消しゴム",
@@ -1304,12 +1294,19 @@ class BoardWindow(QWidget):
         self._qml.rootContext().setContextProperty(
             "boardPenStrokeEnabled", self._board_pen_stroke_enabled
         )
-        self._qml.rootContext().setContextProperty("boardTheme", _resolve_board_theme())
+        self._board_theme = _resolve_board_theme()
+        self._qml.rootContext().setContextProperty("boardTheme", self._board_theme)
+        self._qml.rootContext().setContextProperty(
+            "boardAccentColor", self._board_theme.get("accent", "#4A85F6")
+        )
         self._qml.rootContext().setContextProperty(
             "boardFontFamily", _resolve_dialog_font_family()
         )
         self._qml.rootContext().setContextProperty(
             "boardToolbarOpacity", cfg.toolbarOpacity.value
+        )
+        self._qml.rootContext().setContextProperty(
+            "boardClearMode", cfg.clearMode.value
         )
         self._qml.rootContext().setContextProperty("penText", _t("toolbar.pen"))
         self._qml.rootContext().setContextProperty("eraserText", _t("toolbar.eraser"))
@@ -1318,12 +1315,6 @@ class BoardWindow(QWidget):
         self._qml.rootContext().setContextProperty("redoText", "重做")
         self._qml.rootContext().setContextProperty("savePageText", _t("toolbar.save_page"))
         self._qml.rootContext().setContextProperty("addPageText", _t("toolbar.add_page"))
-        self._qml.rootContext().setContextProperty(
-            "themeColorsText", _t("toolbar.theme_colors")
-        )
-        self._qml.rootContext().setContextProperty(
-            "standardColorsText", _t("toolbar.standard_colors")
-        )
         self._qml.rootContext().setContextProperty(
             "eraserPointText", _t("toolbar.eraser_point")
         )
@@ -1341,33 +1332,30 @@ class BoardWindow(QWidget):
             "slideClearHintText", _t("toolbar.slide_clear_hint")
         )
 
-        # Colors
-        theme_bases = [
+        pen_colors_row1 = [
             "#FFFFFF",
             "#000000",
             "#E7E6E6",
             "#44546A",
             "#4472C4",
             "#ED7D31",
+            "#FF0000",
             "#A5A5A5",
             "#FFC000",
+        ]
+        pen_colors_row2 = [
             "#5B9BD5",
             "#70AD47",
-        ]
-        standard_colors = [
             "#C00000",
-            "#FF0000",
-            "#FFC000",
             "#FFFF00",
             "#92D050",
-            "#00B050",
-            "#00B0F0",
-            "#0070C0",
+            "#FF69B4",
+            "#00BCD4",
             "#002060",
             "#7030A0",
         ]
-        self._qml.rootContext().setContextProperty("themeColors", theme_bases)
-        self._qml.rootContext().setContextProperty("standardColors", standard_colors)
+        self._qml.rootContext().setContextProperty("penColorsRow1", pen_colors_row1)
+        self._qml.rootContext().setContextProperty("penColorsRow2", pen_colors_row2)
 
         cfg.showToolbarText.valueChanged.connect(self._on_show_tool_text_changed)
 
@@ -1508,7 +1496,11 @@ class BoardWindow(QWidget):
             self._board_window_enter_animation = window_enter_animation
 
         # Re-evaluate board theme and toolbar opacity so derived QML colors refresh live
-        self._qml.rootContext().setContextProperty("boardTheme", _resolve_board_theme())
+        self._board_theme = _resolve_board_theme()
+        self._qml.rootContext().setContextProperty("boardTheme", self._board_theme)
+        self._qml.rootContext().setContextProperty(
+            "boardAccentColor", self._board_theme.get("accent", "#4A85F6")
+        )
         self._qml.rootContext().setContextProperty(
             "boardToolbarOpacity", cfg.toolbarOpacity.value
         )
