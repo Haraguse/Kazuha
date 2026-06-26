@@ -192,7 +192,7 @@ async def download_update_impl(download_url: str, version: str):
 def trigger_updater(zip_path: Path, version: str):
     updater_exe = APP_DIR / "updater.exe"
     if not updater_exe.exists():
-        updater_exe = APP_DIR / "scripts" / "updater.py" # For dev/testing
+        updater_exe = APP_DIR / "scripts" / "updater" / "updater.py" # For dev/testing
         if not updater_exe.exists():
             set_progress(0, "updater_missing")
             return

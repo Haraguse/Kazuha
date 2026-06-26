@@ -1,0 +1,20 @@
+{
+  "General": {
+    "Language": "zh-CN",
+    "RunAtStartup": false,
+    "DisableAnimations": false,
+    "CrashAutoHandleEnabled": false,
+    "CrashAutoHandleMode": "ShowAnalyzer",
+    "AutoShowOverlay": true
+  },
+  "Appearance": {
+    "ThemeMode": "Light",
+    "ThemeId": "default"
+  },
+  "Overlay": {
+    "Scale": 1.0,
+    "PopWindowScale": 1.0,
+    "SafeArea": 0,
+    "ShowStatusBar": false
+  }
+}

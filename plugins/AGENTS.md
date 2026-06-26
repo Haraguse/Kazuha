@@ -31,7 +31,7 @@ plugins/
 ## ANTI-PATTERNS
 - Do not add feature-specific hacks to `webview_runner.py` if they belong in one plugin only.
 - Do not bypass `interface.py` conventions with one-off plugin bootstrap flows.
-- Avoid treating `plugins_external/` as an internal source module unless it gains real contents.
+- External plugins belong in `plugins/external/` (previously `plugins_external/`).
 
 ## NOTES
 - `webview_runner.py` is one of the largest files in the repo; changes there have wide blast radius.

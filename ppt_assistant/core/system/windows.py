@@ -212,11 +212,6 @@ class WindowsSystemAPI(SystemAPI):
         return [
             os.path.join(
                 root_dir,
-                "internalSMTCHelper",
-                "SmtcHelper.exe",
-            ),
-            os.path.join(
-                root_dir,
                 "scripts",
                 "smtc_helper",
                 "bin",
