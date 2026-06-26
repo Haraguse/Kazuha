@@ -146,10 +146,12 @@ def _emergency_self_flush():
 
 def _is_process_alive(pid: int) -> bool:
     try:
-        psutil.Process(pid)
-        return True
-    except Exception:
+        proc = psutil.Process(pid)
+        return proc.is_running() and proc.status() != psutil.STATUS_ZOMBIE
+    except (psutil.NoSuchProcess, psutil.ZombieProcess):
         return False
+    except (psutil.AccessDenied, Exception):
+        return True
 
 
 def run_memory_cleaner(parent_pid: int, interval_seconds: int = 30) -> None:

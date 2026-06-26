@@ -1988,12 +1988,22 @@ def _run_watchdog_process():
 
 	def _is_process_alive(pid):
 		if _is_windows:
-			handle = kernel32.OpenProcess(0x100000, False, pid)  # SYNCHRONIZE
-			if handle:
-				kernel32.CloseHandle(handle)
-				return True
-			return False
-		# POSIX: signal 0 probes existence without delivering anything.
+			try:
+				import ctypes
+				PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+				handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+				if not handle:
+					return False
+				try:
+					exit_code = wintypes.DWORD()
+					if kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
+						if exit_code.value != 259:
+							return False
+					return True
+				finally:
+					kernel32.CloseHandle(handle)
+			except Exception:
+				return False
 		try:
 			os.kill(pid, 0)
 			return True
@@ -2053,6 +2063,10 @@ def _run_watchdog_process():
 			for t in proc.threads():
 				threads_info.append(f"  tid={t.id}")
 			return f"Process threads ({len(threads_info)}):\n" + "\n".join(threads_info)
+		except (psutil.NoSuchProcess, psutil.ZombieProcess):
+			return "Process no longer exists"
+		except psutil.AccessDenied:
+			return "Access denied when enumerating threads"
 		except Exception as e:
 			return f"Failed to enumerate threads: {e}"
 
@@ -2127,6 +2141,10 @@ def _run_watchdog_process():
 			proc = psutil.Process(main_pid)
 			proc.kill()
 			print(f"[Watchdog] Killed frozen process {main_pid}", flush=True)
+		except (psutil.NoSuchProcess, psutil.ZombieProcess):
+			print(f"[Watchdog] Process {main_pid} already exited", flush=True)
+		except psutil.AccessDenied:
+			print(f"[Watchdog] Access denied killing process {main_pid}", flush=True)
 		except Exception:
 			if _is_windows:
 				try:
@@ -2141,6 +2159,8 @@ def _run_watchdog_process():
 				try:
 					os.kill(main_pid, 9)  # SIGKILL
 					print(f"[Watchdog] Killed frozen process {main_pid} via SIGKILL", flush=True)
+				except (ProcessLookupError, PermissionError):
+					pass
 				except Exception as e2:
 					print(f"[Watchdog] Failed to kill frozen process: {e2}", flush=True)
 
@@ -2269,23 +2289,35 @@ def _handle_multi_instance(app: QApplication):
 	print(f"[Main] Existing Luminalium instance candidates: {pids}", flush=True)
 
 	if restart_flag or restart_marker:
-		try:
-			deadline = time.time() + 1.2
-			alive = list(pids)
-			while time.time() < deadline:
-				alive = [pid for pid in alive if psutil.pid_exists(pid)]
-				if not alive:
-					return
-				time.sleep(0.05)
-			for pid in alive:
-				try:
-					p_obj = psutil.Process(pid)
-					p_obj.kill()
-				except Exception:
-					pass
-			return
-		finally:
-			os.environ.pop("LUMINALIUM_RESTART_PID", None)
+		restart_pid_str = os.environ.pop("LUMINALIUM_RESTART_PID", None)
+		restart_pid = None
+		if restart_pid_str:
+			try:
+				restart_pid = int(restart_pid_str)
+			except (ValueError, TypeError):
+				pass
+
+		wait_pids = list(pids)
+		if restart_pid and restart_pid not in wait_pids:
+			wait_pids.append(restart_pid)
+
+		deadline = time.time() + 3.0
+		alive = list(wait_pids)
+		while time.time() < deadline:
+			alive = [pid for pid in alive if psutil.pid_exists(pid)]
+			if not alive:
+				return
+			time.sleep(0.1)
+		for pid in alive:
+			try:
+				p_obj = psutil.Process(pid)
+				p_obj.kill()
+			except (psutil.NoSuchProcess, psutil.AccessDenied):
+				pass
+			except Exception:
+				pass
+		time.sleep(0.5)
+		return
 
 	if sys.platform.startswith("linux"):
 		print(
@@ -2313,6 +2345,8 @@ def _handle_multi_instance(app: QApplication):
 			try:
 				p_obj = psutil.Process(pid)
 				p_obj.kill()
+			except (psutil.NoSuchProcess, psutil.AccessDenied):
+				pass
 			except Exception:
 				pass
 		time.sleep(0.5)
