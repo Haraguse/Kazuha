@@ -256,7 +256,7 @@ Rectangle {
             property int lineWidth: 3
             property int eraserWidth: 20
             property bool isEraser: false
-            property int eraserMode: root.eraserMode // Bind to root property
+            property int eraserMode: 1
             property int currentStrokeId: 0
             property bool penStrokeEnabled: root.penStrokeEnabled
             property real lastWidth: lineWidth
@@ -378,6 +378,23 @@ Rectangle {
                 canvas.lastY = currentY;
             }
 
+            function appendEraserSegment(currentX, currentY) {
+                var line = {
+                    x1: canvas.lastX,
+                    y1: canvas.lastY,
+                    x2: currentX,
+                    y2: currentY,
+                    color: "#000000",
+                    width: canvas.eraserWidth,
+                    isEraser: true,
+                    eraserPx: canvas.eraserWidth,
+                    strokeId: canvas.currentStrokeId
+                };
+                canvas.enqueueLine(line);
+                canvas.lastX = currentX;
+                canvas.lastY = currentY;
+            }
+
 
 
             function processInputPoint(currentX, currentY, forceFinal) {
@@ -392,18 +409,11 @@ Rectangle {
                 if (!forceFinal && rawDistSquared < 0.09) {
                     return;
                 }
-                if (canvas.isEraser && canvas.eraserMode === 1) {
+                if (canvas.isEraser) {
                     if (rawDistSquared < canvas.lowSamplePixelsSquared && !forceFinal) {
                         return;
                     }
-                    var hitId = canvas.hitTest(currentX, currentY);
-                    if (hitId !== -1 && !canvas.gestureRemovedStrokeIds[hitId]) {
-                        var removedStroke = canvas.removeStroke(hitId);
-                        if (removedStroke) {
-                            canvas.gestureRemovedStrokes.push(removedStroke);
-                            canvas.gestureRemovedStrokeIds[hitId] = true;
-                        }
-                    }
+                    canvas.appendEraserSegment(currentX, currentY);
                     return;
                 }
                 // 极致优化：直接绘制，完全跳过所有平滑处理
@@ -1519,7 +1529,6 @@ Rectangle {
                             else eraserPopup.open();
                         } else {
                             canvas.isEraser = true
-                            canvas.eraserMode = 1
                             if (colorPopup.opened) colorPopup.close();
                         }
                     }
