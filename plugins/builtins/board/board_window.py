@@ -1323,9 +1323,6 @@ class BoardWindow(QWidget):
         )
         self._qml.rootContext().setContextProperty("penSizeText", _t("toolbar.pen_size"))
         self._qml.rootContext().setContextProperty(
-            "eraserSizeText", _t("toolbar.eraser_size")
-        )
-        self._qml.rootContext().setContextProperty(
             "slideClearText", _t("toolbar.slide_clear")
         )
         self._qml.rootContext().setContextProperty(
