@@ -253,9 +253,9 @@ if getattr(sys, "frozen", False):
     SETTINGS_PATH = os.path.join(_exe_dir, "settings.json")
     PLUGINS_DIR = os.path.join(ROOT_DIR, "plugins")
 else:
-    # Dev mode: settings.json in root, external plugins in plugins_external
+    # Dev mode: settings.json in root, external plugins in plugins/external/
     SETTINGS_PATH = os.path.join(ROOT_DIR, "settings.json")
-    PLUGINS_DIR = os.path.join(ROOT_DIR, "plugins_external")
+    PLUGINS_DIR = os.path.join(ROOT_DIR, "plugins", "external")
 
 if not os.path.exists(PLUGINS_DIR):
     try:

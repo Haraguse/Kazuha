@@ -77,8 +77,6 @@ def _collect_data_entries(root_dir):
         ("icons", "icons"),
         ("fonts", "fonts"),
         ("user", "user"),
-        ("internalSMTCHelper", "internalSMTCHelper"),
-        ("Luminalium2WPS/protocol", "Luminalium2WPS/protocol"),
         ("ppt_assistant/assets", "ppt_assistant/assets"),
     ]
     ui_dir = os.path.join(root_dir, "ppt_assistant", "ui")
@@ -148,7 +146,8 @@ def _build_exclude_args():
 
 
 def run():
-    root_dir = os.path.dirname(os.path.abspath(__file__))
+    # __file__ points to scripts/build/build_pyinstaller.py; go up 2 levels to project root.
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     dist_dir = os.path.join(root_dir, "dist")
     build_dir = os.path.join(root_dir, "build")
 
@@ -220,7 +219,7 @@ def run():
     subprocess.check_call(cmd, cwd=root_dir)
 
     # Build updater.exe into the main app output folder so shipping is one-step.
-    updater_py = os.path.join(root_dir, "scripts", "updater.py")
+    updater_py = os.path.join(root_dir, "scripts", "updater", "updater.py")
     if os.path.exists(updater_py):
         updater_cmd = [
             python_exe,

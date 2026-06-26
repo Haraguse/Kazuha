@@ -26,22 +26,14 @@ class MessageSchema:
 
 
 def default_protocol_dir() -> Path:
-    candidates: list[Path] = []
-    if getattr(sys, "frozen", False):
-        meipass = getattr(sys, "_MEIPASS", None)
-        if meipass:
-            candidates.append(Path(meipass) / "Luminalium2WPS" / "protocol")
-        candidates.append(
-            Path(sys.executable).resolve().parent / "Luminalium2WPS" / "protocol"
-        )
+    """Return path to WPS bridge protocol schemas.
 
-    candidates.append(
-        Path(__file__).resolve().parents[3] / "Luminalium2WPS" / "protocol"
-    )
-    for candidate in candidates:
-        if candidate.is_dir():
-            return candidate
-    return candidates[-1]
+    The Luminalium2WPS/protocol directory was removed in a project
+    restructuring.  This function is preserved for API compatibility
+    and returns the last-known path as a placeholder.
+    """
+    candidate = Path(__file__).resolve().parents[3] / "scripts" / "ppt_vsto_bridge"
+    return candidate
 
 
 class WpsBridgeProtocol:
