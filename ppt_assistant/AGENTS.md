@@ -8,7 +8,6 @@ Main application package. Split into shared core logic and user-facing UI surfac
 ppt_assistant/
 ├── core/      # config, monitoring, platform glue, theme/i18n
 ├── ui/        # overlay, tray, dialogs, splash html
-├── settings/  # settings-related package area
 └── assets/    # shipped media assets
 ```
 
