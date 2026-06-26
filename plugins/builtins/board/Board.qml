@@ -660,7 +660,6 @@ Rectangle {
                     canvas.lastFilteredX = x
                     canvas.lastFilteredY = y
                     canvas.pointerActive = true
-                    canvas.hasPendingInput = false
                     canvas.currentStrokeId++;
                     canvas.lastWidth = canvas.lineWidth;
                 }
@@ -860,7 +859,7 @@ Rectangle {
                             width: (colorRow1.width - (9 - 1) * colorRow1.spacing) / 9
                             height: 28
 
-                            property bool isActive: canvas && !canvas.isEraser && Qt.colorEqual(canvas.drawColor, modelData)
+                            property bool isActive: (canvas && !canvas.isEraser && Qt.colorEqual(canvas.drawColor, modelData)) || false
 
                             Rectangle {
                                 id: colorSwatch
@@ -924,7 +923,7 @@ Rectangle {
                             width: (colorRow2.width - (9 - 1) * colorRow2.spacing) / 9
                             height: 28
 
-                            property bool isActive: canvas && !canvas.isEraser && Qt.colorEqual(canvas.drawColor, modelData)
+                            property bool isActive: (canvas && !canvas.isEraser && Qt.colorEqual(canvas.drawColor, modelData)) || false
 
                             Rectangle {
                                 id: colorSwatch
@@ -1114,14 +1113,15 @@ Rectangle {
                     width: 4; height: parent.height; radius: 2
                     y: 0
                     color: darkBackground ? Qt.rgba(1,1,1,0.18) : Qt.rgba(0,0,0,0.12)
-                    Rectangle {
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: vsHandle.verticalCenter
-                        anchors.bottom: parent.bottom
-                        radius: parent.radius
-                        color: darkBackground ? "#C0C0C0" : "#555555"
-                    }
+                }
+
+                Rectangle {
+                    id: vsTrackFill
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 4; radius: 2
+                    y: vsHandle.y + vsHandle.height / 2
+                    height: vertSlider.height - y
+                    color: darkBackground ? "#C0C0C0" : "#555555"
                 }
 
                 Rectangle {
@@ -1168,8 +1168,8 @@ Rectangle {
             : toolbarPosition === "bottom"
                 ? toolbar.y - height - 12
                 : toolbar.y + (toolbar.height - height) / 2
-        width: 260
-        height: 80
+        width: 236
+        height: 60
         visible: false
         opacity: 0
         scale: 0.92
@@ -1199,139 +1199,83 @@ Rectangle {
         Timer { id: erOpenTimer; interval: 10; onTriggered: { if (eraserPopup.visible) { eraserPopup.opacity = 1; eraserPopup.scale = 1.0; } } }
         Timer { id: erCloseTimer; interval: 200; onTriggered: { eraserPopup.visible = false; } }
 
-        Column {
+        Rectangle {
+            id: clearSliderContainer
             anchors.fill: parent
-            anchors.margins: 18
-            spacing: 0
+            anchors.margins: 8
+            radius: 22
+            color: darkBackground ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)
+            clip: true
 
-            Item {
-                width: parent.width
-                height: 44
+            property real dragX: 2
+            property bool dragging: false
+            property real maxX: width - clearThumb.width - 2
 
-                Rectangle {
-                    id: clearSliderContainer
-                    width: 200
-                    height: 44
-                    radius: 22
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    color: darkBackground ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)
-                    clip: true
-                    visible: boardClearMode !== "button"
+            Text {
+                id: clearText
+                text: slideClearText
+                anchors.centerIn: parent
+                color: darkBackground ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.4)
+                font.pixelSize: 14
+                opacity: 1 - Math.max(0, Math.min(1, clearSliderContainer.dragX / clearSliderContainer.maxX * 1.5))
+            }
 
-                    property real dragX: 2
-                    property bool dragging: false
-                    property real maxX: width - clearThumb.width - 2
+            Rectangle {
+                id: clearThumb
+                width: 40
+                height: 40
+                radius: 20
+                anchors.verticalCenter: parent.verticalCenter
+                x: clearSliderContainer.dragX
+                color: darkBackground ? "#484848" : "#444444"
 
-                    Text {
-                        id: clearText
-                        text: slideClearText
-                        anchors.centerIn: parent
-                        color: darkBackground ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.4)
-                        font.pixelSize: 14
-                        opacity: 1 - Math.max(0, Math.min(1, clearSliderContainer.dragX / clearSliderContainer.maxX * 1.5))
-                    }
-
-                    Rectangle {
-                        id: clearThumb
-                        width: 40
-                        height: 40
-                        radius: 20
-                        anchors.verticalCenter: parent.verticalCenter
-                        x: clearSliderContainer.dragX
-                        color: darkBackground ? "#484848" : "#444444"
-
-                        Image {
-                            anchors.fill: parent
-                            anchors.margins: 10
-                            source: iconsDir + "Clear.svg"
-                            sourceSize.width: 20
-                            sourceSize.height: 20
-                            fillMode: Image.PreserveAspectFit
-                        }
-
-                        Behavior on x {
-                            enabled: !clearSliderContainer.dragging
-                            NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
-                        }
-
-                        scale: clearSliderContainer.dragging ? 0.95 : 1.0
-                        Behavior on scale { NumberAnimation { duration: 100 } }
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        preventStealing: true
-
-                        onPressed: (m) => {
-                            clearSliderContainer.dragging = true
-                            var xInThumb = m.x - clearThumb.x
-                            if (xInThumb < 0 || xInThumb > clearThumb.width) {
-                                var newX = Math.max(2, Math.min(clearSliderContainer.maxX, m.x - clearThumb.width/2))
-                                clearSliderContainer.dragX = newX
-                            }
-                        }
-                        onPositionChanged: (m) => {
-                            if (clearSliderContainer.dragging) {
-                                var newX = Math.max(2, Math.min(clearSliderContainer.maxX, m.x - clearThumb.width/2))
-                                clearSliderContainer.dragX = newX
-                            }
-                        }
-                        onReleased: {
-                            clearSliderContainer.dragging = false
-                            if (clearSliderContainer.dragX >= clearSliderContainer.maxX - 4) {
-                                if (canvas) canvas.clear()
-                                eraserPopup.close()
-                            }
-                            clearSliderContainer.dragX = 2
-                        }
-                        onCanceled: {
-                            clearSliderContainer.dragging = false
-                            clearSliderContainer.dragX = 2
-                        }
-                    }
+                Image {
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    source: iconsDir + "Clear.svg"
+                    sourceSize.width: 20
+                    sourceSize.height: 20
+                    fillMode: Image.PreserveAspectFit
                 }
 
-                Rectangle {
-                    id: clearBtnContainer
-                    width: 200
-                    height: 44
-                    radius: 22
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    color: darkBackground ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)
-                    visible: boardClearMode === "button"
+                Behavior on x {
+                    enabled: !clearSliderContainer.dragging
+                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                }
 
-                    Row {
-                        anchors.centerIn: parent
-                        spacing: 8
+                scale: clearSliderContainer.dragging ? 0.95 : 1.0
+                Behavior on scale { NumberAnimation { duration: 100 } }
+            }
 
-                        Image {
-                            source: iconsDir + "Clear.svg"
-                            width: 24
-                            height: 24
-                            sourceSize.width: 24
-                            sourceSize.height: 24
-                            fillMode: Image.PreserveAspectFit
-                        }
+            MouseArea {
+                anchors.fill: parent
+                preventStealing: true
 
-                        Text {
-                            text: clearText
-                            anchors.verticalCenter: parent.verticalCenter
-                            color: darkBackground ? "#E0E0E0" : "#222222"
-                            font.pixelSize: 14
-                            font.weight: Font.Medium
-                        }
+                onPressed: (m) => {
+                    clearSliderContainer.dragging = true
+                    var xInThumb = m.x - clearThumb.x
+                    if (xInThumb < 0 || xInThumb > clearThumb.width) {
+                        var newX = Math.max(2, Math.min(clearSliderContainer.maxX, m.x - clearThumb.width/2))
+                        clearSliderContainer.dragX = newX
                     }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            if (canvas) canvas.clear()
-                            eraserPopup.close()
-                        }
-                        onPressed: clearBtnContainer.color = darkBackground ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.12)
-                        onReleased: clearBtnContainer.color = darkBackground ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)
-                        onCanceled: clearBtnContainer.color = darkBackground ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)
+                }
+                onPositionChanged: (m) => {
+                    if (clearSliderContainer.dragging) {
+                        var newX = Math.max(2, Math.min(clearSliderContainer.maxX, m.x - clearThumb.width/2))
+                        clearSliderContainer.dragX = newX
                     }
+                }
+                onReleased: {
+                    clearSliderContainer.dragging = false
+                    if (clearSliderContainer.dragX >= clearSliderContainer.maxX - 4) {
+                        if (canvas) canvas.clear()
+                        eraserPopup.close()
+                    }
+                    clearSliderContainer.dragX = 2
+                }
+                onCanceled: {
+                    clearSliderContainer.dragging = false
+                    clearSliderContainer.dragX = 2
                 }
             }
         }
@@ -1561,7 +1505,7 @@ Rectangle {
                     
                     Text {
                         id: textClear
-                        text: clearText
+                        text: slideClearText
                         color: "white"
                         font.pixelSize: 11
                         anchors.horizontalCenter: parent.horizontalCenter
