@@ -779,7 +779,6 @@ Rectangle {
         onClicked: { colorPopup.close(); eraserPopup.close(); }
     }
 
-    // Color Popup (pure QtQuick – no QtQuick.Controls)
     Rectangle {
         id: colorPopup
         parent: root
@@ -793,8 +792,7 @@ Rectangle {
             : toolbarPosition === "bottom"
                 ? toolbar.y - height - 12
                 : toolbar.y + (toolbar.height - height) / 2
-        width: 300
-        height: 230
+        width: 312
         visible: false
         opacity: 0
         scale: 0.92
@@ -808,11 +806,16 @@ Rectangle {
         Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
         Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
 
-        property bool opened: visible
-        function open()  {
+        property color textPrimary: darkBackground ? "#E5E5E5" : "#191919"
+        property color textSecondary: darkBackground ? Qt.rgba(0.8, 0.8, 0.8, 0.6) : Qt.rgba(0.1, 0.1, 0.1, 0.6)
+        property color popupBorder: darkBackground ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.1)
+        property string hoveredColorName: ""
+        property string hoveredColorRgb: ""
+        property string hoveredColorHex: ""
+
+        function open() {
             closeTimer.stop();
             visible = true;
-            // Reset to start values for the scale-in animation
             openTimer.start();
         }
         function close() {
@@ -825,343 +828,209 @@ Rectangle {
         Timer { id: openTimer; interval: 10; onTriggered: { if (colorPopup.visible) { colorPopup.opacity = 1; colorPopup.scale = 1.0; } } }
         Timer { id: closeTimer; interval: 200; onTriggered: { colorPopup.visible = false; } }
 
-        property int activeTab: 0
-        property string hoveredColorName: ""
-        property string hoveredColorRgb: ""
-        property string hoveredColorHex: ""
-
-        Item {
-            id: contentContainer
+        Column {
+            id: popupContent
             anchors.fill: parent
-            
-            // Tab Header
-            Row {
-                id: tabHeader
-                height: 48
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.leftMargin: 16
-                anchors.rightMargin: 16
-                spacing: 24
-                
-                Item {
-                    width: tabThemeText.contentWidth
-                    height: parent.height
-                    
-                    Text {
-                        id: tabThemeText
-                        text: themeColorsText
-                        color: colorPopup.activeTab === 0 
-                               ? (darkBackground ? "white" : "black") 
-                               : (darkBackground ? "#888" : "#666")
-                        font.pixelSize: 13
-                        font.bold: colorPopup.activeTab === 0
-                        anchors.centerIn: parent
-                        
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: colorPopup.activeTab = 0
-                        }
-                    }
-                    
-                    Rectangle {
-                        height: 3
-                        radius: 1.5
-                        color: darkBackground ? "white" : "black"
-                        anchors.bottom: parent.bottom
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        visible: colorPopup.activeTab === 0
-                    }
-                }
-                
-                Item {
-                    width: tabStandardText.contentWidth
-                    height: parent.height
-                    
-                    Text {
-                        id: tabStandardText
-                        text: standardColorsText
-                        color: colorPopup.activeTab === 1 
-                               ? (darkBackground ? "white" : "black") 
-                               : (darkBackground ? "#888" : "#666")
-                        font.pixelSize: 13
-                        font.bold: colorPopup.activeTab === 1
-                        anchors.centerIn: parent
-                        
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: colorPopup.activeTab = 1
-                        }
-                    }
-                    
-                    Rectangle {
-                        height: 3
-                        radius: 1.5
-                        color: darkBackground ? "white" : "black"
-                        anchors.bottom: parent.bottom
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        visible: colorPopup.activeTab === 1
-                    }
-                }
-            }
-            
-            Rectangle {
-                anchors.top: tabHeader.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
-                height: 1
-                color: darkBackground ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.08)
-            }
-            
-            // Content Area
-            Item {
-                id: contentArea
-                anchors.top: tabHeader.bottom
-                anchors.bottom: infoBox.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                clip: true
-                
-                // Theme Colors
-                Grid {
-                    id: themeGrid
-                    columns: 10
-                    spacing: 6
-                    anchors.centerIn: parent
-                    opacity: colorPopup.activeTab === 0 ? 1 : 0
-                    enabled: opacity > 0.1
-                    Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                    
-                    Repeater {
-                        model: themeColors
-                        Rectangle {
-                            width: 22
-                            height: 22
-                            color: modelData
-                            radius: 4
-                            border.width: 1
-                            border.color: darkBackground ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
+            anchors.margins: 16
+            spacing: 12
 
-                            Behavior on scale { NumberAnimation { duration: 100 } }
-                            Behavior on border.color { ColorAnimation { duration: 100 } }
-                            
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                hoverEnabled: true
-                                onEntered: {
-                                    parent.scale = 1.2
-                                    parent.z = 1
-                                    parent.border.color = darkBackground ? "white" : "black"
-                                    parent.border.width = 2
-                                    colorPopup.updateInfo(modelData)
-                                }
-                                onExited: {
-                                    parent.scale = 1.0
-                                    parent.z = 0
-                                    parent.border.color = darkBackground ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
-                                    parent.border.width = 1
-                                    colorPopup.clearInfo()
-                                }
-                                onClicked: {
-                                    if (canvas) {
-                                        canvas.drawColor = modelData
-                                        canvas.isEraser = false
-                                    }
-                                    colorPopup.close()
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // Standard Colors
-                Grid {
-                    id: standardGrid
-                    columns: 10
-                    spacing: 6
-                    anchors.centerIn: parent
-                    opacity: colorPopup.activeTab === 1 ? 1 : 0
-                    enabled: opacity > 0.1
-                    Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                    
-                    Repeater {
-                        model: standardColors
-                        Rectangle {
-                            width: 22
-                            height: 22
-                            color: modelData
-                            radius: 4
-                            border.width: 1
-                            border.color: darkBackground ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
-
-                            Behavior on scale { NumberAnimation { duration: 100 } }
-                            Behavior on border.color { ColorAnimation { duration: 100 } }
-                            
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                hoverEnabled: true
-                                onEntered: {
-                                    parent.scale = 1.2
-                                    parent.z = 1
-                                    parent.border.color = darkBackground ? "white" : "black"
-                                    parent.border.width = 2
-                                    colorPopup.updateInfo(modelData)
-                                }
-                                onExited: {
-                                    parent.scale = 1.0
-                                    parent.z = 0
-                                    parent.border.color = darkBackground ? Qt.rgba(1,1,1,0.1) : Qt.rgba(0,0,0,0.1)
-                                    parent.border.width = 1
-                                    colorPopup.clearInfo()
-                                }
-                                onClicked: {
-                                    canvas.drawColor = modelData
-                                    canvas.isEraser = false
-                                    colorPopup.close()
-                                }
-                            }
-                        }
-                    }
-                }
+            Column {
+                id: colorGridContainer
+                width: parent.width
+                spacing: 8
 
                 Row {
-                    id: penSizeRow
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.bottom: parent.bottom
-                    anchors.bottomMargin: 8
+                    id: colorRow1
+                    width: parent.width
                     spacing: 8
 
-                    Text {
-                        text: penSizeText
-                        color: darkBackground ? "white" : "black"
-                        font.pixelSize: 12
-                    }
+                    Repeater {
+                        model: penColorsRow1
+                        delegate: Item {
+                            width: (colorRow1.width - (9 - 1) * colorRow1.spacing) / 9
+                            height: 28
 
-                    // Custom slider – no QtQuick.Controls dependency
-                    Item {
-                        id: penSizeSlider
-                        width: 140
-                        height: 20
-                        property real from: 1
-                        property real to: 18
-                        property real stepSize: 1
-                        property real value: canvas ? canvas.lineWidth : 3
+                            property bool isActive: canvas && !canvas.isEraser && Qt.colorEqual(canvas.drawColor, modelData)
 
-                        function _calc(mx) {
-                            var ratio = Math.max(0, Math.min(1, mx / Math.max(1, width - psHandle.width)));
-                            var raw = from + ratio * (to - from);
-                            return Math.max(from, Math.min(to,
-                                stepSize > 0 ? Math.round(raw / stepSize) * stepSize : raw));
-                        }
-
-                        Rectangle {
-                            id: psTrack
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: parent.width; height: 4; radius: 2
-                            color: darkBackground ? Qt.rgba(1,1,1,0.18) : Qt.rgba(0,0,0,0.12)
                             Rectangle {
-                                width: Math.max(0,
-                                    (penSizeSlider.value - penSizeSlider.from) /
-                                    Math.max(0.001, penSizeSlider.to - penSizeSlider.from)
-                                    * parent.width)
-                                height: parent.height; radius: parent.radius
-                                color: darkBackground ? "#C0C0C0" : "#555555"
+                                id: colorSwatch
+                                width: 24
+                                height: 24
+                                radius: 4
+                                color: modelData
+                                anchors.centerIn: parent
+                                border.width: 2
+                                border.color: parent.isActive ? colorPopup.textPrimary : "transparent"
+
+                                Rectangle {
+                                    anchors.centerIn: parent
+                                    width: 28
+                                    height: 28
+                                    radius: 6
+                                    color: "transparent"
+                                    border.width: 2
+                                    border.color: parent.isActive ? Qt.rgba(0, 0, 0, 0.3) : "transparent"
+                                    visible: parent.isActive
+                                }
+
+                                Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                                Behavior on border.color { ColorAnimation { duration: 150 } }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    hoverEnabled: true
+                                    onEntered: {
+                                        colorSwatch.scale = 1.15;
+                                        colorSwatch.z = 1;
+                                        colorPopup.updateInfo(modelData);
+                                    }
+                                    onExited: {
+                                        colorSwatch.scale = 1.0;
+                                        colorSwatch.z = 0;
+                                        colorPopup.clearInfo();
+                                    }
+                                    onClicked: {
+                                        if (canvas) {
+                                            canvas.drawColor = modelData;
+                                            canvas.isEraser = false;
+                                        }
+                                        colorPopup.close();
+                                    }
+                                }
                             }
                         }
-                        Rectangle {
-                            id: psHandle
-                            width: 16; height: 16; radius: 8
-                            color: darkBackground ? "#FFFFFF" : "#333333"
-                            anchors.verticalCenter: parent.verticalCenter
-                            x: Math.max(0, Math.min(penSizeSlider.width - width,
-                                (penSizeSlider.value - penSizeSlider.from) /
-                                Math.max(0.001, penSizeSlider.to - penSizeSlider.from)
-                                * (penSizeSlider.width - width)))
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            onPressed:  (m) => { penSizeSlider.value = penSizeSlider._calc(m.x - psHandle.width/2); if (canvas) canvas.lineWidth = Math.round(penSizeSlider.value); }
-                            onPositionChanged: (m) => { penSizeSlider.value = penSizeSlider._calc(m.x - psHandle.width/2); if (canvas) canvas.lineWidth = Math.round(penSizeSlider.value); }
-                        }
                     }
+                }
 
-                    Text {
-                        text: canvas ? Math.round(canvas.lineWidth) : 3
-                        color: darkBackground ? "#AAA" : "#666"
-                        font.pixelSize: 11
+                Row {
+                    id: colorRow2
+                    width: parent.width
+                    spacing: 8
+
+                    Repeater {
+                        model: penColorsRow2
+                        delegate: Item {
+                            width: (colorRow2.width - (9 - 1) * colorRow2.spacing) / 9
+                            height: 28
+
+                            property bool isActive: canvas && !canvas.isEraser && Qt.colorEqual(canvas.drawColor, modelData)
+
+                            Rectangle {
+                                id: colorSwatch
+                                width: 24
+                                height: 24
+                                radius: 4
+                                color: modelData
+                                anchors.centerIn: parent
+                                border.width: 2
+                                border.color: parent.isActive ? colorPopup.textPrimary : "transparent"
+
+                                Rectangle {
+                                    anchors.centerIn: parent
+                                    width: 28
+                                    height: 28
+                                    radius: 6
+                                    color: "transparent"
+                                    border.width: 2
+                                    border.color: parent.isActive ? Qt.rgba(0, 0, 0, 0.3) : "transparent"
+                                    visible: parent.isActive
+                                }
+
+                                Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                                Behavior on border.color { ColorAnimation { duration: 150 } }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    hoverEnabled: true
+                                    onEntered: {
+                                        colorSwatch.scale = 1.15;
+                                        colorSwatch.z = 1;
+                                        colorPopup.updateInfo(modelData);
+                                    }
+                                    onExited: {
+                                        colorSwatch.scale = 1.0;
+                                        colorSwatch.z = 0;
+                                        colorPopup.clearInfo();
+                                    }
+                                    onClicked: {
+                                        if (canvas) {
+                                            canvas.drawColor = modelData;
+                                            canvas.isEraser = false;
+                                        }
+                                        colorPopup.close();
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
-            
-            // Info Box
-            Item {
-                id: infoBox
-                height: 48
-                anchors.bottom: parent.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.margins: 16
-                
+
+            Column {
+                id: colorInfoBox
+                width: parent.width
+                spacing: 2
+
                 Rectangle {
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.right: parent.right
+                    width: parent.width
                     height: 1
-                    color: darkBackground ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.08)
+                    color: colorPopup.popupBorder
                 }
-                
-                Row {
-                    anchors.centerIn: parent
-                    spacing: 8
-                    
-                    Rectangle {
-                        width: 16
-                        height: 16
-                        radius: 4
-                        color: colorPopup.hoveredColorHex !== "" ? colorPopup.hoveredColorHex : (canvas ? canvas.drawColor : "transparent")
-                        border.width: 1
-                        border.color: darkBackground ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.2)
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                    
-                    Column {
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 2
-                        
-                        Text {
-                            text: colorPopup.hoveredColorName !== "" ? colorPopup.hoveredColorName : (colorPopup.hoveredColorHex !== "" ? colorPopup.hoveredColorHex : (canvas ? canvas.drawColor.toString() : ""))
-                            color: darkBackground ? "white" : "black"
-                            font.pixelSize: 12
-                            font.bold: true
-                        }
-                        
-                        Text {
-                            text: colorPopup.hoveredColorRgb !== "" ? colorPopup.hoveredColorRgb : ""
-                            color: darkBackground ? "#AAA" : "#666"
-                            font.pixelSize: 10
-                            visible: text !== ""
-                        }
-                    }
+
+                Text {
+                    id: infoName
+                    text: colorPopup.hoveredColorName !== "" ? colorPopup.hoveredColorName : (canvas ? colorPopup.getColorName(colorPopup.toHex(canvas.drawColor)) : "")
+                    color: colorPopup.textSecondary
+                    font.pixelSize: 11
+                    topPadding: 8
+                }
+
+                Text {
+                    id: infoRgb
+                    text: colorPopup.hoveredColorRgb !== "" ? colorPopup.hoveredColorRgb : colorPopup.getCurrentRgb()
+                    color: colorPopup.textSecondary
+                    font.pixelSize: 11
+                }
+
+                Text {
+                    id: infoHex
+                    text: colorPopup.hoveredColorHex !== "" ? colorPopup.hoveredColorHex : (canvas ? colorPopup.toHex(canvas.drawColor) : "")
+                    color: colorPopup.textSecondary
+                    font.pixelSize: 11
                 }
             }
         }
+
+        property string sizeDisplayText: canvas ? Math.round(canvas.lineWidth) : "3"
+
+        height: popupContent.implicitHeight + 32
 
         function updateInfo(colorVal) {
-            hoveredColorHex = colorVal
-            hoveredColorRgb = getRgbString(colorVal)
-            hoveredColorName = getColorName(colorVal)
+            hoveredColorHex = colorVal;
+            hoveredColorRgb = getRgbString(colorVal);
+            hoveredColorName = getColorName(colorVal);
         }
         function clearInfo() {
-            hoveredColorHex = ""
-            hoveredColorRgb = ""
-            hoveredColorName = ""
+            hoveredColorHex = "";
+            hoveredColorRgb = "";
+            hoveredColorName = "";
+        }
+        function getCurrentRgb() {
+            if (!canvas) return "";
+            var c = canvas.drawColor;
+            return "RGB(" + Math.round(c.r * 255) + ", " + Math.round(c.g * 255) + ", " + Math.round(c.b * 255) + ")";
+        }
+        function toHex(c) {
+            if (!c) return "";
+            var r = Math.round(c.r * 255).toString(16);
+            var g = Math.round(c.g * 255).toString(16);
+            var b = Math.round(c.b * 255).toString(16);
+            if (r.length < 2) r = "0" + r;
+            if (g.length < 2) g = "0" + g;
+            if (b.length < 2) b = "0" + b;
+            return ("#" + r + g + b).toUpperCase();
         }
         function getRgbString(hex) {
             if (!hex || hex.length < 7) return "";
@@ -1173,16 +1042,109 @@ Rectangle {
         function getColorName(hex) {
             var upper = hex.toUpperCase();
             var map = {
-                "#FFFFFF": "White", "#000000": "Black", "#E7E6E6": "Light Gray", "#44546A": "Blue Gray", "#4472C4": "Blue",
-                "#ED7D31": "Orange", "#A5A5A5": "Gray", "#FFC000": "Gold", "#5B9BD5": "Light Blue", "#70AD47": "Green",
-                "#C00000": "Dark Red", "#FF0000": "Red", "#FFFF00": "Yellow", "#92D050": "Light Green", "#00B050": "Sea Green",
-                "#00B0F0": "Sky Blue", "#0070C0": "Blue", "#002060": "Dark Blue", "#7030A0": "Purple"
+                "#FFFFFF": "白色", "#000000": "黑色", "#E7E6E6": "浅灰色", "#44546A": "蓝灰色",
+                "#4472C4": "蓝色", "#ED7D31": "橙色", "#FF0000": "红色", "#A5A5A5": "灰色",
+                "#FFC000": "金色", "#5B9BD5": "浅蓝色", "#70AD47": "绿色", "#C00000": "深红色",
+                "#FFFF00": "黄色", "#92D050": "浅绿色", "#FF69B4": "骚粉色", "#00BCD4": "亮青色",
+                "#002060": "深蓝色", "#7030A0": "紫色"
             };
             return map[upper] || upper;
         }
-    } // end colorPopup
+    }
 
-    // Eraser Size Popup (pure QtQuick)
+    Rectangle {
+        id: sizePopup
+        parent: root
+        x: {
+            if (toolbarPosition === "left") return colorPopup.x + colorPopup.width + 8;
+            if (toolbarPosition === "right") return colorPopup.x - width - 8;
+            return colorPopup.x + colorPopup.width + 8;
+        }
+        y: colorPopup.y
+        width: 36
+        height: colorPopup.height
+        visible: colorPopup.visible
+        opacity: colorPopup.opacity
+        scale: colorPopup.scale
+        z: colorPopup.z
+        radius: 12
+        color: root.popupBackgroundColor !== "" ? root.popupBackgroundColor : (darkBackground ? "#202020" : "#FFFFFF")
+        border.color: root.popupBorderColor !== "" ? root.popupBorderColor : (darkBackground ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.1))
+        border.width: 1
+        clip: true
+
+        Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+
+        Item {
+            id: sizeSliderContent
+            anchors.fill: parent
+            anchors.margins: 8
+
+            Item {
+                id: vertSlider
+                width: parent.width
+                height: parent.height
+                property real from: 1
+                property real to: 18
+                property real stepSize: 1
+                property real value: canvas ? canvas.lineWidth : 3
+
+                function _calc(my) {
+                    var usable = Math.max(1, height - vsHandle.height);
+                    var ratio = 1 - Math.max(0, Math.min(1, my / usable));
+                    var raw = from + ratio * (to - from);
+                    return Math.max(from, Math.min(to,
+                        stepSize > 0 ? Math.round(raw / stepSize) * stepSize : raw));
+                }
+
+                Rectangle {
+                    id: vsTrack
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 4; height: parent.height; radius: 2
+                    y: 0
+                    color: darkBackground ? Qt.rgba(1,1,1,0.18) : Qt.rgba(0,0,0,0.12)
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: vsHandle.verticalCenter
+                        anchors.bottom: parent.bottom
+                        radius: parent.radius
+                        color: darkBackground ? "#C0C0C0" : "#555555"
+                    }
+                }
+
+                Rectangle {
+                    id: vsHandle
+                    width: 20; height: 20; radius: 10
+                    color: darkBackground ? "#FFFFFF" : "#333333"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    y: Math.max(0, Math.min(vertSlider.height - height,
+                        (1 - (vertSlider.value - vertSlider.from) /
+                         Math.max(0.001, vertSlider.to - vertSlider.from))
+                        * (vertSlider.height - height)))
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onEntered: colorPopup.closeTimer.stop()
+                    onExited: colorPopup.closeTimer.start()
+                    onPressed: (m) => {
+                        var v = vertSlider._calc(m.y - vsHandle.height/2);
+                        vertSlider.value = v;
+                        if (canvas) canvas.lineWidth = Math.round(v);
+                    }
+                    onPositionChanged: (m) => {
+                        var v = vertSlider._calc(m.y - vsHandle.height/2);
+                        vertSlider.value = v;
+                        if (canvas) canvas.lineWidth = Math.round(v);
+                    }
+                }
+            }
+        }
+    }
+
     Rectangle {
         id: eraserPopup
         parent: root
@@ -1197,7 +1159,7 @@ Rectangle {
                 ? toolbar.y - height - 12
                 : toolbar.y + (toolbar.height - height) / 2
         width: 260
-        height: 120
+        height: 180
         visible: false
         opacity: 0
         scale: 0.92
@@ -1291,6 +1253,93 @@ Rectangle {
                 text: canvas ? Math.round(canvas.eraserWidth) : 20
                 color: darkBackground ? "#AAA" : "#666"
                 font.pixelSize: 11
+            }
+
+            Item {
+                width: parent.width
+                height: 44
+
+                Rectangle {
+                    id: clearSliderContainer
+                    width: 200
+                    height: 44
+                    radius: 22
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    color: darkBackground ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)
+                    clip: true
+
+                    property real dragX: 2
+                    property bool dragging: false
+                    property real maxX: width - clearThumb.width - 2
+
+                    Text {
+                        id: clearText
+                        text: slideClearText
+                        anchors.centerIn: parent
+                        color: darkBackground ? Qt.rgba(1,1,1,0.5) : Qt.rgba(0,0,0,0.4)
+                        font.pixelSize: 14
+                        opacity: 1 - Math.max(0, Math.min(1, clearSliderContainer.dragX / clearSliderContainer.maxX * 1.5))
+                    }
+
+                    Rectangle {
+                        id: clearThumb
+                        width: 40
+                        height: 40
+                        radius: 20
+                        anchors.verticalCenter: parent.verticalCenter
+                        x: clearSliderContainer.dragX
+                        color: darkBackground ? "#484848" : "#444444"
+
+                        Image {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            source: iconsDir + "Clear.svg"
+                            sourceSize.width: 20
+                            sourceSize.height: 20
+                            fillMode: Image.PreserveAspectFit
+                        }
+
+                        Behavior on x {
+                            enabled: !clearSliderContainer.dragging
+                            NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                        }
+
+                        scale: clearSliderContainer.dragging ? 0.95 : 1.0
+                        Behavior on scale { NumberAnimation { duration: 100 } }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        preventStealing: true
+
+                        onPressed: (m) => {
+                            clearSliderContainer.dragging = true
+                            var xInThumb = m.x - clearThumb.x
+                            if (xInThumb < 0 || xInThumb > clearThumb.width) {
+                                var newX = Math.max(2, Math.min(clearSliderContainer.maxX, m.x - clearThumb.width/2))
+                                clearSliderContainer.dragX = newX
+                            }
+                        }
+                        onPositionChanged: (m) => {
+                            if (clearSliderContainer.dragging) {
+                                var newX = Math.max(2, Math.min(clearSliderContainer.maxX, m.x - clearThumb.width/2))
+                                clearSliderContainer.dragX = newX
+                            }
+                        }
+                        onReleased: {
+                            clearSliderContainer.dragging = false
+                            if (clearSliderContainer.dragX >= clearSliderContainer.maxX - 4) {
+                                if (canvas) canvas.clear()
+                                eraserPopup.close()
+                            }
+                            clearSliderContainer.dragX = 2
+                        }
+                        onCanceled: {
+                            clearSliderContainer.dragging = false
+                            clearSliderContainer.dragX = 2
+                        }
+                    }
+                }
             }
         }
     } // end eraserPopup
