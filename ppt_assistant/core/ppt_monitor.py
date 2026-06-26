@@ -586,19 +586,15 @@ class PPTWorker(QObject):
 
     def _send_vk_to_slideshow(self, vk: int) -> bool:
         hwnd = 0
-        sent = False
+        # 直接获取 HWND，不调用 _focus_slideshow_window（避免 SetForegroundWindow 干扰 PPT 消息处理）
         try:
-            hwnd = self._focus_slideshow_window()
-            if not hwnd:
-                return False
-            if win32api and win32con and self._is_slideshow_foreground(hwnd):
-                win32api.keybd_event(int(vk), 0, 0, 0)
-                win32api.keybd_event(int(vk), 0, win32con.KEYEVENTF_KEYUP, 0)
-                sent = True
+            hwnd = int(self._slideshow_hwnd or 0)
         except Exception:
-            sent = False
-        if sent:
-            return True
+            hwnd = 0
+        if not hwnd:
+            hwnd = self._find_ppt_slideshow_hwnd()
+        if not hwnd:
+            return False
         return self._post_key_press_to_window(hwnd, int(vk))
 
     def _send_ctrl_shortcut_to_slideshow(self, key_vk: int) -> bool:
@@ -2331,8 +2327,20 @@ class PPTWorker(QObject):
                 pass
             return
 
+        # 优先使用 COM view.Next()（最可靠，不涉及窗口焦点操作，不受笔模式影响）
         try:
-            # Prefer keyboard behavior (skip COM-specific differences).
+            _ss_win = self._get_active_slideshow_window()
+            _view = getattr(_ss_win, "View", None) if _ss_win is not None else None
+            if _view is not None:
+                _view.Next()
+                self._control_mode = "com"
+                self._restore_pointer_after_navigation()
+                return
+        except Exception as e:
+            self._note_error("go_next_com", e)
+
+        # Fallback: vk/PostMessage（不调用 SetForegroundWindow，避免干扰笔模式）
+        try:
             if self._send_vk_to_slideshow(win32con.VK_DOWN if win32con else 0x28):
                 self._control_mode = "win32"
                 self._restore_pointer_after_navigation()
@@ -2340,16 +2348,7 @@ class PPTWorker(QObject):
         except Exception:
             pass
 
-        try:
-            ss_win = self._get_active_slideshow_window()
-            view = getattr(ss_win, "View", None) if ss_win is not None else None
-            if view is not None:
-                view.Next()
-                self._control_mode = "com"
-                self._restore_pointer_after_navigation()
-                return
-        except Exception as e:
-            self._note_error("go_next_com", e)
+        # Final fallback: linux shortcut / vk with degraded mode
         try:
             if self._send_linux_shortcut_to_slideshow("Next"):
                 self._control_mode = "win32"

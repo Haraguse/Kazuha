@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SmtcHelper")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1bf6647e86ced30c33179d96fd2a116c44bc3766")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4bba5bc4ac1ef51832921a5c281a6cd196fd71f0")]
 [assembly: System.Reflection.AssemblyProductAttribute("SmtcHelper")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SmtcHelper")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

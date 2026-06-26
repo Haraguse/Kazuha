@@ -1531,9 +1531,13 @@ class OverlayWindow(QWebEngineView):
                 except Exception:
                     pass
         else:
-            if self.isVisible():
+            # Clear mask → full window visible, events pass through to PPT
+            try:
+                self.clearMask()
+                self.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+            except Exception:
                 pass
-            pass
+            self._mask_ready = False
 
     def update_theme(self):
         mode = cfg.themeMode.value
@@ -1772,6 +1776,7 @@ class OverlayWindow(QWebEngineView):
             "texts": trans_map,
             "apps": apps_list,
             "disabledTools": cfg.disabledTools.value,
+            "penMode": cfg.penMode.value,
         }
 
         js = f"if(window.updateConfig) window.updateConfig({json.dumps(config_data)});"
@@ -2011,6 +2016,7 @@ class OverlayWindow(QWebEngineView):
         cfg.allowRecording.valueChanged.connect(lambda *_: self.update_config())
         cfg.zOrderCheckInterval.valueChanged.connect(lambda *_: self._apply_zorder_timer())
         cfg.disabledTools.valueChanged.connect(lambda *_: self.update_config())
+        cfg.penMode.valueChanged.connect(lambda *_: self.update_config())
 
     def show(self):
         """覆层窗口显示 —— 带淡入动画，拒绝生硬弹出"""

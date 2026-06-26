@@ -6967,9 +6967,21 @@
               <div class="item-info">
                 <span class="item-label" data-i18n="interaction.autoHandleInk.label">自动处理墨迹</span>
                 <span class="item-desc" data-i18n="interaction.autoHandleInk.desc">结束放映时自动处理 PowerPoint
-                  的“是否保留墨迹”提示，减少手动确认</span>
+                  的"是否保留墨迹"提示，减少手动确认</span>
               </div>
               <div class="switch" id="sw-PPT-AutoHandleInk"></div>
+            </div>
+            <div class="settings-item" onclick="togglePenMode()">
+              <div class="item-info">
+                <span class="item-label" data-i18n="interaction.penMode.label">画笔模式</span>
+                <span class="item-desc" data-i18n="interaction.penMode.desc">选择画笔实现方式："COM 画笔"使用 PowerPoint 原生墨迹；"自研画笔"使用自研渲染引擎绘制笔迹</span>
+              </div>
+              <div class="item-state">
+                <select class="styled-select" id="sel-PPT-PenMode" onchange="setPenMode(this.value)">
+                  <option value="com" data-i18n="interaction.penMode.com">COM 画笔</option>
+                  <option value="self-developed" data-i18n="interaction.penMode.self">自研画笔</option>
+                </select>
+              </div>
             </div>
             <div class="settings-item" onclick="toggleSwitch('General', 'UseNativeTitleBar')">
               <div class="item-info">
@@ -8055,6 +8067,10 @@
         "language.ug-CN": "ئۇيغۇرچە",
         "interaction.autoHandleInk.label": "自动处理墨迹",
         "interaction.autoHandleInk.desc": "结束放映时自动处理 PowerPoint 的“是否保留墨迹”提示，减少手动确认",
+        "interaction.penMode.label": "画笔模式",
+        "interaction.penMode.desc": "选择画笔实现方式：COM 画笔使用 PowerPoint 原生墨迹；自研画笔使用自研渲染引擎绘制笔迹",
+        "interaction.penMode.com": "COM 画笔",
+        "interaction.penMode.self": "自研画笔",
         "interaction.pageTurnRateLimit.label": "翻页频率上限",
         "interaction.pageTurnRateLimit.desc": "限制每秒最多受理的翻页请求次数，超出的点击会被忽略",
 
@@ -8501,7 +8517,11 @@
         "language.en-US": "English",
         "language.ug-CN": "ئۇيغۇرچە",
         "interaction.autoHandleInk.label": "自動處理墨跡",
-        "interaction.autoHandleInk.desc": "結束播放時自動處理「是否保留墨跡」",
+        "interaction.autoHandleInk.desc": "結束放映時自動處理 PowerPoint 的「是否保留墨跡」提示，減少手動確認",
+        "interaction.penMode.label": "畫筆模式",
+        "interaction.penMode.desc": "選擇畫筆實現方式：COM 畫筆使用 PowerPoint 原生墨跡；自研畫筆使用自研渲染引擎繪製筆跡",
+        "interaction.penMode.com": "COM 畫筆",
+        "interaction.penMode.self": "自研畫筆",
         "interaction.pageTurnRateLimit.label": "翻頁頻率上限",
         "interaction.pageTurnRateLimit.desc": "限制每秒最多受理的翻頁請求次數，超出的點擊會被忽略",
         "interaction.showStatusBar.label": "頂部狀態列",
@@ -8930,6 +8950,10 @@
         "language.ug-CN": "ئۇيغۇرچە",
         "interaction.autoHandleInk.label": "自動處理墨跡",
         "interaction.autoHandleInk.desc": "放映完自動處理「保留墨跡」",
+        "interaction.penMode.label": "畫筆模式",
+        "interaction.penMode.desc": "揀畫筆實現方式：COM 畫筆用 PowerPoint 原生墨跡；自研畫筆用自研渲染引擎畫筆跡",
+        "interaction.penMode.com": "COM 畫筆",
+        "interaction.penMode.self": "自研畫筆",
         "interaction.pageTurnRateLimit.label": "翻頁頻率上限",
         "interaction.pageTurnRateLimit.desc": "限制每秒最多受理嘅翻頁請求次數，超出點擊會被忽略",
 
@@ -9347,6 +9371,10 @@
         "language.ug-CN": "ئۇيغۇرچە",
         "interaction.autoHandleInk.label": "インクを自動処理",
         "interaction.autoHandleInk.desc": "スライドショー終了時に「インクを保持するか」を自動処理します",
+        "interaction.penMode.label": "ペンモード",
+        "interaction.penMode.desc": "ペンの実装方式を選択：COM ペンは PowerPoint ネイティブのインクを使用；自研ペンは自社製レンダリングエンジンで描画",
+        "interaction.penMode.com": "COM ペン",
+        "interaction.penMode.self": "自研ペン",
         "interaction.pageTurnRateLimit.label": "ページ送り頻度の上限",
         "interaction.pageTurnRateLimit.desc": "1秒あたりに受け付けるページ送り回数を制限し、超過したクリックは無視します",
 
@@ -9771,6 +9799,10 @@
         "language.ug-CN": "ئۇيغۇرچە",
         "interaction.autoHandleInk.label": "Auto handle ink",
         "interaction.autoHandleInk.desc": "Automatically handle \"keep ink\" prompt when slideshow ends",
+        "interaction.penMode.label": "Pen Mode",
+        "interaction.penMode.desc": "Choose pen implementation: COM pen uses PowerPoint native ink; Self-developed pen uses custom rendering engine",
+        "interaction.penMode.com": "COM Pen",
+        "interaction.penMode.self": "Self-developed Pen",
         "interaction.pageTurnRateLimit.label": "Page turn rate limit",
         "interaction.pageTurnRateLimit.desc": "Limits accepted page-turn requests per second; extra clicks are ignored",
         "appearance.colorScheme.title": "Color Scheme",
@@ -9987,6 +10019,10 @@
         "language.ug-CN": "ئۇيغۇرچە",
         "interaction.autoHandleInk.label": "Auto handle ink",
         "interaction.autoHandleInk.desc": "Automatically handle \"keep ink\" prompt when slideshow ends",
+        "interaction.penMode.label": "Pen Mode",
+        "interaction.penMode.desc": "Choose pen implementation: COM pen uses PowerPoint native ink; Self-developed pen uses custom rendering engine",
+        "interaction.penMode.com": "COM Pen",
+        "interaction.penMode.self": "Self-developed Pen",
         "interaction.pageTurnRateLimit.label": "Page turn rate limit",
         "interaction.pageTurnRateLimit.desc": "Limits accepted page-turn requests per second; extra clicks are ignored",
         "appearance.colorScheme.title": "Color Scheme",
@@ -12561,6 +12597,26 @@
       }
     }
 
+    function setPenMode(value) {
+      if (!settings.PPT) settings.PPT = {};
+      settings.PPT.PenMode = value;
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+        window.pywebview.api.save_setting("PPT", "PenMode", value);
+      }
+    }
+
+    function togglePenMode() {
+      const sel = document.getElementById("sel-PPT-PenMode");
+      if (!sel) return;
+      const current = settings.PPT ? settings.PPT.PenMode : "com";
+      const options = ["com", "self-developed"];
+      const idx = options.indexOf(current);
+      const next = options[(idx + 1) % options.length];
+      sel.value = next;
+      setPenMode(next);
+      refreshCustomSelect(sel);
+    }
+
     function updateToolbarIndicatorPosition() {
       const indicator = document.getElementById("toolbar-indicator");
       const pill = indicator ? indicator.querySelector(".toolbar-pill") : null;
@@ -13084,7 +13140,7 @@
 
     let settings = window.initialSettings || {
       General: { RunAtStartup: false, AutoShowOverlay: true, DisableAnimations: false, CompatibilityMode: false, Language: "zh-CN" },
-      PPT: { AutoHandleInk: true },
+      PPT: { AutoHandleInk: true, PenMode: "com" },
       Overlay: { ShowStatusBar: true, ClearMode: "slide" },
       Toolbar: { ShowClear: true, ShowToolbarText: true },
       Window: { TimerFullscreenBehavior: "fullscreen" },
@@ -13823,6 +13879,14 @@
         if (clearModeEl) {
           clearModeEl.value = clearMode;
           refreshCustomSelect(clearModeEl);
+        }
+
+        // Pen Mode
+        const penMode = settings.PPT?.PenMode || "com";
+        const penModeEl = document.getElementById("sel-PPT-PenMode");
+        if (penModeEl) {
+          penModeEl.value = penMode;
+          refreshCustomSelect(penModeEl);
         }
 
         // Resource Monitor Interval

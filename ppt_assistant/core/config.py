@@ -170,6 +170,13 @@ class Config(QConfig):
     )
 
     autoHandleInk = ConfigItem("PPT", "AutoHandleInk", True, BoolValidator())
+    penMode = OptionsConfigItem(
+        "PPT",
+        "PenMode",
+        "com",
+        OptionsValidator(["com", "self-developed"]),
+        restart=False,
+    )
     pageTurnRateLimit = RangeConfigItem(
         "PPT", "PageTurnRateLimit", 2, RangeValidator(1, 6), restart=False
     )
@@ -499,6 +506,7 @@ def _bind_auto_save():
     cfg.allowRecording.valueChanged.connect(lambda *_: _save_cfg())
     cfg.zOrderCheckInterval.valueChanged.connect(lambda *_: _save_cfg())
     cfg.autoHandleInk.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.penMode.valueChanged.connect(lambda *_: _save_cfg())
     cfg.pageTurnRateLimit.valueChanged.connect(lambda *_: _save_cfg())
     cfg.overlayScreen.valueChanged.connect(lambda *_: _save_cfg())
     cfg.splashMode.valueChanged.connect(lambda *_: _save_cfg())
