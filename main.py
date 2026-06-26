@@ -36,7 +36,7 @@ def register_url_protocol():
 			)
 			old_cmd = winreg.QueryValue(cmd_key, "")
 			winreg.CloseKey(cmd_key)
-			if old_cmd == new_cmd:
+			if old_cmd == new_cmd:  
 				return  # すでに最新
 		except FileNotFoundError:
 			pass
@@ -3274,7 +3274,7 @@ class PPTAssistantApp:
 			print(
 				f"[APP] autoShowOverlay={cfg.autoShowOverlay.value}, compatibilityMode={cfg.compatibilityMode.value}, active_kind={active_kind}"
 			)
-			if cfg.autoShowOverlay.value and not cfg.compatibilityMode.value:
+			if cfg.autoShowOverlay.value:
 				print(
 					"[APP] Calling set_active_on_slideshow(True) - autoShowOverlay path"
 				)
@@ -3286,7 +3286,7 @@ class PPTAssistantApp:
 					except Exception as e:
 						print(f"[APP] Error updating geometry: {e}")
 				self.overlay.set_active_on_slideshow(True, animate=False)
-			elif active_kind == "yozo" and not cfg.compatibilityMode.value:
+			elif active_kind == "yozo":
 				print("[APP] Calling set_active_on_slideshow(True) - yozo path")
 				self.overlay.set_active_on_slideshow(True, animate=False)
 			else:

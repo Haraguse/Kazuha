@@ -5,6 +5,8 @@ import json
 import time
 import ctypes
 import importlib.util
+import shutil
+import subprocess
 from typing import Optional
 from multiprocessing.connection import Client
 from PySide6.QtWebChannel import QWebChannel
@@ -178,7 +180,7 @@ def _should_use_linux_compat_overlay_page() -> bool:
 
 
 def _should_use_linux_widget_overlay() -> bool:
-    if sys.platform != "linux":
+    if sys.platform == "linux":
         return False
     if not bool(os.environ.get("DISPLAY")):
         return False
@@ -195,6 +197,10 @@ def _linux_overlay_backend() -> str:
     if value in ("widget", "qwidget", "compat", "safe"):
         return "widget"
     return "qml"
+
+
+def _linux_window_id_to_wmctrl_id(window_id: int) -> str:
+    return f"0x{int(window_id):x}"
 
 
 class OverlayBridge(QObject):
@@ -824,8 +830,12 @@ class OverlayWindow(QWebEngineView):
         self._runtime_initialized = False
         self._post_load_initialized = False
         self._webengine_env_override = None
-        self._wayland_compatible_mode = _is_wayland_compositor_session()
-        self._linux_compat_page_mode = _should_use_linux_compat_overlay_page()
+        self._wayland_compatible_mode = (
+            False if sys.platform == "linux" else _is_wayland_compositor_session()
+        )
+        self._linux_compat_page_mode = (
+            False if sys.platform == "linux" else _should_use_linux_compat_overlay_page()
+        )
 
         # Background thumbnail caching
         self._background_thumbnail_timer = None
@@ -1212,6 +1222,44 @@ class OverlayWindow(QWebEngineView):
         self._apply_zorder_timer()
 
     def _ensure_topmost(self):
+        if sys.platform.startswith("linux"):
+            try:
+                window_id = int(self.winId() or 0)
+                if not window_id:
+                    return
+                wmctrl = shutil.which("wmctrl")
+                if wmctrl:
+                    subprocess.run(
+                        [
+                            wmctrl,
+                            "-i",
+                            "-r",
+                            _linux_window_id_to_wmctrl_id(window_id),
+                            "-b",
+                            "add,above,fullscreen,skip_taskbar",
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=0.8,
+                    )
+                xdotool = shutil.which("xdotool")
+                if xdotool:
+                    subprocess.run(
+                        [xdotool, "windowraise", str(window_id)],
+                        capture_output=True,
+                        text=True,
+                        timeout=0.8,
+                    )
+                    subprocess.run(
+                        [xdotool, "set_window", "--urgency", "1", str(window_id)],
+                        capture_output=True,
+                        text=True,
+                        timeout=0.8,
+                    )
+                self._topmost_applied_once = True
+            except Exception as e:
+                print(f"[Overlay] Error in Linux _ensure_topmost: {e}", flush=True)
+            return
         if sys.platform != "win32":
             return
         try:
@@ -2253,6 +2301,8 @@ class OverlayWindow(QWebEngineView):
         elif rect:
             # Fallback if screen_or_metadata is None or unexpected
             self.setGeometry(rect)
+        if sys.platform.startswith("linux") and self.isVisible():
+            QTimer.singleShot(0, self._ensure_topmost)
 
 
 def create_overlay_window():
