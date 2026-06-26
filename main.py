@@ -209,16 +209,18 @@ from PySide6.QtWidgets import (
 	QFrame,
 	QProgressBar,
 )
-from PySide6.QtCore import Qt, QTimer, Slot, QPoint, QCoreApplication, QEvent, QObject, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QRect, QEventLoop
+from PySide6.QtCore import Qt, QTimer, Slot, QPoint, QCoreApplication, QEvent, QObject, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QRect, QRectF, QEventLoop
 from PySide6.QtGui import (
 	QFontDatabase,
 	QFont,
 	QColor,
 	QIcon,
 	QPainter,
+	QPainterPath,
 	QPen,
 	QBrush,
 	QFontMetrics,
+	QRegion,
 )
 
 from ppt_assistant.core.ppt_monitor import PPTMonitor
@@ -974,6 +976,72 @@ def _is_valid_splash_package(splash_dir: str, splash_style: str) -> bool:
 	return True
 
 
+class SplashProgressBar(QProgressBar):
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self._corner_radius = 8
+		self._bg_color = QColor("#e5e5e5")
+		self._chunk_color = QColor("#3275F5")
+
+	def set_colors(self, bg_color_str, chunk_color_str):
+		self._bg_color = QColor(bg_color_str)
+		self._chunk_color = QColor(chunk_color_str)
+		self.update()
+
+	def paintEvent(self, event):
+		painter = QPainter(self)
+		painter.setRenderHint(QPainter.Antialiasing)
+		painter.setPen(Qt.NoPen)
+
+		w = self.width()
+		h = self.height()
+		r = self._corner_radius
+
+		bg_x = 0
+		bg_y = 0
+		bg_w = w
+		bg_h = h
+
+		painter.setBrush(self._bg_color)
+		bg_path = QPainterPath()
+		bg_path.moveTo(bg_x, bg_y)
+		bg_path.lineTo(bg_x + bg_w, bg_y)
+		bg_path.lineTo(bg_x + bg_w, bg_y + bg_h - r)
+		bg_path.quadTo(bg_x + bg_w, bg_y + bg_h, bg_x + bg_w - r, bg_y + bg_h)
+		bg_path.lineTo(bg_x + r, bg_y + bg_h)
+		bg_path.quadTo(bg_x, bg_y + bg_h, bg_x, bg_y + bg_h - r)
+		bg_path.lineTo(bg_x, bg_y)
+		bg_path.closeSubpath()
+		painter.drawPath(bg_path)
+
+		value = self.value()
+		minimum = self.minimum()
+		maximum = self.maximum()
+		if maximum > minimum and value > minimum:
+			progress = (value - minimum) / (maximum - minimum)
+			chunk_w = bg_w * progress
+			painter.setBrush(self._chunk_color)
+
+			if progress >= 1.0 or chunk_w >= bg_w:
+				chunk_path = QPainterPath(bg_path)
+			else:
+				chunk_path = QPainterPath()
+				chunk_path.moveTo(bg_x, bg_y)
+				chunk_path.lineTo(bg_x + chunk_w, bg_y)
+				chunk_path.lineTo(bg_x + chunk_w, bg_y + bg_h)
+				if chunk_w <= r:
+					chunk_path.lineTo(bg_x, bg_y + bg_h)
+				else:
+					chunk_path.lineTo(bg_x + r, bg_y + bg_h)
+					chunk_path.quadTo(bg_x, bg_y + bg_h, bg_x, bg_y + bg_h - r)
+				chunk_path.lineTo(bg_x, bg_y)
+				chunk_path.closeSubpath()
+
+			painter.drawPath(chunk_path)
+
+		painter.end()
+
+
 class StartupSplash(QWidget):
 	def __init__(self, parent=None):
 		super().__init__(parent)
@@ -1203,21 +1271,46 @@ class StartupSplash(QWidget):
 			status_x = margin_left + content_width - status_rect.width()
 			painter.drawText(status_x, subtitle_baseline_y, status_text)
 
+			corner_radius = 3
+			inset = 1
+			bg_x = margin_left + inset
+			bg_y = progress_y + inset
+			bg_w = content_width - inset * 2
+			bg_h = progress_h - inset * 2
+
 			# Progress Bar Background
 			painter.setPen(Qt.NoPen)
 			painter.setBrush(QColor("#E0E0E0"))
-			# Width is content_width
-			painter.drawRoundedRect(
-				margin_left, progress_y, content_width, progress_h, 3, 3
-			)
+			painter.drawRoundedRect(bg_x, bg_y, bg_w, bg_h, corner_radius, corner_radius)
 
 			# Progress Bar Value
 			if self._progress_value > 0:
 				painter.setBrush(QColor("#404040"))
-				prog_width = content_width * (self._progress_value / 100.0)
-				painter.drawRoundedRect(
-					margin_left, progress_y, prog_width, progress_h, 3, 3
-				)
+				prog_width = bg_w * (self._progress_value / 100.0)
+
+				if self._progress_value >= 100 or prog_width >= bg_w:
+					painter.drawRoundedRect(bg_x, bg_y, bg_w, bg_h, corner_radius, corner_radius)
+				elif prog_width <= corner_radius * 2:
+					painter.drawRoundedRect(bg_x, bg_y, prog_width, bg_h, corner_radius, corner_radius)
+				else:
+					path = QPainterPath()
+					r = corner_radius
+					# Top-left arc
+					path.moveTo(bg_x + r, bg_y)
+					# Top edge to right (square corner)
+					path.lineTo(bg_x + prog_width, bg_y)
+					# Right edge down (square corner)
+					path.lineTo(bg_x + prog_width, bg_y + bg_h)
+					# Bottom edge to bottom-left arc
+					path.lineTo(bg_x + r, bg_y + bg_h)
+					# Bottom-left arc
+					path.arcTo(QRectF(bg_x, bg_y + bg_h - r * 2, r * 2, r * 2), 270, -90)
+					# Left edge up
+					path.lineTo(bg_x, bg_y + r)
+					# Top-left arc
+					path.arcTo(QRectF(bg_x, bg_y, r * 2, r * 2), 180, -90)
+					path.closeSubpath()
+					painter.drawPath(path)
 
 			painter.end()
 		else:
@@ -1331,7 +1424,7 @@ class StartupSplash(QWidget):
 		self._percent_label.move(76, 200)
 
 		# Progress Bar Foreground (rectangle_31) - y: 247, h: 8, w: 678
-		self._progress = QProgressBar(self._container)
+		self._progress = SplashProgressBar(self._container)
 		self._progress.setRange(0, 100)
 		self._progress.setValue(0)
 		self._progress.setTextVisible(False)
@@ -1380,22 +1473,17 @@ class StartupSplash(QWidget):
 			"border-radius: 8px;"
 			"}"
 		)
+		container_path = QPainterPath()
+		cradius = 8
+		cw = self._container.width()
+		ch = self._container.height()
+		container_path.addRoundedRect(0, 0, cw, ch, cradius, cradius)
+		container_region = QRegion(container_path.toFillPolygon().toPolygon())
+		self._container.setMask(container_region)
 		self._brand_label.setStyleSheet(f"color: {brand_color};")
 		self._percent_label.setStyleSheet(f"color: {percent_color};")
-
-		self._progress.setStyleSheet(
-			"QProgressBar {"
-			f"background-color: {progress_bg};"
-			"border: none;"
-			"border-bottom-left-radius: 8px;"
-			"border-bottom-right-radius: 8px;"
-			"}"
-			"QProgressBar::chunk {"
-			f"background-color: {chunk_color};"
-			"border-bottom-left-radius: 8px;"
-			"border-bottom-right-radius: 8px;"
-			"}"
-		)
+		self._progress.setStyleSheet("border: none; background: transparent;")
+		self._progress.set_colors(progress_bg, chunk_color)
 
 	def refresh_theme(self):
 		"""Recompute dark state and re-apply splash styles when system theme changes."""

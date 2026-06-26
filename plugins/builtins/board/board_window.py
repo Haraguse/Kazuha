@@ -1213,7 +1213,7 @@ class QtMessageHandlerGuard:
 
 
 class BoardWindow(QWidget):
-    _WINDOW_TITLE = "小黑板 - Luminalium"
+    _WINDOW_TITLE = "小黑板 | Luminalium"
 
     # Emitted after the window has fully closed (animation finished, super().close() called).
     # Listeners should discard their reference so a fresh window is created next time.
