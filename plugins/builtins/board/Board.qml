@@ -1159,7 +1159,7 @@ Rectangle {
                 ? toolbar.y - height - 12
                 : toolbar.y + (toolbar.height - height) / 2
         width: 260
-        height: 180
+        height: 80
         visible: false
         opacity: 0
         scale: 0.92
@@ -1192,68 +1192,7 @@ Rectangle {
         Column {
             anchors.fill: parent
             anchors.margins: 18
-            spacing: 10
-
-            Text {
-                text: eraserSizeText
-                color: darkBackground ? "white" : "black"
-                font.pixelSize: 12
-            }
-
-            // Custom slider for eraser size
-            Item {
-                id: eraserSizeSlider
-                width: parent.width
-                height: 20
-                property real from: 8
-                property real to: 40
-                property real stepSize: 1
-                property real value: canvas ? canvas.eraserWidth : 20
-                property bool enabled: canvas ? canvas.eraserMode === 0 : true
-                opacity: enabled ? 1.0 : 0.4
-
-                function _calc(mx) {
-                    var ratio = Math.max(0, Math.min(1, mx / Math.max(1, width - esHandle.width)));
-                    var raw = from + ratio * (to - from);
-                    return Math.max(from, Math.min(to, Math.round(raw / stepSize) * stepSize));
-                }
-
-                Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width; height: 4; radius: 2
-                    color: darkBackground ? Qt.rgba(1,1,1,0.18) : Qt.rgba(0,0,0,0.12)
-                    Rectangle {
-                        width: Math.max(0,
-                            (eraserSizeSlider.value - eraserSizeSlider.from) /
-                            Math.max(0.001, eraserSizeSlider.to - eraserSizeSlider.from)
-                            * parent.width)
-                        height: parent.height; radius: parent.radius
-                        color: darkBackground ? "#C0C0C0" : "#555555"
-                    }
-                }
-                Rectangle {
-                    id: esHandle
-                    width: 16; height: 16; radius: 8
-                    color: darkBackground ? "#FFFFFF" : "#333333"
-                    anchors.verticalCenter: parent.verticalCenter
-                    x: Math.max(0, Math.min(eraserSizeSlider.width - width,
-                        (eraserSizeSlider.value - eraserSizeSlider.from) /
-                        Math.max(0.001, eraserSizeSlider.to - eraserSizeSlider.from)
-                        * (eraserSizeSlider.width - width)))
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    enabled: eraserSizeSlider.enabled
-                    onPressed:  (m) => { eraserSizeSlider.value = eraserSizeSlider._calc(m.x - esHandle.width/2); if (canvas) canvas.eraserWidth = Math.round(eraserSizeSlider.value); }
-                    onPositionChanged: (m) => { eraserSizeSlider.value = eraserSizeSlider._calc(m.x - esHandle.width/2); if (canvas) canvas.eraserWidth = Math.round(eraserSizeSlider.value); }
-                }
-            }
-
-            Text {
-                text: canvas ? Math.round(canvas.eraserWidth) : 20
-                color: darkBackground ? "#AAA" : "#666"
-                font.pixelSize: 11
-            }
+            spacing: 0
 
             Item {
                 width: parent.width
@@ -1267,6 +1206,7 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     color: darkBackground ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)
                     clip: true
+                    visible: boardClearMode !== "button"
 
                     property real dragX: 2
                     property bool dragging: false
@@ -1338,6 +1278,49 @@ Rectangle {
                             clearSliderContainer.dragging = false
                             clearSliderContainer.dragX = 2
                         }
+                    }
+                }
+
+                Rectangle {
+                    id: clearBtnContainer
+                    width: 200
+                    height: 44
+                    radius: 22
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    color: darkBackground ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)
+                    visible: boardClearMode === "button"
+
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: 8
+
+                        Image {
+                            source: iconsDir + "Clear.svg"
+                            width: 24
+                            height: 24
+                            sourceSize.width: 24
+                            sourceSize.height: 24
+                            fillMode: Image.PreserveAspectFit
+                        }
+
+                        Text {
+                            text: clearText
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: darkBackground ? "#E0E0E0" : "#222222"
+                            font.pixelSize: 14
+                            font.weight: Font.Medium
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            if (canvas) canvas.clear()
+                            eraserPopup.close()
+                        }
+                        onPressed: clearBtnContainer.color = darkBackground ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.12)
+                        onReleased: clearBtnContainer.color = darkBackground ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)
+                        onCanceled: clearBtnContainer.color = darkBackground ? Qt.rgba(1,1,1,0.08) : Qt.rgba(0,0,0,0.06)
                     }
                 }
             }
@@ -1536,6 +1519,7 @@ Rectangle {
                             else eraserPopup.open();
                         } else {
                             canvas.isEraser = true
+                            canvas.eraserMode = 1
                             if (colorPopup.opened) colorPopup.close();
                         }
                     }
