@@ -42,8 +42,16 @@ class WpsBridgeHost(QObject):
 
     def start(self, port_start: int = 3892, port_end: int = 3902) -> bool:
         if self.is_running():
+            print(
+                f"[WpsBridgeHost] already listening on port {self.port}",
+                flush=True,
+            )
             return True
 
+        print(
+            f"[WpsBridgeHost] starting, scanning ports {int(port_start)}-{int(port_end)}",
+            flush=True,
+        )
         server = QWebSocketServer(
             "Luminalium WPS Bridge",
             QWebSocketServer.SslMode.NonSecureMode,
@@ -56,12 +64,13 @@ class WpsBridgeHost(QObject):
             if server.listen(address, port):
                 self._server = server
                 self._port = int(port)
-                self.log_message.emit(
-                    f"WPS bridge host listening on ws://127.0.0.1:{port}{self.path}"
-                )
+                message = f"WPS bridge host listening on ws://127.0.0.1:{port}{self.path}"
+                print(f"[WpsBridgeHost] {message}", flush=True)
+                self.log_message.emit(message)
                 return True
 
         message = server.errorString()
+        print(f"[WpsBridgeHost] failed to listen: {message}", flush=True)
         server.deleteLater()
         self.protocol_error.emit(f"WPS bridge host failed to listen: {message}")
         return False
@@ -98,6 +107,10 @@ class WpsBridgeHost(QObject):
 
         request_path = socket.requestUrl().path()
         if request_path != self.path:
+            print(
+                f"[WpsBridgeHost] rejected connection for path {request_path!r}",
+                flush=True,
+            )
             self.protocol_error.emit(
                 f"Rejected WPS bridge connection for path {request_path!r}"
             )
@@ -106,12 +119,14 @@ class WpsBridgeHost(QObject):
             return
 
         if self._client is not None and self._client is not socket:
+            print("[WpsBridgeHost] replacing existing client", flush=True)
             self.log_message.emit("Replacing existing WPS bridge client")
             self._close_client()
 
         self._client = socket
         socket.textMessageReceived.connect(self._on_text_message)
         socket.disconnected.connect(self._on_client_disconnected)
+        print("[WpsBridgeHost] client connected", flush=True)
         self.log_message.emit("WPS bridge client connected")
         self.connected.emit()
 

@@ -36,7 +36,11 @@ def _load_wps_bridge_host():
         return WpsBridgeHost
     try:
         from ppt_assistant.core.wps_bridge.host import WpsBridgeHost as host_cls
-    except Exception:
+    except Exception as exc:
+        try:
+            print(f"[ppt_monitor] Failed to import WPS bridge host: {exc}", flush=True)
+        except Exception:
+            pass
         return None
     WpsBridgeHost = host_cls
     return WpsBridgeHost
@@ -890,6 +894,96 @@ class PPTWorker(QObject):
             )
         return False, output
 
+    def _get_linux_window_rect(self, window_id: int) -> tuple[int, int, int, int] | None:
+        try:
+            window_id = int(window_id or 0)
+        except Exception:
+            window_id = 0
+        if not window_id:
+            return None
+
+        ok, output = self._run_xdotool(
+            "getwindowgeometry",
+            "--shell",
+            str(int(window_id)),
+        )
+        if not ok:
+            return None
+
+        values = {}
+        for line in str(output or "").splitlines():
+            if "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip().upper()
+            try:
+                values[key] = int(str(value).strip())
+            except Exception:
+                pass
+
+        required = ("X", "Y", "WIDTH", "HEIGHT")
+        if not all(key in values for key in required):
+            return None
+        width = int(values["WIDTH"])
+        height = int(values["HEIGHT"])
+        if width <= 0 or height <= 0:
+            return None
+        return (int(values["X"]), int(values["Y"]), width, height)
+
+    def _update_linux_window_rect(self, window_id: int):
+        rect = self._get_linux_window_rect(window_id)
+        if rect is None:
+            return
+        if rect != self._last_win_rect:
+            self._last_win_rect = rect
+            self.window_geometry_changed.emit(
+                QRect(*rect),
+                {"raw_is_physical": False, "source": "linux_x11"},
+            )
+        if self._overlay_visible is not True:
+            self._overlay_visible = True
+            self.overlay_visibility_changed.emit(True)
+
+    def _wps_bridge_state_is_fresh(self, now: float | None = None) -> bool:
+        try:
+            last_state_at = float(self._wps_bridge_last_state_at or 0.0)
+        except Exception:
+            last_state_at = 0.0
+        if last_state_at <= 0:
+            return False
+        now = time.monotonic() if now is None else float(now)
+        return (now - last_state_at) < 2.0
+
+    def _format_wps_bridge_status(self) -> str:
+        bridge = self._wps_bridge
+        running = False
+        connected = False
+        port = 0
+        if bridge is not None:
+            try:
+                running = bool(bridge.is_running())
+            except Exception:
+                running = False
+            try:
+                connected = bool(bridge.is_connected())
+            except Exception:
+                connected = False
+            try:
+                port = int(getattr(bridge, "port", 0) or 0)
+            except Exception:
+                port = 0
+        try:
+            age = time.monotonic() - float(self._wps_bridge_last_state_at or 0.0)
+        except Exception:
+            age = 0.0
+        state = "fresh" if connected and self._wps_bridge_state_is_fresh() else "stale"
+        if not connected:
+            state = "disconnected"
+        return (
+            f"running={running} connected={connected} port={port or '-'} "
+            f"state={state} last_state_age={age:.1f}s"
+        )
+
     def _parse_xdotool_window_ids(self, raw: str) -> list[int]:
         window_ids: list[int] = []
         for line in str(raw or "").splitlines():
@@ -1088,6 +1182,11 @@ class PPTWorker(QObject):
         try:
             host_cls = _load_wps_bridge_host()
             if host_cls is None:
+                self._note_info(
+                    "wps_bridge_host_unavailable",
+                    "WPS bridge host is unavailable; Linux xdotool fallback will be used.",
+                    min_interval=30.0,
+                )
                 return
             bridge = host_cls(parent=self)
             bridge.connected.connect(self._on_wps_bridge_connected)
@@ -1105,7 +1204,17 @@ class PPTWorker(QObject):
             )
             if bridge.start():
                 self._wps_bridge = bridge
+                self._note_info(
+                    "wps_bridge_started",
+                    f"WPS bridge host started ({self._format_wps_bridge_status()}).",
+                    min_interval=0.0,
+                )
             else:
+                self._note_info(
+                    "wps_bridge_start_failed",
+                    "WPS bridge host failed to start; Linux xdotool fallback will be used.",
+                    min_interval=0.0,
+                )
                 bridge.deleteLater()
         except Exception as exc:
             self._note_error("start_wps_bridge", exc)
@@ -1569,6 +1678,7 @@ class PPTWorker(QObject):
                 "Linux X11 tools: " + describe_linux_tool_capabilities(),
                 min_interval=30.0,
             )
+            print("[ppt_monitor] Starting WPS bridge host...", flush=True)
             self._start_wps_bridge()
 
         self._timer = QTimer(self)
@@ -1773,13 +1883,21 @@ class PPTWorker(QObject):
 
             if not win32com:
                 if sys.platform.startswith("linux"):
-                    if self._wps_bridge_connected():
+                    if self._wps_bridge_connected() and self._wps_bridge_state_is_fresh():
                         self._note_state(
                             "wps_bridge_probe",
-                            "connected",
-                            "WPS bridge connected; xdotool slideshow probe is on standby.",
+                            "fresh",
+                            "WPS bridge state is fresh; xdotool slideshow probe is on standby "
+                            f"({self._format_wps_bridge_status()}).",
                         )
                     else:
+                        if self._wps_bridge_connected():
+                            self._note_state(
+                                "wps_bridge_probe",
+                                "stale",
+                                "WPS bridge is connected but state is stale; keeping xdotool "
+                                f"slideshow probe active ({self._format_wps_bridge_status()}).",
+                            )
                         self._check_linux_x11_state()
                 else:
                     self._note_info(
@@ -1975,6 +2093,7 @@ class PPTWorker(QObject):
                 min_interval=0.0,
             )
             self.slideshow_hwnd_changed.emit(int(window_id))
+        self._update_linux_window_rect(int(window_id))
         if not self._running:
             self._running = True
             self._slideshow_started_at = time.monotonic()
