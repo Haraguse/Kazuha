@@ -32,6 +32,7 @@ from ppt_assistant.core.config import cfg, SETTINGS_PATH, qconfig
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.theme_data import THEMES
 from qfluentwidgets import Theme
+from utils.env_utils import get_device_uuid
 
 # ── Windows hit-test constants ──────────────────────────────────────────────
 _WM_NCHITTEST   = 0x0084
@@ -142,19 +143,36 @@ class TitleBarNativeFilter(QAbstractNativeEventFilter):
         return False, 0
 
 
-def _get_app_version():
+def _get_app_version_info():
+    version = ""
+    code_name = ""
     try:
         root_dir = os.path.dirname(
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         )
         version_path = os.path.join(root_dir, "version.json")
         if not os.path.exists(version_path):
-            return ""
+            return version, code_name
         with open(version_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        return str(data.get("version", "")).strip()
+        version = str(data.get("version", "")).strip()
+        raw_code_name = str(data.get("code_name", "")).strip()
+        mapping = {
+            "MomokaKawaragi": "Momoka Kawaragi",
+            "NinaIseri": "Nina Iseri",
+            "SubaruAwa": "Subaru Awa",
+            "TomoEbizuka": "Tomo Ebizuka",
+            "Momokan": "Momokan",
+        }
+        code_name = mapping.get(raw_code_name, raw_code_name)
+        return version, code_name
     except Exception:
-        return ""
+        return version, code_name
+
+
+def _get_app_version():
+    version, _ = _get_app_version_info()
+    return version
 
 
 def _format_version_display(version: str) -> str:
@@ -476,7 +494,7 @@ _TRANSLATIONS = {
         "watermark.2": "技术预览版",
         "watermark.3": "Release Preview",
         "watermark.4": "重新评估版本",
-        "overlay.dev_watermark": "{type}\n不保证最终品质 （{version}）",
+        "overlay.dev_watermark": "{type}\n不保证最终品质 （{version}/{codename}/{uuid}）",
         "toolbar.pen_size": "画笔粗细",
         "toolbar.eraser_size": "橡皮粗细",
         "toolbar.eraser_point": "掠区擦除",
@@ -496,7 +514,7 @@ _TRANSLATIONS = {
         "watermark.2": "技術預覽版",
         "watermark.3": "Release Preview",
         "watermark.4": "重新評估版本",
-        "overlay.dev_watermark": "{type}\n不保證最終品質 （{version}）",
+        "overlay.dev_watermark": "{type}\n不保證最終品質 （{version}/{codename}/{uuid}）",
         "toolbar.pen_size": "畫筆粗細",
         "toolbar.eraser_size": "橡皮粗細",
         "toolbar.eraser_point": "掠區擦除",
@@ -516,7 +534,7 @@ _TRANSLATIONS = {
         "watermark.2": "技術預覽版",
         "watermark.3": "Release Preview",
         "watermark.4": "重新評估版本",
-        "overlay.dev_watermark": "{type}\n品質唔包，出事唔好屌我 ({version})",
+        "overlay.dev_watermark": "{type}\n品質唔包，出事唔好屌我 ({version}/{codename}/{uuid})",
         "toolbar.pen_size": "畫筆粗細",
         "toolbar.eraser_size": "橡皮粗細",
         "toolbar.eraser_point": "掠區擦除",
@@ -536,7 +554,7 @@ _TRANSLATIONS = {
         "watermark.2": "Tech Preview",
         "watermark.3": "Release Preview",
         "watermark.4": "Re-evaluation",
-        "overlay.dev_watermark": "{type}\nQuality not guaranteed ({version})",
+        "overlay.dev_watermark": "{type}\nQuality not guaranteed ({version}/{codename}/{uuid})",
         "toolbar.pen_size": "Pen Size",
         "toolbar.eraser_size": "Eraser Size",
         "toolbar.eraser_point": "Point Eraser",
@@ -556,7 +574,7 @@ _TRANSLATIONS = {
         "watermark.2": "テクニカルプレビュー",
         "watermark.3": "Release Preview",
         "watermark.4": "再評価バージョン",
-        "overlay.dev_watermark": "{type}\n品質は保証されません ({version})",
+        "overlay.dev_watermark": "{type}\n品質は保証されません ({version}/{codename}/{uuid})",
         "toolbar.pen_size": "ペンの太さ",
         "toolbar.eraser_size": "消しゴムの太さ",
         "toolbar.eraser_point": "部分消しゴム",
@@ -1385,16 +1403,16 @@ class BoardWindow(QWidget):
         # Slide-in animation setup
         self._setup_slide_animation()
 
-        # Watermark
-        version = _get_app_version()
+        version, code_name = _get_app_version_info()
         watermark_text = ""
         show_watermark = False
         if _is_dev_preview_version(version):
             suffix = version.split(".")[-1]
             w_type = _t(f"watermark.{suffix}")
             display_version = _format_version_display(version)
+            device_uuid = get_device_uuid()
             watermark_text = _t("overlay.dev_watermark").format(
-                type=w_type, version=display_version
+                type=w_type, version=display_version, codename=code_name, uuid=device_uuid[:8]
             )
             show_watermark = True
 

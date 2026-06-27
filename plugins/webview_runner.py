@@ -48,6 +48,7 @@ from PySide6.QtCore import (
     QEvent,
 )
 from PySide6.QtGui import QColor, QImage, QGuiApplication, QIcon, QFont, QPixmap
+from utils.env_utils import get_device_uuid
 from ppt_assistant.core.icon_helper import get_file_icon_base64
 from ppt_assistant.core.platform_integration import (
     get_quick_launch_dialog_filter,
@@ -438,6 +439,18 @@ def _configure_profile(profile):
                         QWebEngineSettings.WebAttribute.JavascriptCanAccessClipboard, True
                     )
                     settings.setDefaultTextEncoding("utf-8")
+
+                    try:
+                        app = QCoreApplication.instance()
+                        if app is not None:
+                            font = app.font()
+                            family = font.family()
+                            settings.setFontFamily(QWebEngineSettings.FontFamily.StandardFont, family)
+                            settings.setFontFamily(QWebEngineSettings.FontFamily.SansSerifFont, family)
+                            settings.setFontFamily(QWebEngineSettings.FontFamily.SerifFont, family)
+                            settings.setFontFamily(QWebEngineSettings.FontFamily.FixedFont, family)
+                    except Exception:
+                        pass
                 except Exception:
                     pass
         except Exception:
@@ -4874,6 +4887,7 @@ def main():
                     api.version = json.load(f)
         except Exception:
             api.version = {}
+        api.version["device_uuid"] = get_device_uuid()[:8]
         theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
         defer_load = os.environ.get("DEFER_WEBENGINE_LOAD", "").strip().lower() in [
             "1",

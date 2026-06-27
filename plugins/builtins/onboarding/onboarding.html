@@ -4965,7 +4965,7 @@ html, body {
           2: "技术预览版",
           3: "Release Preview",
           4: "重新评估版本",
-          fmt: "{type}\n不保证最终品质 ({version})"
+          fmt: "{type}\n不保证最终品质 ({version}/{codename}/{uuid})"
         }
       },
       "zh-TW": {
@@ -5018,7 +5018,7 @@ html, body {
           2: "技術預覽版",
           3: "Release Preview",
           4: "重新評估版本",
-          fmt: "{type}\n不保證最終品質 ({version})"
+          fmt: "{type}\n不保證最終品質 ({version}/{codename}/{uuid})"
         }
       },
       "yue-HK": {
@@ -5072,7 +5072,7 @@ html, body {
           2: "技術預覽版",
           3: "Release Preview",
           4: "重新評估版本",
-          fmt: "{type}\n品質唔包 ({version})"
+          fmt: "{type}\n品質唔包 ({version}/{codename}/{uuid})"
         }
       },
       "en-US": {
@@ -5125,7 +5125,7 @@ html, body {
           2: "Technical Preview",
           3: "Release Preview",
           4: "Re-evaluated Version",
-          fmt: "{type}\nQuality not guaranteed ({version})"
+          fmt: "{type}\nQuality not guaranteed ({version}/{codename}/{uuid})"
         }
       },
       "ja-JP": {
@@ -5178,7 +5178,7 @@ html, body {
           2: "テクニカルプレビュー",
           3: "Release Preview",
           4: "再評価バージョン",
-          fmt: "{type}\n品質は保証されません ({version})"
+          fmt: "{type}\n品質は保証されません ({version}/{codename}/{uuid})"
         }
       }
     };
@@ -5201,7 +5201,9 @@ html, body {
         safeArea: 0
       },
       previewMode: false,
-      version: ""
+      version: "",
+      code_name: "",
+      device_uuid: ""
     };
 
     // DOM Elements
@@ -5858,8 +5860,16 @@ html, body {
       if (["1", "2", "3", "4"].includes(suffix)) {
         const t = langResources[state.config.language] || langResources["zh-CN"];
         const type = t.watermark[suffix] || "";
-        const tmpl = t.watermark.fmt || "{type}\n不保证最终品质 ({version})";
-        wm.textContent = tmpl.replace("{type}", type).replace("{version}", state.version);
+        const tmpl = t.watermark.fmt || "{type}\n不保证最终品质 ({version}/{codename}/{uuid})";
+        const codeNameMap = {
+          "MomokaKawaragi": "Momoka Kawaragi",
+          "NinaIseri": "Nina Iseri",
+          "SubaruAwa": "Subaru Awa",
+          "TomoEbizuka": "Tomo Ebizuka",
+          "Momokan": "Momokan",
+        };
+        const displayCodeName = codeNameMap[state.code_name] || state.code_name;
+        wm.textContent = tmpl.replace("{type}", type).replace("{version}", state.version).replace("{codename}", displayCodeName).replace("{uuid}", state.device_uuid);
         wm.style.display = "block";
       } else {
         wm.style.display = "none";
@@ -6145,6 +6155,8 @@ html, body {
         window.pywebview.api.get_version().then(v => {
           if (v && v.version) {
             state.version = v.version;
+            state.code_name = v.code_name || "";
+            state.device_uuid = v.device_uuid || "";
             const cn = v.code_name || "";
             els.version.textContent = cn ? `${v.version} ${cn}` : v.version;
             updateWatermark();

@@ -1848,7 +1848,11 @@
         "dialog.exit.desc": "计时器正在运行，退出将清空当前计时进度。确定要退出吗？",
         "dialog.cancel": "取消",
         "dialog.confirm": "确定",
-        "general.devWatermark": "开发中版本/技术预览版本\n不保证最终品质 （{version}）"
+        "watermark.1": "开发中版本",
+        "watermark.2": "技术预览版",
+        "watermark.3": "Release Preview",
+        "watermark.4": "重新评估版本",
+        "general.devWatermark": "{type}\n不保证最终品质 （{version}/{codename}/{uuid}）"
       },
       "zh-TW": {
         "app.timer": "計時器",
@@ -1877,7 +1881,11 @@
         "dialog.exit.desc": "計時器將在後台繼續運行。確定要關閉窗口嗎？",
         "dialog.cancel": "取消",
         "dialog.confirm": "確定",
-        "general.devWatermark": "開發中版本/技術預覽版本\n不保證最終品質 （{version}）"
+        "watermark.1": "開發中版本",
+        "watermark.2": "技術預覽版",
+        "watermark.3": "Release Preview",
+        "watermark.4": "重新評估版本",
+        "general.devWatermark": "{type}\n不保證最終品質 （{version}/{codename}/{uuid}）"
       },
       "yue-HK": {
         "app.timer": "計時器",
@@ -1906,7 +1914,11 @@
         "dialog.exit.desc": "計時器會喺後台繼續行。確定要關閉窗口？",
         "dialog.cancel": "算啦",
         "dialog.confirm": "確定",
-        "general.devWatermark": "開發中版本/技術預覽版本\n品質唔包 ({version})"
+        "watermark.1": "開發中版本",
+        "watermark.2": "技術預覽版",
+        "watermark.3": "Release Preview",
+        "watermark.4": "重新評估版本",
+        "general.devWatermark": "{type}\n品質唔包 ({version}/{codename}/{uuid})"
       },
       "ja-JP": {
         "app.timer": "タイマー",
@@ -1935,7 +1947,11 @@
         "dialog.exit.desc": "タイマーが実行中です。終了すると現在の計時はリセットされます。終了してもよろしいですか？",
         "dialog.cancel": "キャンセル",
         "dialog.confirm": "OK",
-        "general.devWatermark": "開発中バージョン/テクニカルプレビュー\n品質は保証されません （{version}）"
+        "watermark.1": "開発中バージョン",
+        "watermark.2": "テクニカルプレビュー",
+        "watermark.3": "Release Preview",
+        "watermark.4": "再評価バージョン",
+        "general.devWatermark": "{type}\n品質は保証されません （{version}/{codename}/{uuid}）"
       },
       "en-US": {
         "app.timer": "Timer",
@@ -1964,7 +1980,11 @@
         "dialog.exit.desc": "Timer is running. Exiting will clear the current progress. Are you sure?",
         "dialog.cancel": "Cancel",
         "dialog.confirm": "Confirm",
-        "general.devWatermark": "In-Development/Technical Preview\nFinal quality not guaranteed ({version})"
+        "watermark.1": "In-Development",
+        "watermark.2": "Technical Preview",
+        "watermark.3": "Release Preview",
+        "watermark.4": "Re-evaluated Version",
+        "general.devWatermark": "{type}\nFinal quality not guaranteed ({version}/{codename}/{uuid})"
       },
       "ug-CN": {
         "app.timer": "ۋاقىت بەلگىلىگۈچ",
@@ -1991,7 +2011,11 @@
         "dialog.exit.desc": "ۋاقىت بەلگىلەش ئىشلەۋاتىدۇ. چىقسىڭىز نۆۋەتتىكى جەريان تازىلىنىدۇ. داۋاملىشىمىز؟",
         "dialog.cancel": "بىكار",
         "dialog.confirm": "جەزملەشتۈر",
-        "general.devWatermark": "تېخنىكىلىق ئالدىن كۆرۈش نۇسخىسى\nسۈپەت كاپالەتلەنمەيدۇ ({version})"
+        "watermark.1": "ئىشلەۋاتقان نۇسخا",
+        "watermark.2": "تېخنىكىلىق ئالدىن كۆرۈش",
+        "watermark.3": "Release Preview",
+        "watermark.4": "قايتا باھالاش نۇسخىسى",
+        "general.devWatermark": "{type}\nسۈپەت كاپالەتلەنمەيدۇ ({version}/{codename}/{uuid})"
       }
     };
 
@@ -2960,13 +2984,25 @@
       if (window.pywebview && window.pywebview.api && window.pywebview.api.get_version) {
         window.pywebview.api.get_version().then(v => {
           if (!v) return;
+          const codeName = v.code_name || "";
           const version = v.version || "";
           const wm = document.getElementById("dev-watermark");
           if (wm && version) {
             const parts = String(version).trim().split(".");
-            if (parts.length >= 2 && parts[parts.length - 1] === "1") {
-              const tmpl = getText("general.devWatermark") || "开发中版本/技术预览版本\n不保证最终品质 （{version}）";
-              wm.textContent = tmpl.replace("{version}", version);
+            const suffix = parts.length >= 2 ? parts[parts.length - 1] : "";
+            if (["1", "2", "3", "4"].includes(suffix)) {
+              const type = getText("watermark." + suffix) || "";
+              const tmpl = getText("general.devWatermark") || "{type}\n不保证最终品质 ({version}/{codename}/{uuid})";
+              const codeNameMap = {
+                "MomokaKawaragi": "Momoka Kawaragi",
+                "NinaIseri": "Nina Iseri",
+                "SubaruAwa": "Subaru Awa",
+                "TomoEbizuka": "Tomo Ebizuka",
+                "Momokan": "Momokan",
+              };
+              const displayCodeName = codeNameMap[codeName] || codeName;
+              const deviceUuid = v.device_uuid || "";
+              wm.textContent = tmpl.replace("{type}", type).replace("{version}", version).replace("{codename}", displayCodeName).replace("{uuid}", deviceUuid);
               wm.style.display = "block";
             } else {
               wm.style.display = "none";
