@@ -201,14 +201,17 @@ class PPTWorker(QObject):
         # COM cooldown tracking
         self._last_com_fail_time = {}
         self._com_cooldown_seconds = 5.0
-        self._cached_com_apps = {}
         self._last_com_success_time = {}
+        # Process name cache (hwnd -> (name, timestamp)) with 60s TTL
+        self._process_name_cache = {}
         # Video state caching
         self._video_cached_slide = 0
         self._cached_media_shape = None
         self._cached_video_length = 0.0
         self._current_poll_interval_ms = 0
         self._fast_poll_until = 0.0
+        # Static stable-state backoff counter
+        self._stable_tick_count = 0
 
     def _request_fast_poll(self, seconds: float = 2.0):
         try:
@@ -221,6 +224,8 @@ class PPTWorker(QObject):
 
     def _get_target_poll_interval_ms(self) -> int:
         if self._running:
+            if self._stable_tick_count >= 5:
+                return 300  # 静态稳定态退避
             return 180
 
         now = time.monotonic()
@@ -305,10 +310,12 @@ class PPTWorker(QObject):
         if not hwnd or not win32process or not win32api:
             return ""
         cache_key = int(hwnd)
-        if hasattr(self, '_process_name_cache'):
-            cached = self._process_name_cache.get(cache_key)
-            if cached is not None:
-                return cached
+        now = time.monotonic()
+        cached = self._process_name_cache.get(cache_key)
+        if cached is not None:
+            name, ts = cached
+            if (now - ts) < 60.0:
+                return name
         try:
             _, pid = win32process.GetWindowThreadProcessId(int(hwnd))
             if not pid:
@@ -325,9 +332,7 @@ class PPTWorker(QObject):
                 except Exception:
                     pass
             name = self._normalize_process_name(exe)
-            if not hasattr(self, '_process_name_cache'):
-                self._process_name_cache = {}
-            self._process_name_cache[cache_key] = name
+            self._process_name_cache[cache_key] = (name, now)
             return name
         except Exception:
             return ""
@@ -1514,11 +1519,12 @@ class PPTWorker(QObject):
         if current > 0:
             self._degraded_current = current
 
-        # Track animation click steps for PPT COM (best-effort via active slideshow view)
+        # Track animation click steps for PPT COM (best-effort via active slideshow view).
+        # Reuse the ss_win already fetched above instead of calling
+        # _get_active_slideshow_window() a second time (avoids a duplicate COM call).
         try:
             if self._active_kind == "ppt" or self._active_kind is None:
-                ss_win_anim = self._get_active_slideshow_window()
-                view_anim = getattr(ss_win_anim, "View", None) if ss_win_anim is not None else None
+                view_anim = getattr(ss_win, "View", None) if ss_win is not None else None
                 self._emit_animation_step_if_changed(view_anim)
         except Exception:
             pass
@@ -1719,26 +1725,18 @@ class PPTWorker(QObject):
         # If _active_kind is None but we have cached apps, try to use them
         # This happens when user cancels the exit and returns to slideshow
         if self._active_kind is None:
-            # Try to get active app from COM
-            if win32com:
-                try:
-                    ppt = win32com.client.GetActiveObject("PowerPoint.Application")
-                    if ppt:
-                        return ppt
-                except BaseException:
-                    pass
-                try:
-                    wps = win32com.client.GetActiveObject("Kwpp.Application")
-                    if wps:
-                        return wps
-                except BaseException:
-                    pass
-                try:
-                    yozo = win32com.client.GetActiveObject("YozoPG.Application")
-                    if yozo:
-                        return yozo
-                except BaseException:
-                    pass
+            # Try to get active app from COM via _safe_get_active_object so the
+            # 5-second per-ProgID cooldown is honored (avoids hammering
+            # GetActiveObject every tick when nothing is running).
+            ppt = self._safe_get_active_object("PowerPoint.Application")
+            if ppt:
+                return ppt
+            wps = self._safe_get_active_object("Kwpp.Application")
+            if wps:
+                return wps
+            yozo = self._safe_get_active_object("YozoPG.Application")
+            if yozo:
+                return yozo
         # Fallback to cached apps
         if self.ppt_app:
             return self.ppt_app
@@ -1876,6 +1874,13 @@ class PPTWorker(QObject):
             pass
 
     def _check_ppt_state(self):
+        # Snapshot state before the tick to detect static stable-state.
+        _stable_before = (
+            self._current_slide,
+            self._total_slides,
+            self._last_win_rect,
+            self._active_kind,
+        )
         try:
             # Pump COM messages before each check to ensure the STA thread
             # processes any pending COM notifications and retries.
@@ -1996,6 +2001,18 @@ class PPTWorker(QObject):
             pass
         finally:
             self._apply_poll_interval()
+            # Compare tick前后状态摘要：无变化则递增稳定计数（用于轮询退避），
+            # 有变化则重置。WPS/Yozo 分支的早退 return 也会经过此 finally。
+            _stable_after = (
+                self._current_slide,
+                self._total_slides,
+                self._last_win_rect,
+                self._active_kind,
+            )
+            if _stable_after == _stable_before:
+                self._stable_tick_count += 1
+            else:
+                self._stable_tick_count = 0
 
         # If not running PPT, check WPS
         if not self._running:
@@ -2240,6 +2257,7 @@ class PPTWorker(QObject):
             self._slideshow_started_at = 0.0
             self._last_linux_slideshow_seen_at = 0.0
             self._last_non_eraser_pointer_type = 1
+            self._process_name_cache.clear()
             self._request_fast_poll(2.0)
 
     def _update_window_rect(self, ss_win):
@@ -2396,6 +2414,12 @@ class PPTWorker(QObject):
             try:
                 slide = view.Slide
                 slide_index = self._extract_slide_position(view)
+                # 如果同幻灯片且已知无视频，跳过重复扫描与 emit。
+                # 首次检测到无视频时仍会 emit 一次零值：下方进入分支后将
+                # _video_cached_slide 设为 slide_index，再 emit (0,0,0)，
+                # 此后同 slide 即在此处短路。
+                if self._cached_media_shape is None and slide_index == self._video_cached_slide:
+                    return
                 shapes = slide.Shapes
                 count = shapes.Count
 

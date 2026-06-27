@@ -1,7 +1,0 @@
--target net8.0
--input 10.0.19041.0
--input 
--output "c:\Users\Evan Evan\Documents\Luminalium\scripts\smtc_helper\obj\Debug\net8.0-windows10.0.19041.0\Generated Files\CsWinRT"
-
--exclude Windows
--exclude Microsoft
