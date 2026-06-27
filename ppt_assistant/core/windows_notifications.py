@@ -172,15 +172,15 @@ def ensure_windows_notification_registration(
             app_id=app_id,
         )
         if result and os.path.isfile(result):
-            print(f"[WindowsNotification] ショートカット作成完了: {result}")
+            print(f"[WindowsNotification] 快捷方式创建完成: {result}")
         else:
             print(
-                f"[WindowsNotification] ショートカット作成が空かファイル不在: {shortcut_path}"
+                f"[WindowsNotification] 快捷方式创建结果为空或文件不存在: {shortcut_path}"
             )
         return result
     except Exception as e:
         print(
-            f"[WindowsNotification] ショートカット作成失敗 ({shortcut_path}): {e}"
+            f"[WindowsNotification] 快捷方式创建失败 ({shortcut_path}): {e}"
         )
         traceback.print_exc()
         return None
@@ -190,7 +190,7 @@ def _send_toast_via_winrt(
     app_id: str,
     xml_content: str,
 ) -> bool:
-    """winrt 経由で toast を送信。失敗時は False を返す"""
+    """通过 winrt 发送 toast。失败时返回 False"""
     try:
         from winrt.windows.data.xml.dom import XmlDocument
         from winrt.windows.ui.notifications import (
@@ -198,8 +198,8 @@ def _send_toast_via_winrt(
             ToastNotificationManager,
         )
 
-        # winrt のバージョンによって create_toast_notifier の呼び出し方が異なる
-        # エラー情報を全部出すために全パターン試す
+        # 根据 winrt 的版本不同，create_toast_notifier 的调用方式也不同
+        # 为输出全部错误信息，尝试所有方式
         notifier = None
         errors: list[str] = []
         for pattern, fn in enumerate(
@@ -220,7 +220,7 @@ def _send_toast_via_winrt(
                 errors.append(f"  pattern {pattern} ({type(e).__name__}): {e}")
 
         if notifier is None:
-            print("[WindowsNotification] winrt create_toast_notifier 全滅:")
+            print("[WindowsNotification] winrt create_toast_notifier 全部失败:")
             for err in errors:
                 print(err)
             return False
@@ -230,10 +230,10 @@ def _send_toast_via_winrt(
         notifier.show(ToastNotification(xml))
         return True
     except ImportError:
-        print("[WindowsNotification] winrt パッケージ未導入、PowerShell にフォールバック")
+        print("[WindowsNotification] winrt 包未安装，回退到 PowerShell")
         return False
     except Exception as e:
-        print(f"[WindowsNotification] winrt toast 送信失敗: {e}")
+        print(f"[WindowsNotification] winrt toast 发送失败: {e}")
         traceback.print_exc()
         return False
 
@@ -242,10 +242,10 @@ def _send_toast_via_powershell(
     app_id: str,
     xml_content: str,
 ) -> bool:
-    """PowerShell 経由で toast を送信。Windows 10/11 の WinRT API を直接使う"""
+    """通过 PowerShell 发送 toast。直接使用 Windows 10/11 的 WinRT API"""
     try:
         escaped_xml = xml_content.replace("'", "''")
-        # PowerShell スクリプト: WinRT API を直接叩いて toast を表示
+        # PowerShell 脚本：直接调用 WinRT API 显示 toast
         ps_script = f'''
 [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
 [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null
@@ -274,7 +274,7 @@ $notifier.Show($toast)
             stderr = (result.stderr or "").strip()
             stdout = (result.stdout or "").strip()
             print(
-                "[WindowsNotification] PowerShell toast 失敗 "
+                "[WindowsNotification] PowerShell toast 失败 "
                 f"(exit={result.returncode})"
             )
             if stderr:
@@ -284,13 +284,13 @@ $notifier.Show($toast)
             return False
         return True
     except FileNotFoundError:
-        print("[WindowsNotification] PowerShell が見つからん")
+        print("[WindowsNotification] 未找到 PowerShell")
         return False
     except subprocess.TimeoutExpired:
-        print("[WindowsNotification] PowerShell toast がタイムアウト")
+        print("[WindowsNotification] PowerShell toast 超时")
         return False
     except Exception as e:
-        print(f"[WindowsNotification] PowerShell toast 例外: {e}")
+        print(f"[WindowsNotification] PowerShell toast 异常: {e}")
         traceback.print_exc()
         return False
 
@@ -312,7 +312,7 @@ def send_windows_notification(
     if sys.platform != "win32":
         return False
 
-    # ショートカット登録を先に済ませる
+    # 先完成快捷方式注册
     try:
         ensure_windows_notification_registration(
             target_path=target_path,
@@ -323,10 +323,10 @@ def send_windows_notification(
             app_id=app_id,
         )
     except Exception as e:
-        print(f"[WindowsNotification] 登録失敗: {e}")
+        print(f"[WindowsNotification] 注册失败: {e}")
         traceback.print_exc()
 
-    # Toast XML を構築
+    # 构建 Toast XML
     escaped_title = html.escape(str(title or ""), quote=True)
     escaped_message = html.escape(str(message or ""), quote=True)
     launch_attr = ""
@@ -383,13 +383,13 @@ def send_windows_notification(
         "</toast>"
     )
 
-    # 送信: winrt → PowerShell の順にフォールバック
+    # 发送：按 winrt → PowerShell 的顺序回退
     if _send_toast_via_winrt(app_id, xml_content):
         return True
     if _send_toast_via_powershell(app_id, xml_content):
         return True
 
-    print("[WindowsNotification] すべての通知手段が失敗した")
+    print("[WindowsNotification] 所有通知方式均失败")
     return False
 
 
