@@ -69,7 +69,7 @@
         Array.from(section.children).forEach(child => {
           if (child.classList.contains('group-title')) {
             currentGroupName = child.innerText.trim();
-          } else if (child.classList.contains('settings-group')) {
+          } else if (child.classList.contains('settings-group') || child.classList.contains('pen-content')) {
             const items = child.querySelectorAll('.settings-item');
             items.forEach(item => {
               // Skip hidden items or layout wrappers if needed
@@ -230,8 +230,12 @@
 
     function navigateToSetting(item) {
       const sectionId = item.sectionId.replace('section-', '');
-      const sidebarItem = document.querySelector(`.sidebar-item[data-section="${sectionId}"]`);
-      if (sidebarItem) sidebarItem.click();
+      if (sectionId === 'pen') {
+        showPenPage();
+      } else {
+        const sidebarItem = document.querySelector(`.sidebar-item[data-section="${sectionId}"]`);
+        if (sidebarItem) sidebarItem.click();
+      }
 
       const searchSection = document.getElementById('section-search');
       searchSection.classList.remove('active');
@@ -1145,8 +1149,8 @@
       display: none;
     }
 
-    /* Hide all sidebar items except About and Back button in three-island mode */
-    .layout.three-island .sidebar-item:not(#sidebar-back-btn):not([data-section="about"]) {
+    /* Hide all sidebar items except current secondary page's parent (marked by .island-parent) and Back button in three-island mode */
+    .layout.three-island .sidebar-item:not(#sidebar-back-btn):not(.island-parent) {
       display: none;
     }
 
@@ -1848,6 +1852,13 @@
 
     /* Update Section Styles */
     .update-content {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Pen Section Styles (mirrors .update-content) */
+    .pen-content {
       display: flex;
       flex-direction: column;
       gap: 20px;
@@ -3782,6 +3793,18 @@
       content: "开";
       color: var(--accent-blue);
     }
+
+    .self-pen-palette { display: flex; flex-wrap: wrap; gap: 6px; max-width: 220px; }
+    .self-pen-palette .swatch { width: 20px; height: 20px; border-radius: 4px; cursor: pointer; border: 1px solid var(--border-color, #ccc); }
+    .self-pen-palette .swatch.active { outline: 2px solid var(--primary-color, #2196f3); outline-offset: 1px; }
+    .self-pen-presets { display: flex; gap: 6px; }
+    .self-pen-presets .preset-btn { min-width: 36px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color, #ccc); background: transparent; color: inherit; cursor: pointer; }
+    .self-pen-presets .preset-btn.active { background: var(--primary-color, #2196f3); color: #fff; border-color: var(--primary-color, #2196f3); }
+    .segmented-btns { display: inline-flex; border: 1px solid var(--border-color, #ccc); border-radius: 8px; overflow: hidden; }
+    .segmented-btns .seg-btn { padding: 6px 14px; border: none; background: transparent; color: inherit; cursor: pointer; border-right: 1px solid var(--border-color, #ccc); }
+    .segmented-btns .seg-btn:last-child { border-right: none; }
+    .segmented-btns .seg-btn.active { background: var(--primary-color, #2196f3); color: #fff; }
+    .range-value { min-width: 28px; text-align: right; font-variant-numeric: tabular-nums; opacity: 0.8; }
 
     .styled-select {
       background: var(--bg-surface);
@@ -6760,7 +6783,12 @@
                 <span class="item-label" data-i18n="toolbar.pen">画笔</span>
                 <span class="item-desc" data-i18n="toolbar.pen.desc">控制悬浮工具栏中的画笔按钮是否可用</span>
               </div>
-              <div class="switch" id="sw-tool-pen"></div>
+              <div class="item-state" style="display: flex; align-items: center; gap: 12px;">
+                <div class="switch" id="sw-tool-pen"></div>
+                <svg class="chevron" viewBox="0 0 24 24" style="cursor: pointer;" onclick="event.stopPropagation(); showPenPage()">
+                  <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                </svg>
+              </div>
             </div>
             <div class="settings-item" onclick="toggleDisabledTool('eraser')">
               <div class="item-info">
@@ -6796,6 +6824,202 @@
               <button id="toolbar-add-btn" class="btn btn-confirm" type="button"
                 data-i18n="interaction.toolbar.addApp">添加软件</button>
             </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section" id="section-pen">
+          <div class="pen-content">
+            <div class="settings-group">
+              <div class="settings-item" onclick="togglePenMode()">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="interaction.penMode.label">画笔模式</span>
+                  <span class="item-desc" data-i18n="interaction.penMode.desc">选择画笔实现方式："COM 画笔"使用 PowerPoint 原生墨迹；"自研画笔"使用自研渲染引擎绘制笔迹</span>
+                </div>
+                <div class="item-state">
+                  <select class="styled-select" id="sel-PPT-PenMode" onchange="setPenMode(this.value)">
+                    <option value="com" data-i18n="interaction.penMode.com">COM 画笔</option>
+                    <option value="self-developed" data-i18n="interaction.penMode.self">自研画笔</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="group-title" data-i18n="selfPen.appearance.title">笔迹外观</div>
+            <div class="settings-group">
+              <div class="settings-item">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="selfPen.penWidth.label">普通笔粗细</span>
+                  <span class="item-desc" data-i18n="selfPen.penWidth.desc">控制普通画笔的线条宽度</span>
+                </div>
+                <div class="item-state" style="display:flex;align-items:center;gap:12px;">
+                  <input type="range" id="sel-SelfPen-PenWidth" min="1" max="12" step="1" value="3" oninput="onSelfPenRangeInput('PenWidth', this.value, 'pen-width-val', parseInt)">
+                  <span id="pen-width-val" class="range-value">3</span>
+                </div>
+              </div>
+
+              <div class="settings-item">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="selfPen.highlightWidth.label">荧光笔粗细</span>
+                  <span class="item-desc" data-i18n="selfPen.highlightWidth.desc">控制荧光笔的线条宽度</span>
+                </div>
+                <div class="item-state" style="display:flex;align-items:center;gap:12px;">
+                  <input type="range" id="sel-SelfPen-HighlightWidth" min="8" max="48" step="2" value="24" oninput="onSelfPenRangeInput('HighlightWidth', this.value, 'hl-width-val', parseInt)">
+                  <span id="hl-width-val" class="range-value">24</span>
+                </div>
+              </div>
+
+              <div class="settings-item">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="selfPen.eraserWidth.label">橡皮擦粗细</span>
+                  <span class="item-desc" data-i18n="selfPen.eraserWidth.desc">控制橡皮擦的擦除范围</span>
+                </div>
+                <div class="item-state" style="display:flex;align-items:center;gap:12px;">
+                  <input type="range" id="sel-SelfPen-EraserWidth" min="10" max="80" step="2" value="30" oninput="onSelfPenRangeInput('EraserWidth', this.value, 'eraser-width-val', parseInt)">
+                  <span id="eraser-width-val" class="range-value">30</span>
+                </div>
+              </div>
+
+              <div class="settings-item">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="selfPen.penColor.label">普通笔颜色</span>
+                  <span class="item-desc" data-i18n="selfPen.penColor.desc">选择普通画笔的默认颜色</span>
+                </div>
+                <div class="item-state self-pen-palette" id="selfPen-color-pen" data-target="PenColor"></div>
+              </div>
+
+              <div class="settings-item">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="selfPen.highlightColor.label">荧光笔颜色</span>
+                  <span class="item-desc" data-i18n="selfPen.highlightColor.desc">选择荧光笔的默认颜色</span>
+                </div>
+                <div class="item-state self-pen-palette" id="selfPen-color-highlight" data-target="HighlightColor"></div>
+              </div>
+
+              <div class="settings-item">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="selfPen.highlightOpacity.label">荧光笔透明度</span>
+                  <span class="item-desc" data-i18n="selfPen.highlightOpacity.desc">控制荧光笔的不透明度（0.1–1.0）</span>
+                </div>
+                <div class="item-state" style="display:flex;align-items:center;gap:12px;">
+                  <input type="range" id="sel-SelfPen-HighlightOpacity" min="0.1" max="1.0" step="0.05" value="0.45" oninput="onSelfPenRangeInput('HighlightOpacity', this.value, 'hl-opacity-val', parseFloat)">
+                  <span id="hl-opacity-val" class="range-value">0.45</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="group-title" data-i18n="selfPen.canvas.title">Canvas 调节</div>
+            <div class="settings-group">
+              <div class="settings-item">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="selfPen.frameRateMode.label">帧率模式</span>
+                  <span class="item-desc" data-i18n="selfPen.frameRateMode.desc">平衡绘制流畅度与性能消耗</span>
+                </div>
+                <div class="item-state">
+                  <div class="segmented-btns" id="seg-SelfPen-FrameRateMode" data-key="FrameRateMode">
+                    <button type="button" class="seg-btn" data-val="low" data-i18n="selfPen.frameRateMode.low" onclick="onSelfPenSegmented('FrameRateMode', 'low', this)">低</button>
+                    <button type="button" class="seg-btn" data-val="adaptive" data-i18n="selfPen.frameRateMode.adaptive" onclick="onSelfPenSegmented('FrameRateMode', 'adaptive', this)">自适应</button>
+                    <button type="button" class="seg-btn" data-val="high" data-i18n="selfPen.frameRateMode.high" onclick="onSelfPenSegmented('FrameRateMode', 'high', this)">高</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-item">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="selfPen.penEffect.label">钢笔效果</span>
+                  <span class="item-desc" data-i18n="selfPen.penEffect.desc">压感/速度感应的笔迹效果强度</span>
+                </div>
+                <div class="item-state">
+                  <div class="segmented-btns" id="seg-SelfPen-PenEffect" data-key="PenEffect">
+                    <button type="button" class="seg-btn" data-val="off" data-i18n="selfPen.penEffect.off" onclick="onSelfPenSegmented('PenEffect', 'off', this)">关闭</button>
+                    <button type="button" class="seg-btn" data-val="limited" data-i18n="selfPen.penEffect.limited" onclick="onSelfPenSegmented('PenEffect', 'limited', this)">限制</button>
+                    <button type="button" class="seg-btn" data-val="full" data-i18n="selfPen.penEffect.full" onclick="onSelfPenSegmented('PenEffect', 'full', this)">完整</button>
+                  </div>
+                </div>
+              </div>
+
+
+
+              <div class="settings-item">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="selfPen.velocityEraser.label">速度擦</span>
+                  <span class="item-desc" data-i18n="selfPen.velocityEraser.desc">快速移动时自动切换为橡皮擦</span>
+                </div>
+                <div class="switch" id="sw-SelfPen-VelocityEraser" onclick="onSelfPenToggle('VelocityEraser', this)"></div>
+              </div>
+
+              <div class="settings-item">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="selfPen.inertialPan.label">惯性移动</span>
+                  <span class="item-desc" data-i18n="selfPen.inertialPan.desc">画布拖动时带有惯性滑动</span>
+                </div>
+                <div class="switch" id="sw-SelfPen-InertialPan" onclick="onSelfPenToggle('InertialPan', this)"></div>
+              </div>
+
+              <div class="settings-item">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="selfPen.palmErase.label">手掌擦除</span>
+                  <span class="item-desc" data-i18n="selfPen.palmErase.desc">多触点时识别手掌为擦除</span>
+                </div>
+                <div class="switch" id="sw-SelfPen-PalmErase" onclick="onSelfPenToggle('PalmErase', this)"></div>
+              </div>
+
+              <div class="settings-item">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="selfPen.dprRange.label">DPR 范围</span>
+                  <span class="item-desc" data-i18n="selfPen.dprRange.desc">限定画布分辨率的下限与上限</span>
+                </div>
+                <div class="item-state" style="display:flex;align-items:center;gap:8px;">
+                  <select class="styled-select" id="sel-SelfPen-MinDpr" onchange="onSelfPenSelect('MinDpr', this.value)">
+                    <option value="1x">1x</option><option value="2x">2x</option><option value="3x">3x</option><option value="4x">4x</option>
+                  </select>
+                  <span>–</span>
+                  <select class="styled-select" id="sel-SelfPen-MaxDpr" onchange="onSelfPenSelect('MaxDpr', this.value)">
+                    <option value="1x">1x</option><option value="2x">2x</option><option value="3x">3x</option><option value="4x">4x</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="group-title" data-i18n="selfPen.presets.title">粗细预设</div>
+            <div class="settings-group">
+              <div class="settings-item">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="selfPen.penPreset.label">画笔粗细预设</span>
+                  <span class="item-desc" data-i18n="selfPen.penPreset.desc">快速选择常用画笔粗细</span>
+                </div>
+                <div class="item-state self-pen-presets" id="selfPen-pen-presets" data-kind="pen">
+                  <button type="button" class="preset-btn" data-idx="0" data-val="2" onclick="onSelfPenPresetClick('pen', 0, 2)">2</button>
+                  <button type="button" class="preset-btn" data-idx="1" data-val="5" onclick="onSelfPenPresetClick('pen', 1, 5)">5</button>
+                  <button type="button" class="preset-btn" data-idx="2" data-val="10" onclick="onSelfPenPresetClick('pen', 2, 10)">10</button>
+                  <button type="button" class="preset-btn" data-idx="3" data-val="15" onclick="onSelfPenPresetClick('pen', 3, 15)">15</button>
+                  <button type="button" class="preset-btn" data-idx="4" data-val="21" onclick="onSelfPenPresetClick('pen', 4, 21)">21</button>
+                </div>
+              </div>
+
+              <div class="settings-item">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="selfPen.eraserPreset.label">橡皮擦粗细预设</span>
+                  <span class="item-desc" data-i18n="selfPen.eraserPreset.desc">快速选择常用橡皮擦粗细</span>
+                </div>
+                <div class="item-state self-pen-presets" id="selfPen-eraser-presets" data-kind="eraser">
+                  <button type="button" class="preset-btn" data-idx="0" data-val="5" onclick="onSelfPenPresetClick('eraser', 0, 5)">5</button>
+                  <button type="button" class="preset-btn" data-idx="1" data-val="15" onclick="onSelfPenPresetClick('eraser', 1, 15)">15</button>
+                  <button type="button" class="preset-btn" data-idx="2" data-val="25" onclick="onSelfPenPresetClick('eraser', 2, 25)">25</button>
+                  <button type="button" class="preset-btn" data-idx="3" data-val="38" onclick="onSelfPenPresetClick('eraser', 3, 38)">38</button>
+                  <button type="button" class="preset-btn" data-idx="4" data-val="50" onclick="onSelfPenPresetClick('eraser', 4, 50)">50</button>
+                </div>
+              </div>
+
+              <div class="settings-item">
+                <div class="item-info">
+                  <span class="item-label" data-i18n="selfPen.resetDefaults.label">恢复默认</span>
+                  <span class="item-desc" data-i18n="selfPen.resetDefaults.desc">将所有自研画笔设置恢复为默认值</span>
+                </div>
+                <div class="item-state">
+                  <button type="button" class="text-btn" onclick="resetSelfPenDefaults()" data-i18n="selfPen.resetDefaults.btn">恢复</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -6970,18 +7194,6 @@
                   的"是否保留墨迹"提示，减少手动确认</span>
               </div>
               <div class="switch" id="sw-PPT-AutoHandleInk"></div>
-            </div>
-            <div class="settings-item" onclick="togglePenMode()">
-              <div class="item-info">
-                <span class="item-label" data-i18n="interaction.penMode.label">画笔模式</span>
-                <span class="item-desc" data-i18n="interaction.penMode.desc">选择画笔实现方式："COM 画笔"使用 PowerPoint 原生墨迹；"自研画笔"使用自研渲染引擎绘制笔迹</span>
-              </div>
-              <div class="item-state">
-                <select class="styled-select" id="sel-PPT-PenMode" onchange="setPenMode(this.value)">
-                  <option value="com" data-i18n="interaction.penMode.com">COM 画笔</option>
-                  <option value="self-developed" data-i18n="interaction.penMode.self">自研画笔</option>
-                </select>
-              </div>
             </div>
             <div class="settings-item" onclick="toggleSwitch('General', 'UseNativeTitleBar')">
               <div class="item-info">
@@ -8074,6 +8286,46 @@
         "interaction.penMode.desc": "选择画笔实现方式：COM 画笔使用 PowerPoint 原生墨迹；自研画笔使用自研渲染引擎绘制笔迹",
         "interaction.penMode.com": "COM 画笔",
         "interaction.penMode.self": "自研画笔",
+        "selfPen.appearance.title": "笔迹外观",
+        "selfPen.penWidth.label": "普通笔粗细",
+        "selfPen.penWidth.desc": "控制普通画笔的线条宽度",
+        "selfPen.highlightWidth.label": "荧光笔粗细",
+        "selfPen.highlightWidth.desc": "控制荧光笔的线条宽度",
+        "selfPen.eraserWidth.label": "橡皮擦粗细",
+        "selfPen.eraserWidth.desc": "控制橡皮擦的擦除范围",
+        "selfPen.penColor.label": "普通笔颜色",
+        "selfPen.penColor.desc": "选择普通画笔的默认颜色",
+        "selfPen.highlightColor.label": "荧光笔颜色",
+        "selfPen.highlightColor.desc": "选择荧光笔的默认颜色",
+        "selfPen.highlightOpacity.label": "荧光笔透明度",
+        "selfPen.highlightOpacity.desc": "控制荧光笔的不透明度（0.1–1.0）",
+        "selfPen.canvas.title": "Canvas 调节",
+        "selfPen.frameRateMode.label": "帧率模式",
+        "selfPen.frameRateMode.desc": "平衡绘制流畅度与性能消耗",
+        "selfPen.frameRateMode.low": "低",
+        "selfPen.frameRateMode.adaptive": "自适应",
+        "selfPen.frameRateMode.high": "高",
+        "selfPen.penEffect.label": "钢笔效果",
+        "selfPen.penEffect.desc": "压感/速度感应的笔迹效果强度",
+        "selfPen.penEffect.off": "关闭",
+        "selfPen.penEffect.limited": "限制",
+        "selfPen.penEffect.full": "完整",
+        "selfPen.velocityEraser.label": "速度擦",
+        "selfPen.velocityEraser.desc": "快速移动时自动切换为橡皮擦",
+        "selfPen.inertialPan.label": "惯性移动",
+        "selfPen.inertialPan.desc": "画布拖动时带有惯性滑动",
+        "selfPen.palmErase.label": "手掌擦除",
+        "selfPen.palmErase.desc": "多触点时识别手掌为擦除",
+        "selfPen.dprRange.label": "DPR 范围",
+        "selfPen.dprRange.desc": "限定画布分辨率的下限与上限",
+        "selfPen.presets.title": "粗细预设",
+        "selfPen.penPreset.label": "画笔粗细预设",
+        "selfPen.penPreset.desc": "快速选择常用画笔粗细",
+        "selfPen.eraserPreset.label": "橡皮擦粗细预设",
+        "selfPen.eraserPreset.desc": "快速选择常用橡皮擦粗细",
+        "selfPen.resetDefaults.label": "恢复默认",
+        "selfPen.resetDefaults.desc": "将所有自研画笔设置恢复为默认值",
+        "selfPen.resetDefaults.btn": "恢复",
         "interaction.pageTurnRateLimit.label": "翻页频率上限",
         "interaction.pageTurnRateLimit.desc": "限制每秒最多受理的翻页请求次数，超出的点击会被忽略",
 
@@ -8528,6 +8780,46 @@
         "interaction.penMode.desc": "選擇畫筆實現方式：COM 畫筆使用 PowerPoint 原生墨跡；自研畫筆使用自研渲染引擎繪製筆跡",
         "interaction.penMode.com": "COM 畫筆",
         "interaction.penMode.self": "自研畫筆",
+        "selfPen.appearance.title": "筆跡外觀",
+        "selfPen.penWidth.label": "普通筆粗細",
+        "selfPen.penWidth.desc": "控制普通畫筆的線條寬度",
+        "selfPen.highlightWidth.label": "螢光筆粗細",
+        "selfPen.highlightWidth.desc": "控制螢光筆的線條寬度",
+        "selfPen.eraserWidth.label": "橡皮擦粗細",
+        "selfPen.eraserWidth.desc": "控制橡皮擦的擦除範圍",
+        "selfPen.penColor.label": "普通筆顏色",
+        "selfPen.penColor.desc": "選擇普通畫筆的預設顏色",
+        "selfPen.highlightColor.label": "螢光筆顏色",
+        "selfPen.highlightColor.desc": "選擇螢光筆的預設顏色",
+        "selfPen.highlightOpacity.label": "螢光筆透明度",
+        "selfPen.highlightOpacity.desc": "控制螢光筆的不透明度（0.1–1.0）",
+        "selfPen.canvas.title": "Canvas 調節",
+        "selfPen.frameRateMode.label": "幀率模式",
+        "selfPen.frameRateMode.desc": "平衡繪製流暢度與效能消耗",
+        "selfPen.frameRateMode.low": "低",
+        "selfPen.frameRateMode.adaptive": "自適應",
+        "selfPen.frameRateMode.high": "高",
+        "selfPen.penEffect.label": "鋼筆效果",
+        "selfPen.penEffect.desc": "壓感/速度感應的筆跡效果強度",
+        "selfPen.penEffect.off": "關閉",
+        "selfPen.penEffect.limited": "限制",
+        "selfPen.penEffect.full": "完整",
+        "selfPen.velocityEraser.label": "速度擦",
+        "selfPen.velocityEraser.desc": "快速移動時自動切換為橡皮擦",
+        "selfPen.inertialPan.label": "慣性移動",
+        "selfPen.inertialPan.desc": "畫布拖動時帶有慣性滑動",
+        "selfPen.palmErase.label": "手掌擦除",
+        "selfPen.palmErase.desc": "多觸點時識別手掌為擦除",
+        "selfPen.dprRange.label": "DPR 範圍",
+        "selfPen.dprRange.desc": "限定畫布解析度的下限與上限",
+        "selfPen.presets.title": "粗細預設",
+        "selfPen.penPreset.label": "畫筆粗細預設",
+        "selfPen.penPreset.desc": "快速選擇常用畫筆粗細",
+        "selfPen.eraserPreset.label": "橡皮擦粗細預設",
+        "selfPen.eraserPreset.desc": "快速選擇常用橡皮擦粗細",
+        "selfPen.resetDefaults.label": "恢復預設",
+        "selfPen.resetDefaults.desc": "將所有自研畫筆設定恢復為預設值",
+        "selfPen.resetDefaults.btn": "恢復",
         "interaction.pageTurnRateLimit.label": "翻頁頻率上限",
         "interaction.pageTurnRateLimit.desc": "限制每秒最多受理的翻頁請求次數，超出的點擊會被忽略",
         "interaction.showStatusBar.label": "頂部狀態列",
@@ -8963,6 +9255,46 @@
         "interaction.penMode.desc": "揀畫筆實現方式：COM 畫筆用 PowerPoint 原生墨跡；自研畫筆用自研渲染引擎畫筆跡",
         "interaction.penMode.com": "COM 畫筆",
         "interaction.penMode.self": "自研畫筆",
+        "selfPen.appearance.title": "筆跡外觀",
+        "selfPen.penWidth.label": "普通筆粗幼",
+        "selfPen.penWidth.desc": "控制普通畫筆嘅線條闊度",
+        "selfPen.highlightWidth.label": "螢光筆粗幼",
+        "selfPen.highlightWidth.desc": "控制螢光筆嘅線條闊度",
+        "selfPen.eraserWidth.label": "擦膠粗幼",
+        "selfPen.eraserWidth.desc": "控制擦膠嘅擦除範圍",
+        "selfPen.penColor.label": "普通筆顏色",
+        "selfPen.penColor.desc": "揀普通畫筆嘅預設顏色",
+        "selfPen.highlightColor.label": "螢光筆顏色",
+        "selfPen.highlightColor.desc": "揀螢光筆嘅預設顏色",
+        "selfPen.highlightOpacity.label": "螢光筆透明度",
+        "selfPen.highlightOpacity.desc": "控制螢光筆嘅不透明度（0.1–1.0）",
+        "selfPen.canvas.title": "Canvas 調節",
+        "selfPen.frameRateMode.label": "幀率模式",
+        "selfPen.frameRateMode.desc": "平衡繪製流暢度同效能消耗",
+        "selfPen.frameRateMode.low": "低",
+        "selfPen.frameRateMode.adaptive": "自適應",
+        "selfPen.frameRateMode.high": "高",
+        "selfPen.penEffect.label": "鋼筆效果",
+        "selfPen.penEffect.desc": "壓感/速度感應嘅筆跡效果強度",
+        "selfPen.penEffect.off": "關閉",
+        "selfPen.penEffect.limited": "限制",
+        "selfPen.penEffect.full": "完整",
+        "selfPen.velocityEraser.label": "速度擦",
+        "selfPen.velocityEraser.desc": "快速移動時自動切換做擦膠",
+        "selfPen.inertialPan.label": "慣性移動",
+        "selfPen.inertialPan.desc": "畫布拖動時有慣性滑動",
+        "selfPen.palmErase.label": "手掌擦除",
+        "selfPen.palmErase.desc": "多觸點時識別手掌做擦除",
+        "selfPen.dprRange.label": "DPR 範圍",
+        "selfPen.dprRange.desc": "限定畫布解析度嘅下限同上限",
+        "selfPen.presets.title": "粗幼預設",
+        "selfPen.penPreset.label": "畫筆粗幼預設",
+        "selfPen.penPreset.desc": "快速揀常用畫筆粗幼",
+        "selfPen.eraserPreset.label": "擦膠粗幼預設",
+        "selfPen.eraserPreset.desc": "快速揀常用擦膠粗幼",
+        "selfPen.resetDefaults.label": "恢復預設",
+        "selfPen.resetDefaults.desc": "將所有自研畫筆設定恢復做預設值",
+        "selfPen.resetDefaults.btn": "恢復",
         "interaction.pageTurnRateLimit.label": "翻頁頻率上限",
         "interaction.pageTurnRateLimit.desc": "限制每秒最多受理嘅翻頁請求次數，超出點擊會被忽略",
 
@@ -9387,6 +9719,46 @@
         "interaction.penMode.desc": "ペンの実装方式を選択：COM ペンは PowerPoint ネイティブのインクを使用；自研ペンは自社製レンダリングエンジンで描画",
         "interaction.penMode.com": "COM ペン",
         "interaction.penMode.self": "自研ペン",
+        "selfPen.appearance.title": "筆跡の外観",
+        "selfPen.penWidth.label": "ペンの太さ",
+        "selfPen.penWidth.desc": "通常ペンの線の太さを制御します",
+        "selfPen.highlightWidth.label": "マーカーの太さ",
+        "selfPen.highlightWidth.desc": "マーカーの線の太さを制御します",
+        "selfPen.eraserWidth.label": "消しゴムの太さ",
+        "selfPen.eraserWidth.desc": "消しゴムの消去範囲を制御します",
+        "selfPen.penColor.label": "ペンの色",
+        "selfPen.penColor.desc": "通常ペンの既定の色を選択します",
+        "selfPen.highlightColor.label": "マーカーの色",
+        "selfPen.highlightColor.desc": "マーカーの既定の色を選択します",
+        "selfPen.highlightOpacity.label": "マーカーの不透明度",
+        "selfPen.highlightOpacity.desc": "マーカーの不透明度を制御します（0.1–1.0）",
+        "selfPen.canvas.title": "Canvas 調整",
+        "selfPen.frameRateMode.label": "フレームレートモード",
+        "selfPen.frameRateMode.desc": "描画の滑らかさとパフォーマンス消費のバランスを取ります",
+        "selfPen.frameRateMode.low": "低",
+        "selfPen.frameRateMode.adaptive": "自適応",
+        "selfPen.frameRateMode.high": "高",
+        "selfPen.penEffect.label": "ペン効果",
+        "selfPen.penEffect.desc": "筆圧/速度検出による筆跡効果の強さ",
+        "selfPen.penEffect.off": "オフ",
+        "selfPen.penEffect.limited": "制限",
+        "selfPen.penEffect.full": "完全",
+        "selfPen.velocityEraser.label": "速度消去",
+        "selfPen.velocityEraser.desc": "高速移動時に自動で消しゴムに切り替えます",
+        "selfPen.inertialPan.label": "慣性移動",
+        "selfPen.inertialPan.desc": "キャンバスのドラッグ時に慣性スクロールします",
+        "selfPen.palmErase.label": "手のひら消去",
+        "selfPen.palmErase.desc": "マルチタッチ時に手のひらを消去として認識します",
+        "selfPen.dprRange.label": "DPR 範囲",
+        "selfPen.dprRange.desc": "キャンバス解像度の下限と上限を制限します",
+        "selfPen.presets.title": "太さプリセット",
+        "selfPen.penPreset.label": "ペンの太さプリセット",
+        "selfPen.penPreset.desc": "よく使うペンの太さを素早く選択します",
+        "selfPen.eraserPreset.label": "消しゴムの太さプリセット",
+        "selfPen.eraserPreset.desc": "よく使う消しゴムの太さを素早く選択します",
+        "selfPen.resetDefaults.label": "既定値に戻す",
+        "selfPen.resetDefaults.desc": "すべての自研ペン設定を既定値に戻します",
+        "selfPen.resetDefaults.btn": "戻す",
         "interaction.pageTurnRateLimit.label": "ページ送り頻度の上限",
         "interaction.pageTurnRateLimit.desc": "1秒あたりに受け付けるページ送り回数を制限し、超過したクリックは無視します",
 
@@ -9818,6 +10190,46 @@
         "interaction.penMode.desc": "Choose pen implementation: COM pen uses PowerPoint native ink; Self-developed pen uses custom rendering engine",
         "interaction.penMode.com": "COM Pen",
         "interaction.penMode.self": "Self-developed Pen",
+        "selfPen.appearance.title": "Stroke Appearance",
+        "selfPen.penWidth.label": "Pen Width",
+        "selfPen.penWidth.desc": "Controls the stroke width of the normal pen",
+        "selfPen.highlightWidth.label": "Highlighter Width",
+        "selfPen.highlightWidth.desc": "Controls the stroke width of the highlighter",
+        "selfPen.eraserWidth.label": "Eraser Width",
+        "selfPen.eraserWidth.desc": "Controls the erase area of the eraser",
+        "selfPen.penColor.label": "Pen Color",
+        "selfPen.penColor.desc": "Choose the default color of the normal pen",
+        "selfPen.highlightColor.label": "Highlighter Color",
+        "selfPen.highlightColor.desc": "Choose the default color of the highlighter",
+        "selfPen.highlightOpacity.label": "Highlighter Opacity",
+        "selfPen.highlightOpacity.desc": "Controls the highlighter opacity (0.1–1.0)",
+        "selfPen.canvas.title": "Canvas Tuning",
+        "selfPen.frameRateMode.label": "Frame Rate Mode",
+        "selfPen.frameRateMode.desc": "Balance drawing smoothness and performance cost",
+        "selfPen.frameRateMode.low": "Low",
+        "selfPen.frameRateMode.adaptive": "Adaptive",
+        "selfPen.frameRateMode.high": "High",
+        "selfPen.penEffect.label": "Pen Effect",
+        "selfPen.penEffect.desc": "Pressure/velocity-based stroke effect strength",
+        "selfPen.penEffect.off": "Off",
+        "selfPen.penEffect.limited": "Limited",
+        "selfPen.penEffect.full": "Full",
+        "selfPen.velocityEraser.label": "Velocity Eraser",
+        "selfPen.velocityEraser.desc": "Auto-switch to eraser on fast motion",
+        "selfPen.inertialPan.label": "Inertial Pan",
+        "selfPen.inertialPan.desc": "Canvas dragging with momentum",
+        "selfPen.palmErase.label": "Palm Erase",
+        "selfPen.palmErase.desc": "Recognize palm as erasure on multi-touch",
+        "selfPen.dprRange.label": "DPR Range",
+        "selfPen.dprRange.desc": "Clamp the canvas backing-store DPR",
+        "selfPen.presets.title": "Width Presets",
+        "selfPen.penPreset.label": "Pen Width Presets",
+        "selfPen.penPreset.desc": "Quickly pick a common pen width",
+        "selfPen.eraserPreset.label": "Eraser Width Presets",
+        "selfPen.eraserPreset.desc": "Quickly pick a common eraser width",
+        "selfPen.resetDefaults.label": "Reset to Defaults",
+        "selfPen.resetDefaults.desc": "Restore all self-pen settings to defaults",
+        "selfPen.resetDefaults.btn": "Reset",
         "interaction.pageTurnRateLimit.label": "Page turn rate limit",
         "interaction.pageTurnRateLimit.desc": "Limits accepted page-turn requests per second; extra clicks are ignored",
         "appearance.colorScheme.title": "Color Scheme",
@@ -10038,6 +10450,46 @@
         "interaction.penMode.desc": "Choose pen implementation: COM pen uses PowerPoint native ink; Self-developed pen uses custom rendering engine",
         "interaction.penMode.com": "COM Pen",
         "interaction.penMode.self": "Self-developed Pen",
+        "selfPen.appearance.title": "Stroke Appearance",
+        "selfPen.penWidth.label": "Pen Width",
+        "selfPen.penWidth.desc": "Controls the stroke width of the normal pen",
+        "selfPen.highlightWidth.label": "Highlighter Width",
+        "selfPen.highlightWidth.desc": "Controls the stroke width of the highlighter",
+        "selfPen.eraserWidth.label": "Eraser Width",
+        "selfPen.eraserWidth.desc": "Controls the erase area of the eraser",
+        "selfPen.penColor.label": "Pen Color",
+        "selfPen.penColor.desc": "Choose the default color of the normal pen",
+        "selfPen.highlightColor.label": "Highlighter Color",
+        "selfPen.highlightColor.desc": "Choose the default color of the highlighter",
+        "selfPen.highlightOpacity.label": "Highlighter Opacity",
+        "selfPen.highlightOpacity.desc": "Controls the highlighter opacity (0.1–1.0)",
+        "selfPen.canvas.title": "Canvas Tuning",
+        "selfPen.frameRateMode.label": "Frame Rate Mode",
+        "selfPen.frameRateMode.desc": "Balance drawing smoothness and performance cost",
+        "selfPen.frameRateMode.low": "Low",
+        "selfPen.frameRateMode.adaptive": "Adaptive",
+        "selfPen.frameRateMode.high": "High",
+        "selfPen.penEffect.label": "Pen Effect",
+        "selfPen.penEffect.desc": "Pressure/velocity-based stroke effect strength",
+        "selfPen.penEffect.off": "Off",
+        "selfPen.penEffect.limited": "Limited",
+        "selfPen.penEffect.full": "Full",
+        "selfPen.velocityEraser.label": "Velocity Eraser",
+        "selfPen.velocityEraser.desc": "Auto-switch to eraser on fast motion",
+        "selfPen.inertialPan.label": "Inertial Pan",
+        "selfPen.inertialPan.desc": "Canvas dragging with momentum",
+        "selfPen.palmErase.label": "Palm Erase",
+        "selfPen.palmErase.desc": "Recognize palm as erasure on multi-touch",
+        "selfPen.dprRange.label": "DPR Range",
+        "selfPen.dprRange.desc": "Clamp the canvas backing-store DPR",
+        "selfPen.presets.title": "Width Presets",
+        "selfPen.penPreset.label": "Pen Width Presets",
+        "selfPen.penPreset.desc": "Quickly pick a common pen width",
+        "selfPen.eraserPreset.label": "Eraser Width Presets",
+        "selfPen.eraserPreset.desc": "Quickly pick a common eraser width",
+        "selfPen.resetDefaults.label": "Reset to Defaults",
+        "selfPen.resetDefaults.desc": "Restore all self-pen settings to defaults",
+        "selfPen.resetDefaults.btn": "Reset",
         "interaction.pageTurnRateLimit.label": "Page turn rate limit",
         "interaction.pageTurnRateLimit.desc": "Limits accepted page-turn requests per second; extra clicks are ignored",
         "appearance.colorScheme.title": "Color Scheme",
@@ -10202,6 +10654,46 @@
       "ug-CN": {
         "app.settings": "تەڭشەك",
         "app.name": "Luminalium",
+        "selfPen.appearance.title": "笔迹外观",
+        "selfPen.penWidth.label": "普通笔粗细",
+        "selfPen.penWidth.desc": "控制普通画笔的线条宽度",
+        "selfPen.highlightWidth.label": "荧光笔粗细",
+        "selfPen.highlightWidth.desc": "控制荧光笔的线条宽度",
+        "selfPen.eraserWidth.label": "橡皮擦粗细",
+        "selfPen.eraserWidth.desc": "控制橡皮擦的擦除范围",
+        "selfPen.penColor.label": "普通笔颜色",
+        "selfPen.penColor.desc": "选择普通画笔的默认颜色",
+        "selfPen.highlightColor.label": "荧光笔颜色",
+        "selfPen.highlightColor.desc": "选择荧光笔的默认颜色",
+        "selfPen.highlightOpacity.label": "荧光笔透明度",
+        "selfPen.highlightOpacity.desc": "控制荧光笔的不透明度（0.1–1.0）",
+        "selfPen.canvas.title": "Canvas 调节",
+        "selfPen.frameRateMode.label": "帧率模式",
+        "selfPen.frameRateMode.desc": "平衡绘制流畅度与性能消耗",
+        "selfPen.frameRateMode.low": "低",
+        "selfPen.frameRateMode.adaptive": "自适应",
+        "selfPen.frameRateMode.high": "高",
+        "selfPen.penEffect.label": "钢笔效果",
+        "selfPen.penEffect.desc": "压感/速度感应的笔迹效果强度",
+        "selfPen.penEffect.off": "关闭",
+        "selfPen.penEffect.limited": "限制",
+        "selfPen.penEffect.full": "完整",
+        "selfPen.velocityEraser.label": "速度擦",
+        "selfPen.velocityEraser.desc": "快速移动时自动切换为橡皮擦",
+        "selfPen.inertialPan.label": "惯性移动",
+        "selfPen.inertialPan.desc": "画布拖动时带有惯性滑动",
+        "selfPen.palmErase.label": "手掌擦除",
+        "selfPen.palmErase.desc": "多触点时识别手掌为擦除",
+        "selfPen.dprRange.label": "DPR 范围",
+        "selfPen.dprRange.desc": "限定画布分辨率的下限与上限",
+        "selfPen.presets.title": "粗细预设",
+        "selfPen.penPreset.label": "画笔粗细预设",
+        "selfPen.penPreset.desc": "快速选择常用画笔粗细",
+        "selfPen.eraserPreset.label": "橡皮擦粗细预设",
+        "selfPen.eraserPreset.desc": "快速选择常用橡皮擦粗细",
+        "selfPen.resetDefaults.label": "恢复默认",
+        "selfPen.resetDefaults.desc": "将所有自研画笔设置恢复为默认值",
+        "selfPen.resetDefaults.btn": "恢复",
         "nav.main": "ئاساسىي",
         "nav.theme": "ئۇسلۇب",
         "nav.fonts": "خەت نۇسخىسى",
@@ -12635,6 +13127,158 @@
       refreshCustomSelect(sel);
     }
 
+    const SELF_PEN_PEN_COLORS = ['#000000','#ffffff','#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#ff8800','#8800ff','#888888','#ff4444','#44ff44','#4444ff','#ff44ff'];
+    const SELF_PEN_HIGHLIGHT_COLORS = ['#ffff00','#ff8800','#00ff00','#00ffff','#ff00ff','#ff4444','#4444ff','#888888','#000000','#ffffff','#ff0000','#0000ff','#44ff44','#88ff00','#0088ff'];
+    const SELF_PEN_DEFAULTS = { PenWidth:3, HighlightWidth:24, EraserWidth:30, HighlightOpacity:0.45, PenColor:'#000000', HighlightColor:'#ffff00', FrameRateMode:'adaptive', PenEffect:'limited', VelocityEraser:false, InertialPan:false, PalmErase:false, MinDpr:'1x', MaxDpr:'4x', PenWidthPresetIndex:1, EraserWidthPresetIndex:1 };
+    let _selfPenHydrating = false;
+
+    function buildSelfPenPalette(containerId, colors, target) {
+      const c = document.getElementById(containerId);
+      if (!c) return;
+      c.innerHTML = '';
+      colors.forEach(hex => {
+        const s = document.createElement('div');
+        s.className = 'swatch';
+        s.style.background = hex;
+        s.dataset.hex = hex;
+        s.onclick = () => {
+          if (_selfPenHydrating) return;
+          c.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
+          s.classList.add('active');
+          if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+            window.pywebview.api.save_setting('SelfPen', target, hex);
+          }
+        };
+        c.appendChild(s);
+      });
+    }
+
+    function setSelfPenPaletteActive(containerId, hex) {
+      const c = document.getElementById(containerId);
+      if (!c) return;
+      c.querySelectorAll('.swatch').forEach(x => {
+        x.classList.toggle('active', x.dataset.hex.toLowerCase() === String(hex || '').toLowerCase());
+      });
+    }
+
+    function onSelfPenRangeInput(key, value, valueSpanId, castFn) {
+      const v = castFn(value);
+      const span = document.getElementById(valueSpanId);
+      if (span) span.textContent = v;
+      if (_selfPenHydrating) return;
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+        window.pywebview.api.save_setting('SelfPen', key, v);
+      }
+      if (key === 'PenWidth') updatePresetActive('selfPen-pen-presets', v);
+      else if (key === 'EraserWidth') updatePresetActive('selfPen-eraser-presets', v);
+    }
+
+    function onSelfPenSelect(key, value) {
+      if (_selfPenHydrating) return;
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+        window.pywebview.api.save_setting('SelfPen', key, value);
+      }
+    }
+
+    function onSelfPenSegmented(key, value, btn) {
+      const container = btn.parentElement;
+      container.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (_selfPenHydrating) return;
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+        window.pywebview.api.save_setting('SelfPen', key, value);
+      }
+    }
+
+    function setSelfPenSegmented(containerId, value) {
+      const c = document.getElementById(containerId);
+      if (!c) return;
+      c.querySelectorAll('.seg-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.val === String(value));
+      });
+    }
+
+    function onSelfPenToggle(key, el) {
+      const next = !el.classList.contains('active');
+      el.classList.toggle('active', next);
+      if (_selfPenHydrating) return;
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+        window.pywebview.api.save_setting('SelfPen', key, next);
+      }
+    }
+
+    function onSelfPenPresetClick(kind, idx, val) {
+      const sliderId = kind === 'pen' ? 'sel-SelfPen-PenWidth' : 'sel-SelfPen-EraserWidth';
+      const valueSpanId = kind === 'pen' ? 'pen-width-val' : 'eraser-width-val';
+      const widthKey = kind === 'pen' ? 'PenWidth' : 'EraserWidth';
+      const presetKey = kind === 'pen' ? 'PenWidthPresetIndex' : 'EraserWidthPresetIndex';
+      const slider = document.getElementById(sliderId);
+      if (slider) slider.value = val;
+      const span = document.getElementById(valueSpanId);
+      if (span) span.textContent = val;
+      updatePresetActive(kind === 'pen' ? 'selfPen-pen-presets' : 'selfPen-eraser-presets', val);
+      if (_selfPenHydrating) return;
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+        window.pywebview.api.save_setting('SelfPen', widthKey, val);
+        window.pywebview.api.save_setting('SelfPen', presetKey, idx);
+      }
+    }
+
+    function updatePresetActive(containerId, val) {
+      const c = document.getElementById(containerId);
+      if (!c) return;
+      c.querySelectorAll('.preset-btn').forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.val) === parseInt(val));
+      });
+    }
+
+    function resetSelfPenDefaults() {
+      Object.keys(SELF_PEN_DEFAULTS).forEach(k => {
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+          window.pywebview.api.save_setting('SelfPen', k, SELF_PEN_DEFAULTS[k]);
+        }
+      });
+      hydrateSelfPenSettings(SELF_PEN_DEFAULTS);
+    }
+
+    function hydrateSelfPenSettings(s) {
+      _selfPenHydrating = true;
+      try {
+        const setRange = (id, val, spanId) => {
+          const el = document.getElementById(id); if (el) el.value = val;
+          const sp = document.getElementById(spanId); if (sp) sp.textContent = val;
+        };
+        setRange('sel-SelfPen-PenWidth', s.PenWidth, 'pen-width-val');
+        setRange('sel-SelfPen-HighlightWidth', s.HighlightWidth, 'hl-width-val');
+        setRange('sel-SelfPen-EraserWidth', s.EraserWidth, 'eraser-width-val');
+        setRange('sel-SelfPen-HighlightOpacity', s.HighlightOpacity, 'hl-opacity-val');
+        const setSel = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+        setSelfPenSegmented('seg-SelfPen-FrameRateMode', s.FrameRateMode);
+        setSelfPenSegmented('seg-SelfPen-PenEffect', s.PenEffect);
+        setSel('sel-SelfPen-MinDpr', s.MinDpr);
+        setSel('sel-SelfPen-MaxDpr', s.MaxDpr);
+        const setSw = (id, on) => { const el = document.getElementById(id); if (el) el.classList.toggle('active', !!on); };
+        setSw('sw-SelfPen-VelocityEraser', s.VelocityEraser);
+        setSw('sw-SelfPen-InertialPan', s.InertialPan);
+        setSw('sw-SelfPen-PalmErase', s.PalmErase);
+        buildSelfPenPalette('selfPen-color-pen', SELF_PEN_PEN_COLORS, 'PenColor');
+        buildSelfPenPalette('selfPen-color-highlight', SELF_PEN_HIGHLIGHT_COLORS, 'HighlightColor');
+        setSelfPenPaletteActive('selfPen-color-pen', s.PenColor);
+        setSelfPenPaletteActive('selfPen-color-highlight', s.HighlightColor);
+        updatePresetActive('selfPen-pen-presets', s.PenWidth);
+        updatePresetActive('selfPen-eraser-presets', s.EraserWidth);
+      } finally {
+        _selfPenHydrating = false;
+      }
+    }
+
+    function loadSelfPenSettings() {
+      if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.get_self_pen_settings) return;
+      window.pywebview.api.get_self_pen_settings().then(function (s) {
+        if (s && typeof s === 'object') hydrateSelfPenSettings(s);
+      });
+    }
+
     function updateToolbarIndicatorPosition() {
       const indicator = document.getElementById("toolbar-indicator");
       const pill = indicator ? indicator.querySelector(".toolbar-pill") : null;
@@ -13175,6 +13819,7 @@
       if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.get_settings) return;
 
       requestSystemFonts();
+      loadSelfPenSettings();
 
       window.pywebview.api.get_settings().then(function (res) {
         if (res && Object.keys(res).length > 0) {
@@ -16225,6 +16870,7 @@
       if (aboutItem) {
         document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
         aboutItem.classList.add('active');
+        aboutItem.classList.add('island-parent');
       }
 
       sections.forEach(sec => sec.classList.remove('active'));
@@ -16328,6 +16974,7 @@
           if (aboutItem) {
             document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
             aboutItem.classList.add('active');
+            aboutItem.classList.remove('island-parent');
           }
           document.querySelectorAll(".section").forEach(sec => sec.classList.remove('active'));
           if (aboutSection) {
@@ -16352,6 +16999,179 @@
         // Restore title
         if (title) {
           title.textContent = getText("section.about") || "关于";
+          title.style.display = 'none';
+          title.style.transition = '';
+          title.style.opacity = '0';
+          title.style.transform = 'translateX(-10px)';
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              title.style.transition = 'opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+              title.style.opacity = '';
+              title.style.transform = '';
+              setTimeout(() => { title.style.transition = ''; }, 420);
+            });
+          });
+        }
+      };
+
+      if (animationsDisabled()) {
+        onTransitionEnd();
+      } else {
+        setTimeout(() => onTransitionEnd({target: layout}), 80);
+      }
+    }
+
+    // Show pen secondary page (3-island layout) — mirrors showUpdate
+    function showPenPage() {
+      const layout = document.getElementById('layout');
+      const sections = document.querySelectorAll(".section");
+      const title = document.getElementById("section-title");
+      const pluginsItem = document.querySelector('.sidebar-item[data-section="plugins"]');
+
+      const parentTitle = getText("nav.plugins") || "工具栏";
+      const currentTitle = getText("toolbar.pen") || "画笔";
+
+      if (pluginsItem) {
+        document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+        pluginsItem.classList.add('active');
+        pluginsItem.classList.add('island-parent');
+      }
+
+      sections.forEach(sec => sec.classList.remove('active'));
+      document.getElementById('section-pen').classList.add('active');
+
+      // Context-aware back button
+      const backBtn = document.getElementById('sidebar-back-btn');
+      if (backBtn) backBtn.onclick = hidePenPage;
+
+      if (title) {
+        title.style.transition = 'opacity 0.14s cubic-bezier(0.16, 1, 0.3, 1), transform 0.14s cubic-bezier(0.16, 1, 0.3, 1)';
+        title.style.opacity = '0';
+        title.style.transform = 'translateX(8px)';
+        setTimeout(() => {
+          title.innerHTML = `<span class="title-parent" onclick="hidePenPage()">${parentTitle}</span><span class="title-separator">›</span><span class="title-current">${currentTitle}</span>`;
+          title.style.display = 'block';
+          title.style.transition = '';
+          title.style.opacity = '';
+          title.style.transform = '';
+        }, 140);
+      }
+
+      const penContent = document.querySelector('#section-pen .pen-content');
+      if (penContent) {
+        penContent.style.visibility = 'hidden';
+        penContent.style.opacity = '0';
+        penContent.style.transition = 'none';
+      }
+
+      layout.classList.add('three-island');
+
+      const revealPenContent = (e) => {
+        if (e && e.target !== layout) return;
+        if (revealPenContent._done) return;
+        revealPenContent._done = true;
+        layout.removeEventListener('transitionend', revealPenContent);
+        if (penContent) {
+          penContent.style.transition = 'opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+          penContent.style.visibility = '';
+          penContent.style.opacity = '';
+        }
+      };
+
+      if (animationsDisabled()) {
+        revealPenContent();
+      } else {
+        setTimeout(() => revealPenContent({target: layout}), 150);
+      }
+
+      loadSelfPenSettings();
+    }
+
+    // Hide pen secondary page — mirrors hideUpdate
+    function hidePenPage() {
+      const layout = document.getElementById('layout');
+      const title = document.getElementById("section-title");
+      const pluginsItem = document.querySelector('.sidebar-item[data-section="plugins"]');
+      const pluginsSection = document.getElementById('section-plugins');
+
+      // Fade-out breadcrumb title
+      if (title) {
+        title.style.transition = 'opacity 0.14s cubic-bezier(0.16, 1, 0.3, 1), transform 0.14s cubic-bezier(0.16, 1, 0.3, 1)';
+        title.style.opacity = '0';
+        title.style.transform = 'translateX(-8px)';
+      }
+
+      const sidebar = document.querySelector('.sidebar');
+      if (sidebar) {
+        sidebar.classList.add('sidebar-inserting');
+        sidebar.style.overflow = 'hidden';
+      }
+
+      if (window.api && typeof api.ensure_animation_smoothness === 'function') {
+        api.ensure_animation_smoothness(600);
+      }
+
+      layout.classList.remove('three-island');
+
+      const onTransitionEnd = (e) => {
+        if (e && e.target !== layout) return;
+        if (onTransitionEnd._done) return;
+        onTransitionEnd._done = true;
+        layout.removeEventListener('transitionend', onTransitionEnd);
+
+        // Start sidebar staggered slide-in first (lightweight, compositor-only)
+        if (sidebar) {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              sidebar.classList.remove('sidebar-inserting');
+              sidebar.classList.add('sidebar-inserting-active');
+              setTimeout(() => {
+                sidebar.classList.remove('sidebar-inserting-active');
+                sidebar.style.overflow = '';
+              }, 800);
+            });
+          });
+        }
+
+        // Plugins section layout — deferred so sidebar animation starts clean
+        requestAnimationFrame(() => {
+          if (pluginsSection) {
+            pluginsSection.style.display = 'block';
+            pluginsSection.style.animation = 'none';
+            pluginsSection.style.opacity = '0';
+          }
+          if (pluginsItem) {
+            document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+            pluginsItem.classList.add('active');
+            pluginsItem.classList.remove('island-parent');
+          }
+          document.querySelectorAll(".section").forEach(sec => sec.classList.remove('active'));
+          if (pluginsSection) {
+            pluginsSection.classList.add('active');
+          }
+
+          // Restore back button to default (hideUpdate)
+          const backBtn = document.getElementById('sidebar-back-btn');
+          if (backBtn) backBtn.onclick = hideUpdate;
+
+          // Release inline styles so CSS .section.active animation plays
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              if (pluginsSection) {
+                pluginsSection.style.display = '';
+                pluginsSection.style.animation = '';
+                pluginsSection.style.opacity = '';
+                setTimeout(() => {
+                  pluginsSection.style.animation = '';
+                }, 400);
+              }
+            });
+          });
+        });
+
+        // Restore title — plugins section hides #section-title (uses its own internal <h2>)
+        if (title) {
+          title.textContent = getText("section.plugins") || "插件";
           title.style.display = 'none';
           title.style.transition = '';
           title.style.opacity = '0';

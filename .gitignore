@@ -12,6 +12,7 @@
 .vscode/
 scripts/smtc_helper/obj/
 scripts/smtc_helper/bin/
+internalSMTCHelper/
 
 # Python
 __pycache__/

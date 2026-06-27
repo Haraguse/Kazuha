@@ -210,13 +210,14 @@ class WindowsSystemAPI(SystemAPI):
     def _get_smtc_helper_executable_candidates(self):
         root_dir = self._get_app_root_dir()
         return [
+            os.path.join(root_dir, "internalSMTCHelper", "SmtcHelper.exe"),
             os.path.join(
                 root_dir,
                 "scripts",
                 "smtc_helper",
                 "bin",
                 "Release",
-                "net8.0-windows10.0.19041.0",
+                "net10.0-windows10.0.19041.0",
                 "SmtcHelper.exe",
             ),
             os.path.join(root_dir, "scripts", "smtc_helper", "SmtcHelper.exe"),

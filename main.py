@@ -11,7 +11,7 @@ def register_url_protocol():
 		import winreg
 		key_path = r"Software\Classes\luminalium"
 
-		# コマンドラインを構築
+		# 构建命令行
 		if getattr(sys, "frozen", False):
 			exe_path = os.path.abspath(sys.executable)
 			new_cmd = f'"{exe_path}" "%1"'
@@ -19,14 +19,14 @@ def register_url_protocol():
 		else:
 			main_py = os.path.abspath(__file__)
 			python_exe = os.path.abspath(sys.executable)
-			# pythonw.exe でCMD窓を出さずに起動
+			# 用 pythonw.exe 启动以避免弹出 CMD 窗口
 			pythonw_exe = python_exe.replace("python.exe", "pythonw.exe")
 			if not os.path.exists(pythonw_exe):
 				pythonw_exe = python_exe
 			new_cmd = f'"{pythonw_exe}" "{main_py}" "%1"'
 			icon_path = f'"{pythonw_exe}",0'
 
-		# 既存のコマンドが最新かチェック、古い or なければ再登録
+		# 检查现有命令是否最新，过旧或不存在则重新注册
 		try:
 			cmd_key = winreg.OpenKey(
 				winreg.HKEY_CURRENT_USER,
@@ -36,8 +36,8 @@ def register_url_protocol():
 			)
 			old_cmd = winreg.QueryValue(cmd_key, "")
 			winreg.CloseKey(cmd_key)
-			if old_cmd == new_cmd:  
-				return  # すでに最新
+			if old_cmd == new_cmd:
+				return  # 已是最新
 		except FileNotFoundError:
 			pass
 
@@ -2425,6 +2425,7 @@ class PPTAssistantApp:
 		self._slideshow_running = False
 		self._last_slideshow_rect = None
 		self._last_slideshow_screen = None
+		self._ui_env_ready = False
 		self._reload_timer = QTimer()
 		self._reload_timer.setSingleShot(True)
 		self._reload_timer.setInterval(150)
@@ -2586,7 +2587,7 @@ class PPTAssistantApp:
 			os.path.getmtime(SETTINGS_PATH) if os.path.exists(SETTINGS_PATH) else 0
 		)
 		self._settings_timer = QTimer()
-		self._settings_timer.setInterval(200)
+		self._settings_timer.setInterval(1000)
 		self._settings_timer.timeout.connect(self._check_settings_changed)
 		self._settings_timer.start()
 
@@ -2598,7 +2599,7 @@ class PPTAssistantApp:
 		self.monitor = PPTMonitor()
 		_init_trace("_init_steps: PPTMonitor created")
 
-		# Step 3.5: Preload WebEngine + settings page (block until page fully loaded)
+		# Step 3.5: Preload WebEngine + settings page (async, non-blocking)
 		yield 35, "prepare_ui_env"
 		_init_trace("_init_steps: step 35 - warming up WebEngine + settings page")
 		try:
@@ -2616,46 +2617,33 @@ class PPTAssistantApp:
 			sp.prewarm(shell=True)
 			sp.prewarm_load_content()
 
-			# Wait for the settings page to finish loading
-			_ui_env_loop = QEventLoop()
-			_ui_env_deadline = 15000  # ms safety cap
-			_ui_env_timeout = QTimer()
-			_ui_env_timeout.setSingleShot(True)
-			_ui_env_timeout.timeout.connect(_ui_env_loop.quit)
-			_ui_env_poll = QTimer()
-			_ui_env_poll.setInterval(100)
-			_ui_env_loaded = {"done": False}
-
-			def _check_page_loaded():
-				w = getattr(sp, "_window", None)
-				if w is None:
-					return
-				# Check if the page has finished loading via the window's load state
-				page = None
-				try:
-					page = w.page()
-				except Exception:
-					page = None
-				if page is None:
-					return
-				# Use runJavaScript to check document.readyState
-				def _on_ready(result):
-					if isinstance(result, str) and result == "complete":
-						_ui_env_loaded["done"] = True
-						_ui_env_poll.stop()
-						_ui_env_loop.quit()
-				try:
-					page.runJavaScript("document.readyState", _on_ready)
-				except Exception:
-					pass
-
-			_ui_env_poll.timeout.connect(_check_page_loaded)
-			_ui_env_timeout.start(_ui_env_deadline)
-			_ui_env_poll.start()
-			_ui_env_loop.exec()
-			_ui_env_poll.stop()
-			_ui_env_timeout.stop()
-			_init_trace("_init_steps: settings page loaded" if _ui_env_loaded["done"] else "_init_steps: settings page load timeout")
+			# Kick off settings page load asynchronously (non-blocking). The page
+			# keeps loading in the background while startup proceeds; a loadFinished
+			# callback flips self._ui_env_ready so dependent stages can check
+			# readiness without blocking the main thread on a QEventLoop.
+			try:
+				_w = getattr(sp, "_window", None)
+				if _w is not None:
+					_page = None
+					try:
+						_page = _w.page()
+					except Exception:
+						_page = None
+					if _page is not None:
+						def _on_ui_env_loaded(_ok=True):
+							if not self._ui_env_ready:
+								self._ui_env_ready = True
+								try:
+									_init_trace("_init_steps: settings page loaded (async)")
+								except Exception:
+									pass
+						try:
+							_page.loadFinished.connect(_on_ui_env_loaded)
+						except Exception:
+							pass
+			except Exception:
+				pass
+			_init_trace("_init_steps: settings page load kicked off (async)")
 		except Exception as e:
 			print(f"[Main] UI env preload skipped: {e}", flush=True)
 			_init_trace(f"_init_steps: UI env preload error - {e}")
@@ -3103,12 +3091,6 @@ class PPTAssistantApp:
 	def _connect_signals(self):
 		self.monitor.slideshow_started.connect(self.on_slideshow_start)
 		self.monitor.slideshow_ended.connect(self.on_slideshow_end)
-		self.monitor.slideshow_started.connect(
-			lambda: self._focus_watcher.set_slideshow_running(True)
-		)
-		self.monitor.slideshow_ended.connect(
-			lambda: self._focus_watcher.set_slideshow_running(False)
-		)
 		self.monitor.slideshow_hwnd_changed.connect(
 			self._focus_watcher.set_slideshow_hwnd
 		)
@@ -3290,7 +3272,13 @@ class PPTAssistantApp:
 		temp_dir = os.path.join(tempfile.gettempdir(), "luminalium_ppt_thumbs")
 		if os.path.exists(temp_dir):
 			try:
-				shutil.rmtree(temp_dir)
+				import threading
+				threading.Thread(
+					target=shutil.rmtree,
+					args=(temp_dir,),
+					kwargs={"ignore_errors": True},
+					daemon=True
+				).start()
 			except Exception:
 				pass
 		try:
@@ -3375,8 +3363,9 @@ class PPTAssistantApp:
 	def _cache_slideshow_geometry(self, rect, screen):
 		try:
 			if rect is not None and hasattr(rect, "isEmpty") and not rect.isEmpty():
-				self._last_slideshow_rect = rect
-				self._last_slideshow_screen = screen
+				if rect != self._last_slideshow_rect or screen != self._last_slideshow_screen:
+					self._last_slideshow_rect = rect
+					self._last_slideshow_screen = screen
 		except Exception:
 			pass
 
@@ -3812,6 +3801,14 @@ class PPTAssistantApp:
 
 	def cleanup(self):
 		"""Cleanup app resources and terminate subprocesses."""
+		# Stop all timers
+		for timer_attr in ('_settings_timer', '_flag_timer', '_overlay_focus_timer', '_reload_timer', '_onboarding_wait_timer'):
+			timer = getattr(self, timer_attr, None)
+			if timer is not None:
+				try:
+					timer.stop()
+				except Exception:
+					pass
 		if hasattr(self, "_theme_watcher"):
 			try:
 				self._theme_watcher.stop()
@@ -3878,16 +3875,16 @@ if __name__ == "__main__":
 		route = parse_luminalium_url(arg)
 		if route is not None:
 			_pending_protocol_url = arg
-			# 既存インスタンスにURLを転送、新インスタンス起動を防止
+			# 将 URL 转发给已有实例，防止启动新实例
 			forwarded = False
 			import socket
 			from urllib.parse import quote
 			import urllib.request
 
-			# ポート疎通確認＋HTTP転送（最大5回リトライ、指数バックオフ）
+			# 端口连通性检查 + HTTP 转发（最多重试 5 次，指数退避）
 			for attempt in range(5):
 				try:
-					# まずポートが開いてるか簡易チェック
+					# 先简单检查端口是否开放
 					sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 					sock.settimeout(0.3)
 					result = sock.connect_ex(('127.0.0.1', 28423))
@@ -3909,8 +3906,8 @@ if __name__ == "__main__":
 			if forwarded:
 				sys.exit(0)
 			else:
-				# ポートが開いてる=既存インスタンスがいるがHTTP応答なし → フラグファイルに書き込んで終了
-				# ポートが閉じてる=既存インスタンスなし → このまま新規起動
+				# 端口开放=已有实例但无 HTTP 响应 → 写入标志文件后退出
+				# 端口关闭=无已有实例 → 继续新启动
 				sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				sock.settimeout(0.3)
 				port_open = sock.connect_ex(('127.0.0.1', 28423)) == 0
