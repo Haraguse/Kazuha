@@ -342,6 +342,14 @@ def _is_win11():
 def _configure_profile(profile):
     if profile is None:
         return None
+
+    try:
+        profile.setHttpUserAgent(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"
+        )
+    except Exception:
+        pass
+
     if getattr(profile, "_luminalium_configured", False):
         return profile
 
@@ -3687,11 +3695,27 @@ class MainWindow(QWebEngineView):
             QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True
         )
         settings.setAttribute(
+            QWebEngineSettings.WebAttribute.AllowRunningInsecureContent, True
+        )
+        settings.setAttribute(
+            QWebEngineSettings.WebAttribute.JavascriptCanAccessClipboard, True
+        )
+        settings.setAttribute(
             QWebEngineSettings.WebAttribute.ScrollAnimatorEnabled,
             not self._disable_animations,
         )
         settings.setAttribute(QWebEngineSettings.WebAttribute.AutoLoadImages, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, False)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
+
+        try:
+            profile = self.page().profile()
+            if profile is not None:
+                profile.setHttpUserAgent(
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"
+                )
+        except Exception:
+            pass
         _configure_profile(self.page().profile())
         self.channel = QWebChannel()
         self.channel.registerObject("api", api)
