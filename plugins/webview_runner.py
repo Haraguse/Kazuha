@@ -1,7 +1,11 @@
 import sys
 import os
 
-# Nuitka standalone detection and compatibility
+CHROMIUM_FLAGS = "--disable-web-security --allow-file-access-from-files --allow-running-insecure-content --disable-features=IsolateOrigins,site-per-process"
+existing_flags = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "")
+if CHROMIUM_FLAGS not in existing_flags:
+    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = (existing_flags + " " + CHROMIUM_FLAGS).strip()
+
 if hasattr(sys, "nuitka_binary"):
     sys.frozen = True
 
@@ -420,6 +424,18 @@ def _configure_profile(profile):
                 try:
                     settings.setAttribute(
                         QWebEngineSettings.WebAttribute.LocalStorageEnabled, True
+                    )
+                    settings.setAttribute(
+                        QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True
+                    )
+                    settings.setAttribute(
+                        QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True
+                    )
+                    settings.setAttribute(
+                        QWebEngineSettings.WebAttribute.AllowRunningInsecureContent, True
+                    )
+                    settings.setAttribute(
+                        QWebEngineSettings.WebAttribute.JavascriptCanAccessClipboard, True
                     )
                     settings.setDefaultTextEncoding("utf-8")
                 except Exception:
