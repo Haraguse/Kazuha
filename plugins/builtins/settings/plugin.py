@@ -274,6 +274,7 @@ class SettingsPlugin(AssistantPlugin):
         api.set_in_process(True)
         api.settings = self._load_json_file(get_active_settings_path())
         api.version = self._load_json_file(version_path)
+        api.version["device_uuid"] = wv.get_device_uuid()[:8]
         api.platform = sys.platform
 
         api.trigger_resource_alert = lambda: self.trigger_resource_alert()

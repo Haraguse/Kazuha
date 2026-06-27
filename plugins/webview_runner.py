@@ -4801,6 +4801,16 @@ def main():
             api.settings = dialog_data["overrideSettings"]
         else:
             api.settings = settings
+        try:
+            base_dir_v = os.path.dirname(os.path.abspath(__file__))
+            root_dir_v = os.path.dirname(base_dir_v)
+            version_path = os.path.join(root_dir_v, "version.json")
+            if os.path.exists(version_path):
+                with open(version_path, "r", encoding="utf-8") as f:
+                    api.version = json.load(f)
+        except Exception:
+            api.version = {}
+        api.version["device_uuid"] = get_device_uuid()[:8]
         base_dir = os.path.dirname(os.path.abspath(__file__))
         if mode == "--crash-file":
             html_path = os.path.join(
