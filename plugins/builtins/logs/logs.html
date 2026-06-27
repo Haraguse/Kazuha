@@ -747,8 +747,12 @@
         "diagnostics.clear.title": "清空日志",
         "diagnostics.clear.confirm": "确定要清空所有日志吗？此操作不可撤销。",
         "dialog.cancel": "取消",
+        "watermark.1": "开发中版本",
+        "watermark.2": "技术预览版",
+        "watermark.3": "Release Preview",
+        "watermark.4": "重新评估版本",
         "diagnostics.export.header": "时间,级别,消息",
-        "general.devWatermark": "开发中版本/技术预览版本\n不保证最终品质 （{version}）"
+        "general.devWatermark": "{type}\n不保证最终品质 （{version}/{codename}/{uuid}）"
       },
       "zh-TW": {
         "app.logs": "日誌",
@@ -762,8 +766,12 @@
         "diagnostics.clear.title": "清空日誌",
         "diagnostics.clear.confirm": "確定要清空所有日誌嗎？此操作不可撤銷。",
         "dialog.cancel": "取消",
+        "watermark.1": "開發中版本",
+        "watermark.2": "技術預覽版",
+        "watermark.3": "Release Preview",
+        "watermark.4": "重新評估版本",
         "diagnostics.export.header": "時間,級別,訊息",
-        "general.devWatermark": "開發中版本/技術預覽版本\n不保證最終品質 （{version}）"
+        "general.devWatermark": "{type}\n不保證最終品質 （{version}/{codename}/{uuid}）"
       },
       "ja-JP": {
         "app.logs": "ログ",
@@ -777,8 +785,12 @@
         "diagnostics.clear.title": "ログをクリア",
         "diagnostics.clear.confirm": "すべてのログをクリアしますか？この操作は元に戻せません。",
         "dialog.cancel": "キャンセル",
+        "watermark.1": "開発中バージョン",
+        "watermark.2": "テクニカルプレビュー",
+        "watermark.3": "Release Preview",
+        "watermark.4": "再評価バージョン",
         "diagnostics.export.header": "時刻,レベル,メッセージ",
-        "general.devWatermark": "開発中バージョン/テクニカルプレビュー\n品質は保証されません （{version}）"
+        "general.devWatermark": "{type}\n品質は保証されません （{version}/{codename}/{uuid}）"
       },
       "en-US": {
         "app.logs": "Logs",
@@ -792,8 +804,12 @@
         "diagnostics.clear.title": "Clear Logs",
         "diagnostics.clear.confirm": "Are you sure you want to clear all logs? This action cannot be undone.",
         "dialog.cancel": "Cancel",
+        "watermark.1": "In-Development",
+        "watermark.2": "Technical Preview",
+        "watermark.3": "Release Preview",
+        "watermark.4": "Re-evaluated Version",
         "diagnostics.export.header": "Time,Level,Message",
-        "general.devWatermark": "In-Development/Technical Preview\nFinal quality not guaranteed ({version})"
+        "general.devWatermark": "{type}\nFinal quality not guaranteed ({version}/{codename}/{uuid})"
       }
     };
 
@@ -959,12 +975,29 @@
     function updateDevWatermark() {
       const el = document.getElementById("devWatermark");
       if (!el) return;
-      const version = (window.initialSettings && window.initialSettings.version) || {};
-      const verStr = version.version_name || version.version || "";
+      const versionInfo = (window.initialSettings && window.initialSettings.version) || {};
+      const verStr = versionInfo.version_name || versionInfo.version || "";
+      const codeName = versionInfo.code_name || "";
+      const deviceUuid = versionInfo.device_uuid || "";
       if (!verStr) { el.style.display = "none"; return; }
-      const tmpl = getText("general.devWatermark") || "In-Development/Technical Preview\nFinal quality not guaranteed ({version})";
-      el.textContent = tmpl.replace("{version}", verStr);
-      el.style.display = "";
+      const parts = String(verStr).trim().split(".");
+      const suffix = parts.length >= 2 ? parts[parts.length - 1] : "";
+      if (["1", "2", "3", "4"].includes(suffix)) {
+        const type = getText("watermark." + suffix) || "";
+        const tmpl = getText("general.devWatermark") || "{type}\nFinal quality not guaranteed ({version}/{codename}/{uuid})";
+        const codeNameMap = {
+          "MomokaKawaragi": "Momoka Kawaragi",
+          "NinaIseri": "Nina Iseri",
+          "SubaruAwa": "Subaru Awa",
+          "TomoEbizuka": "Tomo Ebizuka",
+          "Momokan": "Momokan",
+        };
+        const displayCodeName = codeNameMap[codeName] || codeName;
+        el.textContent = tmpl.replace("{type}", type).replace("{version}", verStr).replace("{codename}", displayCodeName).replace("{uuid}", deviceUuid);
+        el.style.display = "";
+      } else {
+        el.style.display = "none";
+      }
     }
 
     /* --- Sidebar Nav Icons --- */

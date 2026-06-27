@@ -279,6 +279,7 @@ from ppt_assistant.core.windows_notifications import (
 	configure_current_process_for_notifications,
 	send_windows_notification,
 )
+from utils.env_utils import get_device_uuid
 
 
 class WindowIconEventFilter(QObject):
@@ -342,7 +343,7 @@ SPLASH_I18N = {
 		"watermark.2": "技术预览版",
 		"watermark.3": "Release Preview",
 		"watermark.4": "重新评估版本",
-		"dev_watermark": "{type}\n不保证最终品质 （{version}）",
+		"dev_watermark": "{type}\n不保证最终品质 （{version}/{codename}/{uuid}）",
 	},
 	"zh-TW": {
 		"initializing": "正在初始化",
@@ -360,7 +361,7 @@ SPLASH_I18N = {
 		"watermark.2": "技術預覽版",
 		"watermark.3": "Release Preview",
 		"watermark.4": "重新評估版本",
-		"dev_watermark": "{type}\n不保證最終品質 （{version}）",
+		"dev_watermark": "{type}\n不保證最終品質 （{version}/{codename}/{uuid}）",
 	},
 	"yue-HK": {
 		"initializing": "開工中",
@@ -378,7 +379,7 @@ SPLASH_I18N = {
 		"watermark.2": "技術預覽版",
 		"watermark.3": "Release Preview",
 		"watermark.4": "重新評估版本",
-		"dev_watermark": "{type}\n品質唔包（{version}）",
+		"dev_watermark": "{type}\n品質唔包（{version}/{codename}/{uuid}）",
 	},
 	"ja-JP": {
 		"initializing": "初期化中",
@@ -396,7 +397,7 @@ SPLASH_I18N = {
 		"watermark.2": "テクニカルプレビュー",
 		"watermark.3": "Release Preview",
 		"watermark.4": "再評価バージョン",
-		"dev_watermark": "{type}\n品質は保証されません （{version}）",
+		"dev_watermark": "{type}\n品質は保証されません （{version}/{codename}/{uuid}）",
 	},
 	"en-US": {
 		"initializing": "Initializing",
@@ -414,7 +415,7 @@ SPLASH_I18N = {
 		"watermark.2": "Technical Preview",
 		"watermark.3": "Release Preview",
 		"watermark.4": "Re-evaluated Version",
-		"dev_watermark": "{type}\nFinal quality not guaranteed ({version})",
+		"dev_watermark": "{type}\nFinal quality not guaranteed ({version}/{codename}/{uuid})",
 	},
 }
 
@@ -848,6 +849,7 @@ def _apply_global_font(app: QApplication):
 
 	if selected_family:
 		font = QFont(selected_family)
+		font.setFamilies([selected_family] + default_families)
 	else:
 		if not default_families:
 			return
@@ -860,6 +862,31 @@ def _apply_global_font(app: QApplication):
 	if weight is not None:
 		font.setWeight(weight)
 	app.setFont(font)
+
+	def _apply_font_to_widget(widget):
+		try:
+			widget.setFont(font)
+			for child in widget.findChildren(QWidget):
+				_apply_font_to_widget(child)
+		except Exception:
+			pass
+
+	for window in app.topLevelWidgets():
+		_apply_font_to_widget(window)
+
+	try:
+		from PySide6.QtWebEngineCore import QWebEngineProfile, QWebEngineSettings
+		for profile in [QWebEngineProfile.defaultProfile()]:
+			if profile is not None:
+				settings = profile.settings()
+				if settings is not None:
+					family = font.family()
+					settings.setFontFamily(QWebEngineSettings.FontFamily.StandardFont, family)
+					settings.setFontFamily(QWebEngineSettings.FontFamily.SansSerifFont, family)
+					settings.setFontFamily(QWebEngineSettings.FontFamily.SerifFont, family)
+					settings.setFontFamily(QWebEngineSettings.FontFamily.FixedFont, family)
+	except Exception:
+		pass
 
 
 def _load_version_info():
@@ -1100,8 +1127,9 @@ class StartupSplash(QWidget):
 			suffix = self._version_raw.split(".")[-1]
 			w_type = i18n_table.get(f"watermark.{suffix}", "")
 			tmpl = i18n_table.get("dev_watermark", "")
+			device_uuid = get_device_uuid()
 			self._dev_watermark.setText(
-				tmpl.format(type=w_type, version=self._version_text)
+				tmpl.format(type=w_type, version=self._version_text, codename=self._code_name_en, uuid=device_uuid[:8])
 			)
 			font = QFont()
 			font.setPixelSize(11)

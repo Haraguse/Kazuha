@@ -8044,7 +8044,7 @@
         "watermark.2": "技术预览版",
         "watermark.3": "Release Preview",
         "watermark.4": "重新评估版本",
-        "general.devWatermark": "{type}\n不保证最终品质 （{version}）",
+        "general.devWatermark": "{type}\n不保证最终品质 （{version}/{codename}/{uuid}）",
         "general.autoShowOverlay.label": "自动显示悬浮窗",
         "general.autoShowOverlay.desc": "检测到演示软件放映开始时自动显示悬浮窗；兼容模式下会始终显示",
         "group.compatibility": "兼容性",
@@ -8501,7 +8501,7 @@
         "watermark.2": "技術預覽版",
         "watermark.3": "Release Preview",
         "watermark.4": "重新評估版本",
-        "general.devWatermark": "{type}\n不保證最終品質 （{version}）",
+        "general.devWatermark": "{type}\n不保證最終品質 （{version}/{codename}/{uuid}）",
         "general.autoShowOverlay.label": "自動顯示懸浮窗",
         "general.autoShowOverlay.desc": "偵測到 PPT 播放時自動顯示工具列",
         "general.compatibilityMode.label": "相容模式",
@@ -8936,7 +8936,7 @@
         "watermark.2": "技術預覽版",
         "watermark.3": "Release Preview",
         "watermark.4": "重新評估版本",
-        "general.devWatermark": "{type}\n品質唔包 ({version})",
+        "general.devWatermark": "{type}\n品質唔包 ({version}/{codename}/{uuid})",
         "general.autoShowOverlay.label": "自動顯示懸浮窗",
         "general.autoShowOverlay.desc": "偵測到 PPT 放映就自動開工具列",
         "general.compatibilityMode.label": "相容模式",
@@ -9360,7 +9360,7 @@
         "watermark.2": "テクニカルプレビュー",
         "watermark.3": "Release Preview",
         "watermark.4": "再評価バージョン",
-        "general.devWatermark": "{type}\n品質は保証されません （{version}）",
+        "general.devWatermark": "{type}\n品質は保証されません （{version}/{codename}/{uuid}）",
         "general.autoShowOverlay.label": "オーバーレイを自動表示",
         "general.autoShowOverlay.desc": "PPT スライドショーを検出したらツールバーを自動表示します",
         "general.compatibilityMode.label": "互換モード",
@@ -9791,7 +9791,7 @@
         "watermark.2": "Technical Preview",
         "watermark.3": "Release Preview",
         "watermark.4": "Re-evaluated Version",
-        "general.devWatermark": "{type}\nFinal quality not guaranteed ({version})",
+        "general.devWatermark": "{type}\nFinal quality not guaranteed ({version}/{codename}/{uuid})",
         "general.autoShowOverlay.label": "Auto show overlay",
         "general.autoShowOverlay.desc": "Automatically show toolbar when PPT slideshow is detected",
         "general.compatibilityMode.label": "Compatibility Mode",
@@ -10011,7 +10011,7 @@
         "watermark.2": "Technical Preview",
         "watermark.3": "Release Preview",
         "watermark.4": "Re-evaluated Version",
-        "general.devWatermark": "{type}\nFinal quality not guaranteed ({version})",
+        "general.devWatermark": "{type}\nFinal quality not guaranteed ({version}/{codename}/{uuid})",
         "general.autoShowOverlay.label": "Auto show overlay",
         "general.autoShowOverlay.desc": "Automatically show toolbar when PPT slideshow is detected",
         "general.compatibilityMode.label": "Compatibility Mode",
@@ -14009,8 +14009,17 @@
               const suffix = parts.length >= 2 ? parts[parts.length - 1] : "";
               if (["1", "2", "3", "4"].includes(suffix)) {
                 const type = getText("watermark." + suffix) || "";
-                const tmpl = getText("general.devWatermark") || "{type}\n不保证最终品质 ({version})";
-                wm.textContent = tmpl.replace("{type}", type).replace("{version}", version);
+                const tmpl = getText("general.devWatermark") || "{type}\n不保证最终品质 ({version}/{codename}/{uuid})";
+                const codeNameMap = {
+                  "MomokaKawaragi": "Momoka Kawaragi",
+                  "NinaIseri": "Nina Iseri",
+                  "SubaruAwa": "Subaru Awa",
+                  "TomoEbizuka": "Tomo Ebizuka",
+                  "Momokan": "Momokan",
+                };
+                const displayCodeName = codeNameMap[codeName] || codeName;
+                const deviceUuid = v.device_uuid || "";
+                wm.textContent = tmpl.replace("{type}", type).replace("{version}", version).replace("{codename}", displayCodeName).replace("{uuid}", deviceUuid);
                 wm.style.display = "block";
               } else {
                 wm.style.display = "none";

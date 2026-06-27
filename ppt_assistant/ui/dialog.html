@@ -689,7 +689,11 @@
         "dialog.ink.text": "检测到放映期间添加了墨迹注释，是否保留到幻灯片中？",
         "dialog.ink.keep": "保留",
         "dialog.ink.discard": "不保留",
-        "general.devWatermark": "开发中版本/技术预览版本\n不保证最终品质 （{version}）",
+        "watermark.1": "开发中版本",
+        "watermark.2": "技术预览版",
+        "watermark.3": "Release Preview",
+        "watermark.4": "重新评估版本",
+        "general.devWatermark": "{type}\n不保证最终品质 （{version}/{codename}/{uuid}）",
       },
       "zh-TW": {
         "dialog.generic.ok": "確認",
@@ -723,7 +727,11 @@
         "dialog.ink.text": "偵測到放映期間新增墨跡註解，是否保留到投影片中？",
         "dialog.ink.keep": "保留",
         "dialog.ink.discard": "不保留",
-        "general.devWatermark": "開發中版本/技術預覽版本\n不保證最終品質 （{version}）"
+        "watermark.1": "開發中版本",
+        "watermark.2": "技術預覽版",
+        "watermark.3": "Release Preview",
+        "watermark.4": "重新評估版本",
+        "general.devWatermark": "{type}\n不保證最終品質 （{version}/{codename}/{uuid}）"
       },
       "yue-HK": {
         "dialog.generic.ok": "得啦",
@@ -757,7 +765,11 @@
         "dialog.ink.text": "偵測到放映期間加咗墨跡註解，要唔要保留到投影片入面？",
         "dialog.ink.keep": "保留",
         "dialog.ink.discard": "唔保留",
-        "general.devWatermark": "開發中版本/技術預覽版本\n品質唔包 ({version})"
+        "watermark.1": "開發中版本",
+        "watermark.2": "技術預覽版",
+        "watermark.3": "Release Preview",
+        "watermark.4": "重新評估版本",
+        "general.devWatermark": "{type}\n品質唔包 ({version}/{codename}/{uuid})"
       },
       "ja-JP": {
         "dialog.generic.ok": "確認",
@@ -791,7 +803,11 @@
         "dialog.ink.text": "スライドショー中に追加されたインク注釈があります。スライドに保持しますか？",
         "dialog.ink.keep": "保持する",
         "dialog.ink.discard": "破棄する",
-        "general.devWatermark": "開発中バージョン/テクニカルプレビュー\n品質は保証されません （{version}）"
+        "watermark.1": "開発中バージョン",
+        "watermark.2": "テクニカルプレビュー",
+        "watermark.3": "Release Preview",
+        "watermark.4": "再評価バージョン",
+        "general.devWatermark": "{type}\n品質は保証されません （{version}/{codename}/{uuid}）"
       },
       "en-US": {
         "dialog.generic.ok": "OK",
@@ -825,7 +841,11 @@
         "dialog.ink.text": "Ink annotations were added during the slideshow. Keep them on the slides?",
         "dialog.ink.keep": "Keep",
         "dialog.ink.discard": "Discard",
-        "general.devWatermark": "In-Development/Technical Preview\nFinal quality not guaranteed ({version})"
+        "watermark.1": "In-Development",
+        "watermark.2": "Technical Preview",
+        "watermark.3": "Release Preview",
+        "watermark.4": "Re-evaluated Version",
+        "general.devWatermark": "{type}\nFinal quality not guaranteed ({version}/{codename}/{uuid})"
       },
       "ug-CN": {
         "dialog.generic.ok": "جەزملەشتۈر",
@@ -859,7 +879,11 @@
         "dialog.ink.text": "نامايىش جەريانىدا سىياھ تەكشۈرۈش قوشۇلدى. سلايدلارغا ساقلامسىز؟",
         "dialog.ink.keep": "ساقلا",
         "dialog.ink.discard": "تاشلا",
-        "general.devWatermark": "تېخنىكىلىق ئالدىن كۆرۈش نۇسخىسى\nسۈپەت كاپالەتلەنمەيدۇ ({version})"
+        "watermark.1": "ئىشلەۋاتقان نۇسخا",
+        "watermark.2": "تېخنىكىلىق ئالدىن كۆرۈش",
+        "watermark.3": "Release Preview",
+        "watermark.4": "قايتا باھالاش نۇسخىسى",
+        "general.devWatermark": "{type}\nسۈپەت كاپالەتلەنمەيدۇ ({version}/{codename}/{uuid})"
       }
     };
 
@@ -1270,6 +1294,7 @@
         if (api.get_version) {
           api.get_version().then(v => {
             if (!v) return;
+            const codeName = v.code_name || "";
             const version = v.version || "";
             const wm = document.getElementById("dev-watermark");
             if (wm && version) {
@@ -1282,8 +1307,18 @@
                 displayVersion = parts.slice(0, -1).join(".") + " Patch " + patchNum;
               }
               if (isDev) {
-                const tmpl = getText("general.devWatermark") || "开发中版本/技术预览版本\n不保证最终品质 （{version}）";
-                wm.textContent = tmpl.replace("{version}", displayVersion);
+                const type = getText("watermark." + suffix) || "";
+                const tmpl = getText("general.devWatermark") || "{type}\n不保证最终品质 （{version}/{codename}/{uuid}）";
+                const codeNameMap = {
+                  "MomokaKawaragi": "Momoka Kawaragi",
+                  "NinaIseri": "Nina Iseri",
+                  "SubaruAwa": "Subaru Awa",
+                  "TomoEbizuka": "Tomo Ebizuka",
+                  "Momokan": "Momokan",
+                };
+                const displayCodeName = codeNameMap[codeName] || codeName;
+                const deviceUuid = v.device_uuid || "";
+                wm.textContent = tmpl.replace("{type}", type).replace("{version}", displayVersion).replace("{codename}", displayCodeName).replace("{uuid}", deviceUuid);
                 wm.style.display = "block";
               } else {
                 wm.style.display = "none";
