@@ -1115,32 +1115,6 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
         return settings_dict
 
     @Slot(result="QVariant")
-    def get_self_pen_settings(self):
-        try:
-            from ppt_assistant.core.config import cfg
-
-            return {
-                "PenWidth": cfg.selfPenWidth.value,
-                "HighlightWidth": cfg.selfHighlightWidth.value,
-                "EraserWidth": cfg.selfEraserWidth.value,
-                "HighlightOpacity": cfg.selfHighlightOpacity.value,
-                "PenColor": cfg.selfPenColor.value,
-                "HighlightColor": cfg.selfHighlightColor.value,
-                "FrameRateMode": cfg.selfPenFrameRateMode.value,
-                "PenEffect": cfg.selfPenPenEffect.value,
-                "VelocityEraser": cfg.selfPenVelocityEraser.value,
-                "InertialPan": cfg.selfPenInertialPan.value,
-                "PalmErase": cfg.selfPenPalmErase.value,
-                "MinDpr": cfg.selfPenMinDpr.value,
-                "MaxDpr": cfg.selfPenMaxDpr.value,
-                "PenWidthPresetIndex": cfg.selfPenWidthPresetIndex.value,
-                "EraserWidthPresetIndex": cfg.selfEraserWidthPresetIndex.value,
-            }
-        except Exception as e:
-            print(f"get_self_pen_settings error: {e}", file=sys.stderr)
-            return {}
-
-    @Slot(result="QVariant")
     def get_version(self):
         return self.version
 
@@ -1543,49 +1517,6 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
                     cfg.secRandomEnabled.value = bool(value)
                 except Exception:
                     pass
-            elif category == "SelfPen":
-                try:
-                    from ppt_assistant.core.config import cfg
-
-                    _SELF_PEN_INT_KEYS = {
-                        "PenWidth": "selfPenWidth",
-                        "HighlightWidth": "selfHighlightWidth",
-                        "EraserWidth": "selfEraserWidth",
-                        "PenWidthPresetIndex": "selfPenWidthPresetIndex",
-                        "EraserWidthPresetIndex": "selfEraserWidthPresetIndex",
-                    }
-                    _SELF_PEN_FLOAT_KEYS = {"HighlightOpacity": "selfHighlightOpacity"}
-                    _SELF_PEN_STR_KEYS = {
-                        "PenColor": "selfPenColor",
-                        "HighlightColor": "selfHighlightColor",
-                        "FrameRateMode": "selfPenFrameRateMode",
-                        "PenEffect": "selfPenPenEffect",
-                        "MinDpr": "selfPenMinDpr",
-                        "MaxDpr": "selfPenMaxDpr",
-                    }
-                    _SELF_PEN_BOOL_KEYS = {
-                        "VelocityEraser": "selfPenVelocityEraser",
-                        "InertialPan": "selfPenInertialPan",
-                        "PalmErase": "selfPenPalmErase",
-                    }
-                    attr = None
-                    casted = None
-                    if key in _SELF_PEN_INT_KEYS:
-                        attr = _SELF_PEN_INT_KEYS[key]
-                        casted = int(value)
-                    elif key in _SELF_PEN_FLOAT_KEYS:
-                        attr = _SELF_PEN_FLOAT_KEYS[key]
-                        casted = float(value)
-                    elif key in _SELF_PEN_STR_KEYS:
-                        attr = _SELF_PEN_STR_KEYS[key]
-                        casted = str(value)
-                    elif key in _SELF_PEN_BOOL_KEYS:
-                        attr = _SELF_PEN_BOOL_KEYS[key]
-                        casted = bool(value)
-                    if attr is not None and getattr(cfg, attr).value != casted:
-                        getattr(cfg, attr).value = casted
-                except Exception as e:
-                    print(f"SelfPen save_setting sync error: {e}", file=sys.stderr)
 
             if category == "Appearance" and key in ("ThemeMode", "ThemeId"):
                 self.update_settings(data)
