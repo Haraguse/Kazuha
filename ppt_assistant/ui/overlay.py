@@ -227,6 +227,58 @@ class OverlayBridge(QObject):
         elif tool_name == "eraser":
             self._overlay.request_ptr_eraser.emit()
 
+    @Slot(str, "QVariant")
+    def setSelfPenSetting(self, key, value):
+        try:
+            if hasattr(value, "toVariant"):
+                value = value.toVariant()
+            elif hasattr(value, "toPython"):
+                value = value.toPython()
+        except Exception:
+            pass
+        try:
+            from ppt_assistant.core.config import cfg
+
+            _INT_KEYS = {
+                "PenWidth": "selfPenWidth",
+                "HighlightWidth": "selfHighlightWidth",
+                "EraserWidth": "selfEraserWidth",
+                "PenWidthPresetIndex": "selfPenWidthPresetIndex",
+                "EraserWidthPresetIndex": "selfEraserWidthPresetIndex",
+            }
+            _FLOAT_KEYS = {"HighlightOpacity": "selfHighlightOpacity"}
+            _STR_KEYS = {
+                "PenColor": "selfPenColor",
+                "HighlightColor": "selfHighlightColor",
+                "FrameRateMode": "selfPenFrameRateMode",
+                "PenEffect": "selfPenPenEffect",
+                "MinDpr": "selfPenMinDpr",
+                "MaxDpr": "selfPenMaxDpr",
+            }
+            _BOOL_KEYS = {
+                "VelocityEraser": "selfPenVelocityEraser",
+                "InertialPan": "selfPenInertialPan",
+                "PalmErase": "selfPenPalmErase",
+            }
+            attr = None
+            casted = None
+            if key in _INT_KEYS:
+                attr = _INT_KEYS[key]
+                casted = int(value)
+            elif key in _FLOAT_KEYS:
+                attr = _FLOAT_KEYS[key]
+                casted = float(value)
+            elif key in _STR_KEYS:
+                attr = _STR_KEYS[key]
+                casted = str(value)
+            elif key in _BOOL_KEYS:
+                attr = _BOOL_KEYS[key]
+                casted = bool(value)
+            if attr is not None and getattr(cfg, attr).value != casted:
+                getattr(cfg, attr).value = casted
+        except Exception as e:
+            print(f"[Bridge] setSelfPenSetting error: {e}", flush=True)
+
     @Slot()
     def prevPage(self):
         self._overlay.request_prev.emit()
@@ -321,6 +373,28 @@ class OverlayBridge(QObject):
     def updateMask(self, rects):
         self._overlay.update_mask(rects)
 
+    @Slot(str)
+    def showStrokeBg(self, dataUrl):
+        try:
+            w = self._overlay._stroke_bg_window
+            w.sync_geometry_with(self._overlay)
+            w.set_image_data_url(dataUrl)
+            if not w.isVisible():
+                w.show()
+            # Overlay must stay above the stroke bg window so toolbar remains interactive
+            self._overlay.raise_()
+        except Exception as e:
+            print(f"[Overlay] showStrokeBg error: {e}")
+
+    @Slot()
+    def hideStrokeBg(self):
+        try:
+            w = self._overlay._stroke_bg_window
+            if w.isVisible():
+                w.hide()
+        except Exception:
+            pass
+
     @Slot()
     def releaseFocus(self):
         try:
@@ -413,6 +487,7 @@ class InkPromptWindow(QWidget):
         self.bg_color = QColor(0, 0, 0, 140)
 
         # Create the dialog
+        self._result_emitted = False
         self._dialog = self._create_dialog(texts)
 
     def _resolve_target_screen_geometry(self):
@@ -445,6 +520,8 @@ class InkPromptWindow(QWidget):
 
         dialog.yesButton.clicked.connect(lambda: self._on_result(True))
         dialog.cancelButton.clicked.connect(lambda: self._on_result(False))
+        # Handle ESC / reject (reject() does not trigger cancelButton.clicked)
+        dialog.rejected.connect(lambda: self._on_result(False))
 
         return dialog
 
@@ -499,8 +576,11 @@ class InkPromptWindow(QWidget):
             SND_ASYNC = 0x0001  # Play asynchronously
             SND_NODEFAULT = 0x0002  # Do not use default sound
 
-            # Play the Windows Error sound
-            sound_path = r"C:\Windows\Media\Windows Error.wav"
+            # Play the ink prompt notification sound (bundled asset)
+            sound_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "..", "assets", "ink_prompt_notify.wav",
+            )
             result = winmm.PlaySoundW(sound_path, 0, SND_FILENAME | SND_ASYNC | SND_NODEFAULT)
 
             if result == 0:
@@ -509,6 +589,9 @@ class InkPromptWindow(QWidget):
             print(f"[InkPrompt] Error playing sound: {e}", flush=True)
 
     def _on_result(self, result):
+        if getattr(self, '_result_emitted', False):
+            return
+        self._result_emitted = True
         self.result.emit(result)
         # Close the dialog first, then close the parent window
         if hasattr(self, '_dialog') and self._dialog:
@@ -566,6 +649,7 @@ class LastSlideExitPromptWindow(QWidget):
             remove_window_border(self.winId())
 
         self.bg_color = QColor(0, 0, 0, 140)
+        self._result_emitted = False
         self._dialog = self._create_dialog(texts)
 
     def _create_dialog(self, texts):
@@ -577,6 +661,8 @@ class LastSlideExitPromptWindow(QWidget):
 
         dialog.yesButton.clicked.connect(lambda: self._on_result(True))
         dialog.cancelButton.clicked.connect(lambda: self._on_result(False))
+        # Handle ESC / reject (reject() does not trigger cancelButton.clicked)
+        dialog.rejected.connect(lambda: self._on_result(False))
 
         if hasattr(dialog, "maskWidget"):
             dialog.maskWidget.deleteLater()
@@ -620,6 +706,9 @@ class LastSlideExitPromptWindow(QWidget):
             self._dialog.move(local_x, local_y)
 
     def _on_result(self, result):
+        if getattr(self, '_result_emitted', False):
+            return
+        self._result_emitted = True
         self.result.emit(result)
         if hasattr(self, "_dialog") and self._dialog:
             try:
@@ -799,6 +888,63 @@ class _InkPromptEvent(QEvent):
         super().__init__(_INK_PROMP_EVENT_TYPE)
 
 
+class StrokeBgWindow(QWidget):
+    """Transparent full-screen window that displays ink stroke snapshots.
+
+    Uses WA_TransparentForMouseEvents so mouse events pass through to PPT below,
+    independent of the overlay window's mask (which clips visual output).
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.setWindowFlags(
+            Qt.FramelessWindowHint
+            | Qt.WindowDoesNotAcceptFocus
+            | Qt.Tool
+            | Qt.WindowStaysOnTopHint
+            | Qt.NoDropShadowWindowHint
+        )
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setAttribute(Qt.WA_NoSystemBackground)
+        self.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self.setAttribute(Qt.WA_ShowWithoutActivating, True)
+
+        self._label = QLabel(self)
+        self._label.setScaledContents(True)
+        self._label.setGeometry(0, 0, 1, 1)
+        self._pixmap = None
+
+        if sys.platform == "win32":
+            try:
+                from ppt_assistant.core.platform_integration import remove_window_border_delayed
+                remove_window_border_delayed(self)
+            except Exception:
+                pass
+
+    def set_image_data_url(self, data_url: str):
+        import base64
+        from PySide6.QtGui import QPixmap, QImage
+        try:
+            _, b64data = data_url.split(",", 1)
+            img_data = base64.b64decode(b64data)
+            img = QImage()
+            img.loadFromData(img_data)
+            self._pixmap = QPixmap.fromImage(img)
+            self._label.setPixmap(self._pixmap)
+            self._label.setGeometry(0, 0, self.width(), self.height())
+        except Exception as e:
+            print(f"[StrokeBgWindow] Failed to load image: {e}")
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._label.setGeometry(0, 0, self.width(), self.height())
+
+    def sync_geometry_with(self, other):
+        g = other.geometry()
+        if g != self.geometry():
+            self.setGeometry(g)
+
+
 class OverlayWindow(QWebEngineView):
     request_next = Signal()
     request_prev = Signal()
@@ -843,6 +989,10 @@ class OverlayWindow(QWebEngineView):
         self._cached_thumbnails = set()
         self._zorder_timer = None
         self._topmost_applied_once = False
+        self._config_debounce_timer = QTimer(self)
+        self._config_debounce_timer.setSingleShot(True)
+        self._config_debounce_timer.setInterval(50)
+        self._config_debounce_timer.timeout.connect(self._do_update_config)
 
         if self._wayland_compatible_mode:
             self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
@@ -874,6 +1024,10 @@ class OverlayWindow(QWebEngineView):
         if sys.platform == "win32":
             from ppt_assistant.core.platform_integration import remove_window_border_delayed
             remove_window_border_delayed(self)
+
+        # Independent transparent window for ink stroke snapshots — displayed
+        # when pen is inactive so strokes stay visible despite overlay mask.
+        self._stroke_bg_window = StrokeBgWindow()
 
         self.monitor = None
         self._timer_manager = None
@@ -1165,16 +1319,14 @@ class OverlayWindow(QWebEngineView):
         try:
             page = self.page()
         except RuntimeError:
-            print(f"[Overlay] _run_javascript: RuntimeError getting page", flush=True)
+            print(f"[Overlay] _run_javascript: RuntimeError getting page")
             return
         if page is None:
-            print(f"[Overlay] _run_javascript: page is None", flush=True)
+            print(f"[Overlay] _run_javascript: page is None")
             return
         if not self._page_ready:
-            print(f"[Overlay] _run_javascript: page not ready, caching script", flush=True)
             self._pending_scripts.append(script)
             return
-        print(f"[Overlay] _run_javascript: executing script", flush=True)
         page.runJavaScript(script)
 
     def _flush_pending_scripts(self):
@@ -1218,7 +1370,7 @@ class OverlayWindow(QWebEngineView):
         self.reset_pen_color_ui()
         self.reset_tool_state_ui()
         self.update_theme()
-        self.update_config()
+        self._do_update_config()
         self._apply_zorder_timer()
 
     def _ensure_topmost(self):
@@ -1267,6 +1419,16 @@ class OverlayWindow(QWebEngineView):
             hwnd = int(self.winId())
             if not hwnd:
                 return
+            # Short-circuit: if topmost was already applied, check if it's still TOPMOST
+            if self._topmost_applied_once:
+                try:
+                    GWL_EXSTYLE = -20
+                    WS_EX_TOPMOST = 0x00000008
+                    current_style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+                    if current_style & WS_EX_TOPMOST:
+                        return  # Already TOPMOST, skip redundant API calls
+                except Exception:
+                    pass  # If check fails, proceed with full logic
             HWND_TOPMOST = -1
             SWP_NOMOVE = 0x0002
             SWP_NOSIZE = 0x0001
@@ -1714,6 +1876,9 @@ class OverlayWindow(QWebEngineView):
         self._run_javascript(js)
 
     def update_config(self):
+        self._config_debounce_timer.start()
+
+    def _do_update_config(self):
         try:
             # Check if C++ object is still valid
             if not self.page():
@@ -1825,6 +1990,21 @@ class OverlayWindow(QWebEngineView):
             "apps": apps_list,
             "disabledTools": cfg.disabledTools.value,
             "penMode": cfg.penMode.value,
+            "selfPenWidth": cfg.selfPenWidth.value,
+            "selfHighlightWidth": cfg.selfHighlightWidth.value,
+            "selfEraserWidth": cfg.selfEraserWidth.value,
+            "selfHighlightOpacity": cfg.selfHighlightOpacity.value,
+            "selfPenColor": cfg.selfPenColor.value,
+            "selfHighlightColor": cfg.selfHighlightColor.value,
+            "selfPenFrameRateMode": cfg.selfPenFrameRateMode.value,
+            "selfPenPenEffect": cfg.selfPenPenEffect.value,
+            "selfPenVelocityEraser": cfg.selfPenVelocityEraser.value,
+            "selfPenInertialPan": cfg.selfPenInertialPan.value,
+            "selfPenPalmErase": cfg.selfPenPalmErase.value,
+            "selfPenMinDpr": cfg.selfPenMinDpr.value,
+            "selfPenMaxDpr": cfg.selfPenMaxDpr.value,
+            "selfPenWidthPresetIndex": cfg.selfPenWidthPresetIndex.value,
+            "selfEraserWidthPresetIndex": cfg.selfEraserWidthPresetIndex.value,
         }
 
         js = f"if(window.updateConfig) window.updateConfig({json.dumps(config_data)});"
@@ -2065,6 +2245,21 @@ class OverlayWindow(QWebEngineView):
         cfg.zOrderCheckInterval.valueChanged.connect(lambda *_: self._apply_zorder_timer())
         cfg.disabledTools.valueChanged.connect(lambda *_: self.update_config())
         cfg.penMode.valueChanged.connect(lambda *_: self.update_config())
+        cfg.selfPenWidth.valueChanged.connect(lambda *_: self.update_config())
+        cfg.selfHighlightWidth.valueChanged.connect(lambda *_: self.update_config())
+        cfg.selfEraserWidth.valueChanged.connect(lambda *_: self.update_config())
+        cfg.selfHighlightOpacity.valueChanged.connect(lambda *_: self.update_config())
+        cfg.selfPenColor.valueChanged.connect(lambda *_: self.update_config())
+        cfg.selfHighlightColor.valueChanged.connect(lambda *_: self.update_config())
+        cfg.selfPenFrameRateMode.valueChanged.connect(lambda *_: self.update_config())
+        cfg.selfPenPenEffect.valueChanged.connect(lambda *_: self.update_config())
+        cfg.selfPenVelocityEraser.valueChanged.connect(lambda *_: self.update_config())
+        cfg.selfPenInertialPan.valueChanged.connect(lambda *_: self.update_config())
+        cfg.selfPenPalmErase.valueChanged.connect(lambda *_: self.update_config())
+        cfg.selfPenMinDpr.valueChanged.connect(lambda *_: self.update_config())
+        cfg.selfPenMaxDpr.valueChanged.connect(lambda *_: self.update_config())
+        cfg.selfPenWidthPresetIndex.valueChanged.connect(lambda *_: self.update_config())
+        cfg.selfEraserWidthPresetIndex.valueChanged.connect(lambda *_: self.update_config())
 
     def show(self):
         """覆层窗口显示 —— 带淡入动画，拒绝生硬弹出"""
@@ -2086,6 +2281,11 @@ class OverlayWindow(QWebEngineView):
         """覆层窗口隐藏 —— 带淡出动画"""
         if not self.isVisible():
             return
+        # Hide stroke bg window immediately so strokes don't outlive the toolbar fade-out
+        try:
+            self._stroke_bg_window.hide()
+        except Exception:
+            pass
         if hasattr(self, "_fade_anim") and self._fade_anim is not None:
             self._fade_anim.stop()
             self._fade_anim = None
@@ -2109,6 +2309,7 @@ class OverlayWindow(QWebEngineView):
         self._start_memory_timer()
         self._refresh_status_services()
         print(f"[Overlay] After showEvent, window visible: {self.isVisible()}")
+        self._run_javascript("if (window.syncInkCanvasMode) syncInkCanvasMode();")
 
     def hideEvent(self, event):
         self._stop_memory_timer()
@@ -2118,6 +2319,11 @@ class OverlayWindow(QWebEngineView):
             page = self.page()
             if page is not None:
                 page.clearMemoryCaches()
+        except Exception:
+            pass
+        # Hide stroke bg window together with overlay
+        try:
+            self._stroke_bg_window.hide()
         except Exception:
             pass
         super().hideEvent(event)
@@ -2184,6 +2390,11 @@ class OverlayWindow(QWebEngineView):
                 self.status_timer.stop()
             except Exception:
                 pass
+        # Close the standalone stroke bg window
+        try:
+            self._stroke_bg_window.close()
+        except Exception:
+            pass
         super().closeEvent(event)
 
     def set_active_on_slideshow(self, active: bool, animate: bool = True):
@@ -2235,6 +2446,7 @@ class OverlayWindow(QWebEngineView):
                 print(f"[Overlay] Error in set_active_on_slideshow(False): {e}")
 
     def on_slideshow_start_cleanup(self):
+        self._run_javascript("if (window.clearAllInkState) clearAllInkState();")
         self.reset_pen_color_ui()
         self.reset_tool_state_ui("select")
 
@@ -2301,6 +2513,11 @@ class OverlayWindow(QWebEngineView):
         elif rect:
             # Fallback if screen_or_metadata is None or unexpected
             self.setGeometry(rect)
+        # Keep stroke bg window aligned with overlay geometry
+        try:
+            self._stroke_bg_window.sync_geometry_with(self)
+        except Exception:
+            pass
         if sys.platform.startswith("linux") and self.isVisible():
             QTimer.singleShot(0, self._ensure_topmost)
 

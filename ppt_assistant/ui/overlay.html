@@ -488,6 +488,8 @@
             z-index: 2;
             pointer-events: none;
             background-size: 100% 100%;
+            background-repeat: no-repeat;
+            background-position: center center;
         }
 
         #overlay-toast {
@@ -913,7 +915,7 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.2s, transform 0.2s;
-            z-index: 100;
+            z-index: 150;
         }
 
         #eraser-settings.visible {
@@ -1153,7 +1155,11 @@
             }
         }
 
-        #color-picker, #eraser-settings, #toolbar, .flipper, #status-bar {
+        #color-picker, #eraser-settings {
+            z-index: 150;
+        }
+
+        #toolbar, .flipper, #status-bar {
             z-index: 100;
         }
 
@@ -1177,7 +1183,7 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.2s, transform 0.2s;
-            z-index: 100;
+            z-index: 150;
             min-width: 320px;
         }
 
@@ -1325,7 +1331,7 @@
             height: 4px;
             -webkit-appearance: none;
             appearance: none;
-            background: var(--overlay-border);
+            background: var(--overlay-border, var(--overlay-popup-border));
             border-radius: 2px;
             outline: none;
         }
@@ -1334,7 +1340,7 @@
             width: 16px;
             height: 16px;
             border-radius: 50%;
-            background: var(--overlay-accent);
+            background: var(--overlay-accent, var(--accent-color));
             cursor: pointer;
         }
 
@@ -1590,14 +1596,14 @@
             <div class="clear-btn-icon"></div>
             <div class="clear-btn-text">清空屏幕</div>
         </div>
-        <div class="ink-width-section" id="ink-width-section">
+        <div class="ink-width-section" style="display:block; border-top: 1px solid var(--overlay-border); padding-top: 10px; margin-top: 8px;">
             <div class="ink-width-row">
-                <span class="ink-width-label" id="ink-width-label">荧光笔粗细</span>
-                <span class="ink-width-value" id="ink-width-value">24</span>
+                <span class="ink-width-label">橡皮粗细</span>
+                <span class="ink-width-value" id="eraser-width-value">30</span>
             </div>
-            <input type="range" class="ink-width-slider" id="ink-width-slider"
-                min="8" max="48" value="24" step="2"
-                oninput="setInkWidth(this.value)">
+            <input type="range" class="ink-width-slider" id="eraser-width-slider"
+                min="10" max="80" value="30" step="2"
+                oninput="inkEraserWidth = parseInt(this.value); document.getElementById('eraser-width-value').textContent = this.value; if(window.bridge&&bridge.setSelfPenSetting)bridge.setSelfPenSetting('EraserWidth', inkEraserWidth);">
         </div>
     </div>
 
@@ -1636,6 +1642,15 @@
                 <div class="color-option" style="background-color: #002060;" onclick="selectColor(0,32,96, this)" onmouseover="updateColorInfo('深蓝色', '0 32 96', '#002060')"></div>
                 <div class="color-option" style="background-color: #7030A0;" onclick="selectColor(112,48,160, this)" onmouseover="updateColorInfo('紫色', '112 48 160', '#7030A0')"></div>
             </div>
+            <div class="ink-width-section" style="display:block; border-top: 1px solid var(--overlay-border); padding-top: 10px; margin-top: 8px;">
+                <div class="ink-width-row">
+                    <span class="ink-width-label">笔粗细</span>
+                    <span class="ink-width-value" id="pen-width-value">3</span>
+                </div>
+                <input type="range" class="ink-width-slider" id="pen-width-slider"
+                    min="1" max="12" value="3" step="1"
+                    oninput="inkPenWidth = parseInt(this.value); document.getElementById('pen-width-value').textContent = this.value; if(window.bridge&&bridge.setSelfPenSetting)bridge.setSelfPenSetting('PenWidth', inkPenWidth);">
+            </div>
         </div>
 
         <div id="tab-highlight" class="pivot-content">
@@ -1656,7 +1671,7 @@
                 </div>
                 <input type="range" class="ink-width-slider" id="hl-width-slider"
                     min="8" max="48" value="24" step="2"
-                    oninput="inkHighlightWidth = parseInt(this.value); document.getElementById('hl-width-value').textContent = this.value;">
+                    oninput="inkHighlightWidth = parseInt(this.value); document.getElementById('hl-width-value').textContent = this.value; if(window.bridge&&bridge.setSelfPenSetting)bridge.setSelfPenSetting('HighlightWidth', inkHighlightWidth);">
             </div>
         </div>
         
@@ -1892,6 +1907,9 @@
         let currentPage = 1;
         let totalPage = 1;
 
+        // Cached .interactive elements — avoid repeated querySelectorAll calls in hot paths
+        const _interactiveEls = Array.from(document.querySelectorAll('.interactive'));
+
         function animationsDisabled() {
             return !!currentConfig?.disableAnimations;
         }
@@ -1942,12 +1960,12 @@
 
         document.addEventListener('click', (e) => {
             if (!document.body.classList.contains('popup-active')) return;
-            
-            const isClickInside = e.target.closest('#color-picker') || 
+
+            const isClickInside = e.target.closest('#color-picker') ||
                                   e.target.closest('#eraser-settings') ||
                                   e.target.closest('#page-selector') ||
                                   e.target.closest('.tool-btn');
-            
+
             if (!isClickInside) {
                 closePopup();
             }
@@ -2025,6 +2043,13 @@
                 normalizeHexColor(displayColor.hex || DEFAULT_PEN_COLOR.hex)
             );
             currentPenColor = displayColor;
+
+            // Sync pen width slider to current value
+            const penSlider = document.getElementById('pen-width-slider');
+            if (penSlider) {
+                penSlider.value = inkPenWidth;
+                document.getElementById('pen-width-value').textContent = inkPenWidth;
+            }
         }
 
         function resetPenColorState() {
@@ -2188,6 +2213,22 @@
 
         function updateConfig(config) {
             currentConfig = config;
+            // Apply SelfPen config (defensive: COM-mode configs also include these fields now)
+            if (config.selfPenWidth !== undefined) { inkPenWidth = config.selfPenWidth; const s = document.getElementById('pen-width-slider'); if (s) { s.value = inkPenWidth; const v = document.getElementById('pen-width-value'); if (v) v.textContent = inkPenWidth; } }
+            if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHighlightWidth; const s = document.getElementById('hl-width-slider'); if (s) { s.value = inkHighlightWidth; const v = document.getElementById('hl-width-value'); if (v) v.textContent = inkHighlightWidth; } }
+            if (config.selfEraserWidth !== undefined) { inkEraserWidth = config.selfEraserWidth; const s = document.getElementById('eraser-width-slider'); if (s) { s.value = inkEraserWidth; const v = document.getElementById('eraser-width-value'); if (v) v.textContent = inkEraserWidth; } }
+            if (config.selfHighlightOpacity !== undefined) inkHighlightOpacity = config.selfHighlightOpacity;
+            if (config.selfPenColor !== undefined) inkPenColor = config.selfPenColor;
+            if (config.selfHighlightColor !== undefined) inkHighlightColor = config.selfHighlightColor;
+            if (config.selfPenFrameRateMode !== undefined) selfPenFrameRateMode = config.selfPenFrameRateMode;
+            if (config.selfPenPenEffect !== undefined) selfPenPenEffect = config.selfPenPenEffect;
+            if (config.selfPenVelocityEraser !== undefined) selfPenVelocityEraser = config.selfPenVelocityEraser;
+            if (config.selfPenInertialPan !== undefined) selfPenInertialPan = config.selfPenInertialPan;
+            if (config.selfPenPalmErase !== undefined) selfPenPalmErase = config.selfPenPalmErase;
+            if (config.selfPenMinDpr !== undefined) selfPenMinDpr = config.selfPenMinDpr;
+            if (config.selfPenMaxDpr !== undefined) selfPenMaxDpr = config.selfPenMaxDpr;
+            if (config.selfPenWidthPresetIndex !== undefined) selfPenWidthPresetIndex = config.selfPenWidthPresetIndex;
+            if (config.selfEraserWidthPresetIndex !== undefined) selfEraserWidthPresetIndex = config.selfEraserWidthPresetIndex;
             applyAnimationPreference();
             // Apply pen mode: initialize canvas then sync mode
             if (config.penMode === 'self-developed') {
@@ -2562,6 +2603,8 @@
             toolbar.appendChild(endBtn);
             updatePageInfo(currentPage, totalPage);
             scheduleMaskUpdate();
+            // Re-evaluate clock timer interval now that config may have changed
+            _startClockTimer();
         }
 
         // ─── Self-developed Pen (InkCanvas) Drawing Engine ────────────────
@@ -2574,6 +2617,19 @@
         let inkPenWidth = 3;
         let inkHighlightWidth = 24;
         let inkEraserWidth = 30;
+        // SelfPen config-driven variables (defaults match cfg SelfPen defaults)
+        let inkHighlightOpacity = 0.45;
+        let inkPenColor = '#000000';
+        let inkHighlightColor = '#FFFF00';
+        let selfPenFrameRateMode = 'adaptive';
+        let selfPenPenEffect = 'limited';
+        let selfPenVelocityEraser = false;
+        let selfPenInertialPan = false;
+        let selfPenPalmErase = false;
+        let selfPenMinDpr = '1x';
+        let selfPenMaxDpr = '4x';
+        let selfPenWidthPresetIndex = 1;
+        let selfEraserWidthPresetIndex = 1;
         let inkActive = false; // true when self-developed mode AND pen/eraser tool active
 
         const INK_MODE_PEN = 'pen';
@@ -2598,7 +2654,24 @@
             }
 
             setupCanvas();
-            window.addEventListener('resize', () => { setupCanvas(); redrawAllStrokes(); });
+            window.addEventListener('resize', () => {
+                setupCanvas();
+                redrawAllStrokes();
+                // While the pen is inactive, strokes are shown via the static background.
+                // Regenerate that snapshot after a resize so it matches the new canvas.
+                if (!inkActive && inkStrokes.length > 0) {
+                    const bg = document.getElementById('ink-stroke-bg');
+                    const cvs = document.getElementById('ink-canvas');
+                    if (bg && cvs) {
+                        const dataUrl = cvs.toDataURL();
+                        bg.style.backgroundImage = 'url(' + dataUrl + ')';
+                        // Sync the standalone StrokeBgWindow so it matches the new canvas.
+                        if (typeof bridge !== 'undefined' && bridge && typeof bridge.showStrokeBg === 'function') {
+                            try { bridge.showStrokeBg(dataUrl); } catch (e) {}
+                        }
+                    }
+                }
+            });
 
             // ── Pointer event handlers ──────────────────────────────────
             function getPos(e) {
@@ -2662,6 +2735,15 @@
         }
 
         function getCurrentInkColor() {
+            // In self-developed mode, prefer config-driven colors (inkPenColor / inkHighlightColor)
+            // so settings-page changes take effect immediately. Fall back to currentPenColor.hex
+            // (and ultimately '#000000') if the config color is empty.
+            if ((currentConfig || {}).penMode === 'self-developed') {
+                if (getCurrentInkMode() === INK_MODE_HIGHLIGHT) {
+                    return inkHighlightColor || (currentPenColor && currentPenColor.hex) || '#FFFF00';
+                }
+                return inkPenColor || (currentPenColor && currentPenColor.hex) || '#000000';
+            }
             const raw = currentPenColor && currentPenColor.hex;
             return raw || '#000000';
         }
@@ -2679,6 +2761,13 @@
             return INK_MODE_PEN;
         }
 
+        // SelfPen rendering hooks (variables ready, algorithms to be implemented):
+        // - selfPenFrameRateMode: throttle/RAF scheduling
+        // - selfPenPenEffect: pressure/velocity-based width modulation
+        // - selfPenVelocityEraser: fast-motion eraser
+        // - selfPenInertialPan: momentum panning
+        // - selfPenPalmErase: multi-touch palm erasure
+        // - selfPenMinDpr / selfPenMaxDpr: clamp backing-store DPR
         function drawSegment(p1, p2, stroke) {
             if (!inkCtx) return;
             const ctx = inkCtx;
@@ -2700,7 +2789,7 @@
                 const color = stroke.color || '#FFFF00';
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.strokeStyle = color;
-                ctx.globalAlpha = 0.45;
+                ctx.globalAlpha = inkHighlightOpacity;
                 ctx.lineWidth = stroke.width;
                 ctx.lineCap = 'butt';
                 ctx.lineJoin = 'miter';
@@ -2763,7 +2852,19 @@
             // Clear static stroke background too
             const bg = document.getElementById('ink-stroke-bg');
             if (bg) bg.style.backgroundImage = '';
+            // Hide standalone stroke bg window
+            if (typeof bridge !== 'undefined' && bridge && typeof bridge.hideStrokeBg === 'function') {
+                try { bridge.hideStrokeBg(); } catch (e) {}
+            }
             sendMaskUpdate();
+        }
+
+        function clearAllInkState() {
+            clearInkCanvas();
+            for (const key of Object.keys(perPageStrokes)) {
+                delete perPageStrokes[key];
+            }
+            currentPage = 0;
         }
 
         function syncInkCanvasMode() {
@@ -2786,32 +2887,48 @@
                 } else {
                     canvas.style.cursor = 'crosshair';
                 }
+                // Replay stored strokes onto the live canvas — setupCanvas() may have
+                // cleared it (resetting canvas.width/height wipes all content), so
+                // without this the previously drawn strokes would be invisible.
+                if (inkStrokes.length > 0) {
+                    try { redrawAllStrokes(); } catch (e) { console.error('[InkPage] redraw on activate:', e); }
+                }
+                // Hide the standalone stroke bg window — the live canvas takes over
+                if (typeof bridge !== 'undefined' && bridge && typeof bridge.hideStrokeBg === 'function') {
+                    try { bridge.hideStrokeBg(); } catch (e) {}
+                }
             } else {
                 canvas.classList.remove('active');
                 canvas.style.cursor = 'crosshair';
-                // Snapshot canvas strokes into static background so they stay visible
-                // even after mask shrinks back to toolbar-only area
+                // Snapshot canvas strokes into a standalone transparent window so
+                // they stay visible even after overlay mask shrinks to toolbar-only
+                // (Qt setMask clips visual output outside the mask region).
                 if (inkStrokes.length > 0 && isSelfDev) {
+                    try { redrawAllStrokes(); } catch (e) { console.error('[InkPage] redraw before snapshot:', e); }
+                    // Also set the in-page bg as a fallback (harmless if clipped by mask)
                     const bg = document.getElementById('ink-stroke-bg');
-                    if (bg) {
-                        bg.style.backgroundImage = 'url(' + canvas.toDataURL() + ')';
+                    canvas.toBlob(function(blob) {
+                        if (!blob) return;
+                        var reader = new FileReader();
+                        reader.onload = function() {
+                            var dataUrl = reader.result;
+                            if (bg) bg.style.backgroundImage = 'url(' + dataUrl + ')';
+                            // Show the standalone stroke bg window (events pass through to PPT)
+                            if (typeof bridge !== 'undefined' && bridge && typeof bridge.showStrokeBg === 'function') {
+                                try { bridge.showStrokeBg(dataUrl); } catch (e) {}
+                            }
+                        };
+                        reader.readAsDataURL(blob);
+                    });
+                } else {
+                    // No strokes → hide standalone stroke bg window
+                    if (typeof bridge !== 'undefined' && bridge && typeof bridge.hideStrokeBg === 'function') {
+                        try { bridge.hideStrokeBg(); } catch (e) {}
                     }
                 }
             }
             // Update window mask: full-screen when drawing, toolbar-only otherwise
             sendMaskUpdate();
-        }
-
-        function setInkWidth(value) {
-            const width = parseInt(value, 10);
-            document.getElementById('ink-width-value').textContent = width;
-            if (currentTool === 'eraser') {
-                inkEraserWidth = width;
-            } else if (currentTool === 'highlight') {
-                inkHighlightWidth = width;
-            } else {
-                inkPenWidth = width;
-            }
         }
 
         function handleClearScreen() {
@@ -2826,9 +2943,6 @@
         function closePopup() {
             document.getElementById('color-picker').classList.remove('visible');
             document.getElementById('eraser-settings').classList.remove('visible');
-            // Hide ink width section when closing
-            const ws = document.getElementById('ink-width-section');
-            if (ws) ws.style.display = 'none';
             document.getElementById('page-selector').classList.remove('visible');
             document.getElementById('media-popup').classList.remove('visible');
             isMediaPopupVisible = false;
@@ -3063,7 +3177,7 @@
         function selectTool(tool) {
             const picker = document.getElementById('color-picker');
             const eraserSettings = document.getElementById('eraser-settings');
-            
+
             if ((tool === 'pen' || tool === 'highlight') && (currentTool === 'pen' || currentTool === 'highlight')) {
                 if (picker.classList.contains('visible')) {
                     closePopup();
@@ -3083,16 +3197,12 @@
                      closePopup();
                  } else {
                      closePopup();
-                     // Show ink width section for eraser size
-                     const widthSection = document.getElementById('ink-width-section');
-                     const widthLabel = document.getElementById('ink-width-label');
-                     const widthSlider = document.getElementById('ink-width-slider');
-                     widthSection.style.display = 'block';
-                     widthLabel.textContent = '橡皮粗细';
-                     widthSlider.min = 10;
-                     widthSlider.max = 80;
-                     widthSlider.value = inkEraserWidth;
-                     document.getElementById('ink-width-value').textContent = widthSlider.value;
+                     // Sync eraser width slider to current value
+                     const eraserSlider = document.getElementById('eraser-width-slider');
+                     if (eraserSlider) {
+                         eraserSlider.value = inkEraserWidth;
+                         document.getElementById('eraser-width-value').textContent = inkEraserWidth;
+                     }
                      eraserSettings.classList.add('visible');
                      document.body.classList.add('popup-active');
                      if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
@@ -3143,11 +3253,16 @@
                     const selfDev = (currentConfig || {}).penMode === 'self-developed';
                     if (!selfDev) bridge.setTool(tool);
                 }
+                syncInkCanvasMode();
             }
             
             if (bridge) {
                 const selfDev = (currentConfig || {}).penMode === 'self-developed';
                 if (!selfDev) bridge.setPenColor(r, g, b);
+                if (selfDev && window.bridge && bridge.setSelfPenSetting) {
+                    if (currentPenColor.tab === 'highlight') bridge.setSelfPenSetting('HighlightColor', currentPenColor.hex);
+                    else bridge.setSelfPenSetting('PenColor', currentPenColor.hex);
+                }
             }
             closePopup();
         }
@@ -3194,20 +3309,9 @@
             if (!page) return;
             const isSelfDev = (currentConfig || {}).penMode === 'self-developed';
             if (!isSelfDev) return;
-            const bg = document.getElementById('ink-stroke-bg');
-            const canvas = document.getElementById('ink-canvas');
-            let snapshot = null;
-            if (inkActive && canvas) {
-                // Pen active: snapshot the live canvas
-                try { snapshot = canvas.toDataURL(); } catch (e) { console.error('[InkPage] save toDataURL:', e); }
-            } else if (bg && bg.style.backgroundImage && bg.style.backgroundImage !== 'none') {
-                // Pen inactive: extract data URL from background-image CSS
-                const m = bg.style.backgroundImage.match(/url\(["']?(.*?)["']?\)/);
-                if (m) snapshot = m[1];
-            }
             perPageStrokes[page] = {
                 strokes: inkStrokes.length > 0 ? [...inkStrokes] : [],
-                snapshot: snapshot
+                snapshot: null
             };
         }
 
@@ -3234,12 +3338,22 @@
                 bg.style.backgroundImage = '';
                 canvas.classList.add('active');
                 try { redrawAllStrokes(); } catch (e) { console.error('[InkPage] redraw error:', e); }
+                // Hide standalone stroke bg window
+                if (typeof bridge !== 'undefined' && bridge && typeof bridge.hideStrokeBg === 'function') {
+                    try { bridge.hideStrokeBg(); } catch (e) {}
+                }
             } else {
-                // Pen inactive: show via static bg snapshot, clear canvas
-                if (data.snapshot) {
-                    bg.style.backgroundImage = 'url(' + data.snapshot + ')';
+                // Pen inactive: show via standalone stroke bg window, clear canvas
+                if (data.strokes.length > 0) {
+                    // Redraw strokes and generate snapshot on demand
+                    try { redrawAllStrokes(); } catch (e) { console.error('[InkPage] redraw on restore:', e); }
+                    var dataUrl = canvas.toDataURL();
+                    bg.style.backgroundImage = 'url(' + dataUrl + ')';
+                    if (typeof bridge !== 'undefined' && bridge && typeof bridge.showStrokeBg === 'function') {
+                        try { bridge.showStrokeBg(dataUrl); } catch (e) {}
+                    }
                 } else {
-                    bg.style.backgroundImage = '';
+                    clearInkCanvas();
                 }
                 canvas.classList.remove('active');
                 const ctx = canvas.getContext('2d');
@@ -3519,9 +3633,16 @@
             }
         }
         
-        // Update every 500ms to catch second changes faster
-        setInterval(updateTime, 500);
-        setInterval(updateTimerStatus, 200); // More frequent for timer
+        // Restartable clock timer: interval depends on whether seconds are shown.
+        // updateTimerStatus is now driven by the Python-side timer_manager.updated signal
+        // via _on_timer_updated, so the 200ms polling interval is no longer needed.
+        let _clockTimerId = null;
+        function _startClockTimer() {
+            if (_clockTimerId) clearInterval(_clockTimerId);
+            const showSeconds = (currentConfig || {}).statusBarShowSeconds;
+            _clockTimerId = setInterval(updateTime, showSeconds ? 1000 : 10000);
+        }
+        _startClockTimer();
         updateTime();
 
         function formatMusicTime(totalSeconds) {
@@ -3854,16 +3975,31 @@
         
         window.addEventListener('load', initSlider);
 
+        let _maskResizeScheduled = false;
         const observer = new ResizeObserver(entries => {
-            sendMaskUpdate();
+            if (!_maskResizeScheduled) {
+                _maskResizeScheduled = true;
+                requestAnimationFrame(() => {
+                    _maskResizeScheduled = false;
+                    sendMaskUpdate();
+                });
+            }
         });
 
-        document.querySelectorAll('.interactive').forEach(el => observer.observe(el));
+        _interactiveEls.forEach(el => observer.observe(el));
 
+        let _maskUpdateScheduled = false;
         function scheduleMaskUpdate() {
-            if (typeof sendMaskUpdate !== 'function') return;
-            requestAnimationFrame(() => requestAnimationFrame(sendMaskUpdate));
-            setTimeout(sendMaskUpdate, motionDelay(360));
+            if (_maskUpdateScheduled) return;
+            _maskUpdateScheduled = true;
+            requestAnimationFrame(() => {
+                _maskUpdateScheduled = false;
+                sendMaskUpdate();
+            });
+            setTimeout(() => {
+                _maskUpdateScheduled = false;
+                sendMaskUpdate();
+            }, motionDelay(360));
         }
 
 
@@ -4043,10 +4179,35 @@
             // Area outside the toolbar has no mask → events pass through to PPT normally.
             const rects = [];
             const isCollapsed = document.getElementById('toolbar-container').classList.contains('collapsed');
-            
-            document.querySelectorAll('.interactive').forEach(el => {
+
+            // First pass: batch-read all layout-dependent properties (offsetParent,
+            // computedStyle, getBoundingClientRect) to avoid layout thrashing.
+            // page-selector needs no layout reads; media-popup only reads rect when visible.
+            const info = [];
+            for (let i = 0; i < _interactiveEls.length; i++) {
+                const el = _interactiveEls[i];
+                const entry = { el: el, id: el.id };
+                if (el.id === 'media-popup') {
+                    entry.visible = el.classList.contains('visible');
+                    entry.rect = entry.visible ? el.getBoundingClientRect() : null;
+                } else if (el.id !== 'page-selector') {
+                    entry.offsetParent = el.offsetParent;
+                    const style = window.getComputedStyle(el);
+                    entry.opacity = style.opacity;
+                    entry.pointerEvents = style.pointerEvents;
+                    entry.visibility = style.visibility;
+                    entry.rect = el.getBoundingClientRect();
+                }
+                info.push(entry);
+            }
+
+            // Second pass: build rects from cached reads (no layout reads here).
+            for (let i = 0; i < info.length; i++) {
+                const entry = info[i];
+                const el = entry.el;
+
                 // Special handling for page selector to ensure it's detected even if transition is running
-                if (el.id === 'page-selector') {
+                if (entry.id === 'page-selector') {
                     if (el.classList.contains('visible')) {
                         // Force send full rect for sidebar
                         const isLeft = el.classList.contains('left-side');
@@ -4057,14 +4218,14 @@
                             height: window.innerHeight
                         });
                     }
-                    return;
+                    continue;
                 }
 
                 // Explicit handling for media popup because window mask clips visual output.
                 // Its soft transitions/shadow can be outside normal layout bounds.
-                if (el.id === 'media-popup') {
-                    if (el.classList.contains('visible')) {
-                        const r = el.getBoundingClientRect();
+                if (entry.id === 'media-popup') {
+                    if (entry.visible) {
+                        const r = entry.rect;
                         rects.push({
                             x: Math.max(0, r.x - 2),
                             y: Math.max(0, r.y - 2),
@@ -4072,30 +4233,29 @@
                             height: r.height + 4
                         });
                     }
-                    return;
+                    continue;
                 }
-                
-                if (el.offsetParent === null) return;
-                
-                const style = window.getComputedStyle(el);
-                if (style.opacity === '0' || style.pointerEvents === 'none' || style.visibility === 'hidden') return;
-                
-                // Skip toolbar if collapsed (redundant with pointerEvents check but explicit)
-                if (isCollapsed && el.id === 'toolbar') return;
-                
-                // Skip handle if NOT collapsed (handle is only interactive when collapsed)
-                if (!isCollapsed && el.id === 'toolbar-handle') return;
 
-                const r = el.getBoundingClientRect();
-                if (r.width === 0 || r.height === 0) return;
-                
+                if (entry.offsetParent === null) continue;
+
+                if (entry.opacity === '0' || entry.pointerEvents === 'none' || entry.visibility === 'hidden') continue;
+
+                // Skip toolbar if collapsed (redundant with pointerEvents check but explicit)
+                if (isCollapsed && entry.id === 'toolbar') continue;
+
+                // Skip handle if NOT collapsed (handle is only interactive when collapsed)
+                if (!isCollapsed && entry.id === 'toolbar-handle') continue;
+
+                const r = entry.rect;
+                if (r.width === 0 || r.height === 0) continue;
+
                 rects.push({
                     x: r.x,
                     y: r.y,
                     width: r.width,
                     height: r.height
                 });
-            });
+            }
             bridge.updateMask(rects, window.noop);
         }
     </script>
