@@ -424,6 +424,7 @@ class TimerPlugin(AssistantPlugin):
         api.set_in_process(True)
         api.settings = self._load_json_file(SETTINGS_PATH)
         api.version = self._load_json_file(version_path)
+        api.version["device_uuid"] = wv.get_device_uuid()[:8]
 
         theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
         defer_load = wv._should_defer_initial_load(

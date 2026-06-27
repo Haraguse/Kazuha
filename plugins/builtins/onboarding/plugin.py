@@ -136,6 +136,7 @@ class OnboardingPlugin(AssistantPlugin):
         settings_path = get_active_settings_path()
         api.settings = self._load_json_file(settings_path)
         api.version = self._load_json_file(version_path)
+        api.version["device_uuid"] = wv.get_device_uuid()[:8]
 
         previous_preview = os.environ.get("ONBOARDING_PREVIEW")
         os.environ["SETTINGS_PATH"] = settings_path
