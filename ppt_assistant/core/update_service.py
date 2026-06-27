@@ -8,7 +8,9 @@ import hashlib
 import tempfile
 import subprocess
 from pathlib import Path
-from aiohttp import web, ClientSession
+from aiohttp import web, ClientSession, ClientTimeout
+
+CHROME_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"
 
 # Constants
 GITHUB_REPO = "SECTL/Luminalium"
@@ -77,15 +79,55 @@ def _is_newer(remote: str, current: str) -> bool:
     return _parse_version(remote) > _parse_version(current)
 
 
+GITHUB_MIRRORS = [
+    ("github", "https://api.github.com"),
+    ("ghproxy", "https://ghproxy.net/https://api.github.com"),
+    ("moeyy", "https://github.moeyy.xyz/https://api.github.com"),
+    ("ghproxy2", "https://mirror.ghproxy.com/https://api.github.com"),
+    ("999proxy", "https://gh.api.99988866.xyz/https://api.github.com"),
+    ("kkgithub", "https://api.kkgithub.com"),
+]
+
+def _normalize_download_url(url: str, mirror_name: str) -> str:
+    if not url or not url.startswith("https://github.com"):
+        return url
+    if mirror_name == "ghproxy":
+        return "https://ghproxy.net/" + url
+    if mirror_name == "moeyy":
+        return "https://github.moeyy.xyz/" + url
+    if mirror_name == "ghproxy2":
+        return "https://mirror.ghproxy.com/" + url
+    if mirror_name == "999proxy":
+        return "https://gh.api.99988866.xyz/" + url
+    if mirror_name == "kkgithub":
+        return url.replace("https://github.com", "https://kkgithub.com")
+    return url
+
 async def check_update_impl(force: bool = False):
     if is_dev_env():
         return {"available": False, "reason": "DEV_MODE"}
     
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-    try:
-        async with ClientSession() as session:
-            async with session.get(url, timeout=10) as resp:
-                if resp.status == 200:
+    current_version = "0.0.0"
+    version_file = APP_DIR / "version.json"
+    if version_file.exists():
+        try:
+            with open(version_file, "r", encoding="utf-8") as f:
+                v_data = json.load(f)
+                current_version = v_data.get("versionnm", "0.0.0")
+        except:
+            pass
+
+    timeout = ClientTimeout(total=15, connect=10)
+    headers = {"User-Agent": CHROME_UA, "Accept": "application/vnd.github.v3+json"}
+    
+    for mirror_name, api_base in GITHUB_MIRRORS:
+        url = f"{api_base}/repos/{GITHUB_REPO}/releases/latest"
+        try:
+            async with ClientSession(headers=headers, timeout=timeout) as session:
+                async with session.get(url) as resp:
+                    if resp.status != 200:
+                        print(f"[UpdateService] Mirror {mirror_name} returned HTTP {resp.status}, trying next...")
+                        continue
                     data = await resp.json()
                     version = data.get("tag_name", "")
                     assets = data.get("assets", [])
@@ -94,36 +136,27 @@ async def check_update_impl(force: bool = False):
                     target_asset = None
                     for asset in assets:
                         name = asset.get("name", "")
-                        if "Windows" in name and name.endswith(".zip"):
+                        if name.endswith(".exe") or name.endswith(".zip") or name.endswith(".7z"):
                             target_asset = asset
                             break
                     
                     if target_asset:
-                        # Check current version
-                        current_version = "0.0.0"
-                        version_file = APP_DIR / "version.json"
-                        if version_file.exists():
-                            try:
-                                with open(version_file, "r", encoding="utf-8") as f:
-                                    v_data = json.load(f)
-                                    current_version = v_data.get("versionnm", "0.0.0")
-                            except:
-                                pass
-                        
                         clean_ver = version.lstrip("v")
+                        download_url = target_asset.get("browser_download_url")
                         if force or _is_newer(clean_ver, current_version):
                             return {
                                 "available": True,
                                 "version": clean_ver,
                                 "changelog": changelog,
-                                "download_url": target_asset.get("browser_download_url"),
+                                "download_url": _normalize_download_url(download_url, mirror_name),
                                 "size": target_asset.get("size"),
                                 "forced": bool(force),
                             }
                         else:
                             return {"available": False, "reason": "UP_TO_DATE"}
-    except Exception as e:
-        print(f"[UpdateService] Check update error: {e}")
+        except Exception as e:
+            print(f"[UpdateService] Mirror {mirror_name} failed: {e}")
+            continue
     return {"available": False, "reason": "ERROR"}
 
 async def download_update_impl(download_url: str, version: str):
@@ -132,10 +165,12 @@ async def download_update_impl(download_url: str, version: str):
     version_dir.mkdir(parents=True, exist_ok=True)
     zip_path = version_dir / "update.zip"
     
+    timeout = ClientTimeout(total=None, connect=30, sock_read=60)
+    headers = {"User-Agent": CHROME_UA}
     retries = 3
     for attempt in range(retries):
         try:
-            async with ClientSession() as session:
+            async with ClientSession(headers=headers, timeout=timeout) as session:
                 async with session.get(download_url) as resp:
                     if resp.status >= 400:
                         raise Exception(f"HTTP Error {resp.status}")
@@ -150,20 +185,17 @@ async def download_update_impl(download_url: str, version: str):
                             downloaded += len(chunk)
                             
                             now = asyncio.get_event_loop().time()
-                            # Update >= 2Hz (every 0.5s)
                             if now - last_update >= 0.5 and total_size > 0:
                                 progress = int((downloaded / total_size) * 100)
                                 set_progress(progress, "downloading")
                                 last_update = now
                     
-                    # Verify SHA-256 if possible (try to fetch .sha256 file)
                     try:
                         sha256_url = download_url + ".sha256"
                         async with session.get(sha256_url) as sha_resp:
                             if sha_resp.status == 200:
                                 expected_hash = (await sha_resp.text()).strip().split()[0]
                                 
-                                # Calculate actual hash
                                 sha256 = hashlib.sha256()
                                 with open(zip_path, "rb") as f:
                                     for block in iter(lambda: f.read(65536), b""):
@@ -175,11 +207,9 @@ async def download_update_impl(download_url: str, version: str):
                     except Exception as sha_err:
                         if "mismatch" in str(sha_err):
                             raise sha_err
-                        # Ignore if .sha256 is not available
                         pass
 
                     set_progress(100, "download_complete")
-                    # Trigger updater subprocess
                     trigger_updater(zip_path, version)
                     return
         except Exception as e:
@@ -240,12 +270,12 @@ async def handle_progress(request):
 
 async def handle_changelog(request):
     ver = request.query.get("ver", "")
-    # In a real app, you might fetch from GitHub again or cache it
-    # For now, we just return a simple check
     url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/tags/v{ver}"
+    timeout = ClientTimeout(total=10, connect=5)
+    headers = {"User-Agent": CHROME_UA}
     try:
-        async with ClientSession() as session:
-            async with session.get(url, timeout=10) as resp:
+        async with ClientSession(headers=headers, timeout=timeout) as session:
+            async with session.get(url) as resp:
                 if resp.status == 200:
                     data = await resp.json()
                     return web.json_response({"changelog": data.get("body", "")})
@@ -282,9 +312,11 @@ async def handle_echo_cave_proxy(request):
             params.append(f"{key}={val}")
     query_string = "&".join(params)
     url = f"{ECHO_CAVE_BASE}?{query_string}" if query_string else ECHO_CAVE_BASE
+    timeout = ClientTimeout(total=10, connect=5)
+    headers = {"User-Agent": CHROME_UA}
     try:
-        async with ClientSession() as session:
-            async with session.get(url, timeout=10) as resp:
+        async with ClientSession(headers=headers, timeout=timeout) as session:
+            async with session.get(url) as resp:
                 data = await resp.json()
                 return web.json_response(data, status=resp.status)
     except asyncio.TimeoutError:

@@ -7600,13 +7600,16 @@
                 <div class="settings-item">
                   <div class="item-info">
                     <div class="item-label" data-i18n="update.settings.source.label">更新源</div>
-                    <div class="item-desc" data-i18n="update.settings.source.desc">选择 GitHub、bgithub 或 kkgithub 镜像源
+                    <div class="item-desc" data-i18n="update.settings.source.desc">选择 GitHub 或其他镜像源（自动尝试全部镜像）
                     </div>
                   </div>
                   <div class="item-state">
                     <select class="styled-select" id="sel-Update-Source" onchange="setUpdateSource(this.value)">
                       <option value="github" data-i18n="update.settings.source.github">GitHub</option>
-                      <option value="bgithub" data-i18n="update.settings.source.bgithub">bgithub 镜像</option>
+                      <option value="ghproxy" data-i18n="update.settings.source.ghproxy">ghproxy 镜像</option>
+                      <option value="moeyy" data-i18n="update.settings.source.moeyy">moeyy 镜像</option>
+                      <option value="ghproxy2" data-i18n="update.settings.source.ghproxy2">mirror.ghproxy 镜像</option>
+                      <option value="999proxy" data-i18n="update.settings.source.999proxy">999proxy 镜像</option>
                       <option value="kkgithub" data-i18n="update.settings.source.kkgithub">kkgithub 镜像</option>
                     </select>
                   </div>
@@ -8194,9 +8197,12 @@
         "update.settings.autoCheck.label": "自动检查更新",
         "update.settings.autoCheck.desc": "启动时自动检查是否有新版本",
         "update.settings.source.label": "更新源",
-        "update.settings.source.desc": "选择 GitHub、bgithub 或 kkgithub 镜像源",
+        "update.settings.source.desc": "选择 GitHub 或其他镜像源（自动尝试全部镜像）",
         "update.settings.source.github": "GitHub",
-        "update.settings.source.bgithub": "bgithub 镜像",
+        "update.settings.source.ghproxy": "ghproxy 镜像",
+        "update.settings.source.moeyy": "moeyy 镜像",
+        "update.settings.source.ghproxy2": "mirror.ghproxy 镜像",
+        "update.settings.source.999proxy": "999proxy 镜像",
         "update.settings.source.kkgithub": "kkgithub 镜像",
         "toolbar.clear": "清屏",
         "toolbar.end_show": "结束放映",
@@ -8630,9 +8636,12 @@
         "update.settings.autoCheck.label": "自動檢查更新",
         "update.settings.autoCheck.desc": "啟動時自動檢查是否有新版本",
         "update.settings.source.label": "更新來源",
-        "update.settings.source.desc": "選擇 GitHub、bgithub 或 kkgithub 鏡像來源",
+        "update.settings.source.desc": "選擇 GitHub 或其他鏡像來源（自動嘗試全部鏡像）",
         "update.settings.source.github": "GitHub",
-        "update.settings.source.bgithub": "bgithub 鏡像",
+        "update.settings.source.ghproxy": "ghproxy 鏡像",
+        "update.settings.source.moeyy": "moeyy 鏡像",
+        "update.settings.source.ghproxy2": "mirror.ghproxy 鏡像",
+        "update.settings.source.999proxy": "999proxy 鏡像",
         "update.settings.source.kkgithub": "kkgithub 鏡像",
         "about.version.label": "軟體版本",
         "about.version.copyright": "COPYRIGHT 2025-2026 SECTL │ 本程式依據 GNU General Public License 3 授權",
@@ -9050,9 +9059,12 @@
         "update.settings.autoCheck.label": "自動檢查更新",
         "update.settings.autoCheck.desc": "啟動時自動檢查有無新版本",
         "update.settings.source.label": "更新來源",
-        "update.settings.source.desc": "揀 GitHub、bgithub 或 kkgithub 鏡像來源",
+        "update.settings.source.desc": "揀 GitHub 或其他鏡像來源（自動試晒全部鏡像）",
         "update.settings.source.github": "GitHub",
-        "update.settings.source.bgithub": "bgithub 鏡像",
+        "update.settings.source.ghproxy": "ghproxy 鏡像",
+        "update.settings.source.moeyy": "moeyy 鏡像",
+        "update.settings.source.ghproxy2": "mirror.ghproxy 鏡像",
+        "update.settings.source.999proxy": "999proxy 鏡像",
         "update.settings.source.kkgithub": "kkgithub 鏡像",
         "about.version.label": "軟體版本",
         "about.version.copyright": "COPYRIGHT 2025-2026 SECTL │ 本程式依據 GNU General Public License 3 授權",
@@ -9484,9 +9496,12 @@
         "update.settings.autoCheck.label": "自動更新確認",
         "update.settings.autoCheck.desc": "起動時に自動で新しいバージョンを確認します",
         "update.settings.source.label": "更新元",
-        "update.settings.source.desc": "GitHub、bgithub、kkgithub のミラーを選択します",
+        "update.settings.source.desc": "GitHubまたは各種ミラーを選択（自動的に全ミラーを試します）",
         "update.settings.source.github": "GitHub",
-        "update.settings.source.bgithub": "bgithub ミラー",
+        "update.settings.source.ghproxy": "ghproxy ミラー",
+        "update.settings.source.moeyy": "moeyy ミラー",
+        "update.settings.source.ghproxy2": "mirror.ghproxy ミラー",
+        "update.settings.source.999proxy": "999proxy ミラー",
         "update.settings.source.kkgithub": "kkgithub ミラー",
         "about.version.label": "ソフトウェアバージョン",
         "about.version.copyright": "COPYRIGHT 2025-2026 SECTL │ 本プログラムは GNU General Public License 3 に基づきライセンスされています",
@@ -10140,9 +10155,12 @@
         "update.settings.autoCheck.label": "Auto-check for updates",
         "update.settings.autoCheck.desc": "Automatically check for new versions on startup",
         "update.settings.source.label": "Update Source",
-        "update.settings.source.desc": "Choose GitHub, bgithub, or kkgithub mirror",
+        "update.settings.source.desc": "Choose GitHub or other mirror (automatically tries all mirrors)",
         "update.settings.source.github": "GitHub",
-        "update.settings.source.bgithub": "bgithub mirror",
+        "update.settings.source.ghproxy": "ghproxy mirror",
+        "update.settings.source.moeyy": "moeyy mirror",
+        "update.settings.source.ghproxy2": "mirror.ghproxy mirror",
+        "update.settings.source.999proxy": "999proxy mirror",
         "update.settings.source.kkgithub": "kkgithub mirror",
         "about.version.label": "Software version",
         "about.version.copyright": "COPYRIGHT 2025-2026 SECTL │ Licensed under the GNU General Public License 3",
@@ -15574,11 +15592,20 @@
       },
 
       getApiBaseForSource(source) {
-        if (source === "bgithub") {
-          return "https://bgithub.xyz/https://api.github.com";
+        if (source === "ghproxy") {
+          return "https://ghproxy.net/https://api.github.com";
+        }
+        if (source === "moeyy") {
+          return "https://github.moeyy.xyz/https://api.github.com";
+        }
+        if (source === "ghproxy2") {
+          return "https://mirror.ghproxy.com/https://api.github.com";
+        }
+        if (source === "999proxy") {
+          return "https://gh.api.99988866.xyz/https://api.github.com";
         }
         if (source === "kkgithub") {
-          return "https://kkgithub.com/https://api.github.com";
+          return "https://api.kkgithub.com";
         }
         return "https://api.github.com";
       },
@@ -15589,24 +15616,27 @@
 
       getSourceList() {
         const current = this.getSource();
-        const all = ["github", "bgithub", "kkgithub"];
+        const all = ["github", "ghproxy", "moeyy", "ghproxy2", "999proxy", "kkgithub"];
         return [current, ...all.filter(s => s !== current)];
       },
 
       normalizeReleaseUrl(url, source) {
         if (!url) return url;
         const src = source || this.getSource();
-        if (src === "bgithub") {
-          if (url.startsWith("https://github.com")) {
-            return url.replace("https://github.com", "https://bgithub.xyz/https://github.com");
-          }
-          return url;
+        if (src === "ghproxy") {
+          return "https://ghproxy.net/" + url;
+        }
+        if (src === "moeyy") {
+          return "https://github.moeyy.xyz/" + url;
+        }
+        if (src === "ghproxy2") {
+          return "https://mirror.ghproxy.com/" + url;
+        }
+        if (src === "999proxy") {
+          return "https://gh.api.99988866.xyz/" + url;
         }
         if (src === "kkgithub") {
-          if (url.startsWith("https://github.com")) {
-            return url.replace("https://github.com", "https://kkgithub.com/https://github.com");
-          }
-          return url;
+          return url.replace("https://github.com", "https://kkgithub.com");
         }
         return url;
       },
@@ -15765,14 +15795,15 @@
 
       /**
        * 直接调用 GitHub API 检查更新（server 不可用时的 fallback）
-       * 复用前端 source 切换逻辑，支持 github / bgithub / kkgithub
+       * 复用前端 source 切换逻辑，支持多种镜像站
        */
-      async _checkDirectFromGitHub() {
-        const source = this.getSource();
-        const apiBase = this.getApiBase();
+      async _checkFromSource(source) {
+        const apiBase = this.getApiBaseForSource(source);
         const url = `${apiBase}/repos/${this.repo}/releases/latest`;
-        const resp = await fetch(url, { headers: { "Accept": "application/vnd.github.v3+json" } });
-        if (!resp.ok) throw new Error(`GitHub API HTTP ${resp.status}`);
+        const resp = await this._fetchWithTimeout(url, {
+          headers: { "Accept": "application/vnd.github.v3+json" }
+        }, 12000);
+        if (!resp.ok) throw new Error(`GitHub API HTTP ${resp.status} via ${source}`);
         const release = await resp.json();
         const tag = (release.tag_name || "").replace(/^v/i, "");
         const body = release.body || "";
@@ -15794,6 +15825,21 @@
           };
         }
         return { available: false, reason: "UP_TO_DATE", changelog: body };
+      },
+
+      async _checkDirectFromGitHub() {
+        const sources = this.getSourceList();
+        let lastError = null;
+        for (const source of sources) {
+          try {
+            console.log(`Trying update source: ${source}`);
+            return await this._checkFromSource(source);
+          } catch (e) {
+            console.warn(`Source ${source} failed:`, e);
+            lastError = e;
+          }
+        }
+        throw lastError || new Error("All mirrors failed");
       },
 
       async check() {
@@ -15894,15 +15940,27 @@
         }
       },
 
-      /**
-       * 带退避重试的 fetch wrapper
-       * 解决 update server 线程启动时序问题导致的 "Failed to fetch"
-       */
-      async _fetchWithRetry(url, maxRetries = 3, baseDelay = 800) {
+      async _fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const response = await fetch(url, {
+            ...options,
+            signal: controller.signal,
+            mode: 'cors',
+            credentials: 'omit'
+          });
+          return response;
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      },
+
+      async _fetchWithRetry(url, maxRetries = 3, baseDelay = 800, timeoutMs = 10000) {
         let lastError = null;
         for (let attempt = 0; attempt < maxRetries; attempt++) {
           try {
-            const response = await fetch(url);
+            const response = await this._fetchWithTimeout(url, {}, timeoutMs);
             if (!response.ok) {
               throw new Error(`HTTP ${response.status}`);
             }
