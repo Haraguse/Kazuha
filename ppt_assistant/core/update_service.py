@@ -84,21 +84,21 @@ GITHUB_MIRRORS = [
     ("ghproxy", "https://ghproxy.net/https://api.github.com"),
     ("moeyy", "https://github.moeyy.xyz/https://api.github.com"),
     ("ghproxy2", "https://mirror.ghproxy.com/https://api.github.com"),
-    ("999proxy", "https://gh.api.99988866.xyz/https://api.github.com"),
+    ("idayer", "https://gh.idayer.com/https://api.github.com"),
     ("kkgithub", "https://api.kkgithub.com"),
 ]
 
 def _normalize_download_url(url: str, mirror_name: str) -> str:
     if not url or not url.startswith("https://github.com"):
         return url
-    if mirror_name == "ghproxy":
-        return "https://ghproxy.net/" + url
-    if mirror_name == "moeyy":
-        return "https://github.moeyy.xyz/" + url
-    if mirror_name == "ghproxy2":
-        return "https://mirror.ghproxy.com/" + url
-    if mirror_name == "999proxy":
-        return "https://gh.api.99988866.xyz/" + url
+    prefixes = {
+        "ghproxy": "https://ghproxy.net/",
+        "moeyy": "https://github.moeyy.xyz/",
+        "ghproxy2": "https://mirror.ghproxy.com/",
+        "idayer": "https://gh.idayer.com/",
+    }
+    if mirror_name in prefixes:
+        return prefixes[mirror_name] + url
     if mirror_name == "kkgithub":
         return url.replace("https://github.com", "https://kkgithub.com")
     return url

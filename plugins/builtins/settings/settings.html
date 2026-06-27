@@ -7609,7 +7609,7 @@
                       <option value="ghproxy" data-i18n="update.settings.source.ghproxy">ghproxy 镜像</option>
                       <option value="moeyy" data-i18n="update.settings.source.moeyy">moeyy 镜像</option>
                       <option value="ghproxy2" data-i18n="update.settings.source.ghproxy2">mirror.ghproxy 镜像</option>
-                      <option value="999proxy" data-i18n="update.settings.source.999proxy">999proxy 镜像</option>
+                      <option value="idayer" data-i18n="update.settings.source.idayer">idayer 镜像</option>
                       <option value="kkgithub" data-i18n="update.settings.source.kkgithub">kkgithub 镜像</option>
                     </select>
                   </div>
@@ -8202,7 +8202,7 @@
         "update.settings.source.ghproxy": "ghproxy 镜像",
         "update.settings.source.moeyy": "moeyy 镜像",
         "update.settings.source.ghproxy2": "mirror.ghproxy 镜像",
-        "update.settings.source.999proxy": "999proxy 镜像",
+        "update.settings.source.idayer": "idayer 镜像",
         "update.settings.source.kkgithub": "kkgithub 镜像",
         "toolbar.clear": "清屏",
         "toolbar.end_show": "结束放映",
@@ -8641,7 +8641,7 @@
         "update.settings.source.ghproxy": "ghproxy 鏡像",
         "update.settings.source.moeyy": "moeyy 鏡像",
         "update.settings.source.ghproxy2": "mirror.ghproxy 鏡像",
-        "update.settings.source.999proxy": "999proxy 鏡像",
+        "update.settings.source.idayer": "idayer 鏡像",
         "update.settings.source.kkgithub": "kkgithub 鏡像",
         "about.version.label": "軟體版本",
         "about.version.copyright": "COPYRIGHT 2025-2026 SECTL │ 本程式依據 GNU General Public License 3 授權",
@@ -9064,7 +9064,7 @@
         "update.settings.source.ghproxy": "ghproxy 鏡像",
         "update.settings.source.moeyy": "moeyy 鏡像",
         "update.settings.source.ghproxy2": "mirror.ghproxy 鏡像",
-        "update.settings.source.999proxy": "999proxy 鏡像",
+        "update.settings.source.idayer": "idayer 鏡像",
         "update.settings.source.kkgithub": "kkgithub 鏡像",
         "about.version.label": "軟體版本",
         "about.version.copyright": "COPYRIGHT 2025-2026 SECTL │ 本程式依據 GNU General Public License 3 授權",
@@ -9501,7 +9501,7 @@
         "update.settings.source.ghproxy": "ghproxy ミラー",
         "update.settings.source.moeyy": "moeyy ミラー",
         "update.settings.source.ghproxy2": "mirror.ghproxy ミラー",
-        "update.settings.source.999proxy": "999proxy ミラー",
+        "update.settings.source.idayer": "idayer ミラー",
         "update.settings.source.kkgithub": "kkgithub ミラー",
         "about.version.label": "ソフトウェアバージョン",
         "about.version.copyright": "COPYRIGHT 2025-2026 SECTL │ 本プログラムは GNU General Public License 3 に基づきライセンスされています",
@@ -10160,7 +10160,7 @@
         "update.settings.source.ghproxy": "ghproxy mirror",
         "update.settings.source.moeyy": "moeyy mirror",
         "update.settings.source.ghproxy2": "mirror.ghproxy mirror",
-        "update.settings.source.999proxy": "999proxy mirror",
+        "update.settings.source.idayer": "idayer mirror",
         "update.settings.source.kkgithub": "kkgithub mirror",
         "about.version.label": "Software version",
         "about.version.copyright": "COPYRIGHT 2025-2026 SECTL │ Licensed under the GNU General Public License 3",
@@ -15588,26 +15588,27 @@
       repo: "SECTL/Luminalium",
 
       getSource() {
-        return settings.Update?.Source || "github";
+        const validSources = ["github", "ghproxy", "moeyy", "ghproxy2", "idayer", "kkgithub"];
+        let source = settings.Update?.Source || "github";
+        if (!validSources.includes(source)) {
+          source = "github";
+          if (!settings.Update) settings.Update = {};
+          settings.Update.Source = "github";
+          saveSettings();
+        }
+        return source;
       },
 
       getApiBaseForSource(source) {
-        if (source === "ghproxy") {
-          return "https://ghproxy.net/https://api.github.com";
-        }
-        if (source === "moeyy") {
-          return "https://github.moeyy.xyz/https://api.github.com";
-        }
-        if (source === "ghproxy2") {
-          return "https://mirror.ghproxy.com/https://api.github.com";
-        }
-        if (source === "999proxy") {
-          return "https://gh.api.99988866.xyz/https://api.github.com";
-        }
-        if (source === "kkgithub") {
-          return "https://api.kkgithub.com";
-        }
-        return "https://api.github.com";
+        const mirrors = {
+          github: "https://api.github.com",
+          ghproxy: "https://ghproxy.net/https://api.github.com",
+          moeyy: "https://github.moeyy.xyz/https://api.github.com",
+          ghproxy2: "https://mirror.ghproxy.com/https://api.github.com",
+          idayer: "https://gh.idayer.com/https://api.github.com",
+          kkgithub: "https://api.kkgithub.com"
+        };
+        return mirrors[source] || mirrors.github;
       },
 
       getApiBase() {
@@ -15616,24 +15617,21 @@
 
       getSourceList() {
         const current = this.getSource();
-        const all = ["github", "ghproxy", "moeyy", "ghproxy2", "999proxy", "kkgithub"];
+        const all = ["github", "ghproxy", "moeyy", "ghproxy2", "idayer", "kkgithub"];
         return [current, ...all.filter(s => s !== current)];
       },
 
       normalizeReleaseUrl(url, source) {
         if (!url) return url;
         const src = source || this.getSource();
-        if (src === "ghproxy") {
-          return "https://ghproxy.net/" + url;
-        }
-        if (src === "moeyy") {
-          return "https://github.moeyy.xyz/" + url;
-        }
-        if (src === "ghproxy2") {
-          return "https://mirror.ghproxy.com/" + url;
-        }
-        if (src === "999proxy") {
-          return "https://gh.api.99988866.xyz/" + url;
+        const prefixes = {
+          ghproxy: "https://ghproxy.net/",
+          moeyy: "https://github.moeyy.xyz/",
+          ghproxy2: "https://mirror.ghproxy.com/",
+          idayer: "https://gh.idayer.com/",
+        };
+        if (prefixes[src]) {
+          return prefixes[src] + url;
         }
         if (src === "kkgithub") {
           return url.replace("https://github.com", "https://kkgithub.com");
