@@ -3739,10 +3739,6 @@
     .self-pen-palette .swatch[data-custom="1"] { position: relative; }
     .self-pen-palette .swatch[data-custom="1"]::after { content: '×'; position: absolute; top: -5px; right: -5px; width: 11px; height: 11px; font-size: 11px; line-height: 11px; text-align: center; background: var(--error-color, #f44336); color: #fff; border-radius: 50%; opacity: 0; transition: opacity 0.15s; pointer-events: none; }
     .self-pen-palette .swatch[data-custom="1"]:hover::after { opacity: 1; }
-    .self-pen-presets { display: flex; gap: 6px; }
-    .self-pen-presets .preset-btn { min-width: 36px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color, #ccc); background: transparent; color: inherit; cursor: pointer; }
-    .self-pen-presets .preset-btn.active { background: var(--primary-color, #2196f3); color: #fff; border-color: var(--primary-color, #2196f3); }
-
     .styled-select {
       background: var(--bg-surface);
       color: var(--text-primary);
@@ -6907,12 +6903,12 @@
                   <span class="item-label" data-i18n="selfPen.penPreset.label">画笔粗细预设</span>
                   <span class="item-desc" data-i18n="selfPen.penPreset.desc">快速选择常用画笔粗细</span>
                 </div>
-                <div class="item-state self-pen-presets" id="selfPen-pen-presets" data-kind="pen">
-                  <button type="button" class="preset-btn" data-idx="0" data-val="2" onclick="onSelfPenPresetClick('pen', 0, 2)">2</button>
-                  <button type="button" class="preset-btn" data-idx="1" data-val="5" onclick="onSelfPenPresetClick('pen', 1, 5)">5</button>
-                  <button type="button" class="preset-btn" data-idx="2" data-val="10" onclick="onSelfPenPresetClick('pen', 2, 10)">10</button>
-                  <button type="button" class="preset-btn" data-idx="3" data-val="15" onclick="onSelfPenPresetClick('pen', 3, 15)">15</button>
-                  <button type="button" class="preset-btn" data-idx="4" data-val="21" onclick="onSelfPenPresetClick('pen', 4, 21)">21</button>
+                <div class="item-state theme-select" id="selfPen-pen-presets" data-kind="pen">
+                  <div class="theme-option" data-idx="0" data-value="2" onclick="onSelfPenPresetClick('pen', 0, 2)">2</div>
+                  <div class="theme-option" data-idx="1" data-value="5" onclick="onSelfPenPresetClick('pen', 1, 5)">5</div>
+                  <div class="theme-option" data-idx="2" data-value="10" onclick="onSelfPenPresetClick('pen', 2, 10)">10</div>
+                  <div class="theme-option" data-idx="3" data-value="15" onclick="onSelfPenPresetClick('pen', 3, 15)">15</div>
+                  <div class="theme-option" data-idx="4" data-value="21" onclick="onSelfPenPresetClick('pen', 4, 21)">21</div>
                 </div>
               </div>
 
@@ -6921,12 +6917,12 @@
                   <span class="item-label" data-i18n="selfPen.eraserPreset.label">橡皮擦粗细预设</span>
                   <span class="item-desc" data-i18n="selfPen.eraserPreset.desc">快速选择常用橡皮擦粗细</span>
                 </div>
-                <div class="item-state self-pen-presets" id="selfPen-eraser-presets" data-kind="eraser">
-                  <button type="button" class="preset-btn" data-idx="0" data-val="5" onclick="onSelfPenPresetClick('eraser', 0, 5)">5</button>
-                  <button type="button" class="preset-btn" data-idx="1" data-val="15" onclick="onSelfPenPresetClick('eraser', 1, 15)">15</button>
-                  <button type="button" class="preset-btn" data-idx="2" data-val="25" onclick="onSelfPenPresetClick('eraser', 2, 25)">25</button>
-                  <button type="button" class="preset-btn" data-idx="3" data-val="38" onclick="onSelfPenPresetClick('eraser', 3, 38)">38</button>
-                  <button type="button" class="preset-btn" data-idx="4" data-val="50" onclick="onSelfPenPresetClick('eraser', 4, 50)">50</button>
+                <div class="item-state theme-select" id="selfPen-eraser-presets" data-kind="eraser">
+                  <div class="theme-option" data-idx="0" data-value="5" onclick="onSelfPenPresetClick('eraser', 0, 5)">5</div>
+                  <div class="theme-option" data-idx="1" data-value="15" onclick="onSelfPenPresetClick('eraser', 1, 15)">15</div>
+                  <div class="theme-option" data-idx="2" data-value="25" onclick="onSelfPenPresetClick('eraser', 2, 25)">25</div>
+                  <div class="theme-option" data-idx="3" data-value="38" onclick="onSelfPenPresetClick('eraser', 3, 38)">38</div>
+                  <div class="theme-option" data-idx="4" data-value="50" onclick="onSelfPenPresetClick('eraser', 4, 50)">50</div>
                 </div>
               </div>
 
@@ -13147,8 +13143,11 @@
     function setSelfPenPaletteActive(containerId, hex) {
       const c = document.getElementById(containerId);
       if (!c) return;
+      const target = String(hex || '').toLowerCase();
       c.querySelectorAll('.swatch').forEach(x => {
-        x.classList.toggle('active', x.dataset.hex.toLowerCase() === String(hex || '').toLowerCase());
+        const dh = x.dataset.hex;
+        if (typeof dh !== 'string') return;
+        x.classList.toggle('active', dh.toLowerCase() === target);
       });
     }
 
@@ -13233,17 +13232,19 @@
     function updatePresetActive(containerId, val) {
       const c = document.getElementById(containerId);
       if (!c) return;
-      c.querySelectorAll('.preset-btn').forEach(b => {
-        b.classList.toggle('active', parseInt(b.dataset.val) === parseInt(val));
+      c.querySelectorAll('.theme-option').forEach(o => {
+        o.classList.toggle('active', parseInt(o.dataset.value) === parseInt(val));
       });
+      updateSelectSlider(c);
     }
 
     function updatePresetActiveByIndex(containerId, idx) {
       const c = document.getElementById(containerId);
       if (!c) return;
-      c.querySelectorAll('.preset-btn').forEach(b => {
-        b.classList.toggle('active', parseInt(b.dataset.idx) === parseInt(idx));
+      c.querySelectorAll('.theme-option').forEach(o => {
+        o.classList.toggle('active', parseInt(o.dataset.idx) === parseInt(idx));
       });
+      updateSelectSlider(c);
     }
 
     function resetSelfPenDefaults() {
