@@ -3742,18 +3742,6 @@
     .self-pen-presets { display: flex; gap: 6px; }
     .self-pen-presets .preset-btn { min-width: 36px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color, #ccc); background: transparent; color: inherit; cursor: pointer; }
     .self-pen-presets .preset-btn.active { background: var(--primary-color, #2196f3); color: #fff; border-color: var(--primary-color, #2196f3); }
-    .segmented-btns { position: relative; display: inline-flex; border: 1px solid var(--border-color, #ccc); border-radius: 10px; overflow: hidden; }
-    .segmented-btns::before {
-      content: ''; position: absolute; top: 2px; bottom: 2px; left: 0; height: auto;
-      width: var(--seg-w, 0px); transform: translateX(var(--seg-x, 0px));
-      background: var(--accent-blue); z-index: 0; pointer-events: none;
-      border-radius: 6px;
-    }
-    .segmented-btns.seg-anim::before {
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .segmented-btns .seg-btn { position: relative; z-index: 1; padding: 6px 14px; border: none; background: transparent; color: inherit; cursor: pointer; user-select: none; -webkit-user-drag: none; transition: color 0.2s ease; }
-    .segmented-btns .seg-btn.active { color: #fff; background: transparent; }
 
     .styled-select {
       background: var(--bg-surface);
@@ -6879,10 +6867,10 @@
                   <span class="item-desc" data-i18n="selfPen.frameRateMode.desc">平衡绘制流畅度与性能消耗</span>
                 </div>
                 <div class="item-state">
-                  <div class="segmented-btns" id="seg-SelfPen-FrameRateMode" data-key="FrameRateMode">
-                    <button type="button" class="seg-btn" data-val="low" data-i18n="selfPen.frameRateMode.low" onclick="onSelfPenSegmented('FrameRateMode', 'low', this)">低</button>
-                    <button type="button" class="seg-btn" data-val="adaptive" data-i18n="selfPen.frameRateMode.adaptive" onclick="onSelfPenSegmented('FrameRateMode', 'adaptive', this)">自适应</button>
-                    <button type="button" class="seg-btn" data-val="high" data-i18n="selfPen.frameRateMode.high" onclick="onSelfPenSegmented('FrameRateMode', 'high', this)">高</button>
+                  <div class="theme-select" id="theme-select-SelfPen-FrameRateMode">
+                    <div class="theme-option" data-value="low" onclick="onSelfPenThemeSelect('FrameRateMode', 'low', this)" data-i18n="selfPen.frameRateMode.low">低</div>
+                    <div class="theme-option" data-value="adaptive" onclick="onSelfPenThemeSelect('FrameRateMode', 'adaptive', this)" data-i18n="selfPen.frameRateMode.adaptive">自适应</div>
+                    <div class="theme-option" data-value="high" onclick="onSelfPenThemeSelect('FrameRateMode', 'high', this)" data-i18n="selfPen.frameRateMode.high">高</div>
                   </div>
                 </div>
               </div>
@@ -6893,10 +6881,10 @@
                   <span class="item-desc" data-i18n="selfPen.penEffect.desc">压感/速度感应的笔迹效果强度</span>
                 </div>
                 <div class="item-state">
-                  <div class="segmented-btns" id="seg-SelfPen-PenEffect" data-key="PenEffect">
-                    <button type="button" class="seg-btn" data-val="off" data-i18n="selfPen.penEffect.off" onclick="onSelfPenSegmented('PenEffect', 'off', this)">关闭</button>
-                    <button type="button" class="seg-btn" data-val="limited" data-i18n="selfPen.penEffect.limited" onclick="onSelfPenSegmented('PenEffect', 'limited', this)">限制</button>
-                    <button type="button" class="seg-btn" data-val="full" data-i18n="selfPen.penEffect.full" onclick="onSelfPenSegmented('PenEffect', 'full', this)">完整</button>
+                  <div class="theme-select" id="theme-select-SelfPen-PenEffect">
+                    <div class="theme-option" data-value="off" onclick="onSelfPenThemeSelect('PenEffect', 'off', this)" data-i18n="selfPen.penEffect.off">关闭</div>
+                    <div class="theme-option" data-value="limited" onclick="onSelfPenThemeSelect('PenEffect', 'limited', this)" data-i18n="selfPen.penEffect.limited">限制</div>
+                    <div class="theme-option" data-value="full" onclick="onSelfPenThemeSelect('PenEffect', 'full', this)" data-i18n="selfPen.penEffect.full">完整</div>
                   </div>
                 </div>
               </div>
@@ -13197,123 +13185,22 @@
       }
     }
 
-    function moveSegIndicator(container) {
-      const active = container.querySelector('.seg-btn.active');
-      if (!active) return;
-      container.style.setProperty('--seg-x', active.offsetLeft + 'px');
-      container.style.setProperty('--seg-w', active.offsetWidth + 'px');
-    }
-    function ensureSegSetup(container) {
-      if (container._segReady) return;
-      container._segReady = true;
-      requestAnimationFrame(() => container.classList.add('seg-anim'));
-      if (window.ResizeObserver) {
-        new ResizeObserver(() => moveSegIndicator(container)).observe(container);
-      }
-      container.addEventListener('pointerdown', onSegPointerDown);
-      container.addEventListener('pointermove', onSegPointerMove);
-      container.addEventListener('pointerup', onSegPointerUp);
-      container.addEventListener('pointercancel', onSegPointerCancel);
-    }
-    function segHitTest(container, clientX) {
-      const btns = container.querySelectorAll('.seg-btn');
-      for (let i = 0; i < btns.length; i++) {
-        const rect = btns[i].getBoundingClientRect();
-        if (clientX >= rect.left && clientX <= rect.right) return btns[i];
-      }
-      return null;
-    }
-    function onSegPointerDown(e) {
-      const container = e.currentTarget;
-      let startBtn = null;
-      if (e.target && typeof e.target.closest === 'function') {
-        startBtn = e.target.closest('.seg-btn');
-      }
-      container._segDrag = {
-        pointerId: e.pointerId,
-        startX: e.clientX,
-        startY: e.clientY,
-        startBtn: startBtn,
-        moved: false,
-        captured: false
-      };
-    }
-    function onSegPointerMove(e) {
-      const container = e.currentTarget;
-      const drag = container._segDrag;
-      if (!drag) return;
-      const dx = e.clientX - drag.startX;
-      const dy = e.clientY - drag.startY;
-      if (!drag.moved && (dx * dx + dy * dy) < 9) return;
-      if (!drag.moved) {
-        drag.moved = true;
-        try {
-          container.setPointerCapture(e.pointerId);
-          drag.captured = true;
-        } catch (_) {}
-      }
-      const hitBtn = segHitTest(container, e.clientX);
-      if (!hitBtn) return;
-      const currentActive = container.querySelector('.seg-btn.active');
-      if (currentActive === hitBtn) return;
-      container.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
-      hitBtn.classList.add('active');
-      moveSegIndicator(container);
-    }
-    function onSegPointerUp(e) {
-      const container = e.currentTarget;
-      const drag = container._segDrag;
-      if (!drag) return;
-      if (drag.moved) {
-        const active = container.querySelector('.seg-btn.active');
-        if (active) {
-          const key = container.dataset.key;
-          const value = active.dataset.val;
-          if (key != null && value != null && !_selfPenHydrating &&
-              window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
-            window.pywebview.api.save_setting('SelfPen', key, value);
-          }
-        }
-        container._segSuppressClick = true;
-        setTimeout(() => { delete container._segSuppressClick; }, 0);
-      }
-      if (drag.captured) {
-        try { container.releasePointerCapture(e.pointerId); } catch (_) {}
-      }
-      container._segDrag = null;
-    }
-    function onSegPointerCancel(e) {
-      const container = e.currentTarget;
-      const drag = container._segDrag;
-      if (!drag) return;
-      if (drag.captured) {
-        try { container.releasePointerCapture(e.pointerId); } catch (_) {}
-      }
-      container._segDrag = null;
-      container._segSuppressClick = true;
-      setTimeout(() => { delete container._segSuppressClick; }, 0);
-    }
-    function onSelfPenSegmented(key, value, btn) {
-      const container = btn.parentElement;
-      if (container._segSuppressClick) return;
-      container.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      moveSegIndicator(container);
-      ensureSegSetup(container);
+    function onSelfPenThemeSelect(key, value, opt) {
+      const container = opt.parentElement;
+      container.querySelectorAll('.theme-option').forEach(o => o.classList.remove('active'));
+      opt.classList.add('active');
+      updateSelectSlider(container);
       if (_selfPenHydrating) return;
       if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
         window.pywebview.api.save_setting('SelfPen', key, value);
       }
     }
 
-    function setSelfPenSegmented(containerId, value) {
+    function setSelfPenThemeSelect(containerId, value) {
       const c = document.getElementById(containerId);
       if (!c) return;
-      c.querySelectorAll('.seg-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.val === String(value));
-      });
-      moveSegIndicator(c);
-      ensureSegSetup(c);
+      c.querySelectorAll('.theme-option').forEach(o => o.classList.toggle('active', o.dataset.value === String(value)));
+      updateSelectSlider(c);
     }
 
     function onSelfPenToggle(key, el) {
@@ -13380,8 +13267,8 @@
         setRange('range-SelfPen-HighlightWidth', s.HighlightWidth, 'val-SelfPen-HighlightWidth');
         setRange('range-SelfPen-EraserWidth', s.EraserWidth, 'val-SelfPen-EraserWidth');
         setRange('range-SelfPen-HighlightOpacity', s.HighlightOpacity, 'val-SelfPen-HighlightOpacity');
-        setSelfPenSegmented('seg-SelfPen-FrameRateMode', s.FrameRateMode);
-        setSelfPenSegmented('seg-SelfPen-PenEffect', s.PenEffect);
+        setSelfPenThemeSelect('theme-select-SelfPen-FrameRateMode', s.FrameRateMode);
+        setSelfPenThemeSelect('theme-select-SelfPen-PenEffect', s.PenEffect);
         const setSw = (id, on) => { const el = document.getElementById(id); if (el) el.classList.toggle('active', !!on); };
         setSw('sw-SelfPen-PalmErase', s.PalmErase);
         let _customPen = [];
