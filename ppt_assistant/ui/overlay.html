@@ -2979,19 +2979,12 @@
                     try { redrawAllStrokes(); } catch (e) { console.error('[InkPage] redraw before snapshot:', e); }
                     // Also set the in-page bg as a fallback (harmless if clipped by mask)
                     const bg = document.getElementById('ink-stroke-bg');
-                    canvas.toBlob(function(blob) {
-                        if (!blob) return;
-                        var reader = new FileReader();
-                        reader.onload = function() {
-                            var dataUrl = reader.result;
-                            if (bg) bg.style.backgroundImage = 'url(' + dataUrl + ')';
-                            // Show the standalone stroke bg window (events pass through to PPT)
-                            if (typeof bridge !== 'undefined' && bridge && typeof bridge.showStrokeBg === 'function') {
-                                try { bridge.showStrokeBg(dataUrl); } catch (e) {}
-                            }
-                        };
-                        reader.readAsDataURL(blob);
-                    });
+                    // Synchronous so showStrokeBg runs before sendMaskUpdate() shrinks the mask (avoids flicker).
+                    var dataUrl = canvas.toDataURL();
+                    if (bg) bg.style.backgroundImage = 'url(' + dataUrl + ')';
+                    if (typeof bridge !== 'undefined' && bridge && typeof bridge.showStrokeBg === 'function') {
+                        try { bridge.showStrokeBg(dataUrl); } catch (e) {}
+                    }
                 } else {
                     // No strokes → hide standalone stroke bg window
                     if (typeof bridge !== 'undefined' && bridge && typeof bridge.hideStrokeBg === 'function') {
