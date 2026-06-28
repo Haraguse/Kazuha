@@ -1128,13 +1128,11 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
                 "HighlightColor": cfg.selfHighlightColor.value,
                 "FrameRateMode": cfg.selfPenFrameRateMode.value,
                 "PenEffect": cfg.selfPenPenEffect.value,
-                "VelocityEraser": cfg.selfPenVelocityEraser.value,
-                "InertialPan": cfg.selfPenInertialPan.value,
                 "PalmErase": cfg.selfPenPalmErase.value,
-                "MinDpr": cfg.selfPenMinDpr.value,
-                "MaxDpr": cfg.selfPenMaxDpr.value,
                 "PenWidthPresetIndex": cfg.selfPenWidthPresetIndex.value,
                 "EraserWidthPresetIndex": cfg.selfEraserWidthPresetIndex.value,
+                "CustomPenColors": cfg.selfCustomPenColors.value,
+                "CustomHighlightColors": cfg.selfCustomHighlightColors.value,
             }
         except Exception as e:
             print(f"get_self_pen_settings error: {e}", file=sys.stderr)
@@ -1560,12 +1558,10 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
                         "HighlightColor": "selfHighlightColor",
                         "FrameRateMode": "selfPenFrameRateMode",
                         "PenEffect": "selfPenPenEffect",
-                        "MinDpr": "selfPenMinDpr",
-                        "MaxDpr": "selfPenMaxDpr",
+                        "CustomPenColors": "selfCustomPenColors",
+                        "CustomHighlightColors": "selfCustomHighlightColors",
                     }
                     _SELF_PEN_BOOL_KEYS = {
-                        "VelocityEraser": "selfPenVelocityEraser",
-                        "InertialPan": "selfPenInertialPan",
                         "PalmErase": "selfPenPalmErase",
                     }
                     attr = None

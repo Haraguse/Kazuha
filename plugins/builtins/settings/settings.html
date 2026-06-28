@@ -1502,6 +1502,17 @@
       padding-bottom: 12px;
     }
 
+    .settings-item.pen-sub-entry {
+      padding-left: 44px;
+      min-height: 48px;
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+    .pen-sub-entry .item-label {
+      font-size: 14px;
+      opacity: 0.85;
+    }
+
     .settings-item:hover {
       background: var(--item-hover);
     }
@@ -1664,35 +1675,10 @@
     }
 
     input[type="range"] {
-      -webkit-appearance: none;
       appearance: none;
-      width: 140px;
-      height: 24px;
-      --slider-thumb-size: 16px;
-      --slider-fill-x: 0px;
-      background:
-        radial-gradient(circle at var(--slider-fill-x) 50%, var(--accent-blue) 12px, transparent 12.5px),
-        linear-gradient(90deg, var(--accent-blue) 0 var(--slider-fill-x), var(--divider) var(--slider-fill-x));
       border-radius: 12px;
-      outline: none;
       box-sizing: border-box;
       border: none;
-    }
-
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 16px;
-      height: 16px;
-      background: #ffffff;
-      border-radius: 50%;
-      cursor: pointer;
-      transition: transform 0.1s;
-      border: none;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    input[type="range"]::-webkit-slider-thumb:hover {
-      transform: scale(1.2);
     }
 
     .chevron {
@@ -3631,53 +3617,6 @@
       overflow: visible;
     }
 
-    .slider-track {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      height: 24px;
-      background: var(--divider);
-      border-radius: 12px;
-    }
-
-    .slider-fill {
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      height: 24px;
-      width: 50%;
-      background: var(--accent-blue);
-      border-radius: 12px;
-      pointer-events: none;
-    }
-
-    .slider-handle {
-      position: absolute;
-      top: 50%;
-      width: 20px;
-      height: 20px;
-      background: #ffffff;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      box-shadow: 0 2px 4px var(--shadow-color);
-      pointer-events: none;
-      transition: box-shadow 0.2s, transform 0.2s;
-      z-index: 3;
-    }
-
-    .slider-container:hover .slider-handle {
-      box-shadow: 0 3px 6px var(--shadow-color);
-      transform: translate(-50%, -50%) scale(1.1);
-    }
-
-    .slider-container:active .slider-handle {
-      box-shadow: 0 1px 2px var(--shadow-color);
-      transform: translate(-50%, -50%) scale(1.0);
-    }
-
     input[type=range] {
       -webkit-appearance: none;
       width: 100%;
@@ -3727,13 +3666,11 @@
     }
 
     input[type=range]:hover::-webkit-slider-thumb {
-      transform: scale(1.1);
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2), 0 0 0 3px var(--accent-blue), -400px 0 0 400px var(--accent-blue);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 0 4px var(--accent-blue);
     }
 
     input[type=range]:active::-webkit-slider-thumb {
-      transform: scale(1.0);
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 0 0 3px var(--accent-blue), -400px 0 0 400px var(--accent-blue);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 0 5px var(--accent-blue);
     }
 
     .switch {
@@ -3797,14 +3734,26 @@
     .self-pen-palette { display: flex; flex-wrap: wrap; gap: 6px; max-width: 220px; }
     .self-pen-palette .swatch { width: 20px; height: 20px; border-radius: 4px; cursor: pointer; border: 1px solid var(--border-color, #ccc); }
     .self-pen-palette .swatch.active { outline: 2px solid var(--primary-color, #2196f3); outline-offset: 1px; }
+    .self-pen-palette .swatch-add { display: flex; align-items: center; justify-content: center; color: var(--icon-color, #888); font-size: 15px; line-height: 1; position: relative; user-select: none; border: 1px dashed var(--border-color, #ccc); }
+    .self-pen-palette .swatch-add .swatch-color-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: none; padding: 0; }
+    .self-pen-palette .swatch[data-custom="1"] { position: relative; }
+    .self-pen-palette .swatch[data-custom="1"]::after { content: '×'; position: absolute; top: -5px; right: -5px; width: 11px; height: 11px; font-size: 11px; line-height: 11px; text-align: center; background: var(--error-color, #f44336); color: #fff; border-radius: 50%; opacity: 0; transition: opacity 0.15s; pointer-events: none; }
+    .self-pen-palette .swatch[data-custom="1"]:hover::after { opacity: 1; }
     .self-pen-presets { display: flex; gap: 6px; }
     .self-pen-presets .preset-btn { min-width: 36px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color, #ccc); background: transparent; color: inherit; cursor: pointer; }
     .self-pen-presets .preset-btn.active { background: var(--primary-color, #2196f3); color: #fff; border-color: var(--primary-color, #2196f3); }
-    .segmented-btns { display: inline-flex; border: 1px solid var(--border-color, #ccc); border-radius: 8px; overflow: hidden; }
-    .segmented-btns .seg-btn { padding: 6px 14px; border: none; background: transparent; color: inherit; cursor: pointer; border-right: 1px solid var(--border-color, #ccc); }
-    .segmented-btns .seg-btn:last-child { border-right: none; }
-    .segmented-btns .seg-btn.active { background: var(--primary-color, #2196f3); color: #fff; }
-    .range-value { min-width: 28px; text-align: right; font-variant-numeric: tabular-nums; opacity: 0.8; }
+    .segmented-btns { position: relative; display: inline-flex; border: 1px solid var(--border-color, #ccc); border-radius: 10px; overflow: hidden; }
+    .segmented-btns::before {
+      content: ''; position: absolute; top: 2px; bottom: 2px; left: 0; height: auto;
+      width: var(--seg-w, 0px); transform: translateX(var(--seg-x, 0px));
+      background: var(--accent-blue); z-index: 0; pointer-events: none;
+      border-radius: 6px;
+    }
+    .segmented-btns.seg-anim::before {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .segmented-btns .seg-btn { position: relative; z-index: 1; padding: 6px 14px; border: none; background: transparent; color: inherit; cursor: pointer; user-select: none; -webkit-user-drag: none; transition: color 0.2s ease; }
+    .segmented-btns .seg-btn.active { color: #fff; background: transparent; }
 
     .styled-select {
       background: var(--bg-surface);
@@ -6783,9 +6732,14 @@
                 <span class="item-label" data-i18n="toolbar.pen">画笔</span>
                 <span class="item-desc" data-i18n="toolbar.pen.desc">控制悬浮工具栏中的画笔按钮是否可用</span>
               </div>
-              <div class="item-state" style="display: flex; align-items: center; gap: 12px;">
-                <div class="switch" id="sw-tool-pen"></div>
-                <svg class="chevron" viewBox="0 0 24 24" style="cursor: pointer;" onclick="event.stopPropagation(); showPenPage()">
+              <div class="switch" id="sw-tool-pen"></div>
+            </div>
+            <div class="settings-item pen-sub-entry" onclick="showPenPage()">
+              <div class="item-info">
+                <span class="item-label" data-i18n="toolbar.pen.settings">--画笔设置</span>
+              </div>
+              <div class="item-state">
+                <svg class="chevron" viewBox="0 0 24 24">
                   <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
                 </svg>
               </div>
@@ -6845,6 +6799,7 @@
               </div>
             </div>
 
+            <div id="selfPen-settings">
             <div class="group-title" data-i18n="selfPen.appearance.title">笔迹外观</div>
             <div class="settings-group">
               <div class="settings-item">
@@ -6852,9 +6807,11 @@
                   <span class="item-label" data-i18n="selfPen.penWidth.label">普通笔粗细</span>
                   <span class="item-desc" data-i18n="selfPen.penWidth.desc">控制普通画笔的线条宽度</span>
                 </div>
-                <div class="item-state" style="display:flex;align-items:center;gap:12px;">
-                  <input type="range" id="sel-SelfPen-PenWidth" min="1" max="12" step="1" value="3" oninput="onSelfPenRangeInput('PenWidth', this.value, 'pen-width-val', parseInt)">
-                  <span id="pen-width-val" class="range-value">3</span>
+                <div class="item-state">
+                  <div class="slider-container">
+                    <input type="range" id="range-SelfPen-PenWidth" min="1" max="12" step="1" value="3" oninput="onSelfPenRangeInput('PenWidth', this.value, parseInt)">
+                    <span class="slider-value" id="val-SelfPen-PenWidth">3</span>
+                  </div>
                 </div>
               </div>
 
@@ -6863,9 +6820,11 @@
                   <span class="item-label" data-i18n="selfPen.highlightWidth.label">荧光笔粗细</span>
                   <span class="item-desc" data-i18n="selfPen.highlightWidth.desc">控制荧光笔的线条宽度</span>
                 </div>
-                <div class="item-state" style="display:flex;align-items:center;gap:12px;">
-                  <input type="range" id="sel-SelfPen-HighlightWidth" min="8" max="48" step="2" value="24" oninput="onSelfPenRangeInput('HighlightWidth', this.value, 'hl-width-val', parseInt)">
-                  <span id="hl-width-val" class="range-value">24</span>
+                <div class="item-state">
+                  <div class="slider-container">
+                    <input type="range" id="range-SelfPen-HighlightWidth" min="8" max="48" step="2" value="24" oninput="onSelfPenRangeInput('HighlightWidth', this.value, parseInt)">
+                    <span class="slider-value" id="val-SelfPen-HighlightWidth">24</span>
+                  </div>
                 </div>
               </div>
 
@@ -6874,9 +6833,11 @@
                   <span class="item-label" data-i18n="selfPen.eraserWidth.label">橡皮擦粗细</span>
                   <span class="item-desc" data-i18n="selfPen.eraserWidth.desc">控制橡皮擦的擦除范围</span>
                 </div>
-                <div class="item-state" style="display:flex;align-items:center;gap:12px;">
-                  <input type="range" id="sel-SelfPen-EraserWidth" min="10" max="80" step="2" value="30" oninput="onSelfPenRangeInput('EraserWidth', this.value, 'eraser-width-val', parseInt)">
-                  <span id="eraser-width-val" class="range-value">30</span>
+                <div class="item-state">
+                  <div class="slider-container">
+                    <input type="range" id="range-SelfPen-EraserWidth" min="10" max="80" step="2" value="30" oninput="onSelfPenRangeInput('EraserWidth', this.value, parseInt)">
+                    <span class="slider-value" id="val-SelfPen-EraserWidth">30</span>
+                  </div>
                 </div>
               </div>
 
@@ -6901,9 +6862,11 @@
                   <span class="item-label" data-i18n="selfPen.highlightOpacity.label">荧光笔透明度</span>
                   <span class="item-desc" data-i18n="selfPen.highlightOpacity.desc">控制荧光笔的不透明度（0.1–1.0）</span>
                 </div>
-                <div class="item-state" style="display:flex;align-items:center;gap:12px;">
-                  <input type="range" id="sel-SelfPen-HighlightOpacity" min="0.1" max="1.0" step="0.05" value="0.45" oninput="onSelfPenRangeInput('HighlightOpacity', this.value, 'hl-opacity-val', parseFloat)">
-                  <span id="hl-opacity-val" class="range-value">0.45</span>
+                <div class="item-state">
+                  <div class="slider-container">
+                    <input type="range" id="range-SelfPen-HighlightOpacity" min="0.1" max="1.0" step="0.05" value="0.45" oninput="onSelfPenRangeInput('HighlightOpacity', this.value, parseFloat)">
+                    <span class="slider-value" id="val-SelfPen-HighlightOpacity">0.45</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -6942,42 +6905,10 @@
 
               <div class="settings-item">
                 <div class="item-info">
-                  <span class="item-label" data-i18n="selfPen.velocityEraser.label">速度擦</span>
-                  <span class="item-desc" data-i18n="selfPen.velocityEraser.desc">快速移动时自动切换为橡皮擦</span>
-                </div>
-                <div class="switch" id="sw-SelfPen-VelocityEraser" onclick="onSelfPenToggle('VelocityEraser', this)"></div>
-              </div>
-
-              <div class="settings-item">
-                <div class="item-info">
-                  <span class="item-label" data-i18n="selfPen.inertialPan.label">惯性移动</span>
-                  <span class="item-desc" data-i18n="selfPen.inertialPan.desc">画布拖动时带有惯性滑动</span>
-                </div>
-                <div class="switch" id="sw-SelfPen-InertialPan" onclick="onSelfPenToggle('InertialPan', this)"></div>
-              </div>
-
-              <div class="settings-item">
-                <div class="item-info">
                   <span class="item-label" data-i18n="selfPen.palmErase.label">手掌擦除</span>
                   <span class="item-desc" data-i18n="selfPen.palmErase.desc">多触点时识别手掌为擦除</span>
                 </div>
                 <div class="switch" id="sw-SelfPen-PalmErase" onclick="onSelfPenToggle('PalmErase', this)"></div>
-              </div>
-
-              <div class="settings-item">
-                <div class="item-info">
-                  <span class="item-label" data-i18n="selfPen.dprRange.label">DPR 范围</span>
-                  <span class="item-desc" data-i18n="selfPen.dprRange.desc">限定画布分辨率的下限与上限</span>
-                </div>
-                <div class="item-state" style="display:flex;align-items:center;gap:8px;">
-                  <select class="styled-select" id="sel-SelfPen-MinDpr" onchange="onSelfPenSelect('MinDpr', this.value)">
-                    <option value="1x">1x</option><option value="2x">2x</option><option value="3x">3x</option><option value="4x">4x</option>
-                  </select>
-                  <span>–</span>
-                  <select class="styled-select" id="sel-SelfPen-MaxDpr" onchange="onSelfPenSelect('MaxDpr', this.value)">
-                    <option value="1x">1x</option><option value="2x">2x</option><option value="3x">3x</option><option value="4x">4x</option>
-                  </select>
-                </div>
               </div>
             </div>
 
@@ -7020,6 +6951,7 @@
                   <button type="button" class="text-btn" onclick="resetSelfPenDefaults()" data-i18n="selfPen.resetDefaults.btn">恢复</button>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </div>
@@ -8310,14 +8242,8 @@
         "selfPen.penEffect.off": "关闭",
         "selfPen.penEffect.limited": "限制",
         "selfPen.penEffect.full": "完整",
-        "selfPen.velocityEraser.label": "速度擦",
-        "selfPen.velocityEraser.desc": "快速移动时自动切换为橡皮擦",
-        "selfPen.inertialPan.label": "惯性移动",
-        "selfPen.inertialPan.desc": "画布拖动时带有惯性滑动",
         "selfPen.palmErase.label": "手掌擦除",
         "selfPen.palmErase.desc": "多触点时识别手掌为擦除",
-        "selfPen.dprRange.label": "DPR 范围",
-        "selfPen.dprRange.desc": "限定画布分辨率的下限与上限",
         "selfPen.presets.title": "粗细预设",
         "selfPen.penPreset.label": "画笔粗细预设",
         "selfPen.penPreset.desc": "快速选择常用画笔粗细",
@@ -8413,6 +8339,7 @@
         "toolbar.select": "选择",
         "toolbar.select.desc": "控制悬浮工具栏中的选择按钮是否可用",
         "toolbar.pen": "画笔",
+        "toolbar.pen.settings": "画笔设置",
         "toolbar.pen.desc": "控制悬浮工具栏中的画笔按钮是否可用",
         "toolbar.eraser": "橡皮擦",
         "toolbar.eraser.desc": "控制悬浮工具栏中的橡皮擦按钮是否可用",
@@ -8804,14 +8731,8 @@
         "selfPen.penEffect.off": "關閉",
         "selfPen.penEffect.limited": "限制",
         "selfPen.penEffect.full": "完整",
-        "selfPen.velocityEraser.label": "速度擦",
-        "selfPen.velocityEraser.desc": "快速移動時自動切換為橡皮擦",
-        "selfPen.inertialPan.label": "慣性移動",
-        "selfPen.inertialPan.desc": "畫布拖動時帶有慣性滑動",
         "selfPen.palmErase.label": "手掌擦除",
         "selfPen.palmErase.desc": "多觸點時識別手掌為擦除",
-        "selfPen.dprRange.label": "DPR 範圍",
-        "selfPen.dprRange.desc": "限定畫布解析度的下限與上限",
         "selfPen.presets.title": "粗細預設",
         "selfPen.penPreset.label": "畫筆粗細預設",
         "selfPen.penPreset.desc": "快速選擇常用畫筆粗細",
@@ -8898,6 +8819,7 @@
         "interaction.toolbar.renameApp": "重新命名",
         "toolbar.select": "選擇",
         "toolbar.pen": "畫筆",
+        "toolbar.pen.settings": "畫筆設定",
         "toolbar.eraser": "橡皮擦",
         "toolbar.spotlight": "聚光燈",
         "toolbar.board_in_board": "板中板",
@@ -9279,14 +9201,8 @@
         "selfPen.penEffect.off": "關閉",
         "selfPen.penEffect.limited": "限制",
         "selfPen.penEffect.full": "完整",
-        "selfPen.velocityEraser.label": "速度擦",
-        "selfPen.velocityEraser.desc": "快速移動時自動切換做擦膠",
-        "selfPen.inertialPan.label": "慣性移動",
-        "selfPen.inertialPan.desc": "畫布拖動時有慣性滑動",
         "selfPen.palmErase.label": "手掌擦除",
         "selfPen.palmErase.desc": "多觸點時識別手掌做擦除",
-        "selfPen.dprRange.label": "DPR 範圍",
-        "selfPen.dprRange.desc": "限定畫布解析度嘅下限同上限",
         "selfPen.presets.title": "粗幼預設",
         "selfPen.penPreset.label": "畫筆粗幼預設",
         "selfPen.penPreset.desc": "快速揀常用畫筆粗幼",
@@ -9361,6 +9277,7 @@
         "interaction.toolbar.renameApp": "改名",
         "toolbar.select": "選取",
         "toolbar.pen": "畫筆",
+        "toolbar.pen.settings": "畫筆設定",
         "toolbar.eraser": "橡皮擦",
         "toolbar.spotlight": "聚光燈",
         "toolbar.board_in_board": "板中板",
@@ -9743,14 +9660,8 @@
         "selfPen.penEffect.off": "オフ",
         "selfPen.penEffect.limited": "制限",
         "selfPen.penEffect.full": "完全",
-        "selfPen.velocityEraser.label": "速度消去",
-        "selfPen.velocityEraser.desc": "高速移動時に自動で消しゴムに切り替えます",
-        "selfPen.inertialPan.label": "慣性移動",
-        "selfPen.inertialPan.desc": "キャンバスのドラッグ時に慣性スクロールします",
         "selfPen.palmErase.label": "手のひら消去",
         "selfPen.palmErase.desc": "マルチタッチ時に手のひらを消去として認識します",
-        "selfPen.dprRange.label": "DPR 範囲",
-        "selfPen.dprRange.desc": "キャンバス解像度の下限と上限を制限します",
         "selfPen.presets.title": "太さプリセット",
         "selfPen.penPreset.label": "ペンの太さプリセット",
         "selfPen.penPreset.desc": "よく使うペンの太さを素早く選択します",
@@ -9838,6 +9749,7 @@
         "interaction.toolbar.renameApp": "名前を変更",
         "toolbar.select": "選択",
         "toolbar.pen": "ペン",
+        "toolbar.pen.settings": "ペン設定",
         "toolbar.eraser": "消しゴム",
         "toolbar.spotlight": "スポットライト",
         "toolbar.board_in_board": "ボードインボード",
@@ -10214,14 +10126,8 @@
         "selfPen.penEffect.off": "Off",
         "selfPen.penEffect.limited": "Limited",
         "selfPen.penEffect.full": "Full",
-        "selfPen.velocityEraser.label": "Velocity Eraser",
-        "selfPen.velocityEraser.desc": "Auto-switch to eraser on fast motion",
-        "selfPen.inertialPan.label": "Inertial Pan",
-        "selfPen.inertialPan.desc": "Canvas dragging with momentum",
         "selfPen.palmErase.label": "Palm Erase",
         "selfPen.palmErase.desc": "Recognize palm as erasure on multi-touch",
-        "selfPen.dprRange.label": "DPR Range",
-        "selfPen.dprRange.desc": "Clamp the canvas backing-store DPR",
         "selfPen.presets.title": "Width Presets",
         "selfPen.penPreset.label": "Pen Width Presets",
         "selfPen.penPreset.desc": "Quickly pick a common pen width",
@@ -10474,14 +10380,8 @@
         "selfPen.penEffect.off": "Off",
         "selfPen.penEffect.limited": "Limited",
         "selfPen.penEffect.full": "Full",
-        "selfPen.velocityEraser.label": "Velocity Eraser",
-        "selfPen.velocityEraser.desc": "Auto-switch to eraser on fast motion",
-        "selfPen.inertialPan.label": "Inertial Pan",
-        "selfPen.inertialPan.desc": "Canvas dragging with momentum",
         "selfPen.palmErase.label": "Palm Erase",
         "selfPen.palmErase.desc": "Recognize palm as erasure on multi-touch",
-        "selfPen.dprRange.label": "DPR Range",
-        "selfPen.dprRange.desc": "Clamp the canvas backing-store DPR",
         "selfPen.presets.title": "Width Presets",
         "selfPen.penPreset.label": "Pen Width Presets",
         "selfPen.penPreset.desc": "Quickly pick a common pen width",
@@ -10577,6 +10477,7 @@
         "interaction.toolbar.renameApp": "Rename",
         "toolbar.select": "Select",
         "toolbar.pen": "Pen",
+        "toolbar.pen.settings": "Pen Settings",
         "toolbar.eraser": "Eraser",
         "toolbar.spotlight": "Spotlight",
         "toolbar.board_in_board": "Board in Board",
@@ -10678,14 +10579,8 @@
         "selfPen.penEffect.off": "关闭",
         "selfPen.penEffect.limited": "限制",
         "selfPen.penEffect.full": "完整",
-        "selfPen.velocityEraser.label": "速度擦",
-        "selfPen.velocityEraser.desc": "快速移动时自动切换为橡皮擦",
-        "selfPen.inertialPan.label": "惯性移动",
-        "selfPen.inertialPan.desc": "画布拖动时带有惯性滑动",
         "selfPen.palmErase.label": "手掌擦除",
         "selfPen.palmErase.desc": "多触点时识别手掌为擦除",
-        "selfPen.dprRange.label": "DPR 范围",
-        "selfPen.dprRange.desc": "限定画布分辨率的下限与上限",
         "selfPen.presets.title": "粗细预设",
         "selfPen.penPreset.label": "画笔粗细预设",
         "selfPen.penPreset.desc": "快速选择常用画笔粗细",
@@ -13113,6 +13008,7 @@
       if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
         window.pywebview.api.save_setting("PPT", "PenMode", value);
       }
+      updateSelfPenVisibility();
     }
 
     function togglePenMode() {
@@ -13127,30 +13023,137 @@
       refreshCustomSelect(sel);
     }
 
-    const SELF_PEN_PEN_COLORS = ['#000000','#ffffff','#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#ff8800','#8800ff','#888888','#ff4444','#44ff44','#4444ff','#ff44ff'];
-    const SELF_PEN_HIGHLIGHT_COLORS = ['#ffff00','#ff8800','#00ff00','#00ffff','#ff00ff','#ff4444','#4444ff','#888888','#000000','#ffffff','#ff0000','#0000ff','#44ff44','#88ff00','#0088ff'];
-    const SELF_PEN_DEFAULTS = { PenWidth:3, HighlightWidth:24, EraserWidth:30, HighlightOpacity:0.45, PenColor:'#000000', HighlightColor:'#ffff00', FrameRateMode:'adaptive', PenEffect:'limited', VelocityEraser:false, InertialPan:false, PalmErase:false, MinDpr:'1x', MaxDpr:'4x', PenWidthPresetIndex:1, EraserWidthPresetIndex:1 };
+    // Hide all self-developed pen settings when COM pen is selected (on pen secondary page)
+    function updateSelfPenVisibility() {
+      const penMode = settings.PPT ? settings.PPT.PenMode : "com";
+      const el = document.getElementById("selfPen-settings");
+      if (el) el.style.display = (penMode === "com") ? "none" : "";
+    }
+
+    const SELF_PEN_PEN_COLORS = ['#FFFFFF','#000000','#E7E6E6','#44546A','#4472C4','#ED7D31','#FF0000','#A5A5A5','#FFC000','#5B9BD5','#70AD47','#C00000','#FFFF00','#92D050','#FF69B4','#00BCD4','#002060','#7030A0'];
+    const SELF_PEN_HIGHLIGHT_COLORS = ['#FFFF00','#00FF00','#00FFFF','#FF69B4','#FFC000','#FF4444','#5B9BD5','#AA66FF'];
+    const SELF_PEN_DEFAULTS = { PenWidth:3, HighlightWidth:24, EraserWidth:30, HighlightOpacity:0.45, PenColor:'#000000', HighlightColor:'#ffff00', FrameRateMode:'adaptive', PenEffect:'limited', PalmErase:false, PenWidthPresetIndex:-1, EraserWidthPresetIndex:-1 };
+    const SELF_PEN_PRESET_VALS = [2, 5, 10, 15, 21];
+    const SELF_ERASER_PRESET_VALS = [5, 15, 25, 38, 50];
     let _selfPenHydrating = false;
 
-    function buildSelfPenPalette(containerId, colors, target) {
+    let _selfPenCustomPenColors = [];
+    let _selfPenCustomHighlightColors = [];
+
+    function _getCustomColors(target) {
+      return target === 'PenColor' ? _selfPenCustomPenColors : _selfPenCustomHighlightColors;
+    }
+
+    function _setCustomColors(target, arr) {
+      if (target === 'PenColor') _selfPenCustomPenColors = arr;
+      else _selfPenCustomHighlightColors = arr;
+    }
+
+    function _getCustomListKey(target) {
+      return target === 'PenColor' ? 'CustomPenColors' : 'CustomHighlightColors';
+    }
+
+    function _getPaletteContainerId(target) {
+      return target === 'PenColor' ? 'selfPen-color-pen' : 'selfPen-color-highlight';
+    }
+
+    function _getPresetColors(target) {
+      return target === 'PenColor' ? SELF_PEN_PEN_COLORS : SELF_PEN_HIGHLIGHT_COLORS;
+    }
+
+    function _makeSelfPenSwatch(hex, target, isCustom) {
+      const s = document.createElement('div');
+      s.className = 'swatch';
+      s.style.background = hex;
+      s.dataset.hex = hex;
+      if (isCustom) {
+        s.dataset.custom = '1';
+        s.title = '右键删除';
+      }
+      s.onclick = () => {
+        if (_selfPenHydrating) return;
+        const c = s.closest('.self-pen-palette');
+        c.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
+        s.classList.add('active');
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+          window.pywebview.api.save_setting('SelfPen', target, hex);
+        }
+      };
+      if (isCustom) {
+        s.oncontextmenu = (e) => {
+          e.preventDefault();
+          if (_selfPenHydrating) return;
+          removeCustomColor(target, hex);
+        };
+      }
+      return s;
+    }
+
+    function buildSelfPenPalette(containerId, colors, target, customColors) {
       const c = document.getElementById(containerId);
       if (!c) return;
       c.innerHTML = '';
-      colors.forEach(hex => {
-        const s = document.createElement('div');
-        s.className = 'swatch';
-        s.style.background = hex;
-        s.dataset.hex = hex;
-        s.onclick = () => {
-          if (_selfPenHydrating) return;
-          c.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
-          s.classList.add('active');
-          if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
-            window.pywebview.api.save_setting('SelfPen', target, hex);
-          }
-        };
-        c.appendChild(s);
-      });
+      const custom = Array.isArray(customColors) ? customColors : [];
+      _setCustomColors(target, custom.slice());
+      colors.forEach(hex => c.appendChild(_makeSelfPenSwatch(hex, target, false)));
+      custom.forEach(hex => c.appendChild(_makeSelfPenSwatch(hex, target, true)));
+      const addWrap = document.createElement('div');
+      addWrap.className = 'swatch swatch-add';
+      addWrap.title = '添加自定义颜色';
+      addWrap.textContent = '+';
+      const inp = document.createElement('input');
+      inp.type = 'color';
+      inp.className = 'swatch-color-input';
+      inp.value = '#000000';
+      inp.onchange = () => {
+        if (_selfPenHydrating) return;
+        addCustomColor(target, inp.value.toUpperCase());
+        inp.value = '#000000';
+      };
+      addWrap.appendChild(inp);
+      c.appendChild(addWrap);
+    }
+
+    function addCustomColor(target, hex) {
+      const presets = _getPresetColors(target);
+      const custom = _getCustomColors(target);
+      const lower = hex.toLowerCase();
+      const exists = presets.some(h => h.toLowerCase() === lower) || custom.some(h => h.toLowerCase() === lower);
+      const containerId = _getPaletteContainerId(target);
+      if (exists) {
+        setSelfPenPaletteActive(containerId, hex);
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+          window.pywebview.api.save_setting('SelfPen', target, hex);
+        }
+        return;
+      }
+      const next = custom.concat([hex]);
+      _setCustomColors(target, next);
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+        window.pywebview.api.save_setting('SelfPen', _getCustomListKey(target), JSON.stringify(next));
+        window.pywebview.api.save_setting('SelfPen', target, hex);
+      }
+      buildSelfPenPalette(containerId, presets, target, next);
+      setSelfPenPaletteActive(containerId, hex);
+    }
+
+    function removeCustomColor(target, hex) {
+      const custom = _getCustomColors(target);
+      const next = custom.filter(h => h.toLowerCase() !== hex.toLowerCase());
+      _setCustomColors(target, next);
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+        window.pywebview.api.save_setting('SelfPen', _getCustomListKey(target), JSON.stringify(next));
+      }
+      const containerId = _getPaletteContainerId(target);
+      const presets = _getPresetColors(target);
+      const c = document.getElementById(containerId);
+      let activeHex = null;
+      if (c) {
+        const active = c.querySelector('.swatch.active');
+        if (active) activeHex = active.dataset.hex;
+      }
+      buildSelfPenPalette(containerId, presets, target, next);
+      if (activeHex) setSelfPenPaletteActive(containerId, activeHex);
     }
 
     function setSelfPenPaletteActive(containerId, hex) {
@@ -13161,29 +13164,142 @@
       });
     }
 
-    function onSelfPenRangeInput(key, value, valueSpanId, castFn) {
+    function onSelfPenRangeInput(key, value, castFn) {
       const v = castFn(value);
-      const span = document.getElementById(valueSpanId);
+      const span = document.getElementById('val-SelfPen-' + key);
       if (span) span.textContent = v;
+      const rangeEl = document.getElementById('range-SelfPen-' + key);
+      updateRangeVisuals(rangeEl, v);
       if (_selfPenHydrating) return;
       if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
         window.pywebview.api.save_setting('SelfPen', key, v);
       }
-      if (key === 'PenWidth') updatePresetActive('selfPen-pen-presets', v);
-      else if (key === 'EraserWidth') updatePresetActive('selfPen-eraser-presets', v);
-    }
-
-    function onSelfPenSelect(key, value) {
-      if (_selfPenHydrating) return;
-      if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
-        window.pywebview.api.save_setting('SelfPen', key, value);
+      if (key === 'PenWidth') {
+        const idx = SELF_PEN_PRESET_VALS.indexOf(v);
+        if (idx >= 0) {
+          updatePresetActive('selfPen-pen-presets', v);
+        } else {
+          updatePresetActiveByIndex('selfPen-pen-presets', -1);
+        }
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+          window.pywebview.api.save_setting('SelfPen', 'PenWidthPresetIndex', idx);
+        }
+      } else if (key === 'EraserWidth') {
+        const idx = SELF_ERASER_PRESET_VALS.indexOf(v);
+        if (idx >= 0) {
+          updatePresetActive('selfPen-eraser-presets', v);
+        } else {
+          updatePresetActiveByIndex('selfPen-eraser-presets', -1);
+        }
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+          window.pywebview.api.save_setting('SelfPen', 'EraserWidthPresetIndex', idx);
+        }
       }
     }
 
+    function moveSegIndicator(container) {
+      const active = container.querySelector('.seg-btn.active');
+      if (!active) return;
+      container.style.setProperty('--seg-x', active.offsetLeft + 'px');
+      container.style.setProperty('--seg-w', active.offsetWidth + 'px');
+    }
+    function ensureSegSetup(container) {
+      if (container._segReady) return;
+      container._segReady = true;
+      requestAnimationFrame(() => container.classList.add('seg-anim'));
+      if (window.ResizeObserver) {
+        new ResizeObserver(() => moveSegIndicator(container)).observe(container);
+      }
+      container.addEventListener('pointerdown', onSegPointerDown);
+      container.addEventListener('pointermove', onSegPointerMove);
+      container.addEventListener('pointerup', onSegPointerUp);
+      container.addEventListener('pointercancel', onSegPointerCancel);
+    }
+    function segHitTest(container, clientX) {
+      const btns = container.querySelectorAll('.seg-btn');
+      for (let i = 0; i < btns.length; i++) {
+        const rect = btns[i].getBoundingClientRect();
+        if (clientX >= rect.left && clientX <= rect.right) return btns[i];
+      }
+      return null;
+    }
+    function onSegPointerDown(e) {
+      const container = e.currentTarget;
+      let startBtn = null;
+      if (e.target && typeof e.target.closest === 'function') {
+        startBtn = e.target.closest('.seg-btn');
+      }
+      container._segDrag = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        startBtn: startBtn,
+        moved: false,
+        captured: false
+      };
+    }
+    function onSegPointerMove(e) {
+      const container = e.currentTarget;
+      const drag = container._segDrag;
+      if (!drag) return;
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+      if (!drag.moved && (dx * dx + dy * dy) < 9) return;
+      if (!drag.moved) {
+        drag.moved = true;
+        try {
+          container.setPointerCapture(e.pointerId);
+          drag.captured = true;
+        } catch (_) {}
+      }
+      const hitBtn = segHitTest(container, e.clientX);
+      if (!hitBtn) return;
+      const currentActive = container.querySelector('.seg-btn.active');
+      if (currentActive === hitBtn) return;
+      container.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+      hitBtn.classList.add('active');
+      moveSegIndicator(container);
+    }
+    function onSegPointerUp(e) {
+      const container = e.currentTarget;
+      const drag = container._segDrag;
+      if (!drag) return;
+      if (drag.moved) {
+        const active = container.querySelector('.seg-btn.active');
+        if (active) {
+          const key = container.dataset.key;
+          const value = active.dataset.val;
+          if (key != null && value != null && !_selfPenHydrating &&
+              window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
+            window.pywebview.api.save_setting('SelfPen', key, value);
+          }
+        }
+        container._segSuppressClick = true;
+        setTimeout(() => { delete container._segSuppressClick; }, 0);
+      }
+      if (drag.captured) {
+        try { container.releasePointerCapture(e.pointerId); } catch (_) {}
+      }
+      container._segDrag = null;
+    }
+    function onSegPointerCancel(e) {
+      const container = e.currentTarget;
+      const drag = container._segDrag;
+      if (!drag) return;
+      if (drag.captured) {
+        try { container.releasePointerCapture(e.pointerId); } catch (_) {}
+      }
+      container._segDrag = null;
+      container._segSuppressClick = true;
+      setTimeout(() => { delete container._segSuppressClick; }, 0);
+    }
     function onSelfPenSegmented(key, value, btn) {
       const container = btn.parentElement;
+      if (container._segSuppressClick) return;
       container.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      moveSegIndicator(container);
+      ensureSegSetup(container);
       if (_selfPenHydrating) return;
       if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
         window.pywebview.api.save_setting('SelfPen', key, value);
@@ -13196,6 +13312,8 @@
       c.querySelectorAll('.seg-btn').forEach(b => {
         b.classList.toggle('active', b.dataset.val === String(value));
       });
+      moveSegIndicator(c);
+      ensureSegSetup(c);
     }
 
     function onSelfPenToggle(key, el) {
@@ -13208,12 +13326,13 @@
     }
 
     function onSelfPenPresetClick(kind, idx, val) {
-      const sliderId = kind === 'pen' ? 'sel-SelfPen-PenWidth' : 'sel-SelfPen-EraserWidth';
-      const valueSpanId = kind === 'pen' ? 'pen-width-val' : 'eraser-width-val';
+      const sliderId = kind === 'pen' ? 'range-SelfPen-PenWidth' : 'range-SelfPen-EraserWidth';
+      const valueSpanId = kind === 'pen' ? 'val-SelfPen-PenWidth' : 'val-SelfPen-EraserWidth';
       const widthKey = kind === 'pen' ? 'PenWidth' : 'EraserWidth';
       const presetKey = kind === 'pen' ? 'PenWidthPresetIndex' : 'EraserWidthPresetIndex';
       const slider = document.getElementById(sliderId);
       if (slider) slider.value = val;
+      if (slider) updateRangeVisuals(slider, val);
       const span = document.getElementById(valueSpanId);
       if (span) span.textContent = val;
       updatePresetActive(kind === 'pen' ? 'selfPen-pen-presets' : 'selfPen-eraser-presets', val);
@@ -13232,6 +13351,14 @@
       });
     }
 
+    function updatePresetActiveByIndex(containerId, idx) {
+      const c = document.getElementById(containerId);
+      if (!c) return;
+      c.querySelectorAll('.preset-btn').forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.idx) === parseInt(idx));
+      });
+    }
+
     function resetSelfPenDefaults() {
       Object.keys(SELF_PEN_DEFAULTS).forEach(k => {
         if (window.pywebview && window.pywebview.api && window.pywebview.api.save_setting) {
@@ -13246,27 +13373,27 @@
       try {
         const setRange = (id, val, spanId) => {
           const el = document.getElementById(id); if (el) el.value = val;
+          if (el) updateRangeVisuals(el, val);
           const sp = document.getElementById(spanId); if (sp) sp.textContent = val;
         };
-        setRange('sel-SelfPen-PenWidth', s.PenWidth, 'pen-width-val');
-        setRange('sel-SelfPen-HighlightWidth', s.HighlightWidth, 'hl-width-val');
-        setRange('sel-SelfPen-EraserWidth', s.EraserWidth, 'eraser-width-val');
-        setRange('sel-SelfPen-HighlightOpacity', s.HighlightOpacity, 'hl-opacity-val');
-        const setSel = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+        setRange('range-SelfPen-PenWidth', s.PenWidth, 'val-SelfPen-PenWidth');
+        setRange('range-SelfPen-HighlightWidth', s.HighlightWidth, 'val-SelfPen-HighlightWidth');
+        setRange('range-SelfPen-EraserWidth', s.EraserWidth, 'val-SelfPen-EraserWidth');
+        setRange('range-SelfPen-HighlightOpacity', s.HighlightOpacity, 'val-SelfPen-HighlightOpacity');
         setSelfPenSegmented('seg-SelfPen-FrameRateMode', s.FrameRateMode);
         setSelfPenSegmented('seg-SelfPen-PenEffect', s.PenEffect);
-        setSel('sel-SelfPen-MinDpr', s.MinDpr);
-        setSel('sel-SelfPen-MaxDpr', s.MaxDpr);
         const setSw = (id, on) => { const el = document.getElementById(id); if (el) el.classList.toggle('active', !!on); };
-        setSw('sw-SelfPen-VelocityEraser', s.VelocityEraser);
-        setSw('sw-SelfPen-InertialPan', s.InertialPan);
         setSw('sw-SelfPen-PalmErase', s.PalmErase);
-        buildSelfPenPalette('selfPen-color-pen', SELF_PEN_PEN_COLORS, 'PenColor');
-        buildSelfPenPalette('selfPen-color-highlight', SELF_PEN_HIGHLIGHT_COLORS, 'HighlightColor');
+        let _customPen = [];
+        let _customHl = [];
+        try { _customPen = JSON.parse(s.CustomPenColors) || []; } catch (e) { _customPen = []; }
+        try { _customHl = JSON.parse(s.CustomHighlightColors) || []; } catch (e) { _customHl = []; }
+        buildSelfPenPalette('selfPen-color-pen', SELF_PEN_PEN_COLORS, 'PenColor', _customPen);
+        buildSelfPenPalette('selfPen-color-highlight', SELF_PEN_HIGHLIGHT_COLORS, 'HighlightColor', _customHl);
         setSelfPenPaletteActive('selfPen-color-pen', s.PenColor);
         setSelfPenPaletteActive('selfPen-color-highlight', s.HighlightColor);
-        updatePresetActive('selfPen-pen-presets', s.PenWidth);
-        updatePresetActive('selfPen-eraser-presets', s.EraserWidth);
+        updatePresetActiveByIndex('selfPen-pen-presets', s.PenWidthPresetIndex);
+        updatePresetActiveByIndex('selfPen-eraser-presets', s.EraserWidthPresetIndex);
       } finally {
         _selfPenHydrating = false;
       }
@@ -13690,6 +13817,7 @@
           sections.forEach(function (sec) {
             sec.classList.toggle("active", sec.id === "section-" + key);
           });
+          requestAnimationFrame(updateAllRangeVisuals);
           if (key === "storage") {
             setTimeout(refreshStorageInfo, 100);
           }
@@ -14526,6 +14654,7 @@
         initRange("Overlay", "ToolbarOpacity", 1.0, "", 2);
         initRange("Overlay", "SidePageOpacity", 1.0, "", 2);
         initRange("PPT", "PageTurnRateLimit", 2, "", 0);
+        requestAnimationFrame(updateAllRangeVisuals);
         setSwitch("Overlay", "SyncOpacity");
         setSwitch("Overlay", "ToolbarAutoHalfCollapse");
         handleSyncOpacityToggle();
@@ -14551,6 +14680,7 @@
           penModeEl.value = penMode;
           refreshCustomSelect(penModeEl);
         }
+        updateSelfPenVisibility();
 
         // Resource Monitor Interval
         const resInterval = settings.Notifications?.ResourceMonitorInterval ?? 300;
@@ -17085,6 +17215,7 @@
       }
 
       loadSelfPenSettings();
+      updateSelfPenVisibility();
     }
 
     // Hide pen secondary page — mirrors hideUpdate

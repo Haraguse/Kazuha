@@ -252,12 +252,8 @@ class OverlayBridge(QObject):
                 "HighlightColor": "selfHighlightColor",
                 "FrameRateMode": "selfPenFrameRateMode",
                 "PenEffect": "selfPenPenEffect",
-                "MinDpr": "selfPenMinDpr",
-                "MaxDpr": "selfPenMaxDpr",
             }
             _BOOL_KEYS = {
-                "VelocityEraser": "selfPenVelocityEraser",
-                "InertialPan": "selfPenInertialPan",
                 "PalmErase": "selfPenPalmErase",
             }
             attr = None
@@ -1998,11 +1994,7 @@ class OverlayWindow(QWebEngineView):
             "selfHighlightColor": cfg.selfHighlightColor.value,
             "selfPenFrameRateMode": cfg.selfPenFrameRateMode.value,
             "selfPenPenEffect": cfg.selfPenPenEffect.value,
-            "selfPenVelocityEraser": cfg.selfPenVelocityEraser.value,
-            "selfPenInertialPan": cfg.selfPenInertialPan.value,
             "selfPenPalmErase": cfg.selfPenPalmErase.value,
-            "selfPenMinDpr": cfg.selfPenMinDpr.value,
-            "selfPenMaxDpr": cfg.selfPenMaxDpr.value,
             "selfPenWidthPresetIndex": cfg.selfPenWidthPresetIndex.value,
             "selfEraserWidthPresetIndex": cfg.selfEraserWidthPresetIndex.value,
         }
@@ -2253,11 +2245,7 @@ class OverlayWindow(QWebEngineView):
         cfg.selfHighlightColor.valueChanged.connect(lambda *_: self.update_config())
         cfg.selfPenFrameRateMode.valueChanged.connect(lambda *_: self.update_config())
         cfg.selfPenPenEffect.valueChanged.connect(lambda *_: self.update_config())
-        cfg.selfPenVelocityEraser.valueChanged.connect(lambda *_: self.update_config())
-        cfg.selfPenInertialPan.valueChanged.connect(lambda *_: self.update_config())
         cfg.selfPenPalmErase.valueChanged.connect(lambda *_: self.update_config())
-        cfg.selfPenMinDpr.valueChanged.connect(lambda *_: self.update_config())
-        cfg.selfPenMaxDpr.valueChanged.connect(lambda *_: self.update_config())
         cfg.selfPenWidthPresetIndex.valueChanged.connect(lambda *_: self.update_config())
         cfg.selfEraserWidthPresetIndex.valueChanged.connect(lambda *_: self.update_config())
 

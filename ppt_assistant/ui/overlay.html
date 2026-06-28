@@ -1193,6 +1193,49 @@
             /* transform is handled in JS for scale support */
         }
 
+        #thickness-panel {
+            position: absolute;
+            background: var(--overlay-popup-bg);
+            border: 1px solid var(--overlay-popup-border);
+            border-radius: 12px;
+            padding: 12px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: var(--overlay-popup-shadow);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            z-index: 150;
+        }
+
+        #thickness-panel.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #thickness-panel .ink-width-section {
+            display: none;
+            margin-top: 0;
+            padding: 0;
+        }
+
+        #thickness-panel .ink-width-section.active {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+
+        #thickness-panel .ink-width-slider {
+            -webkit-appearance: slider-vertical;
+            writing-mode: vertical-lr;
+            width: auto;
+            flex: 1;
+            min-height: 60px;
+        }
+
         .color-section-title {
             font-size: 13px;
             color: var(--overlay-text-primary);
@@ -1231,7 +1274,14 @@
             box-shadow: 0 0 0 2px rgba(0,0,0,0.3);
         }
 
-
+        #tab-highlight.color-disabled .color-option {
+            pointer-events: none;
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        #tab-highlight.color-disabled .color-option:hover {
+            transform: none;
+        }
 
         .pivot-container {
             display: flex;
@@ -1596,15 +1646,6 @@
             <div class="clear-btn-icon"></div>
             <div class="clear-btn-text">清空屏幕</div>
         </div>
-        <div class="ink-width-section" style="display:block; border-top: 1px solid var(--overlay-border); padding-top: 10px; margin-top: 8px;">
-            <div class="ink-width-row">
-                <span class="ink-width-label">橡皮粗细</span>
-                <span class="ink-width-value" id="eraser-width-value">30</span>
-            </div>
-            <input type="range" class="ink-width-slider" id="eraser-width-slider"
-                min="10" max="80" value="30" step="2"
-                oninput="inkEraserWidth = parseInt(this.value); document.getElementById('eraser-width-value').textContent = this.value; if(window.bridge&&bridge.setSelfPenSetting)bridge.setSelfPenSetting('EraserWidth', inkEraserWidth);">
-        </div>
     </div>
 
     <div id="page-selector" class="interactive">
@@ -1642,18 +1683,10 @@
                 <div class="color-option" style="background-color: #002060;" onclick="selectColor(0,32,96, this)" onmouseover="updateColorInfo('深蓝色', '0 32 96', '#002060')"></div>
                 <div class="color-option" style="background-color: #7030A0;" onclick="selectColor(112,48,160, this)" onmouseover="updateColorInfo('紫色', '112 48 160', '#7030A0')"></div>
             </div>
-            <div class="ink-width-section" style="display:block; border-top: 1px solid var(--overlay-border); padding-top: 10px; margin-top: 8px;">
-                <div class="ink-width-row">
-                    <span class="ink-width-label">笔粗细</span>
-                    <span class="ink-width-value" id="pen-width-value">3</span>
-                </div>
-                <input type="range" class="ink-width-slider" id="pen-width-slider"
-                    min="1" max="12" value="3" step="1"
-                    oninput="inkPenWidth = parseInt(this.value); document.getElementById('pen-width-value').textContent = this.value; if(window.bridge&&bridge.setSelfPenSetting)bridge.setSelfPenSetting('PenWidth', inkPenWidth);">
-            </div>
         </div>
 
         <div id="tab-highlight" class="pivot-content">
+            <div class="highlight-unsupported" id="highlight-color-unsupported-hint" style="display:none;">COM 模式不支持更改荧光笔颜色</div>
             <div class="color-row">
                 <div class="color-option" style="background-color: #FFFF00;" onclick="selectColor(255,255,0, this)" onmouseover="updateColorInfo('黄色', '255 255 0', '#FFFF00')"></div>
                 <div class="color-option" style="background-color: #00FF00;" onclick="selectColor(0,255,0, this)" onmouseover="updateColorInfo('绿色', '0 255 0', '#00FF00')"></div>
@@ -1664,21 +1697,33 @@
                 <div class="color-option" style="background-color: #5B9BD5;" onclick="selectColor(91,155,213, this)" onmouseover="updateColorInfo('浅蓝色', '91 155 213', '#5B9BD5')"></div>
                 <div class="color-option" style="background-color: #AA66FF;" onclick="selectColor(170,102,255, this)" onmouseover="updateColorInfo('紫色', '170 102 255', '#AA66FF')"></div>
             </div>
-            <div class="ink-width-section" style="display:block; border-top: 1px solid var(--overlay-border); padding-top: 10px; margin-top: 8px;">
-                <div class="ink-width-row">
-                    <span class="ink-width-label">荧光笔粗细</span>
-                    <span class="ink-width-value" id="hl-width-value">24</span>
-                </div>
-                <input type="range" class="ink-width-slider" id="hl-width-slider"
-                    min="8" max="48" value="24" step="2"
-                    oninput="inkHighlightWidth = parseInt(this.value); document.getElementById('hl-width-value').textContent = this.value; if(window.bridge&&bridge.setSelfPenSetting)bridge.setSelfPenSetting('HighlightWidth', inkHighlightWidth);">
-            </div>
         </div>
-        
+
         <div class="color-info" id="color-info-box">
             <div id="info-name">黑色</div>
             <div id="info-rgb">RGB (0 0 0)</div>
             <div id="info-hex">#000000</div>
+        </div>
+    </div>
+
+    <div id="thickness-panel" class="interactive">
+        <div class="ink-width-section" data-tool="pen">
+            <div class="ink-width-row">
+                <span class="ink-width-label">笔粗细</span>
+                <span class="ink-width-value" id="pen-width-value">3</span>
+            </div>
+            <input type="range" class="ink-width-slider" id="pen-width-slider"
+                min="1" max="12" value="3" step="1"
+                oninput="inkPenWidth = parseInt(this.value); document.getElementById('pen-width-value').textContent = this.value; if(bridge&&bridge.setSelfPenSetting)bridge.setSelfPenSetting('PenWidth', inkPenWidth);">
+        </div>
+        <div class="ink-width-section" data-tool="highlight">
+            <div class="ink-width-row">
+                <span class="ink-width-label">荧光笔粗细</span>
+                <span class="ink-width-value" id="hl-width-value">24</span>
+            </div>
+            <input type="range" class="ink-width-slider" id="hl-width-slider"
+                min="8" max="48" value="24" step="2"
+                oninput="inkHighlightWidth = parseInt(this.value); document.getElementById('hl-width-value').textContent = this.value; if(bridge&&bridge.setSelfPenSetting)bridge.setSelfPenSetting('HighlightWidth', inkHighlightWidth);">
         </div>
     </div>
 
@@ -1927,7 +1972,7 @@
         }
         const DEFAULT_TOOL_COLORS = Object.freeze({
             pen: Object.freeze({ tab: 'pen', name: '黑色', rgb: '0 0 0', hex: '#000000' }),
-            highlight: Object.freeze({ tab: 'pen', name: '黄色', rgb: '255 255 0', hex: '#FFFF00' })
+            highlight: Object.freeze({ tab: 'highlight', name: '黄色', rgb: '255 255 0', hex: '#FFFF00' })
         });
         const DEFAULT_PEN_COLOR = DEFAULT_TOOL_COLORS.pen;
         const PEN_COLOR_PRESETS = Object.freeze({
@@ -2049,6 +2094,42 @@
             if (penSlider) {
                 penSlider.value = inkPenWidth;
                 document.getElementById('pen-width-value').textContent = inkPenWidth;
+            }
+        }
+
+        function syncHighlightColorAvailability() {
+            const isCom = (currentConfig || {}).penMode !== 'self-developed';
+            const tabHighlight = document.getElementById('tab-highlight');
+            const hint = document.getElementById('highlight-color-unsupported-hint');
+            if (tabHighlight) tabHighlight.classList.toggle('color-disabled', isCom);
+            if (hint) hint.style.display = isCom ? 'block' : 'none';
+        }
+
+        function syncThicknessPanelContent() {
+            const panel = document.getElementById('thickness-panel');
+            if (!panel) return;
+            const isSelfDev = (currentConfig || {}).penMode === 'self-developed';
+            if (!isSelfDev) {
+                panel.classList.remove('visible');
+                return;
+            }
+            const penSection = panel.querySelector('.ink-width-section[data-tool="pen"]');
+            const hlSection = panel.querySelector('.ink-width-section[data-tool="highlight"]');
+            if (penSection) penSection.classList.remove('active');
+            if (hlSection) hlSection.classList.remove('active');
+            if (currentTool === 'pen') {
+                if (penSection) penSection.classList.add('active');
+            } else if (currentTool === 'highlight' && isSelfDev) {
+                if (hlSection) hlSection.classList.add('active');
+            }
+            const picker = document.getElementById('color-picker');
+            const pickerVisible = picker && picker.classList.contains('visible');
+            const anyActive = panel.querySelector('.ink-width-section.active');
+            if (pickerVisible && anyActive) {
+                panel.classList.add('visible');
+                positionThicknessPanel(picker);
+            } else {
+                panel.classList.remove('visible');
             }
         }
 
@@ -2222,11 +2303,7 @@
             if (config.selfHighlightColor !== undefined) inkHighlightColor = config.selfHighlightColor;
             if (config.selfPenFrameRateMode !== undefined) selfPenFrameRateMode = config.selfPenFrameRateMode;
             if (config.selfPenPenEffect !== undefined) selfPenPenEffect = config.selfPenPenEffect;
-            if (config.selfPenVelocityEraser !== undefined) selfPenVelocityEraser = config.selfPenVelocityEraser;
-            if (config.selfPenInertialPan !== undefined) selfPenInertialPan = config.selfPenInertialPan;
             if (config.selfPenPalmErase !== undefined) selfPenPalmErase = config.selfPenPalmErase;
-            if (config.selfPenMinDpr !== undefined) selfPenMinDpr = config.selfPenMinDpr;
-            if (config.selfPenMaxDpr !== undefined) selfPenMaxDpr = config.selfPenMaxDpr;
             if (config.selfPenWidthPresetIndex !== undefined) selfPenWidthPresetIndex = config.selfPenWidthPresetIndex;
             if (config.selfEraserWidthPresetIndex !== undefined) selfEraserWidthPresetIndex = config.selfEraserWidthPresetIndex;
             applyAnimationPreference();
@@ -2236,7 +2313,9 @@
             }
             syncInkCanvasMode();
             applyOpacity();
-            
+            syncHighlightColorAvailability();
+            syncThicknessPanelContent();
+
             halfCollapseEnabled = config.toolbarAutoHalfCollapse || false;
             if (halfCollapseEnabled) {
                 resetHalfCollapseTimer();
@@ -2623,13 +2702,9 @@
         let inkHighlightColor = '#FFFF00';
         let selfPenFrameRateMode = 'adaptive';
         let selfPenPenEffect = 'limited';
-        let selfPenVelocityEraser = false;
-        let selfPenInertialPan = false;
         let selfPenPalmErase = false;
-        let selfPenMinDpr = '1x';
-        let selfPenMaxDpr = '4x';
-        let selfPenWidthPresetIndex = 1;
-        let selfEraserWidthPresetIndex = 1;
+        let selfPenWidthPresetIndex = -1;
+        let selfEraserWidthPresetIndex = -1;
         let inkActive = false; // true when self-developed mode AND pen/eraser tool active
 
         const INK_MODE_PEN = 'pen';
@@ -2764,10 +2839,7 @@
         // SelfPen rendering hooks (variables ready, algorithms to be implemented):
         // - selfPenFrameRateMode: throttle/RAF scheduling
         // - selfPenPenEffect: pressure/velocity-based width modulation
-        // - selfPenVelocityEraser: fast-motion eraser
-        // - selfPenInertialPan: momentum panning
         // - selfPenPalmErase: multi-touch palm erasure
-        // - selfPenMinDpr / selfPenMaxDpr: clamp backing-store DPR
         function drawSegment(p1, p2, stroke) {
             if (!inkCtx) return;
             const ctx = inkCtx;
@@ -2940,9 +3012,34 @@
             }
         }
 
+        function positionThicknessPanel(anchorEl) {
+            const panel = document.getElementById('thickness-panel');
+            if (!panel || !anchorEl) return;
+            const anchorRect = anchorEl.getBoundingClientRect();
+            const gap = 8;
+            // Match panel height to anchor so slider fills the same vertical space
+            panel.style.height = anchorRect.height + 'px';
+            const panelRect = panel.getBoundingClientRect();
+            let left = anchorRect.right + gap;
+            // Flip to left side if overflow right edge
+            if (left + panelRect.width > window.innerWidth) {
+                left = anchorRect.left - panelRect.width - gap;
+            }
+            // Vertical: align tops
+            let top = anchorRect.top;
+            // If overflows bottom, shift up
+            if (top + panelRect.height > window.innerHeight) {
+                top = window.innerHeight - panelRect.height - 8;
+            }
+            if (top < 8) top = 8;
+            panel.style.left = left + 'px';
+            panel.style.top = top + 'px';
+        }
+
         function closePopup() {
             document.getElementById('color-picker').classList.remove('visible');
             document.getElementById('eraser-settings').classList.remove('visible');
+            document.getElementById('thickness-panel').classList.remove('visible');
             document.getElementById('page-selector').classList.remove('visible');
             document.getElementById('media-popup').classList.remove('visible');
             isMediaPopupVisible = false;
@@ -3185,6 +3282,7 @@
                     closePopup();
                     syncColorPickerState();
                     picker.classList.add('visible');
+                    syncThicknessPanelContent();
                     document.body.classList.add('popup-active');
                     if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
                     if (typeof bridge !== 'undefined' && bridge && typeof bridge.resizeNudge === 'function') {
@@ -3197,12 +3295,6 @@
                      closePopup();
                  } else {
                      closePopup();
-                     // Sync eraser width slider to current value
-                     const eraserSlider = document.getElementById('eraser-width-slider');
-                     if (eraserSlider) {
-                         eraserSlider.value = inkEraserWidth;
-                         document.getElementById('eraser-width-value').textContent = inkEraserWidth;
-                     }
                      eraserSettings.classList.add('visible');
                      document.body.classList.add('popup-active');
                      if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
@@ -3241,6 +3333,12 @@
             const selectedTab = el && el.closest('.pivot-content')
                 ? el.closest('.pivot-content').id.replace('tab-', '')
                 : DEFAULT_PEN_COLOR.tab;
+            const isComMode = (currentConfig || {}).penMode !== 'self-developed';
+            if (isComMode && selectedTab === 'highlight') {
+                // COM 模式无法通过 COM 接口更改荧光笔颜色，忽略此次选色
+                closePopup();
+                return;
+            }
             currentPenColor = PEN_COLOR_PRESETS[hex]
                 ? { ...PEN_COLOR_PRESETS[hex], tab: selectedTab }
                 : { tab: selectedTab, name: '当前颜色', rgb: `${r} ${g} ${b}`, hex };
@@ -3259,7 +3357,7 @@
             if (bridge) {
                 const selfDev = (currentConfig || {}).penMode === 'self-developed';
                 if (!selfDev) bridge.setPenColor(r, g, b);
-                if (selfDev && window.bridge && bridge.setSelfPenSetting) {
+                if (selfDev && bridge && bridge.setSelfPenSetting) {
                     if (currentPenColor.tab === 'highlight') bridge.setSelfPenSetting('HighlightColor', currentPenColor.hex);
                     else bridge.setSelfPenSetting('PenColor', currentPenColor.hex);
                 }
@@ -3290,6 +3388,8 @@
                     if (!selfDev) bridge.setTool(tool);
                 }
             }
+            syncHighlightColorAvailability();
+            syncThicknessPanelContent();
         }
 
         function updateColorInfo(name, rgb, hex) {
