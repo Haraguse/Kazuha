@@ -1043,7 +1043,8 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
         if self._window:
             if hasattr(self._window, "update_theme_mode"):
                 self._window.update_theme_mode(theme_mode)
-            js = f"if (typeof updateTheme === 'function') updateTheme({json.dumps(theme_mode)}, {json.dumps(theme_id)});if(typeof window.__applyUnifiedTheme==='function')window.__applyUnifiedTheme();"
+            settings_json = json.dumps(settings, ensure_ascii=False)
+            js = f"window.initialSettings = {settings_json};if (typeof updateTheme === 'function') updateTheme({json.dumps(theme_mode)}, {json.dumps(theme_id)});if(typeof window.__applyUnifiedTheme==='function')window.__applyUnifiedTheme();"
             self._window.page().runJavaScript(js)
             try:
                 _apply_window_theme(
@@ -1584,6 +1585,8 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
                     print(f"SelfPen save_setting sync error: {e}", file=sys.stderr)
 
             if category == "Appearance" and key in ("ThemeMode", "ThemeId"):
+                self.update_settings(data)
+            elif category == "Fonts" or (category == "General" and key == "Language"):
                 self.update_settings(data)
         except Exception as e:
             print(f"Error saving settings: {e}", file=sys.stderr)
@@ -3007,7 +3010,7 @@ def _get_qwebchannel_js():
     return _QWEBCHANNEL_JS_CACHE
 
 
-def _get_unified_theme_js():
+def _get_unified_theme_js(scene="web"):
     """Returns JavaScript that injects unified theme CSS variables
     and sets data-theme/variant/id attributes from window.initialSettings.
     All theme colors are controlled by webview_runner exclusively.
@@ -3715,7 +3718,8 @@ def _get_unified_theme_js():
     }
 
     theme_json = _json.dumps(themes, ensure_ascii=False, separators=(",", ":"))
-    return f"""\n(function(){{var TD={theme_json};function AT(){{var r=document.documentElement;if(!r)return;var s=window.initialSettings||{{}};var a=s.Appearance||{{}};var d=a.ResolvedIsDark;var tid=a.ThemeId||'default';var v=d?'dark':'light';var b=TD['default'].light;for(var k in b)r.style.setProperty(k,b[k]);if(d){{var db=TD['default'].dark;for(var k in db)r.style.setProperty(k,db[k]);}}if(tid!=='default'&&TD[tid]&&TD[tid][v]){{var t=TD[tid][v];for(var k in t)r.style.setProperty(k,t[k]);}}r.style.setProperty('--accent-color','var(--accent-blue)');r.style.setProperty('--overlay-dialog-mask',d?'rgba(0,0,0,0.35)':'rgba(0,0,0,0.2)');r.style.setProperty('--overlay-dialog-shadow',d?'0 16px 40px rgba(0,0,0,0.45)':'0 12px 30px rgba(0,0,0,0.18)');r.style.setProperty('--overlay-dialog-bg','var(--overlay-popup-bg)');r.style.setProperty('--overlay-dialog-border','var(--overlay-popup-border)');r.style.setProperty('--overlay-dialog-title','var(--text-primary)');r.style.setProperty('--overlay-dialog-text','var(--text-secondary)');r.style.setProperty('--overlay-control-bg','var(--card-bg)');r.style.setProperty('--overlay-control-hover','var(--item-hover)');r.style.setProperty('--overlay-control-active','var(--overlay-button-active)');r.style.setProperty('--overlay-text-primary','var(--text-primary)');r.style.setProperty('--overlay-text-secondary','var(--text-secondary)');r.style.setProperty('--overlay-popup-shadow','none');r.style.setProperty('--overlay-thumb-bg',d?'var(--accent-blue)':'#FFFFFF');r.style.setProperty('--overlay-thumb-icon',d?'var(--bg-app)':'var(--accent-blue)');r.setAttribute('data-theme',d?'dark':'light');r.setAttribute('data-theme-variant',v);r.setAttribute('data-theme-id',tid);}}if(document.documentElement){{AT();}}else{{document.addEventListener('DOMContentLoaded',AT);}}window.__applyUnifiedTheme=AT;}})();"""
+    scene_js = _json.dumps(scene)
+    return f"""\n(function(){{var TD={theme_json};var SCENE={scene_js};function DFS(l){{if(l==='zh-TW'||l==='ja-JP')return '\\"Google Sans Flex\\",\\"MiSans Japanese VF\\",\\"MiSans TC VF\\",\\"Segoe UI\\",system-ui,-apple-system,sans-serif';if(l==='ug-CN')return '\\"Google Sans Flex\\",\\"Segoe UI\\",\\"MiSans VF\\",system-ui,-apple-system,sans-serif';return '\\"Google Sans Flex\\",\\"MiSans VF\\",\\"Segoe UI\\",system-ui,-apple-system,sans-serif';}}function GFS(s,l,sc){{var f=s.Fonts;if(!f||!f.CustomFont)return '';var p=f.Profiles;if(!p||typeof p!=='object')return '';var lp=p[l];if(!lp||typeof lp!=='object')return '';var v=lp[sc];if(typeof v==='string'&&v.trim())return v.trim();return '';}}function GFW(s,l,sc){{var f=s.Fonts;if(!f||!f.CustomFont)return '';var w=f.Weights;if(!w||typeof w!=='object')return '';var lw=w[l];if(!lw||typeof lw!=='object')return '';var v=lw[sc];if(typeof v==='string'&&v.trim())return v.trim();if(sc==='overlay'){{var v2=lw['web'];if(typeof v2==='string'&&v2.trim())return v2.trim();}}return '';}}function AT(){{var r=document.documentElement;if(!r)return;var s=window.initialSettings||{{}};var a=s.Appearance||{{}};var d=a.ResolvedIsDark;var tid=a.ThemeId||'default';var v=d?'dark':'light';var b=TD['default'].light;for(var k in b)r.style.setProperty(k,b[k]);if(d){{var db=TD['default'].dark;for(var k in db)r.style.setProperty(k,db[k]);}}if(tid!=='default'&&TD[tid]&&TD[tid][v]){{var t=TD[tid][v];for(var k in t)r.style.setProperty(k,t[k]);}}r.style.setProperty('--accent-color','var(--accent-blue)');r.style.setProperty('--overlay-dialog-mask',d?'rgba(0,0,0,0.35)':'rgba(0,0,0,0.2)');r.style.setProperty('--overlay-dialog-shadow',d?'0 16px 40px rgba(0,0,0,0.45)':'0 12px 30px rgba(0,0,0,0.18)');r.style.setProperty('--overlay-dialog-bg','var(--overlay-popup-bg)');r.style.setProperty('--overlay-dialog-border','var(--overlay-popup-border)');r.style.setProperty('--overlay-dialog-title','var(--text-primary)');r.style.setProperty('--overlay-dialog-text','var(--text-secondary)');r.style.setProperty('--overlay-control-bg','var(--card-bg)');r.style.setProperty('--overlay-control-hover','var(--item-hover)');r.style.setProperty('--overlay-control-active','var(--overlay-button-active)');r.style.setProperty('--overlay-text-primary','var(--text-primary)');r.style.setProperty('--overlay-text-secondary','var(--text-secondary)');r.style.setProperty('--overlay-popup-shadow','none');r.style.setProperty('--overlay-thumb-bg',d?'var(--accent-blue)':'#FFFFFF');r.style.setProperty('--overlay-thumb-icon',d?'var(--bg-app)':'var(--accent-blue)');var lang=(s.General&&s.General.Language)||'zh-CN';var sel=GFS(s,lang,SCENE);var dfs=DFS(lang);var fs=sel?('\\"'+sel.replace(/\\"/g,'\\\\\\"')+'\\", '+dfs):dfs;r.style.setProperty('--font-stack',fs);var fw=GFW(s,lang,SCENE);if(fw){{r.style.setProperty('--font-weight-override',fw);}}else{{r.style.removeProperty('--font-weight-override');}}r.setAttribute('data-theme',d?'dark':'light');r.setAttribute('data-theme-variant',v);r.setAttribute('data-theme-id',tid);}}if(document.documentElement){{AT();}}else{{document.addEventListener('DOMContentLoaded',AT);}}window.__applyUnifiedTheme=AT;}})();"""
 
 
 class MainWindow(QWebEngineView):

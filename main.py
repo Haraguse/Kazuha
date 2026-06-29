@@ -633,8 +633,6 @@ _SETTINGS_CACHED_DATA = {}
 
 def _load_settings_json(force_reload=False):
 	global _SETTINGS_CACHED_MTIME, _SETTINGS_CACHED_DATA
-	if not force_reload and _SETTINGS_CACHED_MTIME > 0:
-		return _SETTINGS_CACHED_DATA
 	if not os.path.exists(SETTINGS_PATH):
 		_SETTINGS_CACHED_DATA = {}
 		_SETTINGS_CACHED_MTIME = 1
@@ -2564,7 +2562,7 @@ class PPTAssistantApp:
 		_apply_theme_and_color(cfg.themeMode.value)
 		_init_trace("_init_steps: theme applied")
 
-		# Step 2: Fonts (loading already done before splash)
+		# Step 2: Fonts
 		yield 20, "loading_fonts"
 		_init_trace("_init_steps: step 20 - loading fonts")
 		self._current_language = _get_current_language()
@@ -2582,6 +2580,7 @@ class PPTAssistantApp:
 		self._overlay_rebuild_at = (data.get("Overlay", {}) or {}).get(
 			"RecreateOverlayAt"
 		)
+		_apply_global_font(self.app)
 
 		self._settings_mtime = (
 			os.path.getmtime(SETTINGS_PATH) if os.path.exists(SETTINGS_PATH) else 0
@@ -3492,7 +3491,7 @@ class PPTAssistantApp:
 
 			reload_cfg()
 
-			data = _load_settings_json()
+			data = _load_settings_json(force_reload=True)
 			if cfg.overlayScreen.value != old_overlay_screen:
 				try:
 					self.monitor.force_update_geometry()
@@ -4086,6 +4085,7 @@ if __name__ == "__main__":
 
 	from ppt_assistant.core.config import reload_cfg
 	reload_cfg()  # Load settings.json so all cfg values reflect user config
+	_apply_global_font(app)
 
 	show_splash = True
 	try:

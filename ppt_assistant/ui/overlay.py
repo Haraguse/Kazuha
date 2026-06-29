@@ -1213,7 +1213,7 @@ class OverlayWindow(QWebEngineView):
             self.page().scripts().insert(settings_script)
 
             theme_script = QWebEngineScript()
-            theme_script.setSourceCode(_get_unified_theme_js())
+            theme_script.setSourceCode(_get_unified_theme_js("overlay"))
             theme_script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
             theme_script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
             self.page().scripts().insert(theme_script)
