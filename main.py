@@ -2553,6 +2553,99 @@ class PPTAssistantApp:
 		except Exception:
 			pass
 
+	def _start_auto_update_check(self):
+		"""启动时自动检查更新（受用户设置 Update.AutoCheck 控制）"""
+		if sys.platform != "win32":
+			return
+		try:
+			settings = _load_settings_json()
+			update_cfg = settings.get("Update", {}) if isinstance(settings, dict) else {}
+			auto_check = update_cfg.get("AutoCheck", True)
+			if not auto_check:
+				print("[Main] Auto-update check disabled by user setting", flush=True)
+				return
+			# 延迟执行，避免与启动流程竞争网络/IO 资源
+			QTimer.singleShot(2000, self._perform_auto_update_check)
+			print("[Main] Auto-update check scheduled", flush=True)
+		except Exception as e:
+			print(f"[Main] Failed to schedule auto-update check: {e}", flush=True)
+
+	def _perform_auto_update_check(self):
+		"""在后台线程中执行更新检查，发现新版本时发送 Windows 通知"""
+		import asyncio
+		import threading
+		from ppt_assistant.core.update_service import check_update_impl, APP_DIR, is_dev_env
+
+		def _read_current_version() -> str:
+			version_file = APP_DIR / "version.json"
+			if version_file.exists():
+				try:
+					with open(version_file, "r", encoding="utf-8") as f:
+						return str(json.load(f).get("versionnm", "") or "").strip()
+				except Exception:
+					pass
+			return ""
+
+		def _send_update_notification(current_version: str, remote_version: str):
+			if not current_version:
+				current_version = "未知"
+			message = (
+				f"{current_version} -> {remote_version}\n"
+				f"单击本消息或下方按钮以查看详细信息。"
+			)
+			send_windows_notification(
+				"发现新版本",
+				message,
+				launch="luminalium://settings/update",
+				buttons=[
+					{
+						"content": "打开「检查更新」页面",
+						"arguments": "luminalium://settings/update",
+					}
+				],
+			)
+
+		def _worker():
+			try:
+				# 测试入口：开发模式下设置 LUMINALIUM_TEST_UPDATE_NOTIFY=1
+				# 可直接发送一条测试通知，用于验证通知系统本身是否正常
+				if is_dev_env():
+					test_notify = os.environ.get("LUMINALIUM_TEST_UPDATE_NOTIFY", "").strip() == "1"
+					if not test_notify:
+						print("[Main] Auto-update check skipped (DEV_MODE)", flush=True)
+						return
+					current_version = _read_current_version()
+					# 用一个必然更高的版本号模拟"发现新版本"
+					_send_update_notification(current_version, "9.9.9.9")
+					print(
+						"[Main] Test update notification sent "
+						"(DEV_MODE + LUMINALIUM_TEST_UPDATE_NOTIFY=1)",
+						flush=True,
+					)
+					return
+
+				loop = asyncio.new_event_loop()
+				asyncio.set_event_loop(loop)
+				try:
+					result = loop.run_until_complete(check_update_impl(force=False))
+				finally:
+					try:
+						loop.close()
+					except Exception:
+						pass
+
+				if not result or not result.get("available"):
+					return
+
+				remote_version = str(result.get("version") or "").strip()
+				current_version = _read_current_version()
+				_send_update_notification(current_version, remote_version)
+				print(f"[Main] Auto-update check found new version: {remote_version}", flush=True)
+			except Exception as e:
+				print(f"[Main] Auto-update check failed: {e}", flush=True)
+
+		threading.Thread(target=_worker, daemon=True).start()
+
 	def _init_steps(self):
 		_init_trace("_init_steps: START")
 		# Step 1: Basic Config
@@ -2743,6 +2836,10 @@ class PPTAssistantApp:
 		except Exception as e:
 			print(f"[Main] Failed to start update service: {e}", flush=True)
 		_init_trace("_init_steps: update service done")
+
+		# 启动时自动检查更新（受用户设置 Update.AutoCheck 控制）
+		self._start_auto_update_check()
+		_init_trace("_init_steps: auto-update check scheduled")
 
 		if cfg.compatibilityMode.value:
 			print("[APP] Showing overlay in compatibility mode")

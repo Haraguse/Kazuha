@@ -1077,10 +1077,13 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
     @Slot(bool)
     def set_fullscreen(self, enabled):
         if self._window:
-            if enabled:
-                self._window.showFullScreen()
+            if hasattr(self._window, "set_fullscreen"):
+                self._window.set_fullscreen(enabled)
             else:
-                self._window.showNormal()
+                if enabled:
+                    self._window.showFullScreen()
+                else:
+                    self._window.showNormal()
             try:
                 self._window.raise_()
                 self._window.activateWindow()
@@ -1091,9 +1094,16 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
     def set_maximized(self, enabled):
         if self._window:
             if enabled:
+                # 如果当前在自定义全屏状态，先退出全屏
+                if getattr(self._window, "_is_fullscreen", False):
+                    self._window.set_fullscreen(False)
                 self._window.showMaximized()
             else:
-                self._window.showNormal()
+                # 如果当前在自定义全屏状态，退出全屏即可
+                if getattr(self._window, "_is_fullscreen", False):
+                    self._window.set_fullscreen(False)
+                else:
+                    self._window.showNormal()
             try:
                 self._window.raise_()
                 self._window.activateWindow()
@@ -3773,6 +3783,9 @@ class MainWindow(QWebEngineView):
         self._pre_mini_geometry = None
         self._pre_mini_was_maximized = False
         self._pre_mini_was_fullscreen = False
+        self._pre_fullscreen_geometry = None
+        self._pre_fullscreen_was_maximized = False
+        self._is_fullscreen = False
         self._pending_url = None
         self._pending_load_timer = None
         self._did_hard_refresh = False
@@ -4381,7 +4394,7 @@ body {
         self._mini_mode = enabled
         if enabled:
             self._pre_mini_was_maximized = bool(self.isMaximized())
-            self._pre_mini_was_fullscreen = bool(self.isFullScreen())
+            self._pre_mini_was_fullscreen = bool(self.isFullScreen() or self._is_fullscreen)
             try:
                 if self._pre_mini_was_maximized or self._pre_mini_was_fullscreen:
                     self._pre_mini_geometry = self.normalGeometry()
@@ -4423,7 +4436,7 @@ body {
                 self.showMaximized()
                 restored = True
             elif self._pre_mini_was_fullscreen:
-                self.showFullScreen()
+                self.set_fullscreen(True)
                 restored = True
             elif not restored:
                 self.resize(800, 600)
@@ -4437,6 +4450,87 @@ body {
 
         self._apply_page_background()
         self.show()
+
+    def set_fullscreen(self, enabled):
+        """切换全屏模式。自绘边框窗口在 Windows 上使用原生 API 实现真正的全屏（覆盖整个屏幕），
+        而非 Qt 的 showFullScreen()（在某些情况下只会最大化）。"""
+        if not self._frameless:
+            if enabled:
+                self.showFullScreen()
+            else:
+                self.showNormal()
+            return
+
+        if sys.platform != "win32":
+            if enabled:
+                self.showFullScreen()
+            else:
+                self.showNormal()
+            return
+
+        # Windows + frameless: 使用 SetWindowPos 实现真正的全屏
+        import ctypes
+
+        hwnd = int(self.winId())
+
+        if enabled:
+            # 保存当前状态
+            self._pre_fullscreen_geometry = self.geometry()
+            self._pre_fullscreen_was_maximized = bool(self.isMaximized())
+
+            # 获取窗口所在显示器的完整区域（包含任务栏）
+            monitor = ctypes.windll.user32.MonitorFromWindow(hwnd, 2)  # MONITOR_DEFAULTTONEAREST
+
+            class _RECT(ctypes.Structure):
+                _fields_ = [
+                    ("left", ctypes.c_long),
+                    ("top", ctypes.c_long),
+                    ("right", ctypes.c_long),
+                    ("bottom", ctypes.c_long),
+                ]
+
+            class _MONITORINFO(ctypes.Structure):
+                _fields_ = [
+                    ("cbSize", ctypes.c_uint),
+                    ("rcMonitor", _RECT),
+                    ("rcWork", _RECT),
+                    ("dwFlags", ctypes.c_uint),
+                ]
+
+            mi = _MONITORINFO()
+            mi.cbSize = ctypes.sizeof(_MONITORINFO)
+            ctypes.windll.user32.GetMonitorInfoW(monitor, ctypes.byref(mi))
+
+            x = mi.rcMonitor.left
+            y = mi.rcMonitor.top
+            w = mi.rcMonitor.right - mi.rcMonitor.left
+            h = mi.rcMonitor.bottom - mi.rcMonitor.top
+
+            SWP_NOZORDER = 0x0004
+            SWP_NOACTIVATE = 0x0010
+            HWND_TOP = 0
+
+            ctypes.windll.user32.SetWindowPos(
+                hwnd, HWND_TOP,
+                x, y, w, h,
+                SWP_NOACTIVATE
+            )
+            self._is_fullscreen = True
+            self._set_custom_title_bar_visible(False)
+        else:
+            self._is_fullscreen = False
+            self._set_custom_title_bar_visible(True)
+
+            geo = self._pre_fullscreen_geometry
+            if geo is not None and geo.width() > 0 and geo.height() > 0:
+                self.setGeometry(geo)
+            elif self._pre_fullscreen_was_maximized:
+                self.showMaximized()
+            else:
+                self.showNormal()
+
+            self._pre_fullscreen_geometry = None
+            self._pre_fullscreen_was_maximized = False
 
     def _set_custom_title_bar_visible(self, visible):
         display = "flex" if visible else "none"
@@ -4470,7 +4564,7 @@ body {
 
     def mouseMoveEvent(self, event):
         """Handle mouse move to display resize cursor at window edges."""
-        if self.isMaximized() or self.isFullScreen():
+        if self.isMaximized() or self.isFullScreen() or self._is_fullscreen:
             super().mouseMoveEvent(event)
             return
 
@@ -4531,7 +4625,7 @@ body {
                         if y < title_bar_h and x < btn_area_left:
                             return True, 2  # HTCAPTION
 
-                        if not self.isMaximized() and not self.isFullScreen():
+                        if not self.isMaximized() and not self.isFullScreen() and not self._is_fullscreen:
                             border = 8
                             is_left = x < border
                             is_right = x > w - border
