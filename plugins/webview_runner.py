@@ -1258,8 +1258,11 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
     def _get_settings_path(self):
         settings_path = os.environ.get("SETTINGS_PATH")
         if not settings_path:
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            settings_path = os.path.join(base_dir, "settings.json")
+            if getattr(sys, "frozen", False):
+                settings_path = os.path.join(os.path.dirname(sys.executable), "settings.json")
+            else:
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                settings_path = os.path.join(base_dir, "settings.json")
         return settings_path
 
     def _get_active_settings_path(self):
@@ -4811,8 +4814,11 @@ def main():
             return
         settings_path = os.environ.get("SETTINGS_PATH")
         if not settings_path:
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            settings_path = os.path.join(base_dir, "settings.json")
+            if getattr(sys, "frozen", False):
+                settings_path = os.path.join(os.path.dirname(sys.executable), "settings.json")
+            else:
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                settings_path = os.path.join(base_dir, "settings.json")
         default_theme = "auto"
         default_accent = "#3275F5"
         settings = {}
