@@ -270,6 +270,7 @@ class SettingsPlugin(AssistantPlugin):
         wv = self._ensure_webview_module()
         wv._warmup_webengine(retain_placeholder=False)
 
+        os.environ["SETTINGS_PATH"] = get_active_settings_path()
         api = wv.Api()
         api.set_in_process(True)
         api.settings = self._load_json_file(get_active_settings_path())
