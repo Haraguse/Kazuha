@@ -870,6 +870,8 @@ def _apply_global_font(app: QApplication):
 			pass
 
 	for window in app.topLevelWidgets():
+		if window.__class__.__name__ == "StartupSplash":
+			continue
 		_apply_font_to_widget(window)
 
 	try:
@@ -1131,6 +1133,7 @@ class StartupSplash(QWidget):
 			)
 			font = QFont()
 			font.setPixelSize(11)
+			font.setWeight(QFont.Normal)
 			self._dev_watermark.setFont(font)
 			self._dev_watermark.setAlignment(Qt.AlignRight | Qt.AlignBottom)
 
@@ -1231,7 +1234,7 @@ class StartupSplash(QWidget):
 				title_font.setFamily(splash_font_families[0])
 			title_font.setFamilies(splash_font_families)
 			title_font.setPixelSize(36)
-			title_font.setBold(True)
+			title_font.setWeight(QFont.Bold)
 
 			sub_font = QFont()
 			sub_font.setStyleHint(QFont.SansSerif)
@@ -1239,6 +1242,7 @@ class StartupSplash(QWidget):
 				sub_font.setFamily(splash_font_families[0])
 			sub_font.setFamilies(splash_font_families)
 			sub_font.setPixelSize(14)
+			sub_font.setWeight(QFont.Normal)
 
 			# Calculate positions from bottom
 			h = self.height()
@@ -1442,7 +1446,7 @@ class StartupSplash(QWidget):
 		percent_font = QFont()
 		percent_font.setFamilies(splash_font_families)
 		percent_font.setPixelSize(15)
-		percent_font.setBold(True)
+		percent_font.setWeight(QFont.Bold)
 		self._percent_label.setFont(percent_font)
 		self._percent_label.setFixedWidth(221)
 		self._percent_label.setFixedHeight(24)
