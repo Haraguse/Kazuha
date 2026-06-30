@@ -7416,6 +7416,16 @@
                 </svg>
               </div>
             </div>
+            <div class="settings-item" onclick="openFeedback()">
+              <div class="item-info">
+                <span class="item-label" data-i18n="about.feedback.label">问题反馈</span>
+              </div>
+              <div class="item-state">
+                <svg class="chevron" viewBox="0 0 24 24">
+                  <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                </svg>
+              </div>
+            </div>
           </div>
           <div class="settings-group">
             <div class="settings-item" id="echo-cave-item" style="cursor:pointer;user-select:none;">
@@ -7598,6 +7608,17 @@
               <div class="item-info">
                 <span class="item-label" data-i18n="debug.previewUpdate.label">预览更新界面</span>
                 <span class="item-desc" data-i18n="debug.previewUpdate.desc">打开更新面板预览，10 秒后自动关闭</span>
+              </div>
+              <div class="item-state">
+                <svg class="chevron" viewBox="0 0 24 24">
+                  <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                </svg>
+              </div>
+            </div>
+            <div class="settings-item" onclick="launchUpdaterTest()">
+              <div class="item-info">
+                <span class="item-label" data-i18n="debug.updaterTest.label">启动 Updater 测试</span>
+                <span class="item-desc" data-i18n="debug.updaterTest.desc">启动独立 updater 进程，模拟完整更新流程</span>
               </div>
               <div class="item-state">
                 <svg class="chevron" viewBox="0 0 24 24">
@@ -8386,6 +8407,7 @@
         "about.echoCave.empty": "暂无回声洞",
         "about.echoCave.error": "获取失败，请稍后重试",
         "about.diagnostic.label": "查看诊断信息",
+        "about.feedback.label": "问题反馈",
         "about.diagnostic.title": "诊断信息",
         "about.diagnostic.loading": "加载中...",
         "about.diagnostic.close": "关闭",
@@ -8406,7 +8428,9 @@
         "debug.rotateTest.label": "旋转窗口测试",
         "debug.rotateTest.desc": "以窗口中心持续旋转设置页",
         "debug.previewUpdate.label": "预览更新界面",
-        "debug.previewUpdate.desc": "打开更新面板预览，10 秒后自动关闭"
+        "debug.previewUpdate.desc": "打开更新面板预览，10 秒后自动关闭",
+        "debug.updaterTest.label": "启动 Updater 测试",
+        "debug.updaterTest.desc": "启动独立 updater 进程，模拟完整更新流程"
       },
       "zh-TW": {
         "app.settings": "設定",
@@ -8857,6 +8881,7 @@
         "about.echoCave.empty": "暫無回聲洞",
         "about.echoCave.error": "獲取失敗，請稍後重試",
         "about.diagnostic.label": "檢視診斷資訊",
+        "about.feedback.label": "問題回饋",
         "about.diagnostic.title": "診斷資訊",
         "about.diagnostic.loading": "載入中...",
         "about.diagnostic.close": "關閉",
@@ -8877,7 +8902,9 @@
         "debug.rotateTest.label": "旋轉視窗測試",
         "debug.rotateTest.desc": "以視窗中心持續旋轉設定頁",
         "debug.previewUpdate.label": "預覽更新介面",
-        "debug.previewUpdate.desc": "開啟更新面板預覽，10 秒後自動關閉"
+        "debug.previewUpdate.desc": "開啟更新面板預覽，10 秒後自動關閉",
+        "debug.updaterTest.label": "啟動 Updater 測試",
+        "debug.updaterTest.desc": "啟動獨立 updater 程序，模擬完整更新流程"
       },
       "yue-HK": {
         "app.settings": "設定",
@@ -9316,6 +9343,7 @@
         "about.echoCave.empty": "暫無回聲洞",
         "about.echoCave.error": "獲取失敗，請稍後再試",
         "about.diagnostic.label": "檢視診斷資訊",
+        "about.feedback.label": "問題回饋",
         "about.diagnostic.title": "診斷資訊",
         "about.diagnostic.loading": "載入中...",
         "about.diagnostic.close": "關閉",
@@ -9334,7 +9362,11 @@
         "debug.rtlTest.label": "RTL 版面測試",
         "debug.rtlTest.desc": "強制切右至左",
         "debug.rotateTest.label": "旋轉視窗測試",
-        "debug.rotateTest.desc": "以視窗中心持續旋轉設定頁"
+        "debug.rotateTest.desc": "以視窗中心持續旋轉設定頁",
+        "debug.previewUpdate.label": "預覽更新介面",
+        "debug.previewUpdate.desc": "開啟更新面板預覽，10 秒後自動關閉",
+        "debug.updaterTest.label": "啟動 Updater 測試",
+        "debug.updaterTest.desc": "啟動獨立 updater 程序，模擬完整更新流程"
       },
       "ja-JP": {
         "app.settings": "設定",
@@ -9788,6 +9820,7 @@
         "about.echoCave.empty": "エコー文がありません",
         "about.echoCave.error": "取得に失敗しました。後でもう一度お試しください",
         "about.diagnostic.label": "診断情報を表示",
+        "about.feedback.label": "問題を報告",
         "about.diagnostic.title": "診断情報",
         "about.diagnostic.loading": "読み込み中...",
         "about.diagnostic.close": "閉じる",
@@ -9806,7 +9839,11 @@
         "debug.rtlTest.label": "RTL レイアウトテスト",
         "debug.rtlTest.desc": "右から左のレイアウトに強制切替",
         "debug.rotateTest.label": "回転テスト",
-        "debug.rotateTest.desc": "ウィンドウ中心で設定ページを回転"
+        "debug.rotateTest.desc": "ウィンドウ中心で設定ページを回転",
+        "debug.previewUpdate.label": "アップデート画面プレビュー",
+        "debug.previewUpdate.desc": "アップデートパネルを開き、10 秒後に自動で閉じる",
+        "debug.updaterTest.label": "Updater テスト起動",
+        "debug.updaterTest.desc": "独立した updater プロセスを起動し、更新フローをシミュレート"
       },
       "en-US": {
         "app.settings": "Settings",
@@ -10515,6 +10552,7 @@
         "about.echoCave.empty": "No echo cave sentences available",
         "about.echoCave.error": "Failed to fetch, please try again later",
         "about.diagnostic.label": "View Diagnostic Info",
+        "about.feedback.label": "Report Issue",
         "about.diagnostic.title": "Diagnostic Info",
         "about.diagnostic.loading": "Loading...",
         "about.diagnostic.close": "Close",
@@ -10533,7 +10571,11 @@
         "debug.rtlTest.label": "RTL Layout Test",
         "debug.rtlTest.desc": "Force right-to-left layout",
         "debug.rotateTest.label": "Rotate Window Test",
-        "debug.rotateTest.desc": "Continuously rotate the settings page"
+        "debug.rotateTest.desc": "Continuously rotate the settings page",
+        "debug.previewUpdate.label": "Preview Update Panel",
+        "debug.previewUpdate.desc": "Open update panel preview, auto-close after 10s",
+        "debug.updaterTest.label": "Launch Updater Test",
+        "debug.updaterTest.desc": "Launch standalone updater process to simulate update flow"
       },
       "ug-CN": {
         "app.settings": "تەڭشەك",
@@ -16035,7 +16077,21 @@
         hideUpdate();
         _previewUpdateTimer = null;
       }, 10000);
-      addDebugLog("预览更新界面：将在 10 秒后自动关闭");
+      appendDebugLog("INFO", ["预览更新界面：将在 10 秒后自动关闭"]);
+    }
+
+    function launchUpdaterTest() {
+      try {
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.launch_updater_test) {
+          window.pywebview.api.launch_updater_test();
+          appendDebugLog("INFO", ["已启动 Updater 测试进程"]);
+        } else {
+          appendDebugLog("WARN", ["无法启动 Updater 测试：API 不可用"]);
+        }
+      } catch (e) {
+        appendDebugLog("ERROR", ["Updater 测试失败: " + e.message]);
+        console.error("launchUpdaterTest failed:", e);
+      }
     }
 
     function triggerResetToPreOnboardingState() {
@@ -17296,6 +17352,14 @@
     function closeDiagnosticModal() {
       const modal = document.getElementById("diagnostic-modal");
       if (modal) modal.classList.remove("active");
+    }
+
+    function openFeedback() {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.open_url) {
+        window.pywebview.api.open_url("https://github.com/SECTL/Luminalium/issues");
+      } else {
+        window.open("https://github.com/SECTL/Luminalium/issues", "_blank", "noopener,noreferrer");
+      }
     }
 
     function copyDiagnosticInfo() {

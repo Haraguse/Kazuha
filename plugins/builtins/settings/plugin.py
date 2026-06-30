@@ -144,6 +144,31 @@ class SettingsPlugin(AssistantPlugin):
         except Exception:
             return {}
 
+    def _open_url(self, url):
+        """打开外部 URL"""
+        import webbrowser
+        try:
+            webbrowser.open(url)
+        except Exception:
+            pass
+
+    def _launch_updater_test(self):
+        """启动 updater 测试模式（独立进程，模拟更新 UI）"""
+        import subprocess
+        try:
+            updater_py = os.path.normpath(os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(
+                    os.path.dirname(os.path.abspath(__file__))
+                ))),
+                "scripts", "updater", "updater.py"
+            ))
+            cmd = f'start "" "{sys.executable}" "{updater_py}" --test'
+            print(f"[Settings] Launching updater test: {cmd}", flush=True)
+            subprocess.Popen(cmd, shell=True)
+            print("[Settings] Updater test launched", flush=True)
+        except Exception as e:
+            print(f"[Settings] Failed to launch updater test: {e}", flush=True)
+
     def _focus_existing_window(self):
         if self._window is None:
             return False
@@ -280,6 +305,8 @@ class SettingsPlugin(AssistantPlugin):
 
         api.trigger_resource_alert = lambda: self.trigger_resource_alert()
         api.quit_app_for_update = lambda: self.quit_app_for_update()
+        api.open_url = lambda url: self._open_url(url)
+        api._launch_updater_test_callback = self._launch_updater_test
 
         theme_mode = api.settings.get("Appearance", {}).get("ThemeMode", "Auto")
         defer_load = wv._should_defer_initial_load(html_path, "Settings", True)

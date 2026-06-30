@@ -2477,6 +2477,15 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             )
 
     @Slot()
+    def launch_updater_test(self):
+        """测试模式：启动 updater 独立进程模拟更新 UI。
+        实际逻辑由 settings plugin 通过 _launch_updater_test_callback 注入。
+        """
+        callback = getattr(self, '_launch_updater_test_callback', None)
+        if callback:
+            callback()
+
+    @Slot()
     def open_logs_window(self):
         try:
             if self._logs_window is not None:
