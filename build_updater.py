@@ -3,8 +3,8 @@ import subprocess
 from pathlib import Path
 
 def main():
-    project_root = Path(__file__).parent.parent
-    updater_py = project_root / "updater" / "updater.py"
+    project_root = Path(__file__).parent
+    updater_py = project_root / "scripts" / "updater" / "updater.py"
     
     cmd = [
         "pyinstaller",
@@ -13,7 +13,8 @@ def main():
         "--noconsole",
         "--clean",
         "--name", "updater",
-        "--distpath", str(project_root), # Put updater.exe in project root
+        "--paths", str(project_root),
+        "--distpath", str(project_root),
         str(updater_py)
     ]
     

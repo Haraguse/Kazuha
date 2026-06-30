@@ -17355,8 +17355,8 @@
     }
 
     function openFeedback() {
-      if (window.pywebview && window.pywebview.api && window.pywebview.api.open_url) {
-        window.pywebview.api.open_url("https://github.com/SECTL/Luminalium/issues");
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.open_browser) {
+        window.pywebview.api.open_browser("https://github.com/SECTL/Luminalium/issues");
       } else {
         window.open("https://github.com/SECTL/Luminalium/issues", "_blank", "noopener,noreferrer");
       }

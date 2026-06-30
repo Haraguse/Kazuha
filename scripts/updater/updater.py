@@ -11,6 +11,10 @@ import threading
 from pathlib import Path
 import ctypes.wintypes
 
+_project_root = Path(__file__).parent.parent.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
 # --- GUI Dependencies ---
 from PySide6.QtCore import Qt, QTimer, Signal, QObject
 from PySide6.QtGui import QIcon, QFont, QColor
@@ -25,10 +29,21 @@ from qfluentwidgets import (
     BodyLabel,
     isDarkTheme,
 )
-from ppt_assistant.core.windows_notifications import (
-    configure_current_process_for_notifications,
-    send_windows_notification,
-)
+
+try:
+    from ppt_assistant.core.windows_notifications import (
+        configure_current_process_for_notifications,
+        send_windows_notification,
+    )
+    _notifications_available = True
+except ImportError:
+    _notifications_available = False
+
+    def configure_current_process_for_notifications():
+        pass
+
+    def send_windows_notification(title, message):
+        pass
 
 def is_admin():
     try:
@@ -37,7 +52,7 @@ def is_admin():
         return False
 
 
-if sys.platform == "win32":
+if sys.platform == "win32" and _notifications_available:
     configure_current_process_for_notifications()
 
 # Mutex handling
