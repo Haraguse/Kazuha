@@ -156,9 +156,9 @@ class UpdaterWindow(QWidget):
         super().__init__()
         self.args = args
         self.setWindowTitle("Luminalium 更新程序")
-        # 移除透明背景，设为标准的不可关闭对话框样式
         self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint | Qt.WindowStaysOnTopHint)
         self.resize(540, 240)
+        setTheme(Theme.AUTO)
         self._setup_ui()
         self._center()
         
@@ -167,28 +167,13 @@ class UpdaterWindow(QWidget):
         self.signals.text.connect(self._on_text)
         self.signals.finished.connect(self._on_finished)
         
-        setTheme(Theme.AUTO)
-        
         # Start logic after UI is shown
         QTimer.singleShot(500, self._start_worker)
 
     def _setup_ui(self):
         self.setObjectName("updaterWindow")
-        self.setStyleSheet("""
-            #updaterWindow {
-                background: #ffffff;
-            }
-            #titleLabel {
-                color: #1a1a1a;
-            }
-            #footerWidget {
-                background: #f3f3f3;
-                border-top: 1px solid #e5e5e5;
-            }
-            #statusLabel {
-                color: #666666;
-            }
-            @media (prefers-color-scheme: dark) {
+        if isDarkTheme():
+            self.setStyleSheet("""
                 #updaterWindow {
                     background: #1e1e1e;
                 }
@@ -202,8 +187,23 @@ class UpdaterWindow(QWidget):
                 #statusLabel {
                     color: #999999;
                 }
-            }
-        """)
+            """)
+        else:
+            self.setStyleSheet("""
+                #updaterWindow {
+                    background: #ffffff;
+                }
+                #titleLabel {
+                    color: #1a1a1a;
+                }
+                #footerWidget {
+                    background: #f3f3f3;
+                    border-top: 1px solid #e5e5e5;
+                }
+                #statusLabel {
+                    color: #666666;
+                }
+            """)
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
