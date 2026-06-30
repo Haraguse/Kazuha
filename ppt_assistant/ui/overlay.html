@@ -927,7 +927,7 @@
         .slider-container {
             width: 200px;
             height: 44px;
-            background: var(--overlay-control-bg);
+            background: rgba(30, 30, 30, 0.8);
             border-radius: 22px;
             position: relative;
             display: flex;
@@ -938,7 +938,7 @@
         }
 
         .slider-text {
-            color: var(--overlay-text-secondary);
+            color: rgba(255, 255, 255, 0.7);
             font-size: 14px;
             pointer-events: none;
             transition: opacity 0.2s;
@@ -947,7 +947,7 @@
         .slider-thumb {
             width: 40px;
             height: 40px;
-            background: var(--overlay-thumb-bg);
+            background: #FFFFFF;
             border-radius: 50%;
             position: absolute;
             left: 2px;
@@ -966,7 +966,7 @@
         }
 
         .slider-thumb .icon-mask {
-            background-color: var(--overlay-thumb-icon);
+            background-color: #333333;
             width: 20px;
             height: 20px;
         }
@@ -975,7 +975,7 @@
             display: none;
             width: 200px;
             height: 44px;
-            background: var(--overlay-control-bg);
+            background: rgba(30, 30, 30, 0.8);
             border-radius: 22px;
             align-items: center;
             justify-content: center;
@@ -984,18 +984,18 @@
         }
 
         .clear-btn-container:hover {
-            background: var(--overlay-control-hover);
+            background: rgba(60, 60, 60, 0.9);
         }
         
         .clear-btn-container:active {
-            background: var(--overlay-control-active);
+            background: rgba(80, 80, 80, 0.9);
             transform: scale(0.98);
         }
 
         .clear-btn-icon {
             width: 24px;
             height: 24px;
-            background-color: var(--overlay-text-primary);
+            background-color: #FFFFFF;
             margin-right: 8px;
             -webkit-mask-image: url('../../icons/Clear.svg');
             mask-image: url('../../icons/Clear.svg');
@@ -1008,7 +1008,7 @@
         }
 
         .clear-btn-text {
-            color: var(--overlay-text-primary);
+            color: #FFFFFF;
             font-size: 14px;
             font-weight: 500;
         }
