@@ -158,15 +158,34 @@ class UpdaterWindow(QWidget):
         QTimer.singleShot(500, self._start_worker)
 
     def _setup_ui(self):
-        # 整体采用白色/深色实心背景
         self.setObjectName("updaterWindow")
         self.setStyleSheet("""
             #updaterWindow {
                 background: #ffffff;
             }
+            #titleLabel {
+                color: #1a1a1a;
+            }
+            #footerWidget {
+                background: #f3f3f3;
+                border-top: 1px solid #e5e5e5;
+            }
+            #statusLabel {
+                color: #666666;
+            }
             @media (prefers-color-scheme: dark) {
                 #updaterWindow {
-                    background: #2b2b2b;
+                    background: #1e1e1e;
+                }
+                #titleLabel {
+                    color: #e8e8e8;
+                }
+                #footerWidget {
+                    background: #181818;
+                    border-top: 1px solid #2a2a2a;
+                }
+                #statusLabel {
+                    color: #999999;
                 }
             }
         """)
@@ -181,8 +200,9 @@ class UpdaterWindow(QWidget):
         content_layout.setContentsMargins(32, 32, 32, 32)
         content_layout.setSpacing(16)
 
-        # 标题：请稍候
+        # 标题
         title_label = QLabel("请稍候", self)
+        title_label.setObjectName("titleLabel")
         font = title_label.font()
         font.setPixelSize(22)
         font.setBold(True)
@@ -217,28 +237,15 @@ class UpdaterWindow(QWidget):
 
         main_layout.addWidget(content_widget, 1)
 
-        # 底部状态栏（灰色背景）
+        # 底部状态栏
         footer_widget = QWidget(self)
         footer_widget.setObjectName("footerWidget")
-        footer_widget.setStyleSheet("""
-            #footerWidget {
-                background: #f3f3f3;
-                border-top: 1px solid #e5e5e5;
-            }
-            @media (prefers-color-scheme: dark) {
-                #footerWidget {
-                    background: #202020;
-                    border-top: 1px solid #1a1a1a;
-                }
-            }
-        """)
         footer_layout = QVBoxLayout(footer_widget)
         footer_layout.setContentsMargins(32, 16, 32, 16)
-        
-        self.status_label = BodyLabel("准备就绪...", self)
+
+        self.status_label = QLabel("准备就绪...", self)
+        self.status_label.setObjectName("statusLabel")
         self.status_label.setWordWrap(False)
-        self.status_label.setStyleSheet("color: var(--TextSecondaryColor);")
-        # 缩略显示超长路径
         font_status = self.status_label.font()
         font_status.setPixelSize(12)
         self.status_label.setFont(font_status)
@@ -270,8 +277,37 @@ class UpdaterWindow(QWidget):
             QApplication.quit()
 
     def _start_worker(self):
-        t = threading.Thread(target=self._run_update_logic, daemon=True)
+        if getattr(self, "_test_mode", False):
+            t = threading.Thread(target=self._run_test_logic, daemon=True)
+        else:
+            t = threading.Thread(target=self._run_update_logic, daemon=True)
         t.start()
+
+    def _run_test_logic(self):
+        """测试模式：模拟更新流程，不操作实际文件"""
+        import random
+        stages = [
+            (2, "正在终止正在运行的实例..."),
+            (5, "正在准备备份当前版本..."),
+            (10, "正在清理旧的解压缓存..."),
+            (15, "正在解压更新包..."),
+            (30, "解压: Luminalium.exe"),
+            (40, "清理旧文件..."),
+            (50, "删除: Luminalium.exe"),
+            (60, "应用新文件..."),
+            (75, "复制: _internal\\lib\\test.dll"),
+            (85, "复制: _internal\\lib\\helper.dll"),
+            (95, "完成配置..."),
+            (100, "正在启动新版本..."),
+        ]
+        for progress, text in stages:
+            if not self.isVisible():
+                return
+            time.sleep(random.uniform(0.6, 1.2))
+            self.signals.progress.emit(progress)
+            self.signals.text.emit(text)
+        time.sleep(0.8)
+        self.signals.finished.emit(True, "")
 
     def _run_update_logic(self):
         args = self.args
@@ -460,18 +496,29 @@ class UpdaterWindow(QWidget):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--zip", required=True)
-    parser.add_argument("--version", required=True)
-    parser.add_argument("--app-dir", required=True)
-    parser.add_argument("--cache-dir", required=True)
+    parser.add_argument("--zip", required=False)
+    parser.add_argument("--version", required=False)
+    parser.add_argument("--app-dir", required=False)
+    parser.add_argument("--cache-dir", required=False)
     parser.add_argument("--parent-pid", type=int, default=0)
+    parser.add_argument("--test", action="store_true", help="Run in test mode (simulated update UI)")
     args = parser.parse_args()
+
+    if args.test:
+        # 测试模式：不需要 admin 权限，只模拟 UI 流程
+        app = QApplication(sys.argv)
+        window = UpdaterWindow(args)
+        window._test_mode = True
+        window.show()
+        sys.exit(app.exec())
+
+    # 正式模式：需要完整参数
+    if not args.zip or not args.version or not args.app_dir or not args.cache_dir:
+        parser.error("--zip, --version, --app-dir, --cache-dir are required for real update")
     
     # Request Admin privileges if not running as admin
     if not is_admin():
         # Re-run the program with admin rights
-        # Join arguments into a single string for ShellExecuteW
-        # Avoid passing the first element (the script/exe name)
         params = " ".join([f'"{arg}"' for arg in sys.argv[1:]])
         try:
             # 1: SW_SHOWNORMAL
