@@ -35,7 +35,7 @@ def _load_wps_bridge_host():
     if WpsBridgeHost is not None:
         return WpsBridgeHost
     try:
-        from ppt_assistant.core.wps_bridge.host import WpsBridgeHost as host_cls
+        from Luminalium2WPS.python_bridge.host import WpsBridgeHost as host_cls
     except Exception as exc:
         try:
             print(f"[ppt_monitor] Failed to import WPS bridge host: {exc}", flush=True)

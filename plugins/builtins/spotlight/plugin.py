@@ -1,6 +1,7 @@
 import sys
 from plugins.interface import AssistantPlugin
 from .spotlight_window import SpotlightWindow
+from PySide6.QtCore import QTimer
 
 
 class SpotlightPlugin(AssistantPlugin):
@@ -16,39 +17,18 @@ class SpotlightPlugin(AssistantPlugin):
 
     def execute(self):
         if self.window and self.window.isVisible():
-            self.window.activateWindow()
-            self.window.raise_()
-            if sys.platform == "win32":
-                try:
-                    import ctypes
-                    from ctypes import wintypes
-
-                    hwnd = int(self.window.winId())
-                    if hwnd:
-
-                        class FLASHWINFO(ctypes.Structure):
-                            _fields_ = [
-                                ("cbSize", wintypes.UINT),
-                                ("hwnd", wintypes.HWND),
-                                ("dwFlags", wintypes.DWORD),
-                                ("uCount", wintypes.UINT),
-                                ("dwTimeout", wintypes.DWORD),
-                            ]
-
-                        info = FLASHWINFO(
-                            ctypes.sizeof(FLASHWINFO),
-                            wintypes.HWND(hwnd),
-                            3,
-                            3,
-                            0,
-                        )
-                        ctypes.windll.user32.FlashWindowEx(ctypes.byref(info))
-                except Exception:
-                    pass
+            self.terminate()
             return
 
         self.window = SpotlightWindow()
+        # Position on target screen if specified
+        target_geo = getattr(self, '_target_screen_geometry', None)
+        if target_geo is not None:
+            self.window.setGeometry(target_geo)
         self.window.show()
+        # Re-capture after positioning on the correct screen
+        if target_geo is not None:
+            QTimer.singleShot(50, self.window.capture_screen)
 
     def terminate(self):
         if self.window:

@@ -55,7 +55,6 @@ class BoardPlugin(AssistantPlugin):
             QApplication.processEvents()
             self.window.show()
             self.window.raise_()
-            self.window.activateWindow()
             self.window.raise_()
         except Exception as e:
             print(f"[BoardPlugin] Failed to create board window: {e}")

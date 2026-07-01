@@ -927,7 +927,7 @@
         .slider-container {
             width: 200px;
             height: 44px;
-            background: rgba(30, 30, 30, 0.8);
+            background: var(--overlay-control-bg);
             border-radius: 22px;
             position: relative;
             display: flex;
@@ -938,7 +938,7 @@
         }
 
         .slider-text {
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--overlay-text-secondary);
             font-size: 14px;
             pointer-events: none;
             transition: opacity 0.2s;
@@ -947,7 +947,7 @@
         .slider-thumb {
             width: 40px;
             height: 40px;
-            background: #FFFFFF;
+            background: var(--overlay-thumb-bg);
             border-radius: 50%;
             position: absolute;
             left: 2px;
@@ -966,7 +966,7 @@
         }
 
         .slider-thumb .icon-mask {
-            background-color: #333333;
+            background-color: var(--overlay-thumb-icon);
             width: 20px;
             height: 20px;
         }
@@ -975,7 +975,7 @@
             display: none;
             width: 200px;
             height: 44px;
-            background: rgba(30, 30, 30, 0.8);
+            background: var(--overlay-control-bg);
             border-radius: 22px;
             align-items: center;
             justify-content: center;
@@ -984,18 +984,18 @@
         }
 
         .clear-btn-container:hover {
-            background: rgba(60, 60, 60, 0.9);
+            background: var(--overlay-control-hover);
         }
         
         .clear-btn-container:active {
-            background: rgba(80, 80, 80, 0.9);
+            background: var(--overlay-control-active);
             transform: scale(0.98);
         }
 
         .clear-btn-icon {
             width: 24px;
             height: 24px;
-            background-color: #FFFFFF;
+            background-color: var(--overlay-text-primary);
             margin-right: 8px;
             -webkit-mask-image: url('../../icons/Clear.svg');
             mask-image: url('../../icons/Clear.svg');
@@ -1008,7 +1008,7 @@
         }
 
         .clear-btn-text {
-            color: #FFFFFF;
+            color: var(--overlay-text-primary);
             font-size: 14px;
             font-weight: 500;
         }
@@ -1195,6 +1195,7 @@
 
         #thickness-panel {
             position: absolute;
+            width: 52px;
             background: var(--overlay-popup-bg);
             border: 1px solid var(--overlay-popup-border);
             border-radius: 12px;
@@ -1206,13 +1207,15 @@
             box-shadow: var(--overlay-popup-shadow);
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.2s;
+            transition: opacity 0.15s cubic-bezier(0.215, 0.61, 0.355, 1), transform 0.15s cubic-bezier(0.215, 0.61, 0.355, 1);
+            transform: scale(0.92);
             z-index: 150;
         }
 
         #thickness-panel.visible {
             opacity: 1;
             pointer-events: auto;
+            transform: scale(1);
         }
 
         #thickness-panel .ink-width-section {
@@ -1224,16 +1227,57 @@
         #thickness-panel .ink-width-section.active {
             display: flex;
             flex-direction: column;
+            align-items: center;
             flex: 1;
             min-height: 0;
         }
 
-        #thickness-panel .ink-width-slider {
-            -webkit-appearance: slider-vertical;
-            writing-mode: vertical-lr;
-            width: auto;
+        #thickness-panel .ink-width-value {
+            font-size: 12px;
+            color: var(--overlay-text-primary);
+            text-align: center;
+            margin-top: 4px;
+        }
+
+        /* ─── Board-style thickness slider ─── */
+        .thickness-slider {
+            position: relative;
+            width: 20px;
             flex: 1;
-            min-height: 60px;
+            min-height: 80px;
+            cursor: pointer;
+            touch-action: none;
+        }
+        .ts-track {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            border-radius: 2px;
+            background: var(--overlay-control-bg, rgba(128,128,128,0.25));
+        }
+        .ts-fill {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            border-radius: 2px;
+            background: var(--accent-color);
+            height: 0%;
+            transition: height 0.05s;
+        }
+        .ts-handle {
+            position: absolute;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--overlay-thumb-bg, #ddd);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+            top: 0%;
+            transition: top 0.05s;
         }
 
         .color-section-title {
@@ -1354,45 +1398,7 @@
             user-select: none;
         }
 
-        /* Ink width slider for eraser/highlighter settings */
-        .ink-width-section {
-            display: none;
-            margin-top: 12px;
-            padding: 0 16px 12px;
-        }
-        .ink-width-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
-        }
-        .ink-width-label {
-            font-size: 12px;
-            color: var(--overlay-text-secondary);
-        }
-        .ink-width-value {
-            font-size: 12px;
-            color: var(--overlay-text-primary);
-            min-width: 24px;
-            text-align: right;
-        }
-        .ink-width-slider {
-            width: 100%;
-            height: 4px;
-            -webkit-appearance: none;
-            appearance: none;
-            background: var(--overlay-border, var(--overlay-popup-border));
-            border-radius: 2px;
-            outline: none;
-        }
-        .ink-width-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: var(--overlay-accent, var(--accent-color));
-            cursor: pointer;
-        }
+        /* Ink thickness value display (used within #thickness-panel) */
 
         .color-info {
             margin-top: 12px;
@@ -1562,6 +1568,300 @@
             opacity: 0.35;
         }
 
+        /* ─── Toolbar Onboarding Guide (Apple Liquid Glass) ──────────────── */
+        #toolbar-guide-root {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            pointer-events: none;
+            font-family: var(--font-stack);
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 280ms ease, visibility 280ms ease;
+        }
+
+        #toolbar-guide-root.toolbar-guide-hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        #toolbar-guide-backdrop {
+            position: absolute;
+            inset: 0;
+            background: transparent;
+            pointer-events: none;
+            transition: background 320ms ease;
+        }
+
+        /* Modal mode (intro / outro): backdrop darkens the whole screen */
+        #toolbar-guide-root.toolbar-guide-modal #toolbar-guide-backdrop {
+            background: rgba(0, 0, 0, 0.55);
+        }
+
+        #toolbar-guide-spotlight {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 0;
+            border-radius: 14px;
+            background: transparent;
+            /* Giant box-shadow darkens everything outside the "hole".
+               The spotlight div itself stays transparent so the highlighted
+               toolbar button shows through. */
+            box-shadow:
+                0 0 0 9999px rgba(0, 0, 0, 0.55),
+                0 0 0 2px var(--accent-blue, #5B8DEF),
+                0 0 22px 4px rgba(91, 141, 239, 0.45);
+            pointer-events: none;
+            opacity: 0;
+            transition:
+                top 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                left 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                width 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                height 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 280ms ease;
+        }
+
+        /* Modal mode: hide the spotlight (no hole), backdrop handles darkening */
+        #toolbar-guide-root.toolbar-guide-modal #toolbar-guide-spotlight {
+            opacity: 0;
+        }
+
+        /* Disable position/size transition for fade-in from modal to first button step */
+        #toolbar-guide-spotlight.toolbar-guide-spotlight-no-move {
+            transition: opacity 280ms ease !important;
+        }
+
+        /* Disable ALL transitions for instant position/opacity changes (long-distance moves) */
+        #toolbar-guide-spotlight.toolbar-guide-spotlight-instant {
+            transition: none !important;
+        }
+
+        #toolbar-guide-card {
+            position: absolute;
+            width: 340px;
+            padding: 20px 24px;
+            box-sizing: border-box;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow:
+                0 16px 48px rgba(0, 0, 0, 0.35),
+                0 2px 8px rgba(0, 0, 0, 0.15);
+            pointer-events: auto;
+            z-index: 3;
+            transition:
+                top 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                left 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 280ms ease;
+        }
+
+        :root[data-theme="dark"] #toolbar-guide-card {
+            background: rgba(40, 40, 40, 0.92);
+            border-color: rgba(255, 255, 255, 0.25);
+            box-shadow:
+                0 16px 48px rgba(0, 0, 0, 0.6),
+                0 2px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .toolbar-guide-progress {
+            position: relative;
+            width: 48px;
+            height: 48px;
+            margin-bottom: 14px;
+        }
+
+        .toolbar-guide-ring {
+            display: block;
+            width: 48px;
+            height: 48px;
+        }
+
+        .toolbar-guide-ring .ring-bg {
+            fill: none;
+            stroke: rgba(128, 128, 128, 0.2);
+            stroke-width: 3;
+        }
+
+        .toolbar-guide-ring .ring-fg {
+            fill: none;
+            stroke: var(--accent-blue, #5B8DEF);
+            stroke-width: 3;
+            stroke-linecap: round;
+            /* circumference = 2 * PI * 24 ≈ 150.80 */
+            stroke-dasharray: 150.80;
+            stroke-dashoffset: 150.80;
+            transform-box: fill-box;
+            transform-origin: center;
+            transform: rotate(-90deg);
+            transition: stroke-dashoffset 360ms ease;
+        }
+
+        .toolbar-guide-step-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--overlay-toolbar-fg);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.02em;
+            line-height: 1;
+            white-space: nowrap;
+            width: max-content;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .toolbar-guide-content {
+            transition: opacity 220ms ease, transform 220ms ease;
+        }
+
+        .toolbar-guide-content.toolbar-guide-fading {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        .toolbar-guide-title {
+            font-size: 18px;
+            font-weight: 600;
+            line-height: 1.3;
+            color: var(--overlay-toolbar-fg);
+            margin-bottom: 6px;
+        }
+
+        .toolbar-guide-desc {
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 1.55;
+            color: var(--overlay-page-hint);
+        }
+
+        .toolbar-guide-dots {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+        }
+
+        .toolbar-guide-dots .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(128, 128, 128, 0.3);
+            transition: all 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .toolbar-guide-dots .dot.active {
+            width: 18px;
+            border-radius: 999px;
+            background: var(--accent-blue, #5B8DEF);
+        }
+
+        .toolbar-guide-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 18px;
+        }
+
+        .toolbar-guide-actions .toolbar-guide-prev {
+            margin-right: auto;
+        }
+
+        .toolbar-guide-btn {
+            padding: 8px 16px;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--overlay-toolbar-fg);
+            cursor: pointer;
+            transition: all 180ms ease;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
+        .toolbar-guide-btn:hover {
+            background: rgba(255, 255, 255, 0.85);
+            transform: translateY(-1px);
+        }
+
+        .toolbar-guide-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .toolbar-guide-btn.toolbar-guide-primary {
+            background: var(--accent-blue, #5B8DEF);
+            color: #ffffff;
+            border-color: transparent;
+        }
+
+        .toolbar-guide-btn.toolbar-guide-primary:hover {
+            filter: brightness(1.08);
+            background: var(--accent-blue, #5B8DEF);
+        }
+
+        :root[data-theme="dark"] .toolbar-guide-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        :root[data-theme="dark"] .toolbar-guide-btn:hover {
+            background: rgba(255, 255, 255, 0.16);
+        }
+
+        .toolbar-guide-btn[hidden],
+        .toolbar-guide-btn.toolbar-guide-hidden {
+            display: none;
+        }
+
+        /* Pulse ring on the highlighted toolbar button */
+        .tool-btn.toolbar-guide-active {
+            position: relative;
+        }
+
+        .tool-btn.toolbar-guide-active::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: inherit;
+            border: 2px solid var(--accent-blue, #5B8DEF);
+            box-shadow: 0 0 14px 2px rgba(91, 141, 239, 0.45);
+            animation: toolbar-guide-pulse 1.8s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .separator.toolbar-guide-active {
+            position: relative;
+        }
+
+        .separator.toolbar-guide-active::after {
+            content: '';
+            position: absolute;
+            inset: -6px -10px;
+            border-radius: 999px;
+            border: 2px solid var(--accent-blue, #5B8DEF);
+            box-shadow: 0 0 14px 2px rgba(91, 141, 239, 0.45);
+            animation: toolbar-guide-pulse 1.8s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        @keyframes toolbar-guide-pulse {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.06); }
+        }
+
     </style>
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script>
@@ -1708,22 +2008,18 @@
 
     <div id="thickness-panel" class="interactive">
         <div class="ink-width-section" data-tool="pen">
-            <div class="ink-width-row">
-                <span class="ink-width-label">笔粗细</span>
-                <span class="ink-width-value" id="pen-width-value">3</span>
+            <div class="thickness-slider" id="pen-width-slider" data-min="1" data-max="12" data-step="1">
+                <div class="ts-track"><div class="ts-fill"></div></div>
+                <div class="ts-handle"></div>
             </div>
-            <input type="range" class="ink-width-slider" id="pen-width-slider"
-                min="1" max="12" value="3" step="1"
-                oninput="inkPenWidth = parseInt(this.value); document.getElementById('pen-width-value').textContent = this.value; if(bridge&&bridge.setSelfPenSetting)bridge.setSelfPenSetting('PenWidth', inkPenWidth);">
+            <span class="ink-width-value" id="pen-width-value">3</span>
         </div>
         <div class="ink-width-section" data-tool="highlight">
-            <div class="ink-width-row">
-                <span class="ink-width-label">荧光笔粗细</span>
-                <span class="ink-width-value" id="hl-width-value">24</span>
+            <div class="thickness-slider" id="hl-width-slider" data-min="8" data-max="48" data-step="2">
+                <div class="ts-track"><div class="ts-fill"></div></div>
+                <div class="ts-handle"></div>
             </div>
-            <input type="range" class="ink-width-slider" id="hl-width-slider"
-                min="8" max="48" value="24" step="2"
-                oninput="inkHighlightWidth = parseInt(this.value); document.getElementById('hl-width-value').textContent = this.value; if(bridge&&bridge.setSelfPenSetting)bridge.setSelfPenSetting('HighlightWidth', inkHighlightWidth);">
+            <span class="ink-width-value" id="hl-width-value">24</span>
         </div>
     </div>
 
@@ -1799,6 +2095,30 @@
 
     <div id="overlay-toast"></div>
 
+    <div id="toolbar-guide-root" class="toolbar-guide-hidden">
+      <div id="toolbar-guide-backdrop"></div>
+      <div id="toolbar-guide-spotlight"></div>
+      <div id="toolbar-guide-card">
+        <div class="toolbar-guide-progress">
+          <svg class="toolbar-guide-ring" width="56" height="56" viewBox="0 0 56 56">
+            <circle class="ring-bg" cx="28" cy="28" r="24"></circle>
+            <circle class="ring-fg" cx="28" cy="28" r="24"></circle>
+          </svg>
+          <span class="toolbar-guide-step-indicator"></span>
+        </div>
+        <div class="toolbar-guide-content">
+          <div class="toolbar-guide-title"></div>
+          <div class="toolbar-guide-desc"></div>
+        </div>
+        <div class="toolbar-guide-dots"></div>
+        <div class="toolbar-guide-actions">
+          <button class="toolbar-guide-btn toolbar-guide-skip"></button>
+          <button class="toolbar-guide-btn toolbar-guide-prev"></button>
+          <button class="toolbar-guide-btn toolbar-guide-next toolbar-guide-primary"></button>
+        </div>
+      </div>
+    </div>
+
     <script>
         function createBridgePlaceholder() {
             const noop = () => {};
@@ -1825,7 +2145,8 @@
                 startBackgroundThumbnailCaching: noop,
                 mediaPlayPause: noop,
                 mediaPrev: noop,
-                mediaNext: noop
+                mediaNext: noop,
+                markToolbarGuideCompleted: noop
             };
         }
 
@@ -2092,8 +2413,7 @@
             // Sync pen width slider to current value
             const penSlider = document.getElementById('pen-width-slider');
             if (penSlider) {
-                penSlider.value = inkPenWidth;
-                document.getElementById('pen-width-value').textContent = inkPenWidth;
+                setThicknessSliderValue(penSlider, inkPenWidth);
             }
         }
 
@@ -2294,9 +2614,12 @@
 
         function updateConfig(config) {
             currentConfig = config;
+            if (config && config.language) {
+                document.documentElement.lang = config.language;
+            }
             // Apply SelfPen config (defensive: COM-mode configs also include these fields now)
-            if (config.selfPenWidth !== undefined) { inkPenWidth = config.selfPenWidth; const s = document.getElementById('pen-width-slider'); if (s) { s.value = inkPenWidth; const v = document.getElementById('pen-width-value'); if (v) v.textContent = inkPenWidth; } }
-            if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHighlightWidth; const s = document.getElementById('hl-width-slider'); if (s) { s.value = inkHighlightWidth; const v = document.getElementById('hl-width-value'); if (v) v.textContent = inkHighlightWidth; } }
+if (config.selfPenWidth !== undefined) { inkPenWidth = config.selfPenWidth; const s = document.getElementById('pen-width-slider'); if (s) { setThicknessSliderValue(s, inkPenWidth); } }
+if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHighlightWidth; const s = document.getElementById('hl-width-slider'); if (s) { setThicknessSliderValue(s, inkHighlightWidth); } }
             if (config.selfEraserWidth !== undefined) { inkEraserWidth = config.selfEraserWidth; const s = document.getElementById('eraser-width-slider'); if (s) { s.value = inkEraserWidth; const v = document.getElementById('eraser-width-value'); if (v) v.textContent = inkEraserWidth; } }
             if (config.selfHighlightOpacity !== undefined) inkHighlightOpacity = config.selfHighlightOpacity;
             if (config.selfPenColor !== undefined) inkPenColor = config.selfPenColor;
@@ -2706,10 +3029,98 @@
         let selfPenWidthPresetIndex = -1;
         let selfEraserWidthPresetIndex = -1;
         let inkActive = false; // true when self-developed mode AND pen/eraser tool active
+        let guideActive = false; // true when toolbar onboarding guide is active
 
         const INK_MODE_PEN = 'pen';
         const INK_MODE_HIGHLIGHT = 'highlight';
         const INK_MODE_ERASER = 'eraser';
+
+        // ─── Board-style thickness slider helpers ───
+        function setThicknessSliderValue(sliderEl, value) {
+            if (!sliderEl) return;
+            const handle = sliderEl.querySelector('.ts-handle');
+            const fill = sliderEl.querySelector('.ts-fill');
+            const valueEl = sliderEl.parentElement?.querySelector('.ink-width-value');
+            if (!handle || !fill) return;
+            const min = parseFloat(sliderEl.dataset.min);
+            const max = parseFloat(sliderEl.dataset.max);
+            if (isNaN(min) || isNaN(max)) return;
+            const clamped = Math.max(min, Math.min(max, value));
+            const ratio = Math.max(0, Math.min(1, (clamped - min) / (max - min)));
+            handle.style.top = ((1 - ratio) * 100) + '%';
+            fill.style.height = (ratio * 100) + '%';
+            if (valueEl) valueEl.textContent = Math.round(clamped);
+        }
+
+        function initThicknessSliders() {
+            document.querySelectorAll('.thickness-slider').forEach(slider => {
+                const handle = slider.querySelector('.ts-handle');
+                const fill = slider.querySelector('.ts-fill');
+                if (!handle || !fill) return;
+                const min = parseFloat(slider.dataset.min);
+                const max = parseFloat(slider.dataset.max);
+                const step = parseFloat(slider.dataset.step);
+                if (isNaN(min) || isNaN(max) || isNaN(step)) return;
+                const valueEl = slider.parentElement?.querySelector('.ink-width-value');
+                const isHighlight = slider.closest('[data-tool="highlight"]');
+
+                function updateSlider(value) {
+                    const ratio = Math.max(0, Math.min(1, (value - min) / (max - min)));
+                    handle.style.top = ((1 - ratio) * 100) + '%';
+                    fill.style.height = (ratio * 100) + '%';
+                    if (valueEl) valueEl.textContent = Math.round(value);
+                }
+
+                function valueFromPointer(clientY) {
+                    const rect = slider.getBoundingClientRect();
+                    const ratio = 1 - Math.max(0, Math.min(1,
+                        (clientY - rect.top) / rect.height));
+                    const raw = min + ratio * (max - min);
+                    const stepped = step > 0 ? Math.round(raw / step) * step : raw;
+                    return Math.max(min, Math.min(max, stepped));
+                }
+
+                let isDragging = false;
+
+                function onPointerDown(e) {
+                    e.preventDefault();
+                    isDragging = true;
+                    slider.setPointerCapture(e.pointerId);
+                    const v = valueFromPointer(e.clientY);
+                    const target = isHighlight ? 'HighlightWidth' : 'PenWidth';
+                    if (isHighlight) inkHighlightWidth = v;
+                    else inkPenWidth = v;
+                    updateSlider(v);
+                    if (bridge && bridge.setSelfPenSetting)
+                        bridge.setSelfPenSetting(target, Math.round(v));
+                }
+
+                function onPointerMove(e) {
+                    if (!isDragging) return;
+                    const v = valueFromPointer(e.clientY);
+                    const target = isHighlight ? 'HighlightWidth' : 'PenWidth';
+                    if (isHighlight) inkHighlightWidth = v;
+                    else inkPenWidth = v;
+                    updateSlider(v);
+                    if (bridge && bridge.setSelfPenSetting)
+                        bridge.setSelfPenSetting(target, Math.round(v));
+                }
+
+                function onPointerUp(e) {
+                    isDragging = false;
+                    slider.releasePointerCapture(e.pointerId);
+                }
+
+                slider.addEventListener('pointerdown', onPointerDown);
+                slider.addEventListener('pointermove', onPointerMove);
+                slider.addEventListener('pointerup', onPointerUp);
+                slider.addEventListener('pointercancel', onPointerUp);
+
+                // Set initial value
+                const initialVal = isHighlight ? inkHighlightWidth : inkPenWidth;
+                updateSlider(initialVal);
+            });
+        }
 
         function initInkCanvas() {
             if (inkCanvasInited) return;
@@ -2807,6 +3218,9 @@
             // Prevent default touch behavior (scrolling)
             canvas.addEventListener('touchstart', e => { if (inkActive) e.preventDefault(); }, { passive: false });
             canvas.addEventListener('touchmove', e => { if (inkActive) e.preventDefault(); }, { passive: false });
+
+            // Initialize custom thickness sliders
+            initThicknessSliders();
         }
 
         function getCurrentInkColor() {
@@ -4257,8 +4671,8 @@
         function sendMaskUpdate() {
             if (!bridge) return;
 
-            // Pen active → full-screen mask to capture drawing events
-            if (inkActive) {
+            // Pen active OR guide active → full-screen mask
+            if (inkActive || guideActive) {
                 bridge.updateMask([{
                     x: 0,
                     y: 0,
@@ -4351,6 +4765,792 @@
             }
             bridge.updateMask(rects, window.noop);
         }
+
+        /* ─── Toolbar Onboarding Guide Controller ───────────────────────────
+           Walks the user through every toolbar button the first time they
+           enter a slideshow. Triggered via window.startToolbarGuide() from
+           Python (see Task 5) when Overlay.ToolbarGuideCompleted == false.
+           Bridge contract: bridge.markToolbarGuideCompleted() persists the
+           completion flag to settings.json (added by Task 1).
+        ──────────────────────────────────────────────────────────────────── */
+        (function () {
+            console.log('[ToolbarGuide] IIFE init');
+            // ── i18n: embedded copies of toolbar_guide.* from
+            //    ppt_assistant/core/i18n.py (5 locales). Keep in sync.
+            const GUIDE_I18N = {
+                'zh-CN': {
+                    'welcome.title': '工具栏快速导览',
+                    'welcome.desc': '让我们花 30 秒认识一下工具栏上的每个按钮。随时可以跳过，之后也能在设置里重新查看。',
+                    'step.select.title': '选择 / 移动',
+                    'step.select.desc': '默认工具，用来点选菜单、切换焦点。放映时点击它可退出绘图模式。',
+                    'step.pen.title': '钢笔',
+                    'step.pen.desc': '在幻灯片上自由书写批注。再次点击可展开粗细、颜色等更多选项。',
+                    'step.eraser.title': '橡皮擦',
+                    'step.eraser.desc': '擦除刚才画下的墨迹，整页清空请用下一个按钮。',
+                    'step.pageNav.title': '翻页栏',
+                    'step.pageNav.desc': '屏幕左右两侧的箭头可上一页/下一页，中间显示当前页码。',
+                    'step.pageSelector.title': '页面选择',
+                    'step.pageSelector.desc': '点击中间的页码，会弹出页面选择栏，可快速跳转到任意一页。',
+                    'step.spotlight.title': '聚光灯',
+                    'step.spotlight.desc': '聚焦观众视线，让画面其余部分暗下来，凸显重点区域。',
+                    'step.spotlightPanel.title': '聚光灯面板',
+                    'step.spotlightPanel.desc': '聚光灯的控制面板已弹出，可切换高亮/放大模式、调节亮度、关闭灯光。',
+                    'step.board_in_board.title': '板中板',
+                    'step.board_in_board.desc': '弹出一块独立画板，可随手写画、贴图、保存为图片。',
+                    'step.boardPanel.title': '板中板面板',
+                    'step.boardPanel.desc': '独立画板已弹出，可在上面自由写画、贴图，完成后关闭即可回到幻灯片。',
+                    'step.timer.title': '计时器',
+                    'step.timer.desc': '倒计时或正计时，方便控制演讲节奏，结束时会通知你。',
+                    'step.apps.title': '应用启动器',
+                    'step.apps.desc': '快速启动你配置好的外部应用，比如白板软件、点名工具等。',
+                    'step.endShow.title': '结束放映',
+                    'step.endShow.desc': '结束本次幻灯片放映。如有未保存的墨迹，会询问你是否保留。',
+                    'done.title': '开始你的演示',
+                    'done.desc': '你已经认识完工具栏。现在去试一试吧——随时可以在设置里重新打开这个引导。',
+                    'skip': '跳过',
+                    'prev': '上一步',
+                    'next': '下一步',
+                    'done': '完成',
+                    'step_indicator': '{current}/{total}'
+                },
+                'zh-TW': {
+                    'welcome.title': '工具列快速導覽',
+                    'welcome.desc': '讓我們花 30 秒認識一下工具列上的每個按鈕。隨時可以跳過，之後也能在設定裡重新查看。',
+                    'step.select.title': '選擇 / 移動',
+                    'step.select.desc': '預設工具，用來點選選單、切換焦點。放映時點擊它可退出繪圖模式。',
+                    'step.pen.title': '鋼筆',
+                    'step.pen.desc': '在幻燈片上自由書寫註解。再次點擊可展開粗細、顏色等更多選項。',
+                    'step.eraser.title': '橡皮擦',
+                    'step.eraser.desc': '擦除剛才畫下的墨跡，整頁清除請用下一個按鈕。',
+                    'step.pageNav.title': '翻頁欄',
+                    'step.pageNav.desc': '螢幕左右兩側的箭頭可上一頁/下一頁，中間顯示目前頁碼。',
+                    'step.pageSelector.title': '頁面選擇',
+                    'step.pageSelector.desc': '點擊中間的頁碼，會彈出頁面選擇欄，可快速跳轉到任意一頁。',
+                    'step.spotlight.title': '聚光燈',
+                    'step.spotlight.desc': '聚焦觀眾視線，讓畫面其餘部分暗下來，突顯重點區域。',
+                    'step.spotlightPanel.title': '聚光燈面板',
+                    'step.spotlightPanel.desc': '聚光燈的控制面板已彈出，可切換高亮/放大模式、調節亮度、關閉燈光。',
+                    'step.board_in_board.title': '板中板',
+                    'step.board_in_board.desc': '彈出一塊獨立畫板，可隨手寫畫、貼圖、儲存為圖片。',
+                    'step.boardPanel.title': '板中板面板',
+                    'step.boardPanel.desc': '獨立畫板已彈出，可在上面自由寫畫、貼圖，完成後關閉即可回到投影片。',
+                    'step.timer.title': '計時器',
+                    'step.timer.desc': '倒數或正數計時，方便控制演講節奏，結束時會通知你。',
+                    'step.apps.title': '應用啟動器',
+                    'step.apps.desc': '快速啟動你設定好的外部應用，例如白板軟體、點名工具等。',
+                    'step.endShow.title': '結束放映',
+                    'step.endShow.desc': '結束本次幻燈片放映。如有未儲存的墨跡，會詢問你是否保留。',
+                    'done.title': '開始你的演示',
+                    'done.desc': '你已經認識完工具列。現在去試一試吧——隨時可以在設定裡重新打開這個引導。',
+                    'skip': '跳過',
+                    'prev': '上一步',
+                    'next': '下一步',
+                    'done': '完成',
+                    'step_indicator': '{current}/{total}'
+                },
+                'yue-HK': {
+                    'welcome.title': '工具列快速導覽',
+                    'welcome.desc': '等我花 30 秒介紹下工具列每個掣。隨時可以 skip，之後都可以喺設定度再睇。',
+                    'step.select.title': '選擇 / 移動',
+                    'step.select.desc': '預設工具，用嚟點選menu、切換焦點。放映時撳一下可以退出繪圖模式。',
+                    'step.pen.title': '鋼筆',
+                    'step.pen.desc': '喺幻燈片度自由寫嘢。再撳一下可以展開粗幼、顏色等更多選項。',
+                    'step.eraser.title': '橡皮擦',
+                    'step.eraser.desc': '擦返啱啱畫落嘅墨跡，成頁清晒用下一個掣。',
+                    'step.pageNav.title': '翻頁欄',
+                    'step.pageNav.desc': '畫面左右兩邊嘅箭頭可以上一頁/下一頁，中間顯示目前頁碼。',
+                    'step.pageSelector.title': '頁面選擇',
+                    'step.pageSelector.desc': '撳中間嘅頁碼，會彈出頁面選擇欄，可以快速跳去任意一頁。',
+                    'step.spotlight.title': '聚光燈',
+                    'step.spotlight.desc': '聚焦觀眾視線，令畫面其他部分暗啲，突顯重點區域。',
+                    'step.spotlightPanel.title': '聚光燈面板',
+                    'step.spotlightPanel.desc': '聚光燈嘅控制面板已彈出，可切換高亮/放大模式、調節亮度、關閉燈光。',
+                    'step.board_in_board.title': '板中板',
+                    'step.board_in_board.desc': '彈塊獨立畫板出嚟，可以隨手畫、貼圖、儲做圖片。',
+                    'step.boardPanel.title': '板中板面板',
+                    'step.boardPanel.desc': '獨立畫板已經彈咗出嚟，可以喺上面自由畫嘢、貼圖，搞掂閂返佢就返去幻燈片。',
+                    'step.timer.title': '計時器',
+                    'step.timer.desc': '倒數或者正數計時，方便控制演講節奏，完嗰陣會通知你。',
+                    'step.apps.title': '應用啟動器',
+                    'step.apps.desc': '快速啟動你設定好嘅外部app，例如白板軟件、點名工具等。',
+                    'step.endShow.title': '結束放映',
+                    'step.endShow.desc': '結束呢次幻燈片放映。如果有未儲嘅墨跡，會問你保唔保留。',
+                    'done.title': '開始你嘅演示',
+                    'done.desc': '你已經認識晒工具列。依家去試下啦——隨時可以喺設定度重新打開呢個引導。',
+                    'skip': '跳過',
+                    'prev': '上一步',
+                    'next': '下一步',
+                    'done': '完成',
+                    'step_indicator': '{current}/{total}'
+                },
+                'ja-JP': {
+                    'welcome.title': 'ツールバー クイック ツアー',
+                    'welcome.desc': '30 秒でツールバーの各ボタンをご紹介します。いつでもスキップでき、設定から再度表示できます。',
+                    'step.select.title': '選択 / 移動',
+                    'step.select.desc': '既定のツール。メニューの選択やフォーカス切替に使います。放映中にクリックすると描画モードを終了します。',
+                    'step.pen.title': 'ペン',
+                    'step.pen.desc': 'スライドに自由に書き込めます。もう一度クリックすると太さや色などのオプションが展開します。',
+                    'step.eraser.title': '消しゴム',
+                    'step.eraser.desc': '描いたインクを消します。ページ全体を消すには次のボタンを使います。',
+                    'step.pageNav.title': 'ページ移動バー',
+                    'step.pageNav.desc': '画面左右の矢印で前後のページに移動でき、中央に現在のページ番号が表示されます。',
+                    'step.pageSelector.title': 'ページ選択',
+                    'step.pageSelector.desc': '中央のページ番号をクリックすると、ページ選択バーが表示され、任意のページにジャンプできます。',
+                    'step.spotlight.title': 'スポットライト',
+                    'step.spotlight.desc': '観客の視線を集め、画面の他の部分を暗くして重点領域を際立たせます。',
+                    'step.spotlightPanel.title': 'スポットライトパネル',
+                    'step.spotlightPanel.desc': 'スポットライトのコントロールパネルが表示されました。ハイライト/ズームモードの切り替え、明るさ調整、ライトオフができます。',
+                    'step.board_in_board.title': 'ボード',
+                    'step.board_in_board.desc': '独立したキャンバスを呼び出し、自由に描画・貼り付け・画像保存できます。',
+                    'step.boardPanel.title': 'ボードパネル',
+                    'step.boardPanel.desc': '独立キャンバスが表示されました。自由に描画・貼り付けができ、閉じるとスライドに戻ります。',
+                    'step.timer.title': 'タイマー',
+                    'step.timer.desc': 'カウントダウン・ストップウォッチで発表のペースを制御します。終了時に通知します。',
+                    'step.apps.title': 'アプリ起動',
+                    'step.apps.desc': '設定した外部アプリを素早く起動します。ホワイトボードや出席ツールなど。',
+                    'step.endShow.title': '放映終了',
+                    'step.endShow.desc': 'スライド放映を終了します。未保存のインクがある場合は保持するか確認します。',
+                    'done.title': 'プレゼンを始めましょう',
+                    'done.desc': 'ツールバーの紹介は以上です。設定からいつでもこのガイドを再表示できます。',
+                    'skip': 'スキップ',
+                    'prev': '前へ',
+                    'next': '次へ',
+                    'done': '完了',
+                    'step_indicator': '{current}/{total}'
+                },
+                'en-US': {
+                    'welcome.title': 'Toolbar Quick Tour',
+                    'welcome.desc': 'Let\'s spend 30 seconds meeting every button on the toolbar. You can skip anytime and revisit this from Settings.',
+                    'step.select.title': 'Select / Move',
+                    'step.select.desc': 'The default tool — click menus and switch focus. During a slideshow, click it to exit drawing mode.',
+                    'step.pen.title': 'Pen',
+                    'step.pen.desc': 'Write freely on the slide. Click again to expand thickness, color and more options.',
+                    'step.eraser.title': 'Eraser',
+                    'step.eraser.desc': 'Erase the ink you just drew. Use the next button to clear the whole page.',
+                    'step.pageNav.title': 'Page Flipper',
+                    'step.pageNav.desc': 'Arrows on the left and right of the screen go to the previous/next page, with the current page number shown in the middle.',
+                    'step.pageSelector.title': 'Page Selector',
+                    'step.pageSelector.desc': 'Click the page number in the middle to pop up a page selector bar and jump to any page quickly.',
+                    'step.spotlight.title': 'Spotlight',
+                    'step.spotlight.desc': 'Focus your audience\'s eyes by dimming the rest of the screen and highlighting a region.',
+                    'step.spotlightPanel.title': 'Spotlight Panel',
+                    'step.spotlightPanel.desc': 'The spotlight control panel has appeared. Switch between highlight/magnify modes, adjust dimness, or turn off lights.',
+                    'step.board_in_board.title': 'Board',
+                    'step.board_in_board.desc': 'Pop out an independent canvas — sketch, paste images, or save as a picture.',
+                    'step.boardPanel.title': 'Board Panel',
+                    'step.boardPanel.desc': 'The independent canvas is now open. Draw, paste images, or sketch freely — close it to return to your slides.',
+                    'step.timer.title': 'Timer',
+                    'step.timer.desc': 'Countdown or stopwatch to pace your talk. You\'ll be notified when it ends.',
+                    'step.apps.title': 'App Launcher',
+                    'step.apps.desc': 'Quickly launch your configured external apps — whiteboard, roll-call tools, and more.',
+                    'step.endShow.title': 'End Show',
+                    'step.endShow.desc': 'End this slideshow. If you have unsaved ink, you\'ll be asked whether to keep it.',
+                    'done.title': 'Start your presentation',
+                    'done.desc': 'That\'s the whole toolbar. Give it a try — you can always reopen this guide from Settings.',
+                    'skip': 'Skip',
+                    'prev': 'Previous',
+                    'next': 'Next',
+                    'done': 'Done',
+                    'step_indicator': '{current}/{total}'
+                }
+            };
+
+            function detectLocale() {
+                let lang = '';
+                try {
+                    lang = (
+                        (currentConfig && currentConfig.language) ||
+                        document.documentElement.lang ||
+                        navigator.language ||
+                        'zh-CN'
+                    );
+                } catch (e) { lang = 'zh-CN'; }
+                lang = String(lang).toLowerCase();
+                if (lang.indexOf('zh') === 0) {
+                    if (lang.indexOf('cn') >= 0 || lang.indexOf('hans') >= 0) return 'zh-CN';
+                    if (lang.indexOf('yue') >= 0) return 'yue-HK';
+                    if (lang.indexOf('tw') >= 0 || lang.indexOf('hant') >= 0) return 'zh-TW';
+                    if (lang.indexOf('hk') >= 0 || lang.indexOf('mo') >= 0) return 'yue-HK';
+                    return 'zh-CN';
+                }
+                if (lang.indexOf('ja') === 0) return 'ja-JP';
+                if (lang.indexOf('en') === 0) return 'en-US';
+                return 'zh-CN';
+            }
+
+            function t(key) {
+                const locale = detectLocale();
+                const table = GUIDE_I18N[locale] || GUIDE_I18N['zh-CN'];
+                let val = table[key];
+                if (val === undefined) val = GUIDE_I18N['zh-CN'][key];
+                if (val === undefined) return key;
+                return val;
+            }
+
+            // Resolve the last app launcher button rendered in the toolbar
+            // (app buttons carry no stable id — detect by icon class).
+            function findAppsButton() {
+                const toolbar = document.getElementById('toolbar');
+                if (!toolbar) return null;
+                const appBtns = Array.from(toolbar.querySelectorAll('.tool-btn')).filter(function (btn) {
+                    return !!(btn.querySelector('.icon-img') || btn.querySelector('.icon-app'));
+                });
+                return appBtns.length > 0 ? appBtns[appBtns.length - 1] : null;
+            }
+
+            const GUIDE_STEPS = [
+                { type: 'intro', titleKey: 'welcome.title', descKey: 'welcome.desc' },
+                { type: 'button', selector: '#btn-select', titleKey: 'step.select.title', descKey: 'step.select.desc' },
+                { type: 'button', selector: '#btn-pen', titleKey: 'step.pen.title', descKey: 'step.pen.desc', skipIfMissing: true, demoTarget: '#color-picker',
+                    demo: function () { if (currentTool !== 'pen') document.querySelector('#btn-pen').click(); if (!document.getElementById('color-picker').classList.contains('visible')) document.querySelector('#btn-pen').click(); },
+                    undoDemo: function () { closePopup(); document.querySelector('#btn-select').click(); } },
+                { type: 'button', selector: '#btn-eraser', titleKey: 'step.eraser.title', descKey: 'step.eraser.desc', skipIfMissing: true, demoTarget: '#eraser-settings',
+                    demo: function () { if (currentTool !== 'eraser') document.querySelector('#btn-eraser').click(); if (!document.getElementById('eraser-settings').classList.contains('visible')) document.querySelector('#btn-eraser').click(); },
+                    undoDemo: function () { closePopup(); document.querySelector('#btn-select').click(); } },
+                { type: 'button', selector: '#btn-spotlight', titleKey: 'step.spotlight.title', descKey: 'step.spotlight.desc', skipIfMissing: true,
+                    demo: function () {},
+                    undoDemo: function () { closePopup(); if (demoState.spotlight) document.querySelector('#btn-spotlight').click(); } },
+                { type: 'button', selector: '#btn-spotlight', titleKey: 'step.spotlightPanel.title', descKey: 'step.spotlightPanel.desc', skipIfMissing: true,
+                    demo: function () {
+                        var btn = document.querySelector('#btn-spotlight');
+                        demoState.spotlight = btn && !btn.classList.contains('active');
+                        demoState._spotlightTimers = [];
+                        if (demoState.spotlight) btn.click();
+                        if (typeof bridge !== 'undefined' && bridge && bridge.spotlightSetTransparent) {
+                            bridge.spotlightSetTransparent();
+                        }
+                        demoState._spotlightTimers.push(window.setTimeout(function () {
+                            if (typeof bridge !== 'undefined' && bridge && bridge.spotlightDrawDemoFrame) {
+                                bridge.spotlightDrawDemoFrame();
+                            }
+                            demoState._spotlightTimers.push(window.setTimeout(function () {
+                                if (typeof bridge !== 'undefined' && bridge && bridge.spotlightShowControlPanel) {
+                                    bridge.spotlightShowControlPanel();
+                                }
+                            }, 300));
+                        }, 500));
+                    },
+                    undoDemo: function () {
+                        closePopup();
+                        if (demoState._spotlightTimers) {
+                            demoState._spotlightTimers.forEach(function (t) { window.clearTimeout(t); });
+                            demoState._spotlightTimers = null;
+                        }
+                        if (demoState.spotlight) document.querySelector('#btn-spotlight').click();
+                        demoState.spotlight = false;
+                    } },
+                { type: 'button', selector: '#btn-board_in_board', titleKey: 'step.board_in_board.title', descKey: 'step.board_in_board.desc', skipIfMissing: true, noUndoOnAdvance: true,
+                    demo: function () {
+                        if (demoState.spotlight) {
+                            document.querySelector('#btn-spotlight').click();
+                            demoState.spotlight = false;
+                        }
+                        var btn = document.querySelector('#btn-board_in_board');
+                        demoState.board = btn && !btn.classList.contains('active');
+                        if (demoState.board) btn.click();
+                    },
+                    undoDemo: function () { closePopup(); if (demoState.board) document.querySelector('#btn-board_in_board').click(); } },
+                { type: 'button', selector: '#btn-board_in_board', titleKey: 'step.boardPanel.title', descKey: 'step.boardPanel.desc', skipIfMissing: true,
+                    demo: function () {
+                        if (typeof bridge !== 'undefined' && bridge && bridge.boardDrawDemoFrame) {
+                            window.setTimeout(function () { bridge.boardDrawDemoFrame(); }, 300);
+                        }
+                        if (typeof bridge !== 'undefined' && bridge && bridge.boardFocusGuideSpotlight) {
+                            window.setTimeout(function () { bridge.boardFocusGuideSpotlight(); }, 500);
+                        }
+                    },
+                    undoDemo: function () { closePopup(); if (typeof bridge !== 'undefined' && bridge && bridge.clearBoardDemoFrame) { bridge.clearBoardDemoFrame(); } if (demoState.board) document.querySelector('#btn-board_in_board').click(); } },
+                { type: 'button', selector: '#btn-timer', titleKey: 'step.timer.title', descKey: 'step.timer.desc', skipIfMissing: true,
+                    demo: function () {
+                        var btn = document.querySelector('#btn-timer');
+                        demoState.timer = btn && !btn.classList.contains('active');
+                        if (demoState.timer) {
+                            if (typeof bridge !== 'undefined' && bridge && bridge.toggleTimer) bridge.toggleTimer();
+                            window.setTimeout(function () {
+                                if (typeof bridge !== 'undefined' && bridge && bridge.timerDrawDemoFrame) bridge.timerDrawDemoFrame();
+                            }, 300);
+                            if (typeof bridge !== 'undefined' && bridge && bridge.timerFocusGuideSpotlight) {
+                                window.setTimeout(function () { bridge.timerFocusGuideSpotlight(); }, 500);
+                            }
+                        }
+                    },
+                    undoDemo: function () { closePopup(); if (typeof bridge !== 'undefined' && bridge && bridge.clearTimerDemoFrame) { bridge.clearTimerDemoFrame(); } if (demoState.timer && typeof bridge !== 'undefined' && bridge && bridge.toggleTimer) bridge.toggleTimer(); } },
+                { type: 'button', customSelector: findAppsButton, titleKey: 'step.apps.title', descKey: 'step.apps.desc', skipIfMissing: true },
+                { type: 'button', selector: '#left-flipper', titleKey: 'step.pageNav.title', descKey: 'step.pageNav.desc', padX: 12, padY: 10, skipIfMissing: true },
+                { type: 'button', selector: '#left-flipper .page-info-container', titleKey: 'step.pageSelector.title', descKey: 'step.pageSelector.desc', padX: 8, padY: 6, skipIfMissing: true, demoTarget: '#page-selector',
+                    demo: function () { var sel = document.getElementById('page-selector'); demoState.pageSelector = !sel || !sel.classList.contains('visible'); if (demoState.pageSelector) document.querySelector('#left-flipper .page-info-container').click(); },
+                    undoDemo: function () { closePopup(); if (demoState.pageSelector) document.querySelector('#left-flipper .page-info-container').click(); } },
+                { type: 'button', selector: '#btn-end', titleKey: 'step.endShow.title', descKey: 'step.endShow.desc' },
+                { type: 'outro', titleKey: 'done.title', descKey: 'done.desc' }
+            ];
+
+            // ── State ──
+            let isActive = false;
+            let currentStep = -1;
+            let visibleSteps = [];
+            let activeButton = null;
+            let listenersAttached = false;
+            let contentSwapTimer = null;
+            let maskRestoreTimer = null;
+            let demoTimer = null;
+            let demoState = {};
+            const RING_CIRCUMFERENCE = 2 * Math.PI * 24; // ≈ 150.80
+
+            // ── Element refs ──
+            const root = document.getElementById('toolbar-guide-root');
+            const spotlight = document.getElementById('toolbar-guide-spotlight');
+            const card = document.getElementById('toolbar-guide-card');
+            const titleEl = root ? root.querySelector('.toolbar-guide-title') : null;
+            const descEl = root ? root.querySelector('.toolbar-guide-desc') : null;
+            const contentEl = root ? root.querySelector('.toolbar-guide-content') : null;
+            const dotsEl = root ? root.querySelector('.toolbar-guide-dots') : null;
+            const indicatorEl = root ? root.querySelector('.toolbar-guide-step-indicator') : null;
+            const ringFg = root ? root.querySelector('.ring-fg') : null;
+            const skipBtn = root ? root.querySelector('.toolbar-guide-skip') : null;
+            const prevBtn = root ? root.querySelector('.toolbar-guide-prev') : null;
+            const nextBtn = root ? root.querySelector('.toolbar-guide-next') : null;
+
+            if (ringFg) {
+                ringFg.style.strokeDasharray = String(RING_CIRCUMFERENCE);
+                ringFg.style.strokeDashoffset = String(RING_CIRCUMFERENCE);
+            }
+
+            function resolveStepElement(step) {
+                if (!step) return null;
+                if (typeof step.customSelector === 'function') return step.customSelector();
+                if (step.selector) return document.querySelector(step.selector);
+                return null;
+            }
+
+            function clearActiveButton() {
+                if (activeButton) {
+                    activeButton.classList.remove('toolbar-guide-active');
+                    activeButton = null;
+                }
+            }
+
+            function positionCardCentered() {
+                if (!card) return;
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                const cardW = card.offsetWidth || 340;
+                const cardH = card.offsetHeight || 220;
+                card.style.transform = '';
+                card.style.left = Math.max(0, (vw - cardW) / 2) + 'px';
+                card.style.top = Math.max(0, (vh - cardH) / 2) + 'px';
+            }
+
+            function positionCardForRect(rect) {
+                if (!card) return;
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                const cardW = card.offsetWidth || 340;
+                const cardH = card.offsetHeight || 220;
+                card.style.transform = '';
+                let left = rect.left + rect.width / 2 - cardW / 2;
+                left = Math.max(16, Math.min(left, vw - cardW - 16));
+                card.style.left = left + 'px';
+                const placeBelow = (rect.top + rect.height / 2) < (vh / 2);
+                let top;
+                if (placeBelow) {
+                    top = rect.bottom + 16;
+                    if (top + cardH > vh - 16) {
+                        const above = rect.top - cardH - 16;
+                        top = (above >= 16) ? above : Math.max(16, vh - cardH - 16);
+                    }
+                } else {
+                    top = rect.top - cardH - 16;
+                    if (top < 16) {
+                        const below = rect.bottom + 16;
+                        top = (below + cardH <= vh - 16) ? below : 16;
+                    }
+                }
+                card.style.top = top + 'px';
+            }
+
+            window.toolbarGuideSpotlightAt = function (x, y, w, h) {
+                if (!isActive) return;
+                if (!spotlight) return;
+                // Use instant class to disable transitions, move without flashing
+                spotlight.classList.add('toolbar-guide-spotlight-instant');
+                spotlight.style.left = (x - 6) + 'px';
+                spotlight.style.top = (y - 6) + 'px';
+                spotlight.style.width = (w + 12) + 'px';
+                spotlight.style.height = (h + 12) + 'px';
+                void spotlight.offsetWidth; // force reflow
+                spotlight.classList.remove('toolbar-guide-spotlight-instant');
+                spotlight.style.opacity = '1';
+                positionCardForRect({ left: x, top: y, width: w, height: h, bottom: y + h });
+            };
+
+            function renderDots(activeIndex, total) {
+                if (!dotsEl) return;
+                dotsEl.innerHTML = '';
+                for (let i = 0; i < total; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'dot' + (i === activeIndex ? ' active' : '');
+                    dotsEl.appendChild(dot);
+                }
+            }
+
+            function renderStep(index, skipInitialFade) {
+                const step = visibleSteps[index];
+                if (!step || !root) return;
+                console.log('[ToolbarGuide] renderStep(index=' + index + ', type=' + step.type + ')');
+                const total = visibleSteps.length;
+                const isLast = index === total - 1;
+                const isModal = step.type === 'intro' || step.type === 'outro';
+                const previousStepWasModal = currentStep >= 0 && visibleSteps[currentStep] &&
+                    (visibleSteps[currentStep].type === 'intro' || visibleSteps[currentStep].type === 'outro');
+                const shouldFadeInSpotlight = !isModal && previousStepWasModal;
+                const goingBackward = index < currentStep;
+
+                // Undo previous step's demo before switching
+                if (currentStep >= 0 && currentStep !== index) {
+                    var prevDemoStep = visibleSteps[currentStep];
+                    // When going backward to a noUndoOnAdvance step, skip undoDemo
+                    // to preserve the shared state (e.g., board/spotlight) that was
+                    // intentionally kept open during forward navigation.
+                    var targetStep = visibleSteps[index];
+                    var skipUndo = goingBackward && targetStep && targetStep.noUndoOnAdvance;
+                    if (prevDemoStep && !prevDemoStep.noUndoOnAdvance && !skipUndo && typeof prevDemoStep.undoDemo === 'function') {
+                        try { prevDemoStep.undoDemo(); } catch (e) { console.warn('[ToolbarGuide] undoDemo error:', e); }
+                    }
+                }
+                if (demoTimer) { window.clearTimeout(demoTimer); demoTimer = null; }
+
+                currentStep = index;
+
+                // 1. Fade out current content — SKIP for initial render
+                if (!skipInitialFade && contentEl) contentEl.classList.add('toolbar-guide-fading');
+
+                // 2. Move spotlight + position card immediately
+                clearActiveButton();
+                if (isModal) {
+                    root.classList.add('toolbar-guide-modal');
+                    spotlight.style.opacity = '0';
+                    positionCardCentered();
+                } else {
+                    root.classList.remove('toolbar-guide-modal');
+                    const el = resolveStepElement(step);
+                    if (el) {
+                        const rect = el.getBoundingClientRect();
+                        el.classList.add('toolbar-guide-active');
+                        activeButton = el;
+                        const padX = (step.padX != null) ? step.padX : 6;
+                        const padY = (step.padY != null) ? step.padY : 6;
+
+                        // Compute distance between current spotlight center and target center
+                        let shouldFadeForDistance = false;
+                        if (!shouldFadeInSpotlight && spotlight.style.opacity === '1') {
+                            var currLeft = parseFloat(spotlight.style.left) || 0;
+                            var currTop = parseFloat(spotlight.style.top) || 0;
+                            var currWidth = parseFloat(spotlight.style.width) || 0;
+                            var currHeight = parseFloat(spotlight.style.height) || 0;
+                            var currCenterX = currLeft + currWidth / 2;
+                            var currCenterY = currTop + currHeight / 2;
+                            var targetCenterX = rect.left + rect.width / 2;
+                            var targetCenterY = rect.top + rect.height / 2;
+                            var dx = targetCenterX - currCenterX;
+                            var dy = targetCenterY - currCenterY;
+                            var distance = Math.sqrt(dx * dx + dy * dy);
+                            shouldFadeForDistance = distance > 600;
+                        }
+
+                        if (shouldFadeInSpotlight) {
+                            // Modal → button: spotlight was invisible, fade in at target location
+                            spotlight.classList.add('toolbar-guide-spotlight-no-move');
+                            spotlight.style.opacity = '0';
+                            spotlight.style.left = (rect.left - padX) + 'px';
+                            spotlight.style.top = (rect.top - padY) + 'px';
+                            spotlight.style.width = (rect.width + padX * 2) + 'px';
+                            spotlight.style.height = (rect.height + padY * 2) + 'px';
+                            void spotlight.offsetWidth; // force reflow
+                            spotlight.classList.remove('toolbar-guide-spotlight-no-move');
+                            spotlight.style.opacity = '1';
+                        } else if (shouldFadeForDistance) {
+                            // Long-distance button → button: instant move without opacity flash
+                            spotlight.classList.add('toolbar-guide-spotlight-instant');
+                            spotlight.style.left = (rect.left - padX) + 'px';
+                            spotlight.style.top = (rect.top - padY) + 'px';
+                            spotlight.style.width = (rect.width + padX * 2) + 'px';
+                            spotlight.style.height = (rect.height + padY * 2) + 'px';
+                            void spotlight.offsetWidth; // force reflow
+                            spotlight.classList.remove('toolbar-guide-spotlight-instant');
+                        } else {
+                            // Short-distance button → button: fly animation
+                            spotlight.style.opacity = '1';
+                            spotlight.style.left = (rect.left - padX) + 'px';
+                            spotlight.style.top = (rect.top - padY) + 'px';
+                            spotlight.style.width = (rect.width + padX * 2) + 'px';
+                            spotlight.style.height = (rect.height + padY * 2) + 'px';
+                        }
+                    } else {
+                        // Element vanished mid-guide — fall back to modal centring
+                        console.warn('[ToolbarGuide] step element not found, fallback to modal', step);
+                        root.classList.add('toolbar-guide-modal');
+                        spotlight.style.opacity = '0';
+                        positionCardCentered();
+                    }
+                }
+
+                // Schedule auto-demo for the current step.
+                // When going backward to a noUndoOnAdvance step, skip the demo
+                // because its state (e.g., board/spotlight) was never undone during
+                // forward navigation and is still active.
+                if (typeof step.demo === 'function' && !isModal && !(goingBackward && step.noUndoOnAdvance)) {
+                    if (demoTimer) { window.clearTimeout(demoTimer); demoTimer = null; }
+                    demoTimer = window.setTimeout(function () {
+                        demoTimer = null;
+                        try { step.demo(); } catch (e) { console.warn('[ToolbarGuide] demo error:', e); }
+                        if (step.demoTarget) {
+                            window.setTimeout(function () {
+                                try {
+                                    var targetEl = document.querySelector(step.demoTarget);
+                                    if (targetEl && targetEl.classList.contains('visible')) {
+                                        var rect = targetEl.getBoundingClientRect();
+                                        // If spotlighting color-picker in pen mode, also include thickness-panel
+                                        if (step.demoTarget === '#color-picker') {
+                                            var thicknessPanel = document.getElementById('thickness-panel');
+                                            if (thicknessPanel && thicknessPanel.classList.contains('visible')) {
+                                                var tpRect = thicknessPanel.getBoundingClientRect();
+                                                var unionRect = {
+                                                    left: Math.min(rect.left, tpRect.left),
+                                                    top: Math.min(rect.top, tpRect.top),
+                                                    right: Math.max(rect.right, tpRect.right),
+                                                    bottom: Math.max(rect.bottom, tpRect.bottom),
+                                                    width: Math.max(rect.right, tpRect.right) - Math.min(rect.left, tpRect.left),
+                                                    height: Math.max(rect.bottom, tpRect.bottom) - Math.min(rect.top, tpRect.top)
+                                                };
+                                                rect = unionRect;
+                                            }
+                                        }
+                                        // Smooth transition: keep spotlight visible, let CSS transition
+                                        // animate position/size change (480ms cubic-bezier)
+                                        spotlight.style.left = (rect.left - 6) + 'px';
+                                        spotlight.style.top = (rect.top - 6) + 'px';
+                                        spotlight.style.width = (rect.width + 12) + 'px';
+                                        spotlight.style.height = (rect.height + 12) + 'px';
+                                        // For page-selector, position card to the right to avoid blocking sidebar
+                                        if (step.demoTarget === '#page-selector') {
+                                            var cardW = card.offsetWidth || 340;
+                                            var cardH = card.offsetHeight || 220;
+                                            card.style.transform = '';
+                                            card.style.left = Math.min(window.innerWidth - cardW - 16, rect.right + 16) + 'px';
+                                            card.style.top = Math.max(16, Math.min(rect.top + 80, window.innerHeight - cardH - 16)) + 'px';
+                                        } else {
+                                            positionCardForRect(rect);
+                                        }
+                                    }
+                                } catch (e2) { console.warn('[ToolbarGuide] demoTarget error:', e2); }
+                            }, 350);
+                        }
+                    }, 600);
+                }
+
+                // 3. After fade-out, swap content + fade in + reposition
+                if (contentSwapTimer) { window.clearTimeout(contentSwapTimer); contentSwapTimer = null; }
+                var swapDelay = animationsDisabled() ? 0 : 220;
+                contentSwapTimer = window.setTimeout(function () {
+                    contentSwapTimer = null;
+                    if (titleEl) titleEl.textContent = t(step.titleKey);
+                    if (descEl) descEl.textContent = t(step.descKey);
+                    if (contentEl) contentEl.classList.remove('toolbar-guide-fading');
+                    // reposition with the new content height
+                    if (isModal) {
+                        positionCardCentered();
+                    } else {
+                        const el2 = resolveStepElement(step);
+                        if (el2) positionCardForRect(el2.getBoundingClientRect());
+                    }
+                }, swapDelay);
+
+                // 4. Step indicator, progress ring, dots, action buttons
+                if (indicatorEl) {
+                    indicatorEl.textContent = t('step_indicator')
+                        .replace('{current}', String(index + 1))
+                        .replace('{total}', String(total));
+                }
+                if (ringFg) {
+                    const offset = RING_CIRCUMFERENCE * (1 - (index + 1) / total);
+                    ringFg.style.strokeDashoffset = String(offset);
+                }
+                renderDots(index, total);
+                if (skipBtn) skipBtn.textContent = t('skip');
+                if (prevBtn) {
+                    prevBtn.textContent = t('prev');
+                    prevBtn.classList.toggle('toolbar-guide-hidden', index === 0);
+                }
+                if (nextBtn) nextBtn.textContent = isLast ? t('done') : t('next');
+            }
+
+            function next() {
+                if (!isActive) return;
+                if (currentStep < visibleSteps.length - 1) {
+                    renderStep(currentStep + 1);
+                } else {
+                    done();
+                }
+            }
+
+            function prev() {
+                if (!isActive) return;
+                if (currentStep > 0) renderStep(currentStep - 1);
+            }
+
+            function done() {
+                console.log('[ToolbarGuide] done()');
+                if (!isActive) return;
+                // Undo current step's demo before exiting
+                if (currentStep >= 0) {
+                    var doneStep = visibleSteps[currentStep];
+                    if (doneStep && typeof doneStep.undoDemo === 'function') {
+                        try { doneStep.undoDemo(); } catch (e) { console.warn('[ToolbarGuide] undoDemo error:', e); }
+                    }
+                }
+                if (demoTimer) { window.clearTimeout(demoTimer); demoTimer = null; }
+                demoState = {};
+                isActive = false;
+                currentStep = -1;
+                if (contentSwapTimer) { window.clearTimeout(contentSwapTimer); contentSwapTimer = null; }
+                try {
+                    if (typeof bridge !== 'undefined' && bridge && typeof bridge.markToolbarGuideCompleted === 'function') {
+                        bridge.markToolbarGuideCompleted();
+                    }
+                } catch (e) { /* swallow — never block UI on bridge errors */ }
+                clearActiveButton();
+                // Clean up event listeners to prevent leaks
+                document.removeEventListener('keydown', onKeydown);
+                window.removeEventListener('resize', onResize);
+                if (skipBtn) skipBtn.removeEventListener('click', skip);
+                if (prevBtn) prevBtn.removeEventListener('click', prev);
+                if (nextBtn) nextBtn.removeEventListener('click', next);
+                listenersAttached = false;
+                if (root) {
+                    root.classList.add('toolbar-guide-hidden');
+                    root.classList.remove('toolbar-guide-modal');
+                }
+                // Restore toolbar-only mask after the fade-out transition finishes
+                // to avoid a black flash when the full-screen mask snaps back early.
+                guideActive = false;
+                if (maskRestoreTimer) { window.clearTimeout(maskRestoreTimer); maskRestoreTimer = null; }
+                maskRestoreTimer = window.setTimeout(function () {
+                    maskRestoreTimer = null;
+                    sendMaskUpdate();
+                }, 300);
+            }
+
+            function skip() { done(); }
+
+            function reposition() {
+                if (!isActive || currentStep < 0) return;
+                const step = visibleSteps[currentStep];
+                if (!step) return;
+                const isModal = step.type === 'intro' || step.type === 'outro';
+                if (isModal) { positionCardCentered(); return; }
+                const el = resolveStepElement(step);
+                if (!el) return;
+                const rect = el.getBoundingClientRect();
+                const padX = (step.padX != null) ? step.padX : 6;
+                const padY = (step.padY != null) ? step.padY : 6;
+                spotlight.style.left = (rect.left - padX) + 'px';
+                spotlight.style.top = (rect.top - padY) + 'px';
+                spotlight.style.width = (rect.width + padX * 2) + 'px';
+                spotlight.style.height = (rect.height + padY * 2) + 'px';
+                positionCardForRect(rect);
+            }
+
+            function onKeydown(e) {
+                if (!isActive) return;
+                const tag = (e.target && e.target.tagName) || '';
+                if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+                switch (e.key) {
+                    case 'Escape':
+                        e.preventDefault();
+                        skip();
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        next();
+                        break;
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        prev();
+                        break;
+                    case 'Enter':
+                        e.preventDefault();
+                        if (currentStep >= visibleSteps.length - 1) {
+                            done();
+                        } else {
+                            next();
+                        }
+                        break;
+                }
+            }
+
+            function onResize() { reposition(); }
+
+            function attachListeners() {
+                if (listenersAttached) return;
+                if (skipBtn) skipBtn.addEventListener('click', skip);
+                if (prevBtn) prevBtn.addEventListener('click', prev);
+                if (nextBtn) nextBtn.addEventListener('click', next);
+                document.addEventListener('keydown', onKeydown);
+                window.addEventListener('resize', onResize);
+                listenersAttached = true;
+            }
+
+            function begin() {
+                if (!root) return;
+                console.log('[ToolbarGuide] begin()');
+                if (maskRestoreTimer) { window.clearTimeout(maskRestoreTimer); maskRestoreTimer = null; }
+                // Filter out steps whose target is missing (skipIfMissing)
+                visibleSteps = GUIDE_STEPS.filter(function (step) {
+                    if (!step.skipIfMissing) return true;
+                    return !!resolveStepElement(step);
+                });
+                if (visibleSteps.length === 0) {
+                    console.warn('[ToolbarGuide] no visible steps, abort');
+                    return;
+                }
+                isActive = true;
+                currentStep = -1;
+                attachListeners();
+                // Expand Qt window mask to full-screen so the guide card and
+                // backdrop are visible (otherwise setMask clips them to the
+                // toolbar rect only). Must happen BEFORE root is made visible
+                // so the first visible frame already has the full-screen mask.
+                guideActive = true;
+                sendMaskUpdate();
+                // Make root visible FIRST, then render the initial step without fade
+                // to avoid a blank 220ms card on startup.
+                root.classList.remove('toolbar-guide-hidden');
+                renderStep(0, true);
+            }
+
+            function start() {
+                console.log('[ToolbarGuide] start()');
+                if (isActive) return; // already running
+                if (!root) return;
+                // Wait for the toolbar to be ready (max 3000ms, refresh-rate independent)
+                const startTime = Date.now();
+                const TIMEOUT_MS = 3000;
+                function poll() {
+                    if (document.querySelector('#toolbar .tool-btn')) {
+                        console.log('[ToolbarGuide] toolbar ready, calling begin()');
+                        begin();
+                    } else if (Date.now() - startTime < TIMEOUT_MS) {
+                        requestAnimationFrame(poll);
+                    } else {
+                        console.warn('[ToolbarGuide] toolbar not ready after 3000ms, give up');
+                    }
+                }
+                requestAnimationFrame(poll);
+            }
+
+            window.startToolbarGuide = start;
+            console.log('[ToolbarGuide] window.startToolbarGuide registered');
+        })();
     </script>
 </body>
 </html>

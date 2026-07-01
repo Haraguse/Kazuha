@@ -227,6 +227,22 @@ class TimerPlugin(AssistantPlugin):
         except Exception:
             return {}
 
+    def _apply_target_screen_geometry(self):
+        target_geo = getattr(self, '_target_screen_geometry', None)
+        if target_geo is None or self._window is None:
+            return
+        try:
+            w = self._window.width()
+            h = self._window.height()
+            if w <= 0 or h <= 0:
+                return
+            self._window.move(
+                target_geo.x() + (target_geo.width() - w) // 2,
+                target_geo.y() + (target_geo.height() - h) // 2
+            )
+        except Exception:
+            pass
+
     def _focus_existing_window(self):
         if self._window is None:
             return False
@@ -236,6 +252,7 @@ class TimerPlugin(AssistantPlugin):
             self._window.show()
             self._window.raise_()
             self._window.activateWindow()
+            self._apply_target_screen_geometry()
             return True
         except RuntimeError:
             self._window = None
@@ -289,6 +306,7 @@ class TimerPlugin(AssistantPlugin):
             self._window.raise_()
             self._window.activateWindow()
             bring_window_to_front(int(self._window.winId()))
+            self._apply_target_screen_geometry()
         except RuntimeError:
             self._window = None
             self._api = None
@@ -400,8 +418,12 @@ class TimerPlugin(AssistantPlugin):
         version_path = os.path.join(root_dir, "version.json")
         assets_path = os.path.join(base_dir, "assets", "timer_ring.ogg")
 
-        screen = QApplication.primaryScreen()
-        screen_geo = screen.geometry() if screen else QWidget().screen().geometry()
+        target_geo = getattr(self, '_target_screen_geometry', None)
+        if target_geo is not None:
+            screen_geo = target_geo
+        else:
+            screen = QApplication.primaryScreen()
+            screen_geo = screen.geometry() if screen else QWidget().screen().geometry()
         width_val = int(
             min(max(600, screen_geo.width() * 0.35), screen_geo.width() * 0.5)
         )
@@ -443,6 +465,15 @@ class TimerPlugin(AssistantPlugin):
             frameless=not use_native,
             defer_until_show=True,
         )
+        # Position on target screen before showing to avoid flash on wrong screen
+        if target_geo is not None:
+            try:
+                window.move(
+                    target_geo.x() + (target_geo.width() - width) // 2,
+                    target_geo.y() + (target_geo.height() - height) // 2
+                )
+            except Exception:
+                pass
         window.destroyed.connect(self._on_window_destroyed)
 
         original_close_event = window.closeEvent
@@ -472,11 +503,32 @@ class TimerPlugin(AssistantPlugin):
             self._restore_window()
             return
 
+        if self._window is not None and self._window.isVisible():
+            self.terminate()
+            return
+
         if self._focus_existing_window():
             return
 
         self._ensure_window()
         self._window.show()
+        self._apply_target_screen_geometry()
+        # Delayed re-apply after window is fully realized, retry up to 3 times
+        def _retry_position(attempt=0):
+            if attempt >= 3:
+                return
+            try:
+                if self._window is None:
+                    return
+                w = self._window.width()
+                h = self._window.height()
+                if w > 0 and h > 0:
+                    self._apply_target_screen_geometry()
+                else:
+                    QTimer.singleShot(100, lambda: _retry_position(attempt + 1))
+            except Exception:
+                QTimer.singleShot(100, lambda: _retry_position(attempt + 1))
+        QTimer.singleShot(50, lambda: _retry_position(0))
         try:
             self._window.raise_()
             self._window.activateWindow()

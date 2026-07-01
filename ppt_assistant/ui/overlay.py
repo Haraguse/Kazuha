@@ -441,6 +441,18 @@ class OverlayBridge(QObject):
             print(f"[Bridge] Error getting timer state: {e}", file=sys.stderr)
             return '{"isRunning": false, "remainingSeconds": 0, "totalSeconds": 0, "displayText": ""}'
 
+    @Slot()
+    def spotlightSetTransparent(self):
+        self._overlay.spotlight_set_transparent()
+
+    @Slot()
+    def boardFocusGuideSpotlight(self):
+        self._overlay.board_focus_guide_spotlight()
+
+    @Slot()
+    def timerFocusGuideSpotlight(self):
+        self._overlay.timer_focus_guide_spotlight()
+
 
 class InkPromptWindow(QWidget):
     """Independent QFluentWidgets-based dialog for ink annotation prompt.
