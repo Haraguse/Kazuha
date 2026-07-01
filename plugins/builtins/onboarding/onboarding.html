@@ -4314,41 +4314,10 @@ html, body {
   top: 40px; /* Account for larger title bar in maximized state */
 }
 
-/* Settings Group & Items */
-.settings-group {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 24px;
-  width: 100%;
-  position: relative;
-}
-
-.settings-item {
-  background: var(--card-bg);
-  border-radius: 12px !important;
-  border: 1px solid var(--card-border);
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 60px;
-  transition: background 0.15s, transform 0.15s;
-}
-
-.settings-item:hover {
-  background: var(--item-hover);
-}
+/* Settings Group & Items overriding removed to reuse settings.html card style */
 
 /* Compact variant for the "Presentation UI" step only */
-.settings-group.settings-group-compact {
-  gap: 10px;
-}
 
-.settings-group.settings-group-compact .settings-item {
-  padding: 12px 16px;
-  min-height: 52px;
-}
 
 /* Animation for Final Step */
     .finish-container {
@@ -5337,11 +5306,11 @@ html, body {
               </div>
             </div>
             
-            <div class="settings-item" style="display: block; padding-top: 16px;">
-               <div class="item-label" style="margin-bottom: 12px;">主题预设</div>
-               <div class="theme-gallery" id="theme-gallery">
-                  ${renderThemeGalleryHTML(t)}
-               </div>
+            <div class="settings-item no-divider" style="flex-direction: column; align-items: flex-start;">
+              <div class="item-label" style="margin-bottom: 16px;">主题预设</div>
+              <div class="theme-gallery" id="theme-gallery">
+                ${renderThemeGalleryHTML(t)}
+              </div>
             </div>
           </div>
         `
@@ -5387,7 +5356,6 @@ html, body {
                 <div class="item-desc">${t.defaultBehavior.runAtStartup.desc}</div>
               </div>
               <div class="switch ${state.config.runAtStartup ? 'active' : ''}" style="pointer-events:none;">
-                 <div class="switch-handle"></div>
               </div>
             </div>
 
@@ -5397,7 +5365,6 @@ html, body {
                 <div class="item-desc">${disableAnimationsCopy.desc}</div>
               </div>
               <div class="switch ${state.config.disableAnimations ? 'active' : ''}" style="pointer-events:none;">
-                 <div class="switch-handle"></div>
               </div>
             </div>
 
@@ -5411,7 +5378,6 @@ html, body {
                   ${optionsHtml}
                 </select>
                 <div class="switch ${state.config.crashAutoHandleEnabled ? 'active' : ''}" onclick="event.stopPropagation(); toggleCrashAutoHandleEnabled();">
-                   <div class="switch-handle"></div>
                 </div>
               </div>
             </div>
@@ -5422,14 +5388,13 @@ html, body {
       { // 3
         id: "overlay",
         render: (t) => `
-          <div class="settings-group settings-group-compact">
+          <div class="settings-group">
             <div class="settings-item" onclick="toggleAutoShowOverlay()" style="cursor: pointer;">
               <div class="item-info">
                 <div class="item-label">${t.overlay.autoShowOverlay.label}</div>
                 <div class="item-desc">${t.overlay.autoShowOverlay.desc}</div>
               </div>
               <div class="switch ${state.config.autoShowOverlay ? 'active' : ''}" style="pointer-events:none;">
-                 <div class="switch-handle"></div>
               </div>
             </div>
 
@@ -5439,7 +5404,6 @@ html, body {
                 <div class="item-desc">${t.overlay.showStatusBar.desc}</div>
               </div>
               <div class="switch ${state.config.showStatusBar ? 'active' : ''}" style="pointer-events:none;">
-                 <div class="switch-handle"></div>
               </div>
             </div>
 

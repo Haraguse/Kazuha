@@ -3691,19 +3691,44 @@ class PPTAssistantApp:
 				self._overlay_rebuild_at = new_rebuild_at
 
 	def _consume_open_settings_pending_flag(self):
-		if not os.path.exists(SETTINGS_PATH):
-			return False
-		try:
-			with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
-				data = json.load(f)
-			if not data.get("_open_settings_pending"):
-				return False
-			del data["_open_settings_pending"]
-			with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
-				json.dump(data, f, indent=4, ensure_ascii=False)
-			return True
-		except Exception:
-			return False
+		open_requested = False
+
+		def _consume_flag(path, clear_keys=None):
+			nonlocal open_requested
+			if not path or not os.path.exists(path):
+				return
+			try:
+				with open(path, "r", encoding="utf-8") as f:
+					data = json.load(f)
+			except Exception:
+				return
+			if not isinstance(data, dict):
+				return
+			dirty = False
+			if data.get("_open_settings_pending"):
+				open_requested = True
+			for key in ("_open_settings_pending", *(clear_keys or ())):
+				if key in data:
+					del data[key]
+					dirty = True
+			if not dirty:
+				return
+			try:
+				if data:
+					with open(path, "w", encoding="utf-8") as f:
+						json.dump(data, f, indent=4, ensure_ascii=False)
+				else:
+					os.remove(path)
+			except Exception:
+				pass
+
+		_consume_flag(SETTINGS_PATH)
+		# `_pending_action` is a one-shot handoff channel for restarts. Clear the
+		# stale restart marker here so onboarding-triggered restarts do not loop
+		# before the settings window has a chance to open.
+		pending_path = os.path.join(os.path.dirname(SETTINGS_PATH), "_pending_action")
+		_consume_flag(pending_path, clear_keys=("_restart_pending",))
+		return open_requested
 
 	def _reload_overlay(self):
 		"""Recreate the overlay window to apply language and layout changes."""
