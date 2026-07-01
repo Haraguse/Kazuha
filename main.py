@@ -725,6 +725,8 @@ def _get_current_language():
 def _normalize_font_weight_value(value):
 	if isinstance(value, bool):
 		return None
+	if isinstance(value, QFont.Weight):
+		return value
 	if isinstance(value, float):
 		if not value.is_integer():
 			return None
@@ -740,7 +742,10 @@ def _normalize_font_weight_value(value):
 		return None
 	if num < 100 or num > 1000 or num % 100 != 0:
 		return None
-	return num
+	try:
+		return QFont.Weight(num)
+	except ValueError:
+		return None
 
 
 def _get_font_weight_from_settings(
