@@ -465,7 +465,7 @@ class OverlayBridge(QObject):
     @Slot()
     def markToolbarGuideCompleted(self):
         try:
-            self._overlay.mark_toolbar_guide_completed()
+            cfg.toolbarGuideCompleted.value = True
         except AttributeError:
             pass
 
@@ -1386,18 +1386,7 @@ class OverlayWindow(QWebEngineView):
         self.bind_config_signals()
         self._refresh_status_services()
         self.apply_initial_state()
-        self._check_overlay_guide_flag()
         print("[Overlay] Post-load services ready.", flush=True)
-
-    def _check_overlay_guide_flag(self):
-        local_app_data = os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))
-        flag_path = os.path.join(local_app_data, "Luminalium", ".show_overlay_guide")
-        if os.path.exists(flag_path):
-            try:
-                os.remove(flag_path)
-                self.page().runJavaScript("window.startToolbarGuide()")
-            except Exception:
-                pass
 
     def apply_initial_state(self):
         if self.monitor:

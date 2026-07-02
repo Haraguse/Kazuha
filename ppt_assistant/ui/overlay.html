@@ -1578,6 +1578,8 @@
             --tg-card-width: 340px;
             --tg-card-padding: 20px 24px;
             --tg-card-blur: 28px;
+            --tg-ring-transition: 360ms;
+            --tg-content-fade: 220ms;
         }
         #toolbar-guide-root {
             position: fixed;
@@ -1708,7 +1710,7 @@
             transform-box: fill-box;
             transform-origin: center;
             transform: rotate(-90deg);
-            transition: stroke-dashoffset 360ms ease;
+            transition: stroke-dashoffset var(--tg-ring-transition) ease;
         }
 
         .toolbar-guide-step-indicator {
@@ -1729,7 +1731,7 @@
         }
 
         .toolbar-guide-content {
-            transition: opacity 220ms ease, transform 220ms ease;
+            transition: opacity var(--tg-content-fade) ease, transform var(--tg-content-fade) ease;
         }
 
         .toolbar-guide-content.toolbar-guide-fading {
@@ -5365,7 +5367,7 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
 
                 // 3. After fade-out, swap content + fade in + reposition
                 if (contentSwapTimer) { window.clearTimeout(contentSwapTimer); contentSwapTimer = null; }
-                var swapDelay = animationsDisabled() ? 0 : 220;
+                var swapDelay = animationsDisabled() ? 0 : DEMO_DELAYS.CONTENT_SWAP;
                 contentSwapTimer = window.setTimeout(function () {
                     contentSwapTimer = null;
                     if (titleEl) titleEl.textContent = t(step.titleKey);
