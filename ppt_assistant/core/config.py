@@ -155,6 +155,9 @@ class Config(QConfig):
     toolbarAutoHalfCollapse = ConfigItem(
         "Overlay", "ToolbarAutoHalfCollapse", False, BoolValidator(), restart=False
     )
+    toolbarGuideCompleted = ConfigItem(
+        "Overlay", "ToolbarGuideCompleted", False, BoolValidator(), restart=False
+    )
     uiAccessTopmost = ConfigItem(
         "Overlay", "UIAccessTopmost", False, BoolValidator(), restart=False
     )
@@ -515,6 +518,7 @@ def _bind_auto_save():
     cfg.syncOpacity.valueChanged.connect(lambda *_: _save_cfg())
     cfg.strictEdgeAlignment.valueChanged.connect(lambda *_: _save_cfg())
     cfg.toolbarAutoHalfCollapse.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.toolbarGuideCompleted.valueChanged.connect(lambda *_: _save_cfg())
     cfg.uiAccessTopmost.valueChanged.connect(lambda *_: _save_cfg())
     cfg.allowRecording.valueChanged.connect(lambda *_: _save_cfg())
     cfg.zOrderCheckInterval.valueChanged.connect(lambda *_: _save_cfg())

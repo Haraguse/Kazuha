@@ -443,15 +443,31 @@ class OverlayBridge(QObject):
 
     @Slot()
     def spotlightSetTransparent(self):
-        self._overlay.spotlight_set_transparent()
+        try:
+            self._overlay.spotlight_set_transparent()
+        except AttributeError:
+            pass
 
     @Slot()
     def boardFocusGuideSpotlight(self):
-        self._overlay.board_focus_guide_spotlight()
+        try:
+            self._overlay.board_focus_guide_spotlight()
+        except AttributeError:
+            pass
 
     @Slot()
     def timerFocusGuideSpotlight(self):
-        self._overlay.timer_focus_guide_spotlight()
+        try:
+            self._overlay.timer_focus_guide_spotlight()
+        except AttributeError:
+            pass
+
+    @Slot()
+    def markToolbarGuideCompleted(self):
+        try:
+            self._overlay.mark_toolbar_guide_completed()
+        except AttributeError:
+            pass
 
 
 class InkPromptWindow(QWidget):
@@ -1370,7 +1386,18 @@ class OverlayWindow(QWebEngineView):
         self.bind_config_signals()
         self._refresh_status_services()
         self.apply_initial_state()
+        self._check_overlay_guide_flag()
         print("[Overlay] Post-load services ready.", flush=True)
+
+    def _check_overlay_guide_flag(self):
+        local_app_data = os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))
+        flag_path = os.path.join(local_app_data, "Luminalium", ".show_overlay_guide")
+        if os.path.exists(flag_path):
+            try:
+                os.remove(flag_path)
+                self.page().runJavaScript("window.startToolbarGuide()")
+            except Exception:
+                pass
 
     def apply_initial_state(self):
         if self.monitor:
