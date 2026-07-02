@@ -1569,6 +1569,16 @@
         }
 
         /* ─── Toolbar Onboarding Guide (Apple Liquid Glass) ──────────────── */
+        :root {
+            --tg-move-duration: 480ms;
+            --tg-fade-duration: 280ms;
+            --tg-card-move-duration: 420ms;
+            --tg-spotlight-radius: 14px;
+            --tg-card-radius: 20px;
+            --tg-card-width: 340px;
+            --tg-card-padding: 20px 24px;
+            --tg-card-blur: 28px;
+        }
         #toolbar-guide-root {
             position: fixed;
             inset: 0;
@@ -1605,7 +1615,7 @@
             left: 0;
             width: 0;
             height: 0;
-            border-radius: 14px;
+            border-radius: var(--tg-spotlight-radius);
             background: transparent;
             /* Giant box-shadow darkens everything outside the "hole".
                The spotlight div itself stays transparent so the highlighted
@@ -1617,11 +1627,11 @@
             pointer-events: none;
             opacity: 0;
             transition:
-                top 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
-                left 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
-                width 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
-                height 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
-                opacity 280ms ease;
+                top var(--tg-move-duration) cubic-bezier(0.34, 1.56, 0.64, 1),
+                left var(--tg-move-duration) cubic-bezier(0.34, 1.56, 0.64, 1),
+                width var(--tg-move-duration) cubic-bezier(0.34, 1.56, 0.64, 1),
+                height var(--tg-move-duration) cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity var(--tg-fade-duration) ease;
         }
 
         /* Modal mode: hide the spotlight (no hole), backdrop handles darkening */
@@ -1631,7 +1641,7 @@
 
         /* Disable position/size transition for fade-in from modal to first button step */
         #toolbar-guide-spotlight.toolbar-guide-spotlight-no-move {
-            transition: opacity 280ms ease !important;
+            transition: opacity var(--tg-fade-duration) ease !important;
         }
 
         /* Disable ALL transitions for instant position/opacity changes (long-distance moves) */
@@ -1641,13 +1651,13 @@
 
         #toolbar-guide-card {
             position: absolute;
-            width: 340px;
-            padding: 20px 24px;
+            width: var(--tg-card-width);
+            padding: var(--tg-card-padding);
             box-sizing: border-box;
-            border-radius: 20px;
+            border-radius: var(--tg-card-radius);
             background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(28px) saturate(180%);
-            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            backdrop-filter: blur(var(--tg-card-blur)) saturate(180%);
+            -webkit-backdrop-filter: blur(var(--tg-card-blur)) saturate(180%);
             border: 1px solid rgba(255, 255, 255, 0.7);
             box-shadow:
                 0 16px 48px rgba(0, 0, 0, 0.35),
@@ -1655,9 +1665,9 @@
             pointer-events: auto;
             z-index: 3;
             transition:
-                top 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
-                left 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
-                opacity 280ms ease;
+                top var(--tg-card-move-duration) cubic-bezier(0.34, 1.56, 0.64, 1),
+                left var(--tg-card-move-duration) cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity var(--tg-fade-duration) ease;
         }
 
         :root[data-theme="dark"] #toolbar-guide-card {
@@ -4987,6 +4997,23 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                 return val;
             }
 
+            // ── Bridge helper — safe bridge access with typeof guard ──
+            function bridgeCall(method) {
+                if (typeof bridge !== 'undefined' && bridge && typeof bridge[method] === 'function') {
+                    bridge[method]();
+                }
+            }
+
+            // ── Demo timing constants (milliseconds) ──
+            const DEMO_DELAYS = {
+                SHORT: 300,
+                MEDIUM: 500,
+                LONG: 600,
+                CONTENT_SWAP: 220,
+                CARD_FOLLOW: 350,
+                MASK_RESTORE: 300,
+            };
+
             // Resolve the last app launcher button rendered in the toolbar
             // (app buttons carry no stable id — detect by icon class).
             function findAppsButton() {
@@ -5016,19 +5043,13 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                         demoState.spotlight = btn && !btn.classList.contains('active');
                         demoState._spotlightTimers = [];
                         if (demoState.spotlight) btn.click();
-                        if (typeof bridge !== 'undefined' && bridge && bridge.spotlightSetTransparent) {
-                            bridge.spotlightSetTransparent();
-                        }
+                        bridgeCall('spotlightSetTransparent');
                         demoState._spotlightTimers.push(window.setTimeout(function () {
-                            if (typeof bridge !== 'undefined' && bridge && bridge.spotlightDrawDemoFrame) {
-                                bridge.spotlightDrawDemoFrame();
-                            }
+                                bridgeCall('spotlightDrawDemoFrame');
                             demoState._spotlightTimers.push(window.setTimeout(function () {
-                                if (typeof bridge !== 'undefined' && bridge && bridge.spotlightShowControlPanel) {
-                                    bridge.spotlightShowControlPanel();
-                                }
-                            }, 300));
-                        }, 500));
+                                    bridgeCall('spotlightShowControlPanel');
+                            }, DEMO_DELAYS.SHORT));
+                        }, DEMO_DELAYS.MEDIUM));
                     },
                     undoDemo: function () {
                         closePopup();
@@ -5052,29 +5073,23 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                     undoDemo: function () { closePopup(); if (demoState.board) document.querySelector('#btn-board_in_board').click(); } },
                 { type: 'button', selector: '#btn-board_in_board', titleKey: 'step.boardPanel.title', descKey: 'step.boardPanel.desc', skipIfMissing: true,
                     demo: function () {
-                        if (typeof bridge !== 'undefined' && bridge && bridge.boardDrawDemoFrame) {
-                            window.setTimeout(function () { bridge.boardDrawDemoFrame(); }, 300);
-                        }
-                        if (typeof bridge !== 'undefined' && bridge && bridge.boardFocusGuideSpotlight) {
-                            window.setTimeout(function () { bridge.boardFocusGuideSpotlight(); }, 500);
-                        }
+                        window.setTimeout(function () { bridgeCall('boardDrawDemoFrame'); }, DEMO_DELAYS.SHORT);
+                        window.setTimeout(function () { bridgeCall('boardFocusGuideSpotlight'); }, DEMO_DELAYS.MEDIUM);
                     },
-                    undoDemo: function () { closePopup(); if (typeof bridge !== 'undefined' && bridge && bridge.clearBoardDemoFrame) { bridge.clearBoardDemoFrame(); } if (demoState.board) document.querySelector('#btn-board_in_board').click(); } },
+                    undoDemo: function () { closePopup(); bridgeCall('clearBoardDemoFrame'); if (demoState.board) document.querySelector('#btn-board_in_board').click(); } },
                 { type: 'button', selector: '#btn-timer', titleKey: 'step.timer.title', descKey: 'step.timer.desc', skipIfMissing: true,
                     demo: function () {
                         var btn = document.querySelector('#btn-timer');
                         demoState.timer = btn && !btn.classList.contains('active');
-                        if (demoState.timer) {
-                            if (typeof bridge !== 'undefined' && bridge && bridge.toggleTimer) bridge.toggleTimer();
+                            if (demoState.timer) {
+                            bridgeCall('toggleTimer');
                             window.setTimeout(function () {
-                                if (typeof bridge !== 'undefined' && bridge && bridge.timerDrawDemoFrame) bridge.timerDrawDemoFrame();
-                            }, 300);
-                            if (typeof bridge !== 'undefined' && bridge && bridge.timerFocusGuideSpotlight) {
-                                window.setTimeout(function () { bridge.timerFocusGuideSpotlight(); }, 500);
-                            }
+                                bridgeCall('timerDrawDemoFrame');
+                            }, DEMO_DELAYS.SHORT);
+                            window.setTimeout(function () { bridgeCall('timerFocusGuideSpotlight'); }, DEMO_DELAYS.MEDIUM);
                         }
                     },
-                    undoDemo: function () { closePopup(); if (typeof bridge !== 'undefined' && bridge && bridge.clearTimerDemoFrame) { bridge.clearTimerDemoFrame(); } if (demoState.timer && typeof bridge !== 'undefined' && bridge && bridge.toggleTimer) bridge.toggleTimer(); } },
+                    undoDemo: function () { closePopup(); bridgeCall('clearTimerDemoFrame'); if (demoState.timer) { bridgeCall('toggleTimer'); } } },
                 { type: 'button', customSelector: findAppsButton, titleKey: 'step.apps.title', descKey: 'step.apps.desc', skipIfMissing: true },
                 { type: 'button', selector: '#left-flipper', titleKey: 'step.pageNav.title', descKey: 'step.pageNav.desc', padX: 12, padY: 10, skipIfMissing: true },
                 { type: 'button', selector: '#left-flipper .page-info-container', titleKey: 'step.pageSelector.title', descKey: 'step.pageSelector.desc', padX: 8, padY: 6, skipIfMissing: true, demoTarget: '#page-selector',
@@ -5343,9 +5358,9 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                                         }
                                     }
                                 } catch (e2) { console.warn('[ToolbarGuide] demoTarget error:', e2); }
-                            }, 350);
+                            }, DEMO_DELAYS.CARD_FOLLOW);
                         }
-                    }, 600);
+                    }, DEMO_DELAYS.LONG);
                 }
 
                 // 3. After fade-out, swap content + fade in + reposition
@@ -5414,9 +5429,7 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                 currentStep = -1;
                 if (contentSwapTimer) { window.clearTimeout(contentSwapTimer); contentSwapTimer = null; }
                 try {
-                    if (typeof bridge !== 'undefined' && bridge && typeof bridge.markToolbarGuideCompleted === 'function') {
-                        bridge.markToolbarGuideCompleted();
-                    }
+                    bridgeCall('markToolbarGuideCompleted');
                 } catch (e) { /* swallow — never block UI on bridge errors */ }
                 clearActiveButton();
                 // Clean up event listeners to prevent leaks
@@ -5437,7 +5450,7 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                 maskRestoreTimer = window.setTimeout(function () {
                     maskRestoreTimer = null;
                     sendMaskUpdate();
-                }, 300);
+                }, DEMO_DELAYS.MASK_RESTORE);
             }
 
             function skip() { done(); }
