@@ -52,6 +52,19 @@ class BoardPlugin(AssistantPlugin):
         try:
             self.window = BoardWindow()
             self.window.window_fully_closed.connect(self._on_window_fully_closed)
+
+            target_geo = getattr(self, '_target_screen_geometry', None)
+            if target_geo is not None and not target_geo.isEmpty():
+                window_width = self.window.width()
+                window_height = self.window.height()
+                if window_width <= 0:
+                    window_width = 800
+                if window_height <= 0:
+                    window_height = 600
+                x = target_geo.x() + (target_geo.width() - window_width) // 2
+                y = target_geo.y() + (target_geo.height() - window_height) // 2
+                self.window.move(x, y)
+
             QApplication.processEvents()
             self.window.show()
             self.window.raise_()

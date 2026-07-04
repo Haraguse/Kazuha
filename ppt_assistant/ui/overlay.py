@@ -10,12 +10,12 @@ import subprocess
 from typing import Optional
 from multiprocessing.connection import Client
 from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtCore import QObject, Slot, Signal, Qt, QUrl, QTimer, QRect, QEvent, QCoreApplication, QPropertyAnimation, QEasingCurve
+from PySide6.QtCore import QObject, Slot, Signal, Qt, QUrl, QTimer, QRect, QPoint, QEvent, QCoreApplication, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QColor, QRegion, QGuiApplication, QDesktopServices
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
 from ppt_assistant.core.config import cfg, ROOT_DIR
 from qfluentwidgets import Theme, isDarkTheme, MessageBox, themeColor
-from ppt_assistant.core.i18n import t
+from ppt_assistant.core.i18n import t, get_language
 from ppt_assistant.core.app_icon import load_app_icon
 from ppt_assistant.core.icon_helper import get_file_icon_base64
 from ppt_assistant.core.platform_integration import open_path
@@ -449,6 +449,48 @@ class OverlayBridge(QObject):
             pass
 
     @Slot()
+    def spotlightDrawDemoFrame(self):
+        try:
+            self._overlay.spotlight_draw_demo_frame()
+        except AttributeError:
+            pass
+
+    @Slot()
+    def spotlightClearDemoFrame(self):
+        try:
+            self._overlay.spotlight_clear_demo_frame()
+        except AttributeError:
+            pass
+
+    @Slot()
+    def boardDrawDemoFrame(self):
+        try:
+            self._overlay.board_draw_demo_frame()
+        except AttributeError:
+            pass
+
+    @Slot()
+    def clearBoardDemoFrame(self):
+        try:
+            self._overlay.clear_board_demo_frame()
+        except AttributeError:
+            pass
+
+    @Slot()
+    def timerDrawDemoFrame(self):
+        try:
+            self._overlay.timer_draw_demo_frame()
+        except AttributeError:
+            pass
+
+    @Slot()
+    def clearTimerDemoFrame(self):
+        try:
+            self._overlay.clear_timer_demo_frame()
+        except AttributeError:
+            pass
+
+    @Slot()
     def boardFocusGuideSpotlight(self):
         try:
             self._overlay.board_focus_guide_spotlight()
@@ -459,6 +501,13 @@ class OverlayBridge(QObject):
     def timerFocusGuideSpotlight(self):
         try:
             self._overlay.timer_focus_guide_spotlight()
+        except AttributeError:
+            pass
+
+    @Slot(str)
+    def closeOtherPluginWindows(self, excludeName=""):
+        try:
+            self._overlay.close_other_plugin_windows(excludeName or None)
         except AttributeError:
             pass
 
@@ -1388,6 +1437,17 @@ class OverlayWindow(QWebEngineView):
         self.apply_initial_state()
         print("[Overlay] Post-load services ready.", flush=True)
 
+    def _consume_overlay_guide_flag(self):
+        local_app_data = os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))
+        flag_path = os.path.join(local_app_data, "Luminalium", ".show_overlay_guide")
+        if os.path.exists(flag_path):
+            try:
+                os.remove(flag_path)
+                self._run_javascript("if (window.startToolbarGuide) window.startToolbarGuide();")
+                print("[Overlay] .show_overlay_guide flag found, starting toolbar guide")
+            except Exception as e:
+                print(f"[Overlay] Error handling .show_overlay_guide flag: {e}", file=sys.stderr)
+
     def apply_initial_state(self):
         if self.monitor:
             pass
@@ -1396,6 +1456,7 @@ class OverlayWindow(QWebEngineView):
         self.update_theme()
         self._do_update_config()
         self._apply_zorder_timer()
+        self._consume_overlay_guide_flag()
 
     def _ensure_topmost(self):
         if sys.platform.startswith("linux"):
@@ -1981,6 +2042,7 @@ class OverlayWindow(QWebEngineView):
             toolbar_order = toolbar_order + ["apps"]
 
         config_data = {
+            "language": get_language(),
             "showStatusBar": cfg.showStatusBar.value,
             "disableAnimations": cfg.disableAnimations.value,
             "statusBarShowTime": cfg.statusBarShowTime.value,
@@ -2224,12 +2286,281 @@ class OverlayWindow(QWebEngineView):
             except Exception as e:
                 print(f"Failed to load plugin {entry}: {e}")
 
+    def _get_overlay_screen_geometry(self):
+        try:
+            screen = self.screen()
+            if screen is not None:
+                geom = screen.geometry()
+                if geom and not geom.isEmpty():
+                    return geom
+        except Exception:
+            pass
+        try:
+            screen = QGuiApplication.primaryScreen()
+            if screen is not None:
+                geom = screen.geometry()
+                if geom and not geom.isEmpty():
+                    return geom
+        except Exception:
+            pass
+        return QRect()
+
     def execute_plugin(self, name):
         for plugin in self.plugins:
             if hasattr(plugin, "get_name") and plugin.get_name() == name:
                 if hasattr(plugin, "execute"):
+                    plugin._target_screen_geometry = self._get_overlay_screen_geometry()
                     plugin.execute()
                 return
+
+    def _find_plugin(self, name):
+        for plugin in self.plugins:
+            if hasattr(plugin, 'get_name') and plugin.get_name() == name:
+                return plugin
+        return None
+
+    def spotlight_set_transparent(self):
+        plugin = self._find_plugin("聚光灯")
+        if not plugin or not plugin.window:
+            return
+        try:
+            win = plugin.window
+            win.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+            win.setWindowOpacity(0.0)
+        except Exception as e:
+            print(f"[Overlay] spotlight_set_transparent error: {e}", flush=True)
+
+    def spotlight_draw_demo_frame(self):
+        plugin = self._find_plugin("聚光灯")
+        if not plugin:
+            return
+        try:
+            if not plugin.window or not plugin.window.isVisible():
+                plugin.execute()
+            win = plugin.window
+            if not win:
+                return
+            win.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+            win.setWindowOpacity(0.0)
+            screen = self._get_overlay_screen_geometry()
+            center = screen.center()
+            sel_w = max(120, int(screen.width() * 0.12))
+            sel_h = max(90, int(screen.height() * 0.12))
+            win.selection_rect = QRect(
+                int(center.x() - sel_w / 2),
+                int(center.y() - sel_h / 2),
+                sel_w,
+                sel_h,
+            )
+            win._update_panel_position()
+            panel = win.control_panel
+            if panel:
+                panel.raise_()
+            panel_geo = panel.frameGeometry() if panel else QRect(
+                int(center.x() - 150), int(center.y() - 30), 300, 60
+            )
+            overlay_origin = self.mapToGlobal(QPoint(0, 0))
+            x = panel_geo.x() - overlay_origin.x()
+            y = panel_geo.y() - overlay_origin.y()
+            w = panel_geo.width()
+            h = panel_geo.height()
+            self._run_javascript(
+                f"if (typeof window.toolbarGuideSpotlightAt === 'function') "
+                f"window.toolbarGuideSpotlightAt({x},{y},{w},{h});"
+            )
+        except Exception as e:
+            print(f"[Overlay] spotlight_draw_demo_frame error: {e}", flush=True)
+
+    def spotlight_clear_demo_frame(self):
+        plugin = self._find_plugin("聚光灯")
+        if not plugin or not plugin.window:
+            return
+        try:
+            win = plugin.window
+            win.setAttribute(Qt.WA_TransparentForMouseEvents, False)
+            win.setWindowOpacity(1.0)
+        except Exception as e:
+            print(f"[Overlay] spotlight_clear_demo_frame error: {e}", flush=True)
+
+    def board_draw_demo_frame(self):
+        plugin = self._find_plugin("板中板")
+        if not plugin:
+            return
+        try:
+            if not plugin.window or not plugin.window.isVisible():
+                plugin.execute()
+            QCoreApplication.processEvents()
+            win = plugin.window
+            if not win:
+                return
+            board_geo = win.frameGeometry()
+            animation = getattr(win, '_animation', None)
+            if isinstance(animation, QPropertyAnimation) and animation.state() == QPropertyAnimation.Running:
+                end_pos = animation.endValue()
+                if isinstance(end_pos, QPoint):
+                    board_geo.moveTo(end_pos)
+            overlay_origin = self.mapToGlobal(QPoint(0, 0))
+            x = board_geo.x() - overlay_origin.x()
+            y = board_geo.y() - overlay_origin.y()
+            w = board_geo.width()
+            h = board_geo.height()
+            if sys.platform == "win32":
+                try:
+                    user32 = ctypes.windll.user32
+                    hwnd = int(win.winId())
+                    if hwnd:
+                        HWND_TOPMOST = -1
+                        SWP_NOMOVE = 0x0002
+                        SWP_NOSIZE = 0x0001
+                        SWP_SHOWWINDOW = 0x0040
+                        user32.SetWindowPos(
+                            hwnd,
+                            HWND_TOPMOST,
+                            0,
+                            0,
+                            0,
+                            0,
+                            SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW,
+                        )
+                except Exception as e:
+                    print(f"[Overlay] board_draw_demo_frame topmost error: {e}", flush=True)
+            else:
+                win.raise_()
+            self._run_javascript(
+                f"if (typeof window.toolbarGuideSpotlightAt === 'function') "
+                f"window.toolbarGuideSpotlightAt({x},{y},{w},{h});"
+            )
+        except Exception as e:
+            print(f"[Overlay] board_draw_demo_frame error: {e}", flush=True)
+
+    def clear_board_demo_frame(self):
+        plugin = self._find_plugin("板中板")
+        if not plugin:
+            return
+        try:
+            if plugin.window and plugin.window.isVisible():
+                plugin.terminate()
+        except Exception as e:
+            print(f"[Overlay] clear_board_demo_frame error: {e}", flush=True)
+
+    def timer_draw_demo_frame(self):
+        plugin = self._find_plugin("计时器")
+        if not plugin:
+            return
+        try:
+            if not plugin.window or not plugin.window.isVisible():
+                plugin.execute()
+            QCoreApplication.processEvents()
+            win = plugin.window
+            if not win:
+                return
+            timer_geo = win.frameGeometry()
+            # Retry once if geometry looks uninitialized
+            if timer_geo.width() <= 0 or timer_geo.height() <= 0 or (timer_geo.x() == 0 and timer_geo.y() == 0):
+                QCoreApplication.processEvents()
+                timer_geo = win.frameGeometry()
+            overlay_origin = self.mapToGlobal(QPoint(0, 0))
+            x = timer_geo.x() - overlay_origin.x()
+            y = timer_geo.y() - overlay_origin.y()
+            w = timer_geo.width()
+            h = timer_geo.height()
+            if sys.platform == "win32":
+                try:
+                    user32 = ctypes.windll.user32
+                    hwnd = int(win.winId())
+                    if hwnd:
+                        HWND_TOPMOST = -1
+                        SWP_NOMOVE = 0x0002
+                        SWP_NOSIZE = 0x0001
+                        SWP_SHOWWINDOW = 0x0040
+                        user32.SetWindowPos(
+                            hwnd,
+                            HWND_TOPMOST,
+                            0,
+                            0,
+                            0,
+                            0,
+                            SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW,
+                        )
+                except Exception as e:
+                    print(f"[Overlay] timer_draw_demo_frame topmost error: {e}", flush=True)
+            else:
+                win.raise_()
+            self._run_javascript(
+                f"if (typeof window.toolbarGuideSpotlightAt === 'function') "
+                f"window.toolbarGuideSpotlightAt({x},{y},{w},{h});"
+            )
+        except Exception as e:
+            print(f"[Overlay] timer_draw_demo_frame error: {e}", flush=True)
+
+    def clear_timer_demo_frame(self):
+        plugin = self._find_plugin("计时器")
+        if not plugin:
+            return
+        try:
+            if plugin.window and plugin.window.isVisible():
+                plugin.terminate()
+        except Exception as e:
+            print(f"[Overlay] clear_timer_demo_frame error: {e}", flush=True)
+
+    def board_focus_guide_spotlight(self):
+        plugin = self._find_plugin("板中板")
+        if not plugin or not plugin.window:
+            return
+        try:
+            win = plugin.window
+            if sys.platform == "win32":
+                user32 = ctypes.windll.user32
+                hwnd = int(win.winId())
+                if hwnd:
+                    HWND_TOPMOST = -1
+                    SWP_NOMOVE = 0x0002
+                    SWP_NOSIZE = 0x0001
+                    SWP_SHOWWINDOW = 0x0040
+                    user32.SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW)
+            else:
+                win.raise_()
+        except Exception as e:
+            print(f"[Overlay] board_focus_guide_spotlight error: {e}", flush=True)
+
+    def timer_focus_guide_spotlight(self):
+        plugin = self._find_plugin("计时器")
+        if not plugin or not plugin.window:
+            return
+        try:
+            win = plugin.window
+            if sys.platform == "win32":
+                user32 = ctypes.windll.user32
+                hwnd = int(win.winId())
+                if hwnd:
+                    HWND_TOPMOST = -1
+                    SWP_NOMOVE = 0x0002
+                    SWP_NOSIZE = 0x0001
+                    SWP_SHOWWINDOW = 0x0040
+                    user32.SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW)
+            else:
+                win.raise_()
+        except Exception as e:
+            print(f"[Overlay] timer_focus_guide_spotlight error: {e}", flush=True)
+
+    def close_other_plugin_windows(self, exclude_name=None):
+        names = ["聚光灯", "板中板", "计时器"]
+        for name in names:
+            if exclude_name and name == exclude_name:
+                continue
+            plugin = self._find_plugin(name)
+            if not plugin or not plugin.window:
+                continue
+            try:
+                if name == "聚光灯":
+                    self.spotlight_clear_demo_frame()
+                elif name == "板中板":
+                    self.clear_board_demo_frame()
+                elif name == "计时器":
+                    self.clear_timer_demo_frame()
+            except Exception as e:
+                print(f"[Overlay] close_other_plugin_windows error for {name}: {e}", flush=True)
+        QCoreApplication.processEvents()
 
     def bind_config_signals(self):
         cfg.themeMode.valueChanged.connect(lambda *_: self.update_theme())
@@ -2324,6 +2655,7 @@ class OverlayWindow(QWebEngineView):
         self.update_theme()
         self._start_memory_timer()
         self._refresh_status_services()
+        self._consume_overlay_guide_flag()
         print(f"[Overlay] After showEvent, window visible: {self.isVisible()}")
         self._run_javascript("if (window.syncInkCanvasMode) syncInkCanvasMode();")
 
