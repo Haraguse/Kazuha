@@ -473,6 +473,62 @@
       filter: brightness(0.9);
     }
 
+    /* Settings-page button normalization: keep the previous global reset look
+       so that generic .btn-primary/.btn-secondary/.btn-confirm/.btn-cancel
+       (which are colored in the shared primitives) render neutral here. */
+    .settings-page .text-btn,
+    .settings-page .btn,
+    .settings-page .settings-button,
+    .settings-page .lock-btn,
+    .settings-page .btn-primary,
+    .settings-page .btn-secondary,
+    .settings-page .btn-confirm,
+    .settings-page .btn-cancel {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      border: 1px solid var(--divider);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: normal;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: none;
+      outline: none;
+      height: auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .settings-page .text-btn:hover,
+    .settings-page .btn:hover,
+    .settings-page .settings-button:hover,
+    .settings-page .lock-btn:hover,
+    .settings-page .btn-primary:hover,
+    .settings-page .btn-secondary:hover,
+    .settings-page .btn-confirm:hover,
+    .settings-page .btn-cancel:hover {
+      background: var(--item-hover);
+      border-color: var(--divider);
+      color: var(--text-primary);
+    }
+
+    .settings-page .text-btn:active,
+    .settings-page .btn:active,
+    .settings-page .settings-button:active,
+    .settings-page .lock-btn:active,
+    .settings-page .btn-primary:active,
+    .settings-page .btn-secondary:active,
+    .settings-page .btn-confirm:active,
+    .settings-page .btn-cancel:active {
+      background: var(--card-bg);
+      transform: scale(0.98);
+    }
+
     /* Year of Horse Background Pattern */
     :root[data-theme-id="year-of-horse"][data-theme-variant="light"] body {
       background-image: radial-gradient(circle at 100% 0%, rgba(230, 0, 0, 0.08) 0%, transparent 25%),
@@ -2496,58 +2552,6 @@
       margin-top: 12px;
     }
 
-    .btn-primary {
-      background: var(--accent-blue);
-      color: white;
-      border: none;
-      padding: 10px 24px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 4px 12px rgba(50, 117, 245, 0.15);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .btn-primary:hover {
-      background: #4085ff;
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(50, 117, 245, 0.25);
-    }
-
-    .btn-primary:active {
-      transform: scale(0.97);
-    }
-
-    .btn-secondary {
-      background: var(--item-hover);
-      color: var(--text-primary);
-      border: none;
-      padding: 10px 24px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .btn-secondary:hover {
-      background: var(--divider);
-      transform: translateY(-1px);
-    }
-
-    .btn-secondary:active {
-      transform: scale(0.97);
-    }
-
     .loading-spinner {
       width: 27px;
       height: 27px;
@@ -3497,92 +3501,6 @@
       color: white;
     }
 
-    .toolbar-btn {
-      padding: 8px 20px;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      border: 1px solid var(--divider);
-      background: var(--bg-surface);
-      color: var(--text-primary);
-    }
-
-    .btn {
-      min-width: 88px;
-      height: 36px;
-      border-radius: 18px;
-      border: none;
-      font-size: 13.5px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      outline: none;
-      gap: 6px;
-    }
-
-    .btn:active {
-      transform: scale(0.96);
-    }
-
-    .btn:disabled,
-    .btn.disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-      pointer-events: none;
-      filter: grayscale(0.8);
-    }
-
-    .btn-cancel {
-      background: transparent;
-      color: var(--text-secondary);
-      border: 1px solid var(--divider);
-    }
-
-    .btn-cancel:hover {
-      background: var(--item-hover);
-      color: var(--text-primary);
-      transform: translateY(-1px);
-    }
-
-    .btn-confirm {
-      background: rgba(50, 117, 245, 0.08);
-      color: var(--accent-blue);
-      border: 1px solid rgba(50, 117, 245, 0.15);
-    }
-
-    .btn-confirm:hover {
-      background: var(--accent-blue);
-      color: white;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(50, 117, 245, 0.2);
-    }
-
-    .toolbar-btn:hover:not(:disabled) {
-      background: var(--item-hover);
-      transform: translateY(-1px);
-    }
-
-    .toolbar-btn:active:not(:disabled) {
-      transform: translateY(0);
-    }
-
-    .toolbar-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      filter: grayscale(0.8);
-    }
-
-    .toolbar-btn.disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      filter: grayscale(0.8);
-    }
-
     .toolbar-actions {
       display: flex;
       gap: 12px;
@@ -4067,60 +3985,6 @@
       font-size: 13px;
       outline: none;
       width: 100px;
-    }
-
-    button,
-    .btn,
-    .settings-button,
-    .modal-btn,
-    .lock-btn,
-    .btn-primary,
-    .btn-secondary,
-    .btn-confirm,
-    .btn-cancel {
-      background: var(--bg-surface);
-      color: var(--text-primary);
-      border: 1px solid var(--divider);
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-family: inherit;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: none;
-      outline: none;
-      height: auto;
-      line-height: normal;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    button:hover,
-    .btn:hover,
-    .settings-button:hover,
-    .modal-btn:hover,
-    .lock-btn:hover,
-    .btn-primary:hover,
-    .btn-secondary:hover,
-    .btn-confirm:hover,
-    .btn-cancel:hover {
-      background: var(--item-hover);
-      border-color: var(--divider);
-      color: var(--text-primary);
-    }
-
-    button:active,
-    .btn:active,
-    .settings-button:active,
-    .modal-btn:active,
-    .lock-btn:active,
-    .btn-primary:active,
-    .btn-secondary:active,
-    .btn-confirm:active,
-    .btn-cancel:active {
-      background: var(--card-bg);
-      transform: scale(0.98);
     }
 
     .theme-select {
@@ -5850,7 +5714,7 @@
   </style>
 </head>
 
-<body>
+<body class="settings-page">
   <div id="lock-overlay" class="lock-overlay">
     <div class="lock-window">
       <div class="lock-container">
