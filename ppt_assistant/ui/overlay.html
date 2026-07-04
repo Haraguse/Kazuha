@@ -1655,80 +1655,20 @@
         #toolbar-guide-card {
             position: absolute;
             width: var(--tg-card-width);
-            padding: var(--tg-card-padding);
-            box-sizing: border-box;
-            border-radius: var(--tg-card-radius);
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(var(--tg-card-blur)) saturate(180%);
-            -webkit-backdrop-filter: blur(var(--tg-card-blur)) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.7);
-            box-shadow:
-                0 16px 48px rgba(0, 0, 0, 0.35),
-                0 2px 8px rgba(0, 0, 0, 0.15);
+            padding: 24px;
+            background: var(--overlay-dialog-bg);
+            border: 1px solid var(--overlay-dialog-border);
+            box-shadow: var(--overlay-dialog-shadow);
+            border-radius: 12px;
             pointer-events: auto;
             z-index: 3;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
             transition:
                 top var(--tg-card-move-duration) cubic-bezier(0.34, 1.56, 0.64, 1),
                 left var(--tg-card-move-duration) cubic-bezier(0.34, 1.56, 0.64, 1),
                 opacity var(--tg-fade-duration) ease;
-        }
-
-        :root[data-theme="dark"] #toolbar-guide-card {
-            background: rgba(40, 40, 40, 0.92);
-            border-color: rgba(255, 255, 255, 0.25);
-            box-shadow:
-                0 16px 48px rgba(0, 0, 0, 0.6),
-                0 2px 8px rgba(0, 0, 0, 0.4);
-        }
-
-        .toolbar-guide-progress {
-            position: relative;
-            width: 48px;
-            height: 48px;
-            margin-bottom: 14px;
-        }
-
-        .toolbar-guide-ring {
-            display: block;
-            width: 48px;
-            height: 48px;
-        }
-
-        .toolbar-guide-ring .ring-bg {
-            fill: none;
-            stroke: rgba(128, 128, 128, 0.2);
-            stroke-width: 3;
-        }
-
-        .toolbar-guide-ring .ring-fg {
-            fill: none;
-            stroke: var(--accent-blue, #5B8DEF);
-            stroke-width: 3;
-            stroke-linecap: round;
-            /* circumference = 2 * PI * 24 ≈ 150.80 */
-            stroke-dasharray: 150.80;
-            stroke-dashoffset: 150.80;
-            transform-box: fill-box;
-            transform-origin: center;
-            transform: rotate(-90deg);
-            transition: stroke-dashoffset var(--tg-ring-transition) ease;
-        }
-
-        .toolbar-guide-step-indicator {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--overlay-toolbar-fg);
-            font-variant-numeric: tabular-nums;
-            letter-spacing: 0.02em;
-            line-height: 1;
-            white-space: nowrap;
-            width: max-content;
-            pointer-events: none;
-            z-index: 2;
         }
 
         .toolbar-guide-content {
@@ -1759,7 +1699,8 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            margin-top: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--overlay-popup-border);
         }
 
         .toolbar-guide-dots .dot {
@@ -1780,7 +1721,6 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-top: 18px;
         }
 
         .toolbar-guide-actions .toolbar-guide-prev {
@@ -1788,15 +1728,45 @@
         }
 
         .toolbar-guide-btn {
+            border-radius: 999px;
+            padding: 8px 20px;
+            font-size: 14px;
+            font-weight: 500;
             white-space: nowrap;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .toolbar-guide-btn.btn-text {
-            color: var(--overlay-toolbar-fg);
+        .toolbar-guide-btn.toolbar-guide-skip,
+        .toolbar-guide-btn.toolbar-guide-prev {
+            background: transparent;
+            border: 1px solid var(--overlay-popup-border);
+            color: var(--overlay-text-primary);
         }
 
-        .toolbar-guide-btn.btn-text:hover {
-            color: var(--overlay-toolbar-fg);
+        .toolbar-guide-btn.toolbar-guide-skip:hover,
+        .toolbar-guide-btn.toolbar-guide-prev:hover {
+            background: var(--item-hover);
+            border-color: var(--overlay-text-secondary);
+            transform: translateY(-1px);
+        }
+
+        .toolbar-guide-btn.toolbar-guide-next {
+            border-radius: 999px;
+            background: rgba(50, 117, 245, 0.08);
+            border: 1px solid rgba(50, 117, 245, 0.2);
+            color: var(--accent-blue, #5B8DEF);
+            box-shadow: none;
+        }
+
+        .toolbar-guide-btn.toolbar-guide-next:hover {
+            background: var(--accent-blue, #5B8DEF);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(50, 117, 245, 0.2);
+        }
+
+        .toolbar-guide-btn:active {
+            transform: scale(0.96);
         }
 
         .toolbar-guide-btn[hidden],
@@ -2079,22 +2049,15 @@
       <div id="toolbar-guide-backdrop"></div>
       <div id="toolbar-guide-spotlight"></div>
       <div id="toolbar-guide-card">
-        <div class="toolbar-guide-progress">
-          <svg class="toolbar-guide-ring" width="56" height="56" viewBox="0 0 56 56">
-            <circle class="ring-bg" cx="28" cy="28" r="24"></circle>
-            <circle class="ring-fg" cx="28" cy="28" r="24"></circle>
-          </svg>
-          <span class="toolbar-guide-step-indicator"></span>
-        </div>
         <div class="toolbar-guide-content">
           <div class="toolbar-guide-title"></div>
           <div class="toolbar-guide-desc"></div>
         </div>
         <div class="toolbar-guide-dots"></div>
         <div class="toolbar-guide-actions">
-          <button class="btn btn-text toolbar-guide-btn toolbar-guide-skip"></button>
-          <button class="btn btn-text toolbar-guide-btn toolbar-guide-prev"></button>
-          <button class="btn btn-primary toolbar-guide-btn toolbar-guide-next"></button>
+          <button class="toolbar-guide-btn toolbar-guide-skip"></button>
+          <button class="toolbar-guide-btn toolbar-guide-prev"></button>
+          <button class="toolbar-guide-btn toolbar-guide-next"></button>
         </div>
       </div>
     </div>
@@ -5087,7 +5050,6 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
             let maskRestoreTimer = null;
             let demoTimer = null;
             let demoState = {};
-            const RING_CIRCUMFERENCE = 2 * Math.PI * 24; // ≈ 150.80
 
             // ── Element refs ──
             const root = document.getElementById('toolbar-guide-root');
@@ -5097,16 +5059,9 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
             const descEl = root ? root.querySelector('.toolbar-guide-desc') : null;
             const contentEl = root ? root.querySelector('.toolbar-guide-content') : null;
             const dotsEl = root ? root.querySelector('.toolbar-guide-dots') : null;
-            const indicatorEl = root ? root.querySelector('.toolbar-guide-step-indicator') : null;
-            const ringFg = root ? root.querySelector('.ring-fg') : null;
             const skipBtn = root ? root.querySelector('.toolbar-guide-skip') : null;
             const prevBtn = root ? root.querySelector('.toolbar-guide-prev') : null;
             const nextBtn = root ? root.querySelector('.toolbar-guide-next') : null;
-
-            if (ringFg) {
-                ringFg.style.strokeDasharray = String(RING_CIRCUMFERENCE);
-                ringFg.style.strokeDashoffset = String(RING_CIRCUMFERENCE);
-            }
 
             function resolveStepElement(step) {
                 if (!step) return null;
@@ -5360,17 +5315,7 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                     }
                 }, swapDelay);
 
-                // 4. Step indicator, progress ring, dots, action buttons
-                if (indicatorEl) {
-                    indicatorEl.textContent = t('step_indicator')
-                        .replace('{current}', String(index + 1))
-                        .replace('{total}', String(total));
-                    indicatorEl.style.fontSize = (index + 1 >= 10) ? '11px' : '';
-                }
-                if (ringFg) {
-                    const offset = RING_CIRCUMFERENCE * (1 - (index + 1) / total);
-                    ringFg.style.strokeDashoffset = String(offset);
-                }
+                // 4. Progress dots, action buttons
                 renderDots(index, total);
                 if (skipBtn) skipBtn.textContent = t('skip');
                 if (prevBtn) {
