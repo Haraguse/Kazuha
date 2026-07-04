@@ -7560,6 +7560,17 @@
                 </svg>
               </div>
             </div>
+            <div class="settings-item" onclick="scheduleOverlayGuide()">
+              <div class="item-info">
+                <span class="item-label" data-i18n="debug.resetOnboarding.label">重新启动 overlay 引导预览</span>
+                <span class="item-desc" data-i18n="debug.resetOnboarding.desc">在下一次打开 PPT 时打开 overlay 引导界面，仅用于查看，不做任何修改</span>
+              </div>
+              <div class="item-state">
+                <svg class="chevron" viewBox="0 0 24 24">
+                  <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                </svg>
+              </div>
+            </div>
             <div class="settings-item" onclick="triggerTestCrash()">
               <div class="item-info">
                 <span class="item-label" style="color: #ff4d4f;" data-i18n="debug.triggerCrash.label">触发测试崩溃</span>
@@ -8393,6 +8404,8 @@
         "about.diagnostic.close": "关闭",
         "about.diagnostic.copy": "复制全部",
         "about.diagnostic.copied": "已复制",
+        "debug.resetOnboarding.label": "重新启动 overlay 引导预览",
+        "debug.resetOnboarding.desc": "在下一次打开 PPT 时打开 overlay 引导界面，仅用于查看，不做任何修改",
         "debug.createDialog.label": "创建 Dialog",
         "debug.createDialog.desc": "测试 Dialog",
         "debug.triggerCrash.label": "触发测试崩溃",
@@ -8883,6 +8896,8 @@
         "debug.showLogs.clear": "清空日誌",
         "debug.rtlTest.label": "RTL 版面測試",
         "debug.rtlTest.desc": "強制切換為由右至左的版面",
+        "debug.resetOnboarding.label": "重新啟動 Overlay 引導預覽",
+        "debug.resetOnboarding.desc": "下一次打開 PPT 時開啟 overlay 引導介面，僅供檢視，不做任何修改",
         "debug.rotateTest.label": "旋轉視窗測試",
         "debug.rotateTest.desc": "以視窗中心持續旋轉設定頁",
         "debug.previewUpdate.label": "預覽更新介面",
@@ -9349,6 +9364,8 @@
         "debug.showLogs.clear": "清空日誌",
         "debug.rtlTest.label": "RTL 版面測試",
         "debug.rtlTest.desc": "強制切右至左",
+        "debug.resetOnboarding.label": "重新啟動 Overlay 引導預覽",
+        "debug.resetOnboarding.desc": "下一次打開 PPT 時開啟 overlay 引導介面，僅供檢視，不做任何修改",
         "debug.rotateTest.label": "旋轉視窗測試",
         "debug.rotateTest.desc": "以視窗中心持續旋轉設定頁",
         "debug.previewUpdate.label": "預覽更新介面",
@@ -9830,6 +9847,8 @@
         "debug.showLogs.clear": "ログをクリア",
         "debug.rtlTest.label": "RTL レイアウトテスト",
         "debug.rtlTest.desc": "右から左のレイアウトに強制切替",
+        "debug.resetOnboarding.label": "オーバーレイガイドプレビューを再表示",
+        "debug.resetOnboarding.desc": "次回 PPT を開いたときにオーバーレイガイドを表示（プレビュー、変更は保存されません）",
         "debug.rotateTest.label": "回転テスト",
         "debug.rotateTest.desc": "ウィンドウ中心で設定ページを回転",
         "debug.previewUpdate.label": "アップデート画面プレビュー",
@@ -10570,6 +10589,8 @@
         "debug.showLogs.clear": "Clear Logs",
         "debug.rtlTest.label": "RTL Layout Test",
         "debug.rtlTest.desc": "Force right-to-left layout",
+        "debug.resetOnboarding.label": "Restart Overlay Onboarding Preview",
+        "debug.resetOnboarding.desc": "Show the overlay onboarding guide next time PPT is opened, for preview only, no changes saved",
         "debug.rotateTest.label": "Rotate Window Test",
         "debug.rotateTest.desc": "Continuously rotate the settings page",
         "debug.previewUpdate.label": "Preview Update Panel",
@@ -10747,6 +10768,8 @@
         "debug.showLogs.clear": "ژۇرنالنى تازىلاش",
         "debug.rtlTest.label": "RTL تەرتىپ سىناق",
         "debug.rtlTest.desc": "ئوڭدىن سولغا تەرتىپكە مەجبۇرلاپ ئالماشتۇرۇش",
+        "debug.resetOnboarding.label": "Overlay يېتەكچىسىنى قايتا كۆرۈش",
+        "debug.resetOnboarding.desc": "كېيىنكى قېتىم PPT ئېچىلغاندا overlay يېتەكچىسىنى كۆرسەت (پەقەت كۆرۈش، ئۆزگەرتىش ساقلانمايدۇ)",
         "debug.rotateTest.label": "ئايلاندۇرۇش سىنىقى",
         "debug.rotateTest.desc": "تەڭشەك بېتىنى مەركەزدىن داۋاملىق ئايلاندۇرۇش"
       }
@@ -16068,6 +16091,15 @@
     function openOnboardingPreview() {
       if (window.pywebview && window.pywebview.api.open_onboarding_preview) {
         window.pywebview.api.open_onboarding_preview();
+      }
+    }
+
+    function scheduleOverlayGuide() {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.schedule_overlay_guide) {
+        window.pywebview.api.schedule_overlay_guide();
+        showToastMessage("已安排，下次打开 PPT 时将显示 overlay 引导");
+      } else {
+        appendDebugLog("WARN", ["schedule_overlay_guide API 不可用"]);
       }
     }
 

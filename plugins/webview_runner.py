@@ -2432,6 +2432,22 @@ ctypes.windll.user32.SendMessageW(hwnd, 0x0010, 0, 0)
             sys.exit(0)
 
     @Slot()
+    def schedule_overlay_guide(self):
+        """Write a flag so the overlay shows toolbar guide on next PPT open."""
+        from ppt_assistant.core.config import cfg
+
+        cfg.toolbarGuideCompleted.value = False
+        local_app_data = os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))
+        flag_dir = os.path.join(local_app_data, "Luminalium")
+        flag_path = os.path.join(flag_dir, ".show_overlay_guide")
+        try:
+            os.makedirs(flag_dir, exist_ok=True)
+            with open(flag_path, "w") as f:
+                f.write("")
+        except Exception:
+            pass
+
+    @Slot()
     def open_onboarding_preview(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
         onboarding_html = os.path.join(

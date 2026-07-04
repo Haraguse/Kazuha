@@ -136,6 +136,10 @@ class TimerPlugin(AssistantPlugin):
         self.add_time_requested.connect(self._on_add_time)
         self.update_time_requested.connect(self._on_update_time)
 
+    @property
+    def window(self):
+        return self._window
+
     def get_name(self):
         return "计时器"
 
