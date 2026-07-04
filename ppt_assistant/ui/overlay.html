@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Overlay</title>
+    <link rel="stylesheet" href="../../plugins/builtins/settings/settings_primitives.css">
     <style>
         @font-face {
             font-family: "Google Sans Flex";
@@ -1787,48 +1788,15 @@
         }
 
         .toolbar-guide-btn {
-            padding: 8px 16px;
-            border-radius: 999px;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--overlay-toolbar-fg);
-            cursor: pointer;
-            transition: all 180ms ease;
-            font-family: inherit;
             white-space: nowrap;
         }
 
-        .toolbar-guide-btn:hover {
-            background: rgba(255, 255, 255, 0.85);
-            transform: translateY(-1px);
+        .toolbar-guide-btn.btn-text {
+            color: var(--overlay-toolbar-fg);
         }
 
-        .toolbar-guide-btn:active {
-            transform: translateY(0) scale(0.98);
-        }
-
-        .toolbar-guide-btn.toolbar-guide-primary {
-            background: var(--accent-blue, #5B8DEF);
-            color: #ffffff;
-            border-color: transparent;
-        }
-
-        .toolbar-guide-btn.toolbar-guide-primary:hover {
-            filter: brightness(1.08);
-            background: var(--accent-blue, #5B8DEF);
-        }
-
-        :root[data-theme="dark"] .toolbar-guide-btn {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.1);
-        }
-
-        :root[data-theme="dark"] .toolbar-guide-btn:hover {
-            background: rgba(255, 255, 255, 0.16);
+        .toolbar-guide-btn.btn-text:hover {
+            color: var(--overlay-toolbar-fg);
         }
 
         .toolbar-guide-btn[hidden],
@@ -2124,9 +2092,9 @@
         </div>
         <div class="toolbar-guide-dots"></div>
         <div class="toolbar-guide-actions">
-          <button class="toolbar-guide-btn toolbar-guide-skip"></button>
-          <button class="toolbar-guide-btn toolbar-guide-prev"></button>
-          <button class="toolbar-guide-btn toolbar-guide-next toolbar-guide-primary"></button>
+          <button class="btn btn-text toolbar-guide-btn toolbar-guide-skip"></button>
+          <button class="btn btn-text toolbar-guide-btn toolbar-guide-prev"></button>
+          <button class="btn btn-primary toolbar-guide-btn toolbar-guide-next"></button>
         </div>
       </div>
     </div>

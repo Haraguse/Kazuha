@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Welcome to Luminalium</title>
+  <link rel="stylesheet" href="../settings/settings_primitives.css">
   <style>
     @font-face {
       font-family: "Google Sans Flex";
@@ -1567,12 +1568,6 @@
       border: none;
     }
 
-    .header-actions {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-
     .update-status-bar .status-icon {
       display: flex;
       align-items: center;
@@ -1584,50 +1579,6 @@
     .update-status-bar .status-icon svg {
       width: 42px;
       height: 42px;
-    }
-
-    .header-actions .btn-primary {
-      border-radius: 999px;
-      background: rgba(50, 117, 245, 0.08);
-      border: 1px solid rgba(50, 117, 245, 0.2);
-      color: var(--accent-blue);
-      transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-      padding: 8px 20px;
-      box-shadow: none;
-      font-size: 13.5px;
-      font-weight: 500;
-    }
-
-    .header-actions .btn-primary:hover {
-      background: var(--accent-blue);
-      color: white;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(50, 117, 245, 0.2);
-    }
-
-    .header-actions .btn-primary:active {
-      transform: scale(0.96);
-    }
-
-    .header-actions .btn-secondary {
-      border-radius: 999px;
-      background: transparent;
-      border: 1px solid var(--divider);
-      color: var(--text-primary);
-      transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-      padding: 8px 20px;
-      font-size: 13.5px;
-      font-weight: 500;
-    }
-
-    .header-actions .btn-secondary:hover {
-      background: var(--item-hover);
-      border-color: var(--text-secondary);
-      transform: translateY(-1px);
-    }
-
-    .header-actions .btn-secondary:active {
-      transform: scale(0.96);
     }
 
     .status-info {
@@ -1976,58 +1927,6 @@
       display: flex;
       gap: 12px;
       margin-top: 12px;
-    }
-
-    .btn-primary {
-      background: var(--accent-blue);
-      color: white;
-      border: none;
-      padding: 10px 24px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 4px 12px rgba(50, 117, 245, 0.15);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .btn-primary:hover {
-      background: #4085ff;
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(50, 117, 245, 0.25);
-    }
-
-    .btn-primary:active {
-      transform: scale(0.97);
-    }
-
-    .btn-secondary {
-      background: var(--item-hover);
-      color: var(--text-primary);
-      border: none;
-      padding: 10px 24px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .btn-secondary:hover {
-      background: var(--divider);
-      transform: translateY(-1px);
-    }
-
-    .btn-secondary:active {
-      transform: scale(0.97);
     }
 
     .loading-spinner {
@@ -2452,57 +2351,6 @@
       border: 1px solid var(--divider);
       background: var(--bg-surface);
       color: var(--text-primary);
-    }
-
-    .btn {
-      min-width: 88px;
-      height: 36px;
-      border-radius: 18px;
-      border: none;
-      font-size: 13.5px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      outline: none;
-      gap: 6px;
-    }
-
-    .btn:active {
-      transform: scale(0.96);
-    }
-
-    .btn:disabled, .btn.disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-      pointer-events: none;
-    }
-
-    .btn-cancel {
-      background: transparent;
-      color: var(--text-secondary);
-      border: 1px solid var(--divider);
-    }
-
-    .btn-cancel:hover {
-      background: var(--item-hover);
-      color: var(--text-primary);
-      transform: translateY(-1px);
-    }
-
-    .btn-confirm {
-      background: rgba(50, 117, 245, 0.08);
-      color: var(--accent-blue);
-      border: 1px solid rgba(50, 117, 245, 0.15);
-    }
-
-    .btn-confirm:hover {
-      background: var(--accent-blue);
-      color: white;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(50, 117, 245, 0.2);
     }
 
     .toolbar-btn:hover:not(:disabled) {
@@ -3409,11 +3257,6 @@
       margin-top: 6px;
     }
 
-    .monet-preview-actions .modal-btn {
-      height: 32px;
-      padding: 0 14px;
-    }
-
     .monet-custom-input {
       display: none;
     }
@@ -3835,64 +3678,7 @@
       padding: 0 4px;
     }
 
-    /* Island style buttons for modals */
-    .modal-btn {
-      min-width: 88px;
-      height: 36px;
-      border-radius: 18px;
-      border: none;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      outline: none;
-    }
-
-    .modal-btn-secondary {
-      background: transparent;
-      color: var(--text-secondary);
-      border: 1px solid var(--divider);
-    }
-
-    .modal-btn-secondary:hover {
-      background: var(--item-hover);
-      color: var(--text-primary);
-      border-color: var(--text-secondary);
-    }
-
-    .modal-btn-cancel {
-      background: transparent;
-      color: var(--text-secondary);
-      border: 1px solid var(--divider);
-    }
-
-    .modal-btn-cancel:hover {
-      background: var(--item-hover);
-      color: var(--text-primary);
-      border-color: var(--text-secondary);
-    }
-
-    .modal-btn-confirm {
-      background: transparent;
-      color: var(--accent-blue);
-      border: 1px solid var(--accent-blue);
-    }
-
-    .modal-btn-confirm:hover {
-      background: var(--accent-blue);
-      color: #FFFFFF;
-    }
-
-    .modal-btn:active {
-      transform: scale(0.98);
-      filter: brightness(0.9);
-    }
-
-
-/* Hero Screen */
+    /* Hero Screen */
     .hero-screen {
       position: absolute;
       inset: 0;
@@ -4307,28 +4093,6 @@
       align-items: center;
       gap: 24px;
     }
-    .btn {
-      height: 40px;
-      padding: 0 24px;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      transition: all 0.2s;
-    }
-    .btn-text {
-      background: transparent;
-      color: var(--text-secondary);
-    }
-    .btn-text:hover {
-      background: var(--item-hover);
-      color: var(--text-primary);
-    }
-
-
-
-
     .pivot-container {
       display: flex;
       justify-content: center;
@@ -4887,7 +4651,7 @@ html, body {
           </div>
           
           <div class="footer-right">
-            <div class="hero-btn" id="btn-hero-next" style="margin: 0;">
+            <div class="btn hero-btn" id="btn-hero-next" style="margin: 0;">
               <svg viewBox="0 0 24 24" fill="none">
                 <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
@@ -4988,8 +4752,8 @@ html, body {
         </div>
       </div>
       <div class="modal-footer">
-        <button class="modal-btn modal-btn-cancel" id="btn-import-cancel">取消</button>
-        <button class="modal-btn modal-btn-confirm" id="btn-import-confirm">确定</button>
+        <button class="btn btn-cancel" id="btn-import-cancel">取消</button>
+        <button class="btn btn-confirm" id="btn-import-confirm">确定</button>
       </div>
     </div>
   </div>
@@ -5002,7 +4766,7 @@ html, body {
         <div class="modal-text" id="license-text"></div>
       </div>
       <div class="modal-footer">
-        <button class="modal-btn modal-btn-confirm" onclick="closeLicenseModal()">Close</button>
+        <button class="btn btn-confirm" onclick="closeLicenseModal()">Close</button>
       </div>
     </div>
   </div>
