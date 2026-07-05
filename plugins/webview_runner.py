@@ -4850,6 +4850,18 @@ body {
                         else:
                             btn_area_left = w - 138
 
+                        # 左侧图标区域交给 webview 处理（实现"再次点击关闭"）
+                        # 若返回 HTCAPTION，Windows 会拦截鼠标消息，
+                        # webview 的 click 监听器收不到事件。
+                        # 图标占位：12px 左边距 + 16px 图标 + 8px 右边距 ≈ 36px
+                        title_bar_visible = (
+                            self._frameless
+                            and not getattr(self, "_mini_mode", False)
+                            and not getattr(self, "_is_fullscreen", False)
+                        )
+                        if (title_bar_visible and y < title_bar_h and x < 36):
+                            return True, 1  # HTCLIENT
+
                         if y < title_bar_h and x < btn_area_left:
                             return True, 2  # HTCAPTION
 

@@ -7879,6 +7879,7 @@
         "backup.rename": "重命名",
         "backup.renameTitle": "重命名备份",
         "backup.delete": "删除",
+        "backup.deleteTitle": "删除备份",
         "backup.deleteConfirm": "确定要删除备份「{name}」吗？此操作不可撤销。",
         "backup.deleteFail": "删除失败",
         "backup.cancel": "取消",
@@ -8390,6 +8391,7 @@
         "backup.rename": "重新命名",
         "backup.renameTitle": "重新命名備份",
         "backup.delete": "刪除",
+        "backup.deleteTitle": "刪除備份",
         "backup.deleteConfirm": "確定要刪除備份「{name}」嗎？此操作不可撤銷。",
         "backup.deleteFail": "刪除失敗",
         "backup.cancel": "取消",
@@ -8869,6 +8871,7 @@
         "backup.rename": "改名",
         "backup.renameTitle": "改名備份",
         "backup.delete": "刪除",
+        "backup.deleteTitle": "刪除備份",
         "backup.deleteConfirm": "確定要刪除備份「{name}」？呢個操作唔可以撤銷。",
         "backup.deleteFail": "刪除失敗",
         "backup.cancel": "取消",
@@ -9339,6 +9342,7 @@
         "backup.rename": "名前変更",
         "backup.renameTitle": "バックアップ名を変更",
         "backup.delete": "削除",
+        "backup.deleteTitle": "バックアップを削除",
         "backup.deleteConfirm": "バックアップ「{name}」を削除しますか？この操作は元に戻せません。",
         "backup.deleteFail": "削除に失敗しました",
         "backup.cancel": "キャンセル",
@@ -9822,6 +9826,7 @@
         "backup.rename": "Rename",
         "backup.renameTitle": "Rename Backup",
         "backup.delete": "Delete",
+        "backup.deleteTitle": "Delete Backup",
         "backup.deleteConfirm": "Delete backup \"{name}\"? This action cannot be undone.",
         "backup.deleteFail": "Delete failed",
         "backup.cancel": "Cancel",
@@ -10588,6 +10593,7 @@
         "backup.rename": "ئۆزگەرتىش",
         "backup.renameTitle": "زاپاسلاش نامىنى ئۆزگەرتىش",
         "backup.delete": "ئۆچۈرۈش",
+        "backup.deleteTitle": "زاپاس نۇسخىنى ئۆچۈرۈش",
         "backup.deleteConfirm": "زاپاس نۇسخا «{name}» نى ئۆچۈرەمسىز؟ بۇ مەشغۇلاتنى ئەمەلدىن قالدۇرغىلى بولمايدۇ.",
         "backup.deleteFail": "ئۆچۈرۈش مەغلۇپ بولدى",
         "backup.cancel": "بىكار قىلىش",
@@ -12584,18 +12590,39 @@
 
     async function deleteBackup(name) {
       if (!window.pywebview || !window.pywebview.api || !window.pywebview.api.delete_backup) return;
-      const confirmMsg = (getText('backup.deleteConfirm') || '确定要删除备份「{name}」吗？此操作不可撤销。').replace('{name}', name);
-      if (!confirm(confirmMsg)) return;
-      try {
-        const result = await window.pywebview.api.delete_backup(name);
-        if (result.success) {
-          loadBackups();
-        } else {
-          showStorageToast((getText('backup.deleteFail') || '删除失败') + (result.error ? ': ' + result.error : ''));
+      const confirmText = (getText('backup.deleteConfirm') || '确定要删除备份「{name}」吗？此操作不可撤销。').replace('{name}', name);
+      const customContent =
+        '<div style="display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px;">' +
+          '<img src="../../../icons/emojis/warn.png" width="48" height="48" style="object-fit: contain; flex-shrink: 0;" />' +
+          '<div class="modal-text" style="flex: 1;">' + confirmText + '</div>' +
+        '</div>';
+      showModal(
+        getText('backup.deleteTitle') || '删除备份',
+        '',
+        [
+          { label: getText('backup.cancel') || '取消', onClick: () => {} },
+          { label: getText('backup.delete') || '删除', primary: true, onClick: () => {
+            (async () => {
+              try {
+                const result = await window.pywebview.api.delete_backup(name);
+                if (result.success) {
+                  closeGenericModal();
+                  loadBackups();
+                } else {
+                  showStorageToast((getText('backup.deleteFail') || '删除失败') + (result.error ? ': ' + result.error : ''));
+                }
+              } catch (e) {
+                console.error('Delete backup failed:', e);
+              }
+            })();
+            return false;
+          }}
+        ],
+        {
+          dialogClass: 'backup-dialog',
+          customContent: customContent
         }
-      } catch (e) {
-        console.error('Delete backup failed:', e);
-      }
+      );
     }
 
     async function cleanDirectory(target) {
