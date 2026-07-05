@@ -146,8 +146,7 @@ def _build_exclude_args():
 
 
 def run():
-    # __file__ points to scripts/build/build_pyinstaller.py; go up 2 levels to project root.
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    root_dir = os.path.dirname(os.path.abspath(__file__))
     dist_dir = os.path.join(root_dir, "dist")
     build_dir = os.path.join(root_dir, "build")
 

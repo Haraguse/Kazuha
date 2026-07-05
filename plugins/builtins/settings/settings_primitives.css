@@ -61,7 +61,7 @@ body {
   border-radius: 12px;
   border: 1px solid var(--card-border);
   background: var(--card-bg);
-  box-shadow: var(--shadow-main);
+  box-shadow: none;
 }
 
 .settings-item:first-child {
