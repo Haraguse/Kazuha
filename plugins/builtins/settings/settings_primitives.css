@@ -22,6 +22,12 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Material Symbols Outlined";
+  src: url("../../../fonts/MaterialSymbolsOutlined.ttf") format("truetype");
+  font-display: swap;
+}
+
 :root {
   --bg-app: #f7f8f9;
   --bg-surface: #ffffff;

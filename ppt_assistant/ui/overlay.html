@@ -18,6 +18,11 @@
             font-display: optional;
         }
 
+        @font-face {
+            font-family: "Material Symbols Outlined";
+            src: url("../../fonts/MaterialSymbolsOutlined.ttf") format("truetype");
+            font-display: optional;
+        }
 
         body {
             background: transparent;
@@ -435,11 +440,7 @@
             margin: 0 4px;
         }
         
-        .flipper.flipper-bottom .icon-previous {
-            transform: rotate(0deg);
-        }
-        
-        .flipper.flipper-bottom .icon-next {
+        .flipper.flipper-bottom .flipper-btn .mi {
             transform: rotate(0deg);
         }
 
@@ -615,11 +616,7 @@
             margin-top: 0;
         }
         
-        .flipper .icon-previous {
-            transform: rotate(90deg);
-        }
-        
-        .flipper .icon-next {
+        .flipper .flipper-btn .mi {
             transform: rotate(90deg);
         }
 
@@ -856,36 +853,45 @@
             mask-position: center;
         }
 
-        .icon-mouse { -webkit-mask-image: url('../../icons/Mouse.svg'); mask-image: url('../../icons/Mouse.svg'); }
-        .icon-previous { -webkit-mask-image: url('../../icons/Previous.svg'); mask-image: url('../../icons/Previous.svg'); }
-        .icon-next { -webkit-mask-image: url('../../icons/Next.svg'); mask-image: url('../../icons/Next.svg'); }
+        /* Material Symbols font-based icons (replaces SVG mask icons) */
+        .mi {
+            font-family: "Material Symbols Outlined";
+            font-weight: normal;
+            font-style: normal;
+            font-size: 20px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            user-select: none;
+            width: 20px;
+            height: 20px;
+            overflow: hidden;
+            color: var(--overlay-toolbar-fg);
+        }
+
+        .tool-btn-danger .mi {
+            color: #D9485A;
+        }
+
+        .tool-btn-danger:hover .mi,
+        .tool-btn-danger.active .mi,
+        .tool-btn-danger:active .mi {
+            color: #C53244;
+        }
         .icon-media-play { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M320-200v-560l440 280-440 280Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M320-200v-560l440 280-440 280Z'/%3E%3C/svg%3E"); }
         .icon-media-pause { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M520-200v-560h200v560H520Zm-280 0v-560h200v560H240Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M520-200v-560h200v560H520Zm-280 0v-560h200v560H240Z'/%3E%3C/svg%3E"); }
         .icon-media-prev { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M220-240v-480h80v480h-80Zm520 0L380-480l360-240v480Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M220-240v-480h80v480h-80Zm520 0L380-480l360-240v480Z'/%3E%3C/svg%3E"); }
         .icon-media-next { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M660-240v-480h80v480h-80Zm-440 0v-480l360 240-360 240Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M660-240v-480h80v480h-80Zm-440 0v-480l360 240-360 240Z'/%3E%3C/svg%3E"); }
-        .icon-pen { -webkit-mask-image: url('../../icons/Pen.svg'); mask-image: url('../../icons/Pen.svg'); }
-        .icon-eraser { -webkit-mask-image: url('../../icons/Eraser.svg'); mask-image: url('../../icons/Eraser.svg'); }
-        .icon-clear { -webkit-mask-image: url('../../icons/Clear.svg'); mask-image: url('../../icons/Clear.svg'); }
-        .icon-spotlight { -webkit-mask-image: url('../../icons/spotlight.svg'); mask-image: url('../../icons/spotlight.svg'); }
-        .icon-board { -webkit-mask-image: url('../../icons/board-in-board.svg'); mask-image: url('../../icons/board-in-board.svg'); }
-        .icon-timer { -webkit-mask-image: url('../../icons/timer.svg'); mask-image: url('../../icons/timer.svg'); }
-        .icon-roll-call { -webkit-mask-image: url('../../icons/person.svg'); mask-image: url('../../icons/person.svg'); }
-        .icon-app { -webkit-mask-image: url('../../icons/More.svg'); mask-image: url('../../icons/More.svg'); }
-        .icon-minimize { 
-            -webkit-mask-image: url('../../icons/Minimize.svg'); 
-            mask-image: url('../../icons/Minimize.svg');
-            background-color: var(--overlay-toolbar-fg);
-        }
-
-        .tool-btn-danger .icon-mask {
-            background-color: #D9485A;
-        }
-
-        .tool-btn-danger:hover .icon-mask,
-        .tool-btn-danger.active .icon-mask,
-        .tool-btn-danger:active .icon-mask {
-            background-color: #C53244;
-        }
+        /* Toolbar icons now use Material Symbols font (.mi class) — see definitions above */
         
         /* Status Bar Icons */
         .icon-battery { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16 4h-1V2.5C15 2.22 14.78 2 14.5 2h-5C9.22 2 9 2.22 9 2.5V4H8C6.9 4 6 4.9 6 6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16 4h-1V2.5C15 2.22 14.78 2 14.5 2h-5C9.22 2 9 2.22 9 2.5V4H8C6.9 4 6 4.9 6 6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z'/%3E%3C/svg%3E"); }
@@ -972,6 +978,13 @@
             height: 20px;
         }
 
+        .slider-thumb .mi {
+            color: var(--overlay-thumb-icon);
+            width: 20px;
+            height: 20px;
+            font-size: 20px;
+        }
+
         .clear-btn-container {
             display: none;
             width: 200px;
@@ -994,18 +1007,17 @@
         }
 
         .clear-btn-icon {
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mi.clear-btn-icon {
+            color: var(--overlay-text-primary);
+            font-size: 24px;
             width: 24px;
             height: 24px;
-            background-color: var(--overlay-text-primary);
-            margin-right: 8px;
-            -webkit-mask-image: url('../../icons/Clear.svg');
-            mask-image: url('../../icons/Clear.svg');
-            -webkit-mask-size: contain;
-            -webkit-mask-repeat: no-repeat;
-            -webkit-mask-position: center;
-            mask-size: contain;
-            mask-repeat: no-repeat;
-            mask-position: center;
         }
 
         .clear-btn-text {
@@ -1889,11 +1901,11 @@
             <div class="slider-text">滑动清屏</div>
             <div class="slider-track"></div>
             <div class="slider-thumb" id="clear-thumb">
-                <div class="icon-mask icon-clear"></div>
+                <span class="mi">delete_sweep</span>
             </div>
         </div>
         <div class="clear-btn-container" id="clear-btn" onclick="handleClearScreen(); closePopup()">
-            <div class="clear-btn-icon"></div>
+            <span class="mi clear-btn-icon">delete_sweep</span>
             <div class="clear-btn-text">清空屏幕</div>
         </div>
     </div>
@@ -1976,7 +1988,7 @@
     <div id="center-area">
         <div id="left-flipper" class="interactive flipper">
             <div class="flipper-btn" onclick="handlePrevPageClick()">
-                <div class="icon-mask icon-previous"></div>
+                <span class="mi">chevron_left</span>
             </div>
             <div class="page-info-container" onclick="togglePageSelector(event)" style="cursor: pointer;">
                 <div class="page-count-row">
@@ -1986,13 +1998,13 @@
 
             </div>
             <div class="flipper-btn" onclick="handleNextPageClick()">
-                <div class="icon-mask icon-next"></div>
+                <span class="mi">chevron_right</span>
             </div>
         </div>
 
         <div id="right-flipper" class="interactive flipper">
             <div class="flipper-btn" onclick="handlePrevPageClick()">
-                <div class="icon-mask icon-previous"></div>
+                <span class="mi">chevron_left</span>
             </div>
             <div class="page-info-container" onclick="togglePageSelector(event)" style="cursor: pointer;">
                 <div class="page-count-row">
@@ -2002,7 +2014,7 @@
 
             </div>
             <div class="flipper-btn" onclick="handleNextPageClick()">
-                <div class="icon-mask icon-next"></div>
+                <span class="mi">chevron_right</span>
             </div>
         </div>
     </div>
@@ -2839,41 +2851,41 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                     btn.classList.add('disabled');
                 }
                 
-                let iconClass = '';
+                let iconName = '';
                 let clickHandler = '';
 
                 
                 switch(item) {
                     case 'select':
-                        iconClass = 'icon-mouse';
+                        iconName = 'arrow_selector_tool';
                         clickHandler = "selectTool('select')";
                         if (currentTool === 'select') btn.classList.add('active');
                         break;
                     case 'pen':
-                        iconClass = 'icon-pen';
+                        iconName = 'edit';
                         clickHandler = "selectTool('pen')";
                         if (currentTool === 'pen') btn.classList.add('active');
                         break;
                     case 'eraser':
-                        iconClass = 'icon-eraser';
+                        iconName = 'ink_eraser';
                         clickHandler = "selectTool('eraser')";
                         if (currentTool === 'eraser') btn.classList.add('active');
                         break;
                     case 'spotlight':
-                        iconClass = 'icon-spotlight';
+                        iconName = 'flashlight_on';
                         clickHandler = "bridge.toggleSpotlight()";
                         break;
                     case 'board_in_board':
-                        iconClass = 'icon-board';
+                        iconName = 'dashboard';
                         clickHandler = "bridge.toggleBoard()";
                         break;
                     case 'timer':
-                        iconClass = 'icon-timer';
+                        iconName = 'timer';
                         clickHandler = "bridge.toggleTimer()";
                         btn.title = '计时器';
                         break;
                     case 'sec_random_roll_call':
-                        iconClass = 'icon-roll-call';
+                        iconName = 'groups';
                         clickHandler = "bridge.secRandomQuickDraw()";
                         btn.title = 'SecRandom 点名';
                         break;
@@ -2890,8 +2902,9 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                                     appIconDiv.src = app.icon;
                                     appIconDiv.className = 'icon-img';
                                 } else {
-                                    appIconDiv = document.createElement('div');
-                                    appIconDiv.className = 'icon-mask icon-app';
+                                    appIconDiv = document.createElement('span');
+                                    appIconDiv.className = 'mi';
+                                    appIconDiv.textContent = 'apps';
                                 }
                                 appBtn.appendChild(appIconDiv);
                                 
@@ -2907,9 +2920,10 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                 
                 btn.setAttribute('onclick', clickHandler);
                 
-                let iconDiv = document.createElement('div');
-                iconDiv.className = 'icon-mask ' + iconClass;
-                btn.appendChild(iconDiv);
+                let iconSpan = document.createElement('span');
+                iconSpan.className = 'mi';
+                iconSpan.textContent = iconName;
+                btn.appendChild(iconSpan);
                 
 
                 
@@ -2939,8 +2953,9 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                 bridge.endShow(); 
             };
             
-            let endIcon = document.createElement('div');
-            endIcon.className = 'icon-mask icon-minimize';
+            let endIcon = document.createElement('span');
+            endIcon.className = 'mi';
+            endIcon.textContent = 'power_settings_new';
             endBtn.appendChild(endIcon);
             
 
@@ -3862,8 +3877,9 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
             const allBtns = document.querySelectorAll('.flipper-btn');
             
             allBtns.forEach(btn => {
-                const isPrev = btn.querySelector('.icon-previous');
-                const isNext = btn.querySelector('.icon-next');
+                const miSpan = btn.querySelector('.mi');
+                const isPrev = miSpan && miSpan.textContent.trim() === 'chevron_left';
+                const isNext = miSpan && miSpan.textContent.trim() === 'chevron_right';
                 
                 if (isPrev) {
                     if ((!isCompat && current <= 1) || disabledTools.includes('prev')) {
@@ -4953,7 +4969,7 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                 const toolbar = document.getElementById('toolbar');
                 if (!toolbar) return null;
                 const appBtns = Array.from(toolbar.querySelectorAll('.tool-btn')).filter(function (btn) {
-                    return !!(btn.querySelector('.icon-img') || btn.querySelector('.icon-app'));
+                    return !!(btn.querySelector('.icon-img') || (btn.querySelector('.mi') && btn.querySelector('.mi').textContent.trim() === 'apps'));
                 });
                 return appBtns.length > 0 ? appBtns[appBtns.length - 1] : null;
             }

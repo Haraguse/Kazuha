@@ -2675,84 +2675,6 @@
 
 
 
-    .toolbar-preview-btn-icon {
-      width: 20px;
-      height: 20px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-
-    .toolbar-preview-btn-icon::before {
-      content: "";
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      background-color: #FFFFFF;
-      mask-size: contain;
-      mask-position: center;
-      mask-repeat: no-repeat;
-      -webkit-mask-size: contain;
-      -webkit-mask-position: center;
-      -webkit-mask-repeat: no-repeat;
-    }
-
-    .toolbar-preview-btn-icon-real::before {
-      content: none;
-    }
-
-
-
-    .toolbar-preview-btn-icon-img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      display: block;
-    }
-
-    .toolbar-preview-btn-icon.icon-select::before {
-      mask-image: url('../../../icons/Mouse.svg');
-      -webkit-mask-image: url('../../../icons/Mouse.svg');
-    }
-
-    .toolbar-preview-btn-icon.icon-pen::before {
-      mask-image: url('../../../icons/Pen.svg');
-      -webkit-mask-image: url('../../../icons/Pen.svg');
-    }
-
-    .toolbar-preview-btn-icon.icon-eraser::before {
-      mask-image: url('../../../icons/Eraser.svg');
-      -webkit-mask-image: url('../../../icons/Eraser.svg');
-    }
-
-    .toolbar-preview-btn-icon.icon-clear::before {
-      mask-image: url('../../../icons/Clear.svg');
-      -webkit-mask-image: url('../../../icons/Clear.svg');
-    }
-
-    .toolbar-preview-btn-icon.icon-spotlight::before {
-      mask-image: url('../../../icons/spotlight.svg');
-      -webkit-mask-image: url('../../../icons/spotlight.svg');
-    }
-
-    .toolbar-preview-btn-icon.icon-board_in_board::before {
-      mask-image: url('../../../icons/board-in-board.svg');
-      -webkit-mask-image: url('../../../icons/board-in-board.svg');
-    }
-
-    .toolbar-preview-btn-icon.icon-timer::before {
-      mask-image: url('../../../icons/timer.svg');
-      -webkit-mask-image: url('../../../icons/timer.svg');
-    }
-
-    .toolbar-preview-btn-icon.icon-exit::before {
-      mask-image: url('../../../icons/Minimize.svg');
-      -webkit-mask-image: url('../../../icons/Minimize.svg');
-      background-color: #FF453A;
-    }
-
     .toolbar-preview-hero {
       margin: -32px -48px 24px;
       padding: 20px 48px 24px;
@@ -2835,6 +2757,12 @@
       width: 16px;
       height: 16px;
       background-color: var(--overlay-status-fg);
+      -webkit-mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      mask-size: contain;
+      mask-repeat: no-repeat;
+      mask-position: center;
     }
 
     .icon-battery {
@@ -2941,11 +2869,7 @@
       margin: 0 4px;
     }
 
-    .toolbar-preview-root .flipper.flipper-bottom .icon-previous {
-      transform: rotate(0deg);
-    }
-
-    .toolbar-preview-root .flipper.flipper-bottom .icon-next {
+    .toolbar-preview-root .flipper.flipper-bottom .flipper-btn .mi {
       transform: rotate(0deg);
     }
 
@@ -2989,11 +2913,7 @@
       margin-top: 0;
     }
 
-    .toolbar-preview-root .flipper .icon-previous {
-      transform: rotate(90deg);
-    }
-
-    .toolbar-preview-root .flipper .icon-next {
+    .toolbar-preview-root .flipper .flipper-btn .mi {
       transform: rotate(90deg);
     }
 
@@ -3173,77 +3093,28 @@
       margin: auto 4px;
     }
 
-    .toolbar-preview-root .icon-mask {
+    .toolbar-preview-root .mi {
+      font-family: "Material Symbols Outlined";
+      font-weight: normal;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      user-select: none;
       width: 20px;
       height: 20px;
-      background-color: var(--overlay-toolbar-fg);
-      -webkit-mask-size: contain;
-      -webkit-mask-repeat: no-repeat;
-      -webkit-mask-position: center;
-      mask-size: contain;
-      mask-repeat: no-repeat;
-      mask-position: center;
-    }
-
-    .toolbar-preview-root .icon-mouse {
-      -webkit-mask-image: url('../../../icons/Mouse.svg');
-      mask-image: url('../../../icons/Mouse.svg');
-    }
-
-    .toolbar-preview-root .icon-previous {
-      -webkit-mask-image: url('../../../icons/Previous.svg');
-      mask-image: url('../../../icons/Previous.svg');
-    }
-
-    .toolbar-preview-root .icon-next {
-      -webkit-mask-image: url('../../../icons/Next.svg');
-      mask-image: url('../../../icons/Next.svg');
-    }
-
-    .toolbar-preview-root .icon-pen {
-      -webkit-mask-image: url('../../../icons/Pen.svg');
-      mask-image: url('../../../icons/Pen.svg');
-    }
-
-    .toolbar-preview-root .icon-eraser {
-      -webkit-mask-image: url('../../../icons/Eraser.svg');
-      mask-image: url('../../../icons/Eraser.svg');
-    }
-
-    .toolbar-preview-root .icon-clear {
-      -webkit-mask-image: url('../../../icons/Clear.svg');
-      mask-image: url('../../../icons/Clear.svg');
-    }
-
-    .toolbar-preview-root .icon-spotlight {
-      -webkit-mask-image: url('../../../icons/spotlight.svg');
-      mask-image: url('../../../icons/spotlight.svg');
-    }
-
-    .toolbar-preview-root .icon-board {
-      -webkit-mask-image: url('../../../icons/board-in-board.svg');
-      mask-image: url('../../../icons/board-in-board.svg');
-    }
-
-    .toolbar-preview-root .icon-timer {
-      -webkit-mask-image: url('../../../icons/timer.svg');
-      mask-image: url('../../../icons/timer.svg');
-    }
-
-    .toolbar-preview-root .icon-sec_random_roll_call {
-      -webkit-mask-image: url('../../../icons/person.svg');
-      mask-image: url('../../../icons/person.svg');
-    }
-
-    .toolbar-preview-root .icon-app {
-      -webkit-mask-image: url('../../../icons/More.svg');
-      mask-image: url('../../../icons/More.svg');
-    }
-
-    .toolbar-preview-root .icon-minimize {
-      -webkit-mask-image: url('../../../icons/Minimize.svg');
-      mask-image: url('../../../icons/Minimize.svg');
-      background-color: var(--overlay-toolbar-fg);
+      overflow: hidden;
+      color: var(--overlay-toolbar-fg);
     }
 
     .toolbar-preview-root .icon-img {
@@ -6403,7 +6274,7 @@
                 <div id="center-area">
                   <div id="left-flipper" class="interactive flipper">
                     <div class="flipper-btn">
-                      <div class="icon-mask icon-previous"></div>
+                      <span class="mi">chevron_left</span>
                     </div>
                     <div class="page-info-container">
                       <div class="page-count-row">
@@ -6412,12 +6283,12 @@
                       </div>
                     </div>
                     <div class="flipper-btn">
-                      <div class="icon-mask icon-next"></div>
+                      <span class="mi">chevron_right</span>
                     </div>
                   </div>
                   <div id="right-flipper" class="interactive flipper">
                     <div class="flipper-btn">
-                      <div class="icon-mask icon-previous"></div>
+                      <span class="mi">chevron_left</span>
                     </div>
                     <div class="page-info-container">
                       <div class="page-count-row">
@@ -6426,7 +6297,7 @@
                       </div>
                     </div>
                     <div class="flipper-btn">
-                      <div class="icon-mask icon-next"></div>
+                      <span class="mi">chevron_right</span>
                     </div>
                   </div>
                 </div>
@@ -15662,7 +15533,7 @@
         if (flipperPos !== 'bottom' && rightFlipper) rightFlipper.style.transform = "translateY(-15vh)";
       }
 
-      const createBtn = (iconClass, toolId, isActive) => {
+      const createBtn = (iconName, toolId, isActive) => {
         const btn = document.createElement("div");
         btn.className = "tool-btn";
         btn.dataset.id = toolId;
@@ -15670,8 +15541,9 @@
         if (isActive) btn.classList.add("active");
         if (disabledTools.includes(toolId)) btn.classList.add("disabled");
 
-        const icon = document.createElement("div");
-        icon.className = "icon-mask " + iconClass;
+        const icon = document.createElement("span");
+        icon.className = "mi";
+        icon.textContent = iconName;
         btn.appendChild(icon);
         return btn;
       };
@@ -15683,19 +15555,19 @@
         if (itemId === "timer" && !showTimer) return;
 
         if (itemId === "select") {
-          toolbar.appendChild(createBtn("icon-mouse", "select", true));
+          toolbar.appendChild(createBtn("arrow_selector_tool", "select", true));
         } else if (itemId === "pen") {
-          toolbar.appendChild(createBtn("icon-pen", "pen"));
+          toolbar.appendChild(createBtn("edit", "pen"));
         } else if (itemId === "eraser") {
-          toolbar.appendChild(createBtn("icon-eraser", "eraser"));
+          toolbar.appendChild(createBtn("ink_eraser", "eraser"));
         } else if (itemId === "spotlight") {
-          toolbar.appendChild(createBtn("icon-spotlight", "spotlight"));
+          toolbar.appendChild(createBtn("flashlight_on", "spotlight"));
         } else if (itemId === "board_in_board") {
-          toolbar.appendChild(createBtn("icon-board", "board_in_board"));
+          toolbar.appendChild(createBtn("dashboard", "board_in_board"));
         } else if (itemId === "timer") {
-          toolbar.appendChild(createBtn("icon-timer", "timer"));
+          toolbar.appendChild(createBtn("timer", "timer"));
         } else if (itemId === "sec_random_roll_call") {
-          toolbar.appendChild(createBtn("icon-sec_random_roll_call", "sec_random_roll_call"));
+          toolbar.appendChild(createBtn("groups", "sec_random_roll_call"));
         } else if (itemId === "apps") {
           if (toolbarApps && toolbarApps.length > 0) {
             toolbarApps.forEach(app => {
@@ -15708,8 +15580,9 @@
                 img.src = app.icon;
                 btn.appendChild(img);
               } else {
-                const icon = document.createElement("div");
-                icon.className = "icon-mask icon-app";
+                const icon = document.createElement("span");
+                icon.className = "mi";
+                icon.textContent = "apps";
                 btn.appendChild(icon);
               }
               toolbar.appendChild(btn);
@@ -15729,8 +15602,9 @@
       if (disabledTools.includes("endShow") || disabledTools.includes("minimize")) {
         endBtn.classList.add("disabled");
       }
-      const endIcon = document.createElement("div");
-      endIcon.className = "icon-mask icon-minimize";
+      const endIcon = document.createElement("span");
+      endIcon.className = "mi";
+      endIcon.textContent = "power_settings_new";
       endBtn.appendChild(endIcon);
       toolbar.appendChild(endBtn);
 
