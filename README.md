@@ -8,7 +8,6 @@
 [![Latest Release](https://img.shields.io/github/v/release/SECTL/Luminalium?style=for-the-badge)](https://github.com/SECTL/Luminalium/releases)
 [![License](https://img.shields.io/github/license/SECTL/Luminalium?style=for-the-badge)](https://github.com/SECTL/Luminalium/blob/main/LICENSE) 
 [![GitHub Stars](https://img.shields.io/github/stars/SECTL/Luminalium?style=for-the-badge&color=yellow)](https://github.com/SECTL/Luminalium/stargazers)
-[![Total Downloads](https://img.shields.io/github/downloads/SECTL/Luminalium/total?style=for-the-badge)](https://github.com/SECTL/Luminalium/releases) 
 [![Open Issues](https://img.shields.io/github/issues-raw/SECTL/Luminalium?style=for-the-badge&color=red)](https://github.com/SECTL/Luminalium/issues)
 [![QQ Group](https://img.shields.io/badge/-QQ%E7%BE%A4%EF%BD%9C833875216-blue?style=for-the-badge&logo=QQ)](https://qm.qq.com/q/iWcfaPHn7W)
 
