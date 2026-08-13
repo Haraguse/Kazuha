@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="FluentAvaloniaValidation.Views.OverlayPage">
+    <ScrollViewer>
+        <StackPanel Margin="36,28,36,36" Spacing="14" MaxWidth="860" HorizontalAlignment="Left">
+            <TextBlock Text="无边框叠加层 · Borderless Overlay"
+                       FontSize="24" FontWeight="SemiBold" />
+            <TextBlock TextWrapping="Wrap"
+                       Text="演示为桌面创建透明、无边框、置顶、可拖动的叠加窗口（对应旧版 QML / HTML 覆盖层场景）。窗口背景使用 TransparencyLevelHint.Transparent，系统装饰使用 SystemDecorations.None。" />
+
+            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,6,0,0">
+                <Button x:Name="OpenOverlayWindow"
+                        AutomationProperties.Name="OpenOverlayWindow"
+                        AutomationProperties.AutomationId="OpenOverlayWindow"
+                        Content="打开无边框叠加层 · Open Overlay"
+                        HorizontalAlignment="Left" />
+                <Button x:Name="CloseOverlayWindow"
+                        AutomationProperties.Name="CloseOverlayWindow"
+                        AutomationProperties.AutomationId="CloseOverlayWindow"
+                        Content="关闭叠加层 · Close Overlay"
+                        IsEnabled="False"
+                        HorizontalAlignment="Left" />
+            </StackPanel>
+
+            <Border Margin="0,6,0,0" Padding="16" CornerRadius="8"
+                    BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="每监视器 DPI · Per-Monitor DPI"
+                               FontSize="15" FontWeight="SemiBold" />
+                    <TextBlock Text="Avalonia 以每监视器感知（PerMonitorV2）方式运行；窗口跨监视器移动时缩放会随之更新。"
+                               FontSize="12" Opacity="0.65" TextWrapping="Wrap" />
+                    <TextBlock x:Name="DpiText"
+                               FontFamily="Cascadia Mono, Consolas, monospace"
+                               FontSize="12" TextWrapping="Wrap" LineHeight="20" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

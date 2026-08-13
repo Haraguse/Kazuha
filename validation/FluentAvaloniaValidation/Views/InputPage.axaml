@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="FluentAvaloniaValidation.Views.InputPage">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="36,28,36,24">
+        <TextBlock Grid.Row="0" Text="输入事件管道 · Pointer / Touch / Pen"
+                   FontSize="24" FontWeight="SemiBold" />
+        <TextBlock Grid.Row="1" Margin="0,6,0,14" TextWrapping="Wrap"
+                   Text="在下方区域按下、拖动并释放（鼠标、触摸或触控笔均可）。事件通过 Avalonia 的 PointerRoutedEventArgs 管道汇入下方日志，显示设备类型与按钮状态。" />
+
+        <Border Grid.Row="2" x:Name="InputSurface"
+                AutomationProperties.Name="ValidationInputSurface"
+                AutomationProperties.AutomationId="ValidationInputSurface"
+                CornerRadius="8" BorderThickness="1"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                Padding="16">
+            <TextBlock x:Name="SurfaceHint"
+                       Text="在此区域按下 / 拖动 / 释放（鼠标、触摸或触控笔）…"
+                       Opacity="0.6"
+                       VerticalAlignment="Center" />
+        </Border>
+
+        <Border Grid.Row="3" Margin="0,14,0,0" Padding="12" CornerRadius="8"
+                BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+            <TextBlock x:Name="EventLog"
+                       FontFamily="Cascadia Mono, Consolas, monospace"
+                       FontSize="11" TextWrapping="Wrap"
+                       Height="150" />
+        </Border>
+    </Grid>
+</UserControl>

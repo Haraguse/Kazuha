@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Task 2 compatibility spike: validates .NET 10 / Avalonia 12 / FluentAvalonia 3.x
+    against a Windows 10 build 17763 (version 1809) target.
+    Every package and the TFM are pinned exactly for reproducibility.
+    Package versions are governed by ../../Directory.Packages.props.
+    Consumed by Task 3 (solution scaffolding) as the proven package/TFM result.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>LuminaliumValidation</AssemblyName>
+    <RootNamespace>FluentAvaloniaValidation</RootNamespace>
+    <Version>0.2.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Avalonia 12 line, pinned to 12.1.1 (FluentAvaloniaUI 3.0.2 requires >= 12.0.0). -->
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Skia" />
+    <!-- FA pulls these two transitively; pinning them keeps one Avalonia version in the graph. -->
+    <PackageReference Include="Avalonia.Controls.ColorPicker" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" />
+    <!-- FluentAvaloniaUI 3.x on net10.0. -->
+    <PackageReference Include="FluentAvaloniaUI" />
+    <!-- MVVM toolkit validated alongside the UI stack. -->
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+
+</Project>

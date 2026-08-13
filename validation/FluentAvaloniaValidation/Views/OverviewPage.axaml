@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="FluentAvaloniaValidation.Views.OverviewPage">
+    <ScrollViewer>
+        <StackPanel Margin="36,28,36,36" Spacing="14" MaxWidth="860" HorizontalAlignment="Left">
+            <TextBlock Text="FluentAvalonia 兼容性验证"
+                       FontSize="30" FontWeight="SemiBold" />
+            <TextBlock Text="Luminalium C# 迁移 · .NET 10 · Avalonia 12 · FluentAvalonia 3.x · Windows 10 1809+ 目标"
+                       FontSize="12" Opacity="0.65" />
+
+            <Border Margin="0,6,0,0" Padding="16" CornerRadius="8"
+                    BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="中文渲染验证 · CJK Font Fallback"
+                               FontSize="15" FontWeight="SemiBold" />
+                    <TextBlock Text="触摸屏、演示、批注、框选放大、背景压暗、计时器、画板、导航工具、应用启动器与状态栏是 Luminalium 的核心场景。本段文字用于确认 FluentAvalonia 主题下中文字形的回退渲染正常（中文用户界面依赖系统字体回退，例如 Microsoft YaHei）。"
+                               TextWrapping="Wrap" LineHeight="26" />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,6,0,0">
+                <Button x:Name="OpenValidationDialog"
+                        AutomationProperties.Name="OpenValidationDialog"
+                        AutomationProperties.AutomationId="OpenValidationDialog"
+                        Content="打开验证对话框 · Open Dialog"
+                        HorizontalAlignment="Left" />
+                <TextBlock x:Name="DialogResultText"
+                           VerticalAlignment="Center"
+                           FontSize="13" Opacity="0.85" />
+            </StackPanel>
+
+            <Border Margin="0,6,0,0" Padding="16" CornerRadius="8"
+                    BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="运行环境 · Environment Readout"
+                               FontSize="15" FontWeight="SemiBold" />
+                    <TextBlock x:Name="EnvText"
+                               FontFamily="Cascadia Mono, Consolas, monospace"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               LineHeight="20" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

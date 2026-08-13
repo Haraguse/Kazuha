@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="340"
+             x:Class="FluentAvaloniaValidation.Views.ValidationOverlayContent">
+    <Border Background="#E61B1B1F"
+            CornerRadius="12"
+            BorderBrush="#660078D4"
+            BorderThickness="1"
+            BoxShadow="0 8 28 0 #44000000">
+        <Grid RowDefinitions="Auto,*">
+            <Border Grid.Row="0" x:Name="DragBar"
+                    Background="#330078D4"
+                    CornerRadius="12,12,0,0"
+                    Padding="16,10">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="ValidationOverlay · 无边框叠加层"
+                               Foreground="White"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center" />
+                    <Button Grid.Column="1" x:Name="CloseOverlayButton"
+                            AutomationProperties.Name="CloseValidationOverlay"
+                            Content="✕"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="White"
+                            Padding="10,2"
+                            HorizontalAlignment="Right" />
+                </Grid>
+            </Border>
+            <StackPanel Grid.Row="1" Margin="18,14" Spacing="10">
+                <TextBlock Text="透明 · 无边框 · 置顶 · 按住标题栏可拖动"
+                           Foreground="White" FontSize="15" FontWeight="SemiBold" />
+                <TextBlock Text="此窗口验证 Avalonia 桌面叠加层能力：TransparencyLevelHint = Transparent、SystemDecorations = None、Topmost = True，并演示 BeginMoveDrag 拖动。中文字形回退渲染正常。"
+                           Foreground="#DDDDDD" TextWrapping="Wrap" LineHeight="24" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

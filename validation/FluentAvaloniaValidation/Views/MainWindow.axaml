@@ -1,0 +1,40 @@
+<ui:FAAppWindow xmlns="https://github.com/avaloniaui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                xmlns:ui="using:FluentAvalonia.UI.Controls"
+                x:Class="FluentAvaloniaValidation.Views.MainWindow"
+                Title="FluentAvalonia 兼容性验证"
+                Width="980"
+                Height="640"
+                AutomationProperties.Name="FluentAvalonia 兼容性验证窗口"
+                Opened="OnOpened">
+    <!-- Native FluentAvalonia navigation shell (Task 2 validation).
+         FAAppWindow auto-applies Mica on Windows 11 (FA 3.x has no public Mica toggle). -->
+    <ui:FANavigationView x:Name="ValidationNavigation"
+                         AutomationProperties.Name="ValidationNavigation"
+                         AutomationProperties.AutomationId="ValidationNavigation"
+                         PaneDisplayMode="Left"
+                         IsSettingsVisible="False"
+                         IsPaneToggleButtonVisible="False"
+                         ItemInvoked="OnItemInvoked">
+        <ui:FANavigationView.MenuItems>
+            <ui:FANavigationViewItem Content="总览" Tag="overview" AutomationProperties.Name="总览">
+                <ui:FANavigationViewItem.IconSource>
+                    <ui:FASymbolIconSource Symbol="Home" />
+                </ui:FANavigationViewItem.IconSource>
+            </ui:FANavigationViewItem>
+            <ui:FANavigationViewItem Content="输入" Tag="input" AutomationProperties.Name="输入">
+                <ui:FANavigationViewItem.IconSource>
+                    <ui:FASymbolIconSource Symbol="TouchPointer" />
+                </ui:FANavigationViewItem.IconSource>
+            </ui:FANavigationViewItem>
+            <ui:FANavigationViewItem Content="叠加层" Tag="overlay" AutomationProperties.Name="叠加层">
+                <ui:FANavigationViewItem.IconSource>
+                    <ui:FASymbolIconSource Symbol="DockBottom" />
+                </ui:FANavigationViewItem.IconSource>
+            </ui:FANavigationViewItem>
+        </ui:FANavigationView.MenuItems>
+        <ui:FAFrame x:Name="ValidationFrame"
+                    AutomationProperties.Name="ValidationFrame"
+                    AutomationProperties.AutomationId="ValidationFrame" />
+    </ui:FANavigationView>
+</ui:FAAppWindow>
