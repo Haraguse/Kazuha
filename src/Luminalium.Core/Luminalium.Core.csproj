@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Luminalium.Core: framework-only core library (Issue #96 alignment).
+    Plain net10.0 so the core stays cross-platform; Windows specifics live in
+    Luminalium.Platform.Windows, which may reference this project (Windows
+    projects may reference plain projects, never the reverse).
+    No third-party packages by design.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+</Project>

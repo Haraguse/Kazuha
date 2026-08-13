@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Luminalium.App: Windows desktop application host.
+    Exactly one theme (FluentAvaloniaTheme) is registered in App.axaml.
+    TFM and package versions are the Task 2 validated stack, pinned via
+    central package management (Directory.Packages.props).
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <AssemblyName>Luminalium</AssemblyName>
+    <RootNamespace>Luminalium.App</RootNamespace>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Avalonia 12 line, pinned to 12.1.1. -->
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Skia" />
+    <!-- FA pulls these two transitively; pinning keeps one Avalonia version in the graph. -->
+    <PackageReference Include="Avalonia.Controls.ColorPicker" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" />
+    <!-- FluentAvaloniaUI 3.x on net10.0. -->
+    <PackageReference Include="FluentAvaloniaUI" />
+    <!-- MVVM toolkit validated alongside the UI stack. -->
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Luminalium.Core\Luminalium.Core.csproj" />
+    <ProjectReference Include="..\Luminalium.Platform.Windows\Luminalium.Platform.Windows.csproj" />
+    <ProjectReference Include="..\Luminalium.Plugins\Luminalium.Plugins.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\..\version.json" Link="version.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

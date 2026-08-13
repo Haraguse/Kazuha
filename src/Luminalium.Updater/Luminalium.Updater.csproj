@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Luminalium.Updater: updater service and update workflow (Tasks 13, 20).
+    Scaffold only: no update logic yet. Plain net10.0 (Issue #96 alignment);
+    Windows-targeted hosts may reference it, never the reverse.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Luminalium.Plugins: built-in plugin contract and registry (Task 11).
+    Scaffold only: no plugin code yet. Plain net10.0 (Issue #96 alignment)
+    keeps the plugin contract cross-platform; Windows-targeted hosts
+    (App, Platform.Windows, Tests) may reference it, never the reverse.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Luminalium.Core\Luminalium.Core.csproj" />
+  </ItemGroup>
+
+</Project>

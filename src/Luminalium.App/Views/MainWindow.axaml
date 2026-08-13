@@ -1,0 +1,20 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="Luminalium.App.Views.MainWindow"
+        Title="Luminalium"
+        Width="800" Height="450"
+        WindowStartupLocation="CenterScreen">
+    <!-- Minimal scaffold shell; real navigation/shell arrives in Task 12. -->
+    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
+        <TextBlock Text="Luminalium"
+                   FontSize="28"
+                   FontWeight="SemiBold"
+                   HorizontalAlignment="Center" />
+        <TextBlock x:Name="VersionText"
+                   Text="Version metadata unavailable"
+                   HorizontalAlignment="Center" />
+    </StackPanel>
+</Window>

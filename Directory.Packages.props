@@ -1,0 +1,35 @@
+<Project>
+
+  <!--
+    Luminalium C# migration - Task 3: central package management.
+    Every PackageVersion below is pinned exactly (Task 2 validated stack).
+    Projects reference packages WITHOUT a Version attribute.
+  -->
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Avalonia 12 line, pinned to 12.1.1 (FluentAvaloniaUI 3.0.2 requires >= 12.0.0). -->
+    <PackageVersion Include="Avalonia" Version="12.1.1" />
+    <PackageVersion Include="Avalonia.Desktop" Version="12.1.1" />
+    <PackageVersion Include="Avalonia.Skia" Version="12.1.1" />
+    <!-- FA pulls these two transitively; pinning them keeps one Avalonia version in the graph. -->
+    <PackageVersion Include="Avalonia.Controls.ColorPicker" Version="12.1.1" />
+    <PackageVersion Include="Avalonia.Controls.DataGrid" Version="12.1.1" />
+
+    <!-- FluentAvaloniaUI 3.x on net10.0. -->
+    <PackageVersion Include="FluentAvaloniaUI" Version="3.0.2" />
+
+    <!-- MVVM toolkit validated alongside the UI stack. -->
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+
+    <!-- Test stack (xUnit). -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.0" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+  </ItemGroup>
+
+</Project>

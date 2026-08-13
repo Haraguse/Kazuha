@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Luminalium.Platform.Windows: Windows-only platform services.
+    Registry, DWM/windowing, notifications, monitor/DPI, SMTC and Win32
+    interop land here (Tasks 8-9). No third-party packages today.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Luminalium.Tests: xUnit test project (scaffold only, Task 3).
+    References the solution graph so restore/build/test prove the
+    project boundaries resolve. Deeper coverage lands with Tasks 6-21.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Luminalium.Core\Luminalium.Core.csproj" />
+    <ProjectReference Include="..\..\src\Luminalium.Platform.Windows\Luminalium.Platform.Windows.csproj" />
+    <ProjectReference Include="..\..\src\Luminalium.Plugins\Luminalium.Plugins.csproj" />
+    <ProjectReference Include="..\..\src\Luminalium.Updater\Luminalium.Updater.csproj" />
+  </ItemGroup>
+
+</Project>
