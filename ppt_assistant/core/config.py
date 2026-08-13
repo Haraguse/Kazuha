@@ -87,6 +87,7 @@ class Config(QConfig):
     showBoardInBoard = ConfigItem("Toolbar", "ShowBoardInBoard", True, BoolValidator())
     showTimer = ConfigItem("Toolbar", "ShowTimer", True, BoolValidator())
     showToolbarText = ConfigItem("Toolbar", "ShowToolbarText", False, BoolValidator())
+    showToolbarTooltip = ConfigItem("Toolbar", "ShowToolbarTooltip", True, BoolValidator())
     secRandomEnabled = ConfigItem(
         "Linkage", "SecRandomEnabled", False, BoolValidator()
     )
@@ -500,6 +501,7 @@ def _bind_auto_save():
     cfg.showBoardInBoard.valueChanged.connect(lambda *_: _save_cfg())
     cfg.showTimer.valueChanged.connect(lambda *_: _save_cfg())
     cfg.showToolbarText.valueChanged.connect(lambda *_: _save_cfg())
+    cfg.showToolbarTooltip.valueChanged.connect(lambda *_: _save_cfg())
     cfg.secRandomEnabled.valueChanged.connect(lambda *_: _save_cfg())
     cfg.showStatusBar.valueChanged.connect(lambda *_: _save_cfg())
     cfg.statusBarShowTime.valueChanged.connect(lambda *_: _save_cfg())

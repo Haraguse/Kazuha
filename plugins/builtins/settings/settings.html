@@ -6357,6 +6357,20 @@
               </div>
               <div class="switch" id="sw-Toolbar-ShowTimer"></div>
             </div>
+            <div class="settings-item" onclick="toggleSwitch('Toolbar', 'ShowToolbarText')">
+              <div class="item-info">
+                <span class="item-label" data-i18n="interaction.showToolbarText.label">工具栏按钮文字</span>
+                <span class="item-desc" data-i18n="interaction.showToolbarText.desc">在工具栏按钮图标旁显示工具名称文字，方便识别按钮功能</span>
+              </div>
+              <div class="switch" id="sw-Toolbar-ShowToolbarText"></div>
+            </div>
+            <div class="settings-item" onclick="toggleSwitch('Toolbar', 'ShowToolbarTooltip')">
+              <div class="item-info">
+                <span class="item-label" data-i18n="interaction.showToolbarTooltip.label">工具栏悬停提示</span>
+                <span class="item-desc" data-i18n="interaction.showToolbarTooltip.desc">鼠标悬停在工具栏按钮上时显示文字提示，帮助快速识别按钮功能</span>
+              </div>
+              <div class="switch" id="sw-Toolbar-ShowToolbarTooltip"></div>
+            </div>
             <div class="settings-item" onclick="toggleSwitch('Overlay', 'ToolbarAutoHalfCollapse')">
               <div class="item-info">
                 <span class="item-label" data-i18n="overlay.toolbarAutoHalfCollapse.label">工具栏自动半收起</span>
@@ -8059,6 +8073,10 @@
         "boardInBoard.windowEnterAnimation.desc": "一个基于窗口位移的板中板窗口滑入动画。开启后，板中板窗口将以动画方式进入和退出，否则直接弹出和飞出",
         "interaction.showTimer.label": "显示计时器",
         "interaction.showTimer.desc": "在悬浮工具栏中显示计时器按钮，可快速打开计时器窗口",
+        "interaction.showToolbarTooltip.label": "工具栏悬停提示",
+        "interaction.showToolbarTooltip.desc": "鼠标悬停在工具栏按钮上时显示文字提示，帮助快速识别按钮功能",
+        "interaction.showToolbarText.label": "工具栏按钮文字",
+        "interaction.showToolbarText.desc": "在工具栏按钮图标旁显示工具名称文字，方便识别按钮功能",
 
         "interaction.toolbar.customization.label": "工具栏固定项",
         "interaction.toolbar.customization.desc": "预览并管理工具栏上的快速启动项",
@@ -8552,6 +8570,10 @@
         "boardInBoard.penStroke.label": "筆鋒",
         "boardInBoard.penStroke.desc": "開啟後筆畫帶有筆鋒效果",
         "interaction.showTimer.label": "顯示計時器",
+        "interaction.showToolbarTooltip.label": "工具列懸停提示",
+        "interaction.showToolbarTooltip.desc": "滑鼠懸停在工具列按鈕上時顯示文字提示，幫助快速識別按鈕功能",
+        "interaction.showToolbarText.label": "工具列按鈕文字",
+        "interaction.showToolbarText.desc": "在工具列按鈕圖示旁顯示工具名稱文字，方便識別按鈕功能",
         "interaction.toolbar.customization.label": "工具列固定項",
         "interaction.toolbar.customization.desc": "預覽並管理工具列上的快速啟動項",
         "interaction.toolbar.preview.label": "工具列預覽",
@@ -9020,6 +9042,10 @@
         "boardInBoard.penStroke.label": "筆鋒",
         "boardInBoard.penStroke.desc": "開啟後筆畫有筆鋒效果",
         "interaction.showTimer.label": "顯示計時器",
+        "interaction.showToolbarTooltip.label": "工具列懸停提示",
+        "interaction.showToolbarTooltip.desc": "滑鼠停留喺工具列掣上面時顯示文字提示，幫助快速識別掣功能",
+        "interaction.showToolbarText.label": "工具列掣文字",
+        "interaction.showToolbarText.desc": "喺工具列掣圖示旁邊顯示工具名稱文字，方便識別掣功能",
         "interaction.toolbar.customization.label": "工具列固定項",
         "interaction.toolbar.customization.desc": "預覽並管理工具列快速啟動項",
         "interaction.toolbar.preview.label": "工具列預覽",
@@ -9504,6 +9530,10 @@
         "boardInBoard.penStroke.label": "筆圧",
         "boardInBoard.penStroke.desc": "有効にすると筆画に筆圧が付きます",
         "interaction.showTimer.label": "タイマーを表示",
+        "interaction.showToolbarTooltip.label": "ツールバーヒント",
+        "interaction.showToolbarTooltip.desc": "ツールバーのボタンにカーソルを合わせたときにテキストヒントを表示し、ボタンの機能をすばやく識別できます",
+        "interaction.showToolbarText.label": "ツールバーボタン文字",
+        "interaction.showToolbarText.desc": "ツールバーのボタンアイコンの横にツール名を表示し、ボタン機能をすばやく識別できます",
         "interaction.toolbar.customization.label": "ツールバー固定プログラム",
         "interaction.toolbar.customization.desc": "ツールバーのクイック起動アプリを管理します",
         "interaction.toolbar.preview.label": "ツールバープレビュー",
@@ -10248,6 +10278,10 @@
         "boardInBoard.penStroke.label": "Pen taper",
         "boardInBoard.penStroke.desc": "Add taper to board strokes",
         "interaction.showTimer.label": "Show Timer",
+        "interaction.showToolbarTooltip.label": "Toolbar Hover Tooltip",
+        "interaction.showToolbarTooltip.desc": "Show text tooltips when hovering over toolbar buttons to help quickly identify button functions",
+        "interaction.showToolbarText.label": "Toolbar Button Text",
+        "interaction.showToolbarText.desc": "Show tool name text next to toolbar button icons for easy identification",
         "interaction.toolbar.customization.label": "Toolbar fixed program",
         "interaction.toolbar.customization.desc": "Manage quick launch applications on the toolbar",
         "interaction.toolbar.preview.label": "Toolbar preview",
@@ -13660,7 +13694,7 @@
       General: { RunAtStartup: false, AutoShowOverlay: true, DisableAnimations: false, CompatibilityMode: false, Language: "zh-CN" },
       PPT: { AutoHandleInk: true, PenMode: "com" },
       Overlay: { ShowStatusBar: true, ClearMode: "slide" },
-      Toolbar: { ShowClear: true, ShowToolbarText: true },
+      Toolbar: { ShowClear: true, ShowToolbarText: true, ShowToolbarTooltip: true },
       Window: { TimerFullscreenBehavior: "fullscreen" },
       Timer: { EnableSoundEffects: true, QuickAddPresets: DEFAULT_TIMER_QUICK_ADD_PRESETS.map(item => ({ ...item })) },
       BoardInBoard: { ToolbarPosition: "bottom", BackgroundColor: "#202020", PenStrokeEnabled: false, WindowEnterAnimation: true },
@@ -14352,6 +14386,7 @@
         setSwitch("Toolbar", "ShowBoardInBoard");
         setSwitch("Toolbar", "ShowTimer");
         setSwitch("Toolbar", "ShowToolbarText");
+        setSwitch("Toolbar", "ShowToolbarTooltip");
         setSwitch("Linkage", "SecRandomEnabled");
         setSwitch("Timer", "EnableSoundEffects");
         setSwitch("BoardInBoard", "PenStrokeEnabled");

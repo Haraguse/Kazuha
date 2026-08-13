@@ -833,6 +833,46 @@
             width: 20px;
             height: 20px;
         }
+
+        /* ─── Toolbar Button Inline Text Label ─────────────────────────── */
+        .tool-btn-label {
+            display: none;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--overlay-toolbar-fg);
+            white-space: nowrap;
+            line-height: 1;
+            margin-left: 6px;
+        }
+
+        /* When showToolbarText is enabled, toolbar gets .show-text class */
+        #toolbar.show-text .tool-btn {
+            width: auto;
+            min-width: 38px;
+            padding: 0 12px 0 8px;
+            border-radius: 19px;
+            gap: 6px;
+        }
+
+        #toolbar.show-text .tool-btn .tool-btn-label {
+            display: inline;
+        }
+
+        /* Vertical toolbar (left/right): label below icon */
+        #toolbar-container.pos-left #toolbar.show-text .tool-btn,
+        #toolbar-container.pos-right #toolbar.show-text .tool-btn {
+            flex-direction: column;
+            padding: 8px 8px 10px 8px;
+            min-width: 38px;
+            gap: 2px;
+        }
+
+        #toolbar-container.pos-left #toolbar.show-text .tool-btn .tool-btn-label,
+        #toolbar-container.pos-right #toolbar.show-text .tool-btn .tool-btn-label {
+            margin-left: 0;
+            margin-top: 2px;
+            font-size: 10px;
+        }
         
         .separator {
             width: 1px;
@@ -886,6 +926,41 @@
         .tool-btn-danger.active .mi,
         .tool-btn-danger:active .mi {
             color: #C53244;
+        }
+
+        /* ─── Overlay Tooltip ─────────────────────────────────────────── */
+        .overlay-tooltip {
+            position: fixed;
+            z-index: 200;
+            padding: 5px 10px;
+            border-radius: 7px;
+            background: rgba(20, 20, 22, 0.82);
+            color: rgba(255, 255, 255, 0.88);
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1.4;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(4px) scale(0.96);
+            transition: opacity 0.16s ease, transform 0.16s ease;
+            backdrop-filter: blur(14px) saturate(160%);
+            -webkit-backdrop-filter: blur(14px) saturate(160%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+            border: 0.5px solid rgba(255, 255, 255, 0.08);
+            font-family: var(--font-stack, sans-serif);
+        }
+
+        .overlay-tooltip.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        :root:not([data-theme="dark"]) .overlay-tooltip {
+            background: rgba(255, 255, 255, 0.82);
+            color: rgba(0, 0, 0, 0.82);
+            border-color: rgba(0, 0, 0, 0.06);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
         }
         .icon-media-play { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M320-200v-560l440 280-440 280Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M320-200v-560l440 280-440 280Z'/%3E%3C/svg%3E"); }
         .icon-media-pause { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M520-200v-560h200v560H520Zm-280 0v-560h200v560H240Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M520-200v-560h200v560H520Zm-280 0v-560h200v560H240Z'/%3E%3C/svg%3E"); }
@@ -2815,6 +2890,13 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                 if(clearBtn) clearBtn.style.display = 'none';
             }
 
+            // Toggle inline text labels on toolbar buttons
+            if (config.showToolbarText) {
+                toolbar.classList.add('show-text');
+            } else {
+                toolbar.classList.remove('show-text');
+            }
+
             toolbar.innerHTML = '';
             
             // Compatibility Mode Label
@@ -2882,12 +2964,10 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                     case 'timer':
                         iconName = 'timer';
                         clickHandler = "bridge.toggleTimer()";
-                        btn.title = '计时器';
                         break;
                     case 'sec_random_roll_call':
                         iconName = 'groups';
                         clickHandler = "bridge.secRandomQuickDraw()";
-                        btn.title = 'SecRandom 点名';
                         break;
                     case 'apps':
                         if (config.apps && config.apps.length > 0) {
@@ -2895,6 +2975,7 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                                 let appBtn = document.createElement('div');
                                 appBtn.className = 'tool-btn';
                                 appBtn.onclick = function() { bridge.launchApp(app.path); };
+                                appBtn.dataset.tooltipText = app.name || '';
                                 
                                 let appIconDiv;
                                 if (app.icon) {
@@ -2907,9 +2988,12 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                                     appIconDiv.textContent = 'apps';
                                 }
                                 appBtn.appendChild(appIconDiv);
-                                
 
-                                
+                                let appLabelSpan = document.createElement('span');
+                                appLabelSpan.className = 'tool-btn-label';
+                                appLabelSpan.textContent = app.name || '';
+                                appBtn.appendChild(appLabelSpan);
+
                                 toolbar.appendChild(appBtn);
                             });
                         }
@@ -2924,9 +3008,12 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                 iconSpan.className = 'mi';
                 iconSpan.textContent = iconName;
                 btn.appendChild(iconSpan);
-                
 
-                
+                let labelSpan = document.createElement('span');
+                labelSpan.className = 'tool-btn-label';
+                labelSpan.textContent = (config.texts && config.texts[item]) || '';
+                btn.appendChild(labelSpan);
+
                 toolbar.appendChild(btn);
             });
 
@@ -2957,9 +3044,12 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
             endIcon.className = 'mi';
             endIcon.textContent = 'power_settings_new';
             endBtn.appendChild(endIcon);
-            
 
-            
+            let endLabelSpan = document.createElement('span');
+            endLabelSpan.className = 'tool-btn-label';
+            endLabelSpan.textContent = (config.texts && config.texts['end']) || '';
+            endBtn.appendChild(endLabelSpan);
+
             toolbar.appendChild(endBtn);
             updatePageInfo(currentPage, totalPage);
             scheduleMaskUpdate();
@@ -4722,6 +4812,20 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
                     height: r.height
                 });
             }
+            // Include overlay tooltip in mask so it stays visible outside toolbar bounds
+            const _tooltipEl = document.getElementById('overlay-tooltip');
+            if (_tooltipEl && _tooltipEl.classList.contains('visible')) {
+                const tr = _tooltipEl.getBoundingClientRect();
+                if (tr.width > 0 && tr.height > 0) {
+                    rects.push({
+                        x: Math.max(0, tr.x - 2),
+                        y: Math.max(0, tr.y - 2),
+                        width: tr.width + 4,
+                        height: tr.height + 4
+                    });
+                }
+            }
+
             bridge.updateMask(rects, window.noop);
         }
 
@@ -5506,6 +5610,386 @@ if (config.selfHighlightWidth !== undefined) { inkHighlightWidth = config.selfHi
 
             window.startToolbarGuide = start;
             console.log('[ToolbarGuide] window.startToolbarGuide registered');
+        })();
+
+        /* ─── Overlay Tooltip Module ──────────────────────────────────────
+           Shows a glass-style tooltip on hover for toolbar buttons.
+           Respects the `showToolbarText` config flag.
+           Positions itself based on toolbar position (top/bottom/left/right).
+        ──────────────────────────────────────────────────────────────────── */
+        (function () {
+            'use strict';
+
+            // ── i18n: concise tooltip labels for each tool button ──
+            const TOOLTIP_I18N = {
+                'zh-CN': {
+                    select: '选择', pen: '画笔', eraser: '橡皮擦',
+                    spotlight: '聚光灯', board_in_board: '板中板',
+                    timer: '计时器', end: '结束放映', apps: '应用',
+                    sec_random_roll_call: '随机点名',
+                    prev_page: '上一页', next_page: '下一页',
+                    page_selector: '页面选择'
+                },
+                'zh-TW': {
+                    select: '選擇', pen: '畫筆', eraser: '橡皮擦',
+                    spotlight: '聚光燈', board_in_board: '板中板',
+                    timer: '計時器', end: '結束放映', apps: '應用',
+                    sec_random_roll_call: '隨機點名',
+                    prev_page: '上一頁', next_page: '下一頁',
+                    page_selector: '頁面選擇'
+                },
+                'yue-HK': {
+                    select: '選擇', pen: '畫筆', eraser: '橡皮擦',
+                    spotlight: '聚光燈', board_in_board: '板中板',
+                    timer: '計時器', end: '結束放映', apps: '應用',
+                    sec_random_roll_call: '隨機點名',
+                    prev_page: '上一頁', next_page: '下一頁',
+                    page_selector: '頁面選擇'
+                },
+                'en-US': {
+                    select: 'Select', pen: 'Pen', eraser: 'Eraser',
+                    spotlight: 'Spotlight', board_in_board: 'Board',
+                    timer: 'Timer', end: 'End Show', apps: 'Apps',
+                    sec_random_roll_call: 'Random Call',
+                    prev_page: 'Previous', next_page: 'Next',
+                    page_selector: 'Page Selector'
+                },
+                'ja-JP': {
+                    select: '選択', pen: 'ペン', eraser: '消しゴム',
+                    spotlight: 'スポットライト', board_in_board: 'ボード',
+                    timer: 'タイマー', end: '終了', apps: 'アプリ',
+                    sec_random_roll_call: 'ランダム点名',
+                    prev_page: '前へ', next_page: '次へ',
+                    page_selector: 'ページ選択'
+                }
+            };
+
+            function detectLocale() {
+                let lang = '';
+                try {
+                    lang = (
+                        (typeof currentConfig !== 'undefined' && currentConfig && currentConfig.language) ||
+                        document.documentElement.lang ||
+                        navigator.language ||
+                        'zh-CN'
+                    );
+                } catch (e) { lang = 'zh-CN'; }
+                lang = String(lang).toLowerCase();
+                if (lang.indexOf('zh') === 0) {
+                    if (lang.indexOf('cn') >= 0 || lang.indexOf('hans') >= 0) return 'zh-CN';
+                    if (lang.indexOf('yue') >= 0) return 'yue-HK';
+                    if (lang.indexOf('tw') >= 0 || lang.indexOf('hant') >= 0) return 'zh-TW';
+                    if (lang.indexOf('hk') >= 0 || lang.indexOf('mo') >= 0) return 'yue-HK';
+                    return 'zh-CN';
+                }
+                if (lang.indexOf('ja') === 0) return 'ja-JP';
+                if (lang.indexOf('en') === 0) return 'en-US';
+                return 'zh-CN';
+            }
+
+            // ── Tooltip element ──
+            let tooltipEl = null;
+            let showTimer = null;
+            let hideTimer = null;
+            const SHOW_DELAY = 200;
+            const HIDE_DELAY = 120;
+            let currentTarget = null;
+
+            function ensureTooltipEl() {
+                if (tooltipEl) return tooltipEl;
+                tooltipEl = document.createElement('div');
+                tooltipEl.id = 'overlay-tooltip';
+                tooltipEl.className = 'overlay-tooltip';
+                document.body.appendChild(tooltipEl);
+                return tooltipEl;
+            }
+
+            function getTooltipText(btn) {
+                // 1. Check data-tooltip-text (used by app buttons)
+                if (btn.dataset.tooltipText) return btn.dataset.tooltipText;
+
+                // 2. Map button ID to i18n key
+                const id = btn.id || '';
+                if (!id.startsWith('btn-')) return '';
+                const key = id.substring(4); // strip "btn-" prefix
+
+                const locale = detectLocale();
+                const table = TOOLTIP_I18N[locale] || TOOLTIP_I18N['zh-CN'];
+                return table[key] || '';
+            }
+
+            function getToolbarPosition() {
+                const container = document.getElementById('toolbar-container');
+                if (!container) return 'bottom';
+                if (container.classList.contains('pos-top')) return 'top';
+                if (container.classList.contains('pos-left')) return 'left';
+                if (container.classList.contains('pos-right')) return 'right';
+                return 'bottom';
+            }
+
+            function positionTooltip(btn) {
+                const el = ensureTooltipEl();
+                const btnRect = btn.getBoundingClientRect();
+                const pos = getToolbarPosition();
+                const gap = 8;
+
+                // Measure tooltip dimensions without CSS transform interference.
+                // offsetWidth/offsetHeight are not affected by CSS transforms,
+                // so they give us the true layout size of the tooltip.
+                const ttW = el.offsetWidth || 60;
+                const ttH = el.offsetHeight || 24;
+
+                let x, y;
+
+                if (pos === 'bottom') {
+                    // Tooltip above button
+                    x = btnRect.left + btnRect.width / 2 - ttW / 2;
+                    y = btnRect.top - ttH - gap;
+                } else if (pos === 'top') {
+                    // Tooltip below button
+                    x = btnRect.left + btnRect.width / 2 - ttW / 2;
+                    y = btnRect.bottom + gap;
+                } else if (pos === 'left') {
+                    // Tooltip to the right of button
+                    x = btnRect.right + gap;
+                    y = btnRect.top + btnRect.height / 2 - ttH / 2;
+                } else {
+                    // pos === 'right' — tooltip to the left of button
+                    x = btnRect.left - ttW - gap;
+                    y = btnRect.top + btnRect.height / 2 - ttH / 2;
+                }
+
+                // Clamp to viewport
+                x = Math.max(4, Math.min(x, window.innerWidth - ttW - 4));
+                y = Math.max(4, Math.min(y, window.innerHeight - ttH - 4));
+
+                el.style.left = x + 'px';
+                el.style.top = y + 'px';
+            }
+
+            function showTooltip(btn) {
+                if (!shouldShowTooltips()) return;
+                const text = getTooltipText(btn);
+                if (!text) return;
+
+                clearTimeout(hideTimer);
+                hideTimer = null;
+
+                currentTarget = btn;
+                const el = ensureTooltipEl();
+                el.textContent = text;
+
+                // Position first, then show on next frame for smooth transition
+                positionTooltip(btn);
+
+                clearTimeout(showTimer);
+                showTimer = setTimeout(function () {
+                    if (currentTarget !== btn) return;
+                    // Position right before showing to ensure accurate placement
+                    positionTooltip(btn);
+                    el.classList.add('visible');
+                    // Update mask SYNCHRONOUSLY so the tooltip area is immediately
+                    // included in the Qt window mask (otherwise the tooltip would
+                    // be invisible — the mask clips the window to toolbar-only).
+                    if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
+                    else if (typeof scheduleMaskUpdate === 'function') scheduleMaskUpdate();
+                }, SHOW_DELAY);
+            }
+
+            function hideTooltip() {
+                clearTimeout(showTimer);
+                showTimer = null;
+                currentTarget = null;
+
+                hideTimer = setTimeout(function () {
+                    if (tooltipEl) {
+                        tooltipEl.classList.remove('visible');
+                        if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
+                        else if (typeof scheduleMaskUpdate === 'function') scheduleMaskUpdate();
+                    }
+                }, HIDE_DELAY);
+            }
+
+            function shouldShowTooltips() {
+                // Controlled by the "ShowToolbarTooltip" config item (default: true).
+                // This is a program-injected setting independent of themes.
+                try {
+                    if (typeof currentConfig === 'undefined' || !currentConfig) return true;
+                    if (currentConfig.showToolbarTooltip === false) return false;
+                    return true;
+                } catch (e) {
+                    return true;
+                }
+            }
+
+            function attachTooltipHandlers(btn) {
+                if (btn._tooltipBound) return;
+                btn._tooltipBound = true;
+
+                btn.addEventListener('mouseenter', function () {
+                    showTooltip(btn);
+                });
+                btn.addEventListener('mouseleave', function () {
+                    hideTooltip();
+                });
+                btn.addEventListener('mousedown', function () {
+                    // Hide immediately on click for responsiveness
+                    clearTimeout(showTimer);
+                    showTimer = null;
+                    currentTarget = null;
+                    if (tooltipEl) {
+                        tooltipEl.classList.remove('visible');
+                        if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
+                        else if (typeof scheduleMaskUpdate === 'function') scheduleMaskUpdate();
+                    }
+                });
+            }
+
+            function scanAndAttach() {
+                // Attach to all tool buttons in the toolbar
+                const btns = document.querySelectorAll('#toolbar .tool-btn');
+                btns.forEach(attachTooltipHandlers);
+
+                // Also attach to flipper buttons (prev/next page)
+                const flipperBtns = document.querySelectorAll('.flipper-btn');
+                flipperBtns.forEach(function (btn) {
+                    if (btn._tooltipBound) return;
+                    btn._tooltipBound = true;
+
+                    const locale = detectLocale();
+                    const table = TOOLTIP_I18N[locale] || TOOLTIP_I18N['zh-CN'];
+
+                    btn.addEventListener('mouseenter', function () {
+                        if (!shouldShowTooltips()) return;
+                        // Determine if prev or next based on icon content
+                        const mi = btn.querySelector('.mi');
+                        const isPrev = mi && mi.textContent.includes('left');
+                        const text = isPrev ? table.prev_page : table.next_page;
+                        if (!text) return;
+
+                        clearTimeout(hideTimer);
+                        hideTimer = null;
+                        currentTarget = btn;
+
+                        const el = ensureTooltipEl();
+                        el.textContent = text;
+                        positionTooltip(btn);
+
+                        clearTimeout(showTimer);
+                        showTimer = setTimeout(function () {
+                            if (currentTarget !== btn) return;
+                            positionTooltip(btn);
+                            el.classList.add('visible');
+                            if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
+                            else if (typeof scheduleMaskUpdate === 'function') scheduleMaskUpdate();
+                        }, SHOW_DELAY);
+                    });
+                    btn.addEventListener('mouseleave', function () {
+                        hideTooltip();
+                    });
+                });
+
+                // Attach to page-info-container (page selector)
+                const pageInfoEls = document.querySelectorAll('.page-info-container');
+                pageInfoEls.forEach(function (el) {
+                    if (el._tooltipBound) return;
+                    el._tooltipBound = true;
+
+                    el.addEventListener('mouseenter', function () {
+                        if (!shouldShowTooltips()) return;
+                        const locale = detectLocale();
+                        const table = TOOLTIP_I18N[locale] || TOOLTIP_I18N['zh-CN'];
+                        const text = table.page_selector;
+                        if (!text) return;
+
+                        clearTimeout(hideTimer);
+                        hideTimer = null;
+                        currentTarget = el;
+
+                        const ttEl = ensureTooltipEl();
+                        ttEl.textContent = text;
+                        positionTooltip(el);
+
+                        clearTimeout(showTimer);
+                        showTimer = setTimeout(function () {
+                            if (currentTarget !== el) return;
+                            positionTooltip(el);
+                            ttEl.classList.add('visible');
+                            if (typeof sendMaskUpdate === 'function') sendMaskUpdate();
+                            else if (typeof scheduleMaskUpdate === 'function') scheduleMaskUpdate();
+                        }, SHOW_DELAY);
+                    });
+                    el.addEventListener('mouseleave', function () {
+                        hideTooltip();
+                    });
+                });
+            }
+
+            // Use MutationObserver to detect when toolbar buttons are added
+            function initObserver() {
+                const toolbar = document.getElementById('toolbar');
+                if (!toolbar) return;
+
+                const observer = new MutationObserver(function (mutations) {
+                    let shouldScan = false;
+                    for (let i = 0; i < mutations.length; i++) {
+                        if (mutations[i].addedNodes.length > 0) {
+                            shouldScan = true;
+                            break;
+                        }
+                    }
+                    if (shouldScan) {
+                        // Defer to avoid layout thrashing during toolbar rebuild
+                        requestAnimationFrame(scanAndAttach);
+                    }
+                });
+                observer.observe(toolbar, { childList: true });
+
+                // Also observe center-area for flipper changes
+                const centerArea = document.getElementById('center-area');
+                if (centerArea) {
+                    const caObserver = new MutationObserver(function (mutations) {
+                        let shouldScan = false;
+                        for (let i = 0; i < mutations.length; i++) {
+                            if (mutations[i].addedNodes.length > 0) {
+                                shouldScan = true;
+                                break;
+                            }
+                        }
+                        if (shouldScan) {
+                            requestAnimationFrame(scanAndAttach);
+                        }
+                    });
+                    caObserver.observe(centerArea, { childList: true, subtree: true });
+                }
+            }
+
+            // Initialize: wait for toolbar to be ready, then scan
+            function init() {
+                console.log('[OverlayTooltip] init');
+                ensureTooltipEl();
+                scanAndAttach();
+                initObserver();
+            }
+
+            // Poll for toolbar readiness (toolbar content is built dynamically)
+            function waitForToolbar() {
+                const startTime = Date.now();
+                function poll() {
+                    if (document.querySelector('#toolbar .tool-btn')) {
+                        init();
+                    } else if (Date.now() - startTime < 5000) {
+                        requestAnimationFrame(poll);
+                    } else {
+                        console.warn('[OverlayTooltip] toolbar not ready after 5s, initializing anyway');
+                        init();
+                    }
+                }
+                requestAnimationFrame(poll);
+            }
+
+            waitForToolbar();
+            console.log('[OverlayTooltip] module registered');
         })();
     </script>
 </body>

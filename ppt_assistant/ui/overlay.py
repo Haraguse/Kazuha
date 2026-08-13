@@ -2052,6 +2052,7 @@ class OverlayWindow(QWebEngineView):
             "statusBarShowNetwork": cfg.statusBarShowNetwork.value,
             "statusBarShowMusic": cfg.statusBarShowMusic.value,
             "showToolbarText": cfg.showToolbarText.value,
+            "showToolbarTooltip": cfg.showToolbarTooltip.value,
             "toolbarOrder": toolbar_order,
             "toolbarPosition": cfg.toolbarPosition.value,
             "compatibilityMode": cfg.compatibilityMode.value,
@@ -2578,6 +2579,7 @@ class OverlayWindow(QWebEngineView):
         cfg.flipperPosition.valueChanged.connect(lambda *_: self.update_config())
         cfg.quickLaunchApps.valueChanged.connect(lambda *_: self.update_config())
         cfg.showToolbarText.valueChanged.connect(lambda *_: self.update_config())
+cfg.showToolbarTooltip.valueChanged.connect(lambda *_: self.update_config())
         cfg.showClear.valueChanged.connect(lambda *_: self.update_config())
         cfg.clearMode.valueChanged.connect(lambda *_: self.update_config())
         cfg.showSpotlight.valueChanged.connect(lambda *_: self.update_config())
