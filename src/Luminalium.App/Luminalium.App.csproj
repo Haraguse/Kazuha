@@ -1,17 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Luminalium.App: Windows desktop application host.
-    Exactly one theme (FluentAvaloniaTheme) is registered in App.axaml.
-    TFM and package versions are the Task 2 validated stack, pinned via
-    central package management (Directory.Packages.props).
+    Luminalium.App: Avalonia desktop application shell (Issue #96 alignment).
+    Cross-platform plain net10.0: the UI and view models use only Avalonia /
+    FluentAvalonia / Core / Plugins / Updater types. Windows-specific behavior
+    lives in Luminalium.Platform.Windows behind Core contracts and is never
+    referenced here. The app.manifest carries the Windows 10 1809+ declaration
+    and is ignored on other platforms.
   -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
-    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <TargetFramework>net10.0</TargetFramework>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <AssemblyName>Luminalium</AssemblyName>
     <RootNamespace>Luminalium.App</RootNamespace>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
@@ -33,7 +33,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Luminalium.Core\Luminalium.Core.csproj" />
-    <ProjectReference Include="..\Luminalium.Platform.Windows\Luminalium.Platform.Windows.csproj" />
     <ProjectReference Include="..\Luminalium.Plugins\Luminalium.Plugins.csproj" />
     <ProjectReference Include="..\Luminalium.Updater\Luminalium.Updater.csproj" />
   </ItemGroup>
