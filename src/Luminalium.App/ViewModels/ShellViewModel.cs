@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Luminalium.App.Services;
 using Luminalium.Core.Identity;
 using Luminalium.Plugins;
+using Luminalium.Updater;
 
 namespace Luminalium.App.ViewModels;
 
@@ -11,6 +12,7 @@ public sealed partial class ShellViewModel : ObservableObject
     public const string VersionUnavailableText = "Version metadata unavailable";
 
     private readonly IShellThemeService _themeService;
+    private readonly UpdateOrchestrator _updateOrchestrator;
     private readonly Stack<ShellPageViewModel> _backStack = new();
     private readonly Dictionary<string, PluginPageViewModel> _pluginPages;
     private bool _syncingThemeMode;
@@ -38,10 +40,12 @@ public sealed partial class ShellViewModel : ObservableObject
     public ShellViewModel(
         string? versionMetadataPath = null,
         IShellThemeService? themeService = null,
-        IDialogService? dialogService = null)
+        IDialogService? dialogService = null,
+        UpdateOrchestrator? updateOrchestrator = null)
     {
         _themeService = themeService ?? NullShellThemeService.Instance;
         DialogService = dialogService ?? NullDialogService.Instance;
+        _updateOrchestrator = updateOrchestrator ?? new UpdateOrchestrator();
 
         ProductName = ProductIdentity.DisplayName;
         VersionDisplay = LoadVersionDisplay(versionMetadataPath ?? DefaultVersionMetadataPath);
@@ -54,6 +58,7 @@ public sealed partial class ShellViewModel : ObservableObject
         Settings = new SettingsViewModel(
             VersionDisplay,
             ShowAboutAsync,
+            CheckForUpdatesAsync,
             ClearError,
             ApplyThemeMode,
             ApplyAccentOption);
@@ -186,6 +191,12 @@ public sealed partial class ShellViewModel : ObservableObject
     private void UpdateBackState() => CanGoBack = _backStack.Count > 0;
 
     private Task ShowAboutAsync() => DialogService.ShowAboutAsync(this);
+
+    private Task<string> CheckForUpdatesAsync() =>
+        DialogService.ShowUpdateAsync(this, _updateOrchestrator, ResolveInstallDirectory());
+
+    private static string ResolveInstallDirectory() =>
+        Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
 
     private void ApplyAccentOption(AccentOptionViewModel accentOption)
     {

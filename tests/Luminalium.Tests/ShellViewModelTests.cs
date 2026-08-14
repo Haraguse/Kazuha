@@ -1,6 +1,7 @@
 using System.Text;
 using Luminalium.App.Services;
 using Luminalium.App.ViewModels;
+using Luminalium.Updater;
 using Xunit;
 
 namespace Luminalium.Tests;
@@ -132,6 +133,19 @@ public sealed class ShellViewModelTests : IDisposable
         ], themeService.AppliedModes);
     }
 
+    [Fact]
+    public async Task CheckForUpdatesCommandUsesDialogServiceStatus()
+    {
+        var dialogService = new RecordingDialogService("Update check completed.");
+        var viewModel = new ShellViewModel(dialogService: dialogService);
+
+        await viewModel.Settings.CheckForUpdatesCommand.ExecuteAsync(null);
+
+        Assert.True(dialogService.UpdateDialogShown);
+        Assert.Equal("Update check completed.", viewModel.Settings.UpdateStatusText);
+        Assert.False(viewModel.Settings.IsCheckingForUpdates);
+    }
+
     public void Dispose()
     {
         Directory.Delete(_directory, recursive: true);
@@ -156,6 +170,19 @@ public sealed class ShellViewModelTests : IDisposable
 
         public void ApplyAccent(string accentKey)
         {
+        }
+    }
+
+    private sealed class RecordingDialogService(string updateStatus) : IDialogService
+    {
+        public bool UpdateDialogShown { get; private set; }
+
+        public Task ShowAboutAsync(ShellViewModel shellViewModel) => Task.CompletedTask;
+
+        public Task<string> ShowUpdateAsync(ShellViewModel shellViewModel, UpdateOrchestrator orchestrator, string installDirectory)
+        {
+            UpdateDialogShown = true;
+            return Task.FromResult(updateStatus);
         }
     }
 }

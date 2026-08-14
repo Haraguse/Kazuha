@@ -59,6 +59,26 @@
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="{StaticResource ShellIdentityRowSpacing}" ColumnSpacing="{StaticResource ShellIdentityColumnSpacing}">
                     <StackPanel Spacing="{StaticResource ShellCompactSpacing}">
+                        <TextBlock Text="Updates" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding UpdateStatusText}"
+                                   TextWrapping="Wrap"
+                                   Opacity="{StaticResource ShellMutedOpacity}" />
+                    </StackPanel>
+                    <Button Grid.Column="1"
+                            MinHeight="{StaticResource ShellTouchTargetMinHeight}"
+                            Command="{Binding CheckForUpdatesCommand}"
+                            Content="Check for updates"
+                            AutomationProperties.Name="Check for updates"
+                            AutomationProperties.HelpText="Check the Luminalium Windows release feed" />
+                </Grid>
+            </Border>
+
+            <Border Padding="{StaticResource ShellSectionPadding}"
+                    CornerRadius="{StaticResource ShellCornerRadius}"
+                    BorderThickness="{StaticResource ShellBorderThickness}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="{StaticResource ShellIdentityRowSpacing}" ColumnSpacing="{StaticResource ShellIdentityColumnSpacing}">
+                    <StackPanel Spacing="{StaticResource ShellCompactSpacing}">
                         <TextBlock Text="Application identity" FontWeight="SemiBold" />
                         <TextBlock Text="{Binding AppUserModelId}" Opacity="{StaticResource ShellMutedOpacity}" />
                     </StackPanel>

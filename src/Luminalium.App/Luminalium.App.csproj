@@ -35,6 +35,7 @@
     <ProjectReference Include="..\Luminalium.Core\Luminalium.Core.csproj" />
     <ProjectReference Include="..\Luminalium.Platform.Windows\Luminalium.Platform.Windows.csproj" />
     <ProjectReference Include="..\Luminalium.Plugins\Luminalium.Plugins.csproj" />
+    <ProjectReference Include="..\Luminalium.Updater\Luminalium.Updater.csproj" />
   </ItemGroup>
 
   <ItemGroup>

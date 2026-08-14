@@ -37,11 +37,12 @@
                              PaneDisplayMode="Left"
                              IsPaneToggleButtonVisible="False"
                              IsSettingsVisible="False"
-                             IsBackButtonVisible="True"
-                             IsBackEnabled="{Binding CanGoBack}"
-                             BackRequested="OnBackRequested"
-                             ItemInvoked="OnItemInvoked"
-                             AutomationProperties.Name="Luminalium navigation"
+                              IsBackButtonVisible="True"
+                              IsBackEnabled="{Binding CanGoBack}"
+                              BackRequested="OnBackRequested"
+                              ItemInvoked="OnItemInvoked"
+                              SelectionChanged="OnSelectionChanged"
+                              AutomationProperties.Name="Luminalium navigation"
                              AutomationProperties.AutomationId="LuminaliumNavigation">
             <Grid RowDefinitions="*,Auto">
                 <ui:FAFrame x:Name="ShellFrame"

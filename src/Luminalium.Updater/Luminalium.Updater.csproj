@@ -9,4 +9,8 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Luminalium.Core\Luminalium.Core.csproj" />
+  </ItemGroup>
+
 </Project>

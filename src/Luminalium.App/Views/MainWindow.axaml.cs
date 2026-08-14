@@ -94,7 +94,7 @@ public partial class MainWindow : FAAppWindow
         }
     }
 
-    private static FANavigationViewItem CreateNavigationItem(string content, string tag, string helpText)
+    private FANavigationViewItem CreateNavigationItem(string content, string tag, string helpText)
     {
         var item = new FANavigationViewItem
         {
@@ -102,9 +102,21 @@ public partial class MainWindow : FAAppWindow
             Tag = tag,
             MinHeight = 40,
         };
+        item.Tapped += OnNavigationItemTapped;
         Avalonia.Automation.AutomationProperties.SetName(item, content);
         Avalonia.Automation.AutomationProperties.SetHelpText(item, helpText);
         return item;
+    }
+
+    private void OnNavigationItemTapped(object? sender, TappedEventArgs e)
+    {
+        if (_selectionChanging || sender is not FANavigationViewItem { Tag: string tag })
+        {
+            return;
+        }
+
+        NavigateByTag(tag);
+        e.Handled = true;
     }
 
     private void OnItemInvoked(object? sender, FANavigationViewItemInvokedEventArgs e)
@@ -114,6 +126,22 @@ public partial class MainWindow : FAAppWindow
             return;
         }
 
+        NavigateByTag(tag);
+    }
+
+    private void OnSelectionChanged(object? sender, FANavigationViewSelectionChangedEventArgs e)
+    {
+        var container = e.SelectedItemContainer ?? e.SelectedItem as FANavigationViewItem;
+        if (_selectionChanging || container?.Tag is not string tag)
+        {
+            return;
+        }
+
+        NavigateByTag(tag);
+    }
+
+    private void NavigateByTag(string tag)
+    {
         if (tag == _viewModel.Overview.NavigationKey)
         {
             _viewModel.NavigateToOverview();
