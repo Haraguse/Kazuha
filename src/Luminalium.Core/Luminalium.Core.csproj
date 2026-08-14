@@ -11,4 +11,8 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Localization\Resources\*.json" />
+  </ItemGroup>
+
 </Project>

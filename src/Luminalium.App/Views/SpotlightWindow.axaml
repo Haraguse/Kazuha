@@ -1,0 +1,61 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:Luminalium.App.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="720"
+        x:Class="Luminalium.App.Views.SpotlightWindow"
+        x:DataType="vm:SpotlightViewModel"
+        Title="{Binding WindowTitle}"
+        Width="1280"
+        Height="720"
+        CanResize="False"
+        WindowStartupLocation="Manual"
+        WindowDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        ShowInTaskbar="True"
+        Topmost="True"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        Icon="/Assets/logo.ico"
+        AutomationProperties.Name="SpotlightWindow">
+    <Grid x:Name="SpotlightSurface"
+          Background="Transparent"
+          KeyboardNavigation.TabNavigation="Cycle">
+        <Border x:Name="SpotlightDim"
+                Background="Black"
+                Opacity="0.6"
+                PointerPressed="OnSpotlightPointerPressed"
+                PointerMoved="OnSpotlightPointerMoved"
+                PointerReleased="OnSpotlightPointerReleased"
+                AutomationProperties.Name="SpotlightCanvas" />
+
+        <Rectangle x:Name="SpotlightHoleOutline"
+                   Stroke="White"
+                   StrokeThickness="2"
+                   IsHitTestVisible="False"
+                   IsVisible="{Binding HasSelection}"
+                   AutomationProperties.Name="SpotlightSelection" />
+
+        <StackPanel HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    Margin="0,16,0,0"
+                    Spacing="8">
+            <TextBlock Text="{Binding StatusText}"
+                       Foreground="White"
+                       FontSize="14"
+                       HorizontalAlignment="Center"
+                       AutomationProperties.Name="SpotlightStatus" />
+            <Button MinHeight="36"
+                    HorizontalAlignment="Center"
+                    Command="{Binding ClearSelectionCommand}"
+                    Content="{Binding Localization[Spotlight.Button.ClearSelection]}"
+                    AutomationProperties.Name="SpotlightClear" />
+            <Button MinHeight="36"
+                    HorizontalAlignment="Center"
+                    Click="OnCloseClicked"
+                    Content="{Binding Localization[Spotlight.Button.Close]}"
+                    AutomationProperties.Name="SpotlightClose" />
+        </StackPanel>
+    </Grid>
+</Window>

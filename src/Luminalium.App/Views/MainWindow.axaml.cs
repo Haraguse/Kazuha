@@ -213,11 +213,23 @@ public partial class MainWindow : FAAppWindow
         const string pluginPrefix = "plugin:";
         if (tag.StartsWith(pluginPrefix, StringComparison.Ordinal))
         {
-            if (string.Equals(tag, "plugin:board", StringComparison.Ordinal))
+            switch (tag)
             {
-                var board = new BoardWindow();
-                board.Show(this);
-                return;
+                case "plugin:board":
+                    new BoardWindow().Show(this);
+                    return;
+                case "plugin:timer":
+                    new TimerWindow().Show(this);
+                    return;
+                case "plugin:spotlight":
+                    new SpotlightWindow().Show(this);
+                    return;
+                case "plugin:app_launcher":
+                    new AppLauncherWindow().Show(this);
+                    return;
+                case "plugin:status_bar":
+                    new StatusBarWindow().Show(this);
+                    return;
             }
 
             var plugin = _viewModel.Plugins.FirstOrDefault(candidate =>

@@ -1,0 +1,58 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:Luminalium.App.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="640" d:DesignHeight="220"
+        x:Class="Luminalium.App.Views.StatusBarWindow"
+        x:DataType="vm:StatusBarViewModel"
+        Title="{Binding WindowTitle}"
+        Width="640" Height="220"
+        MinWidth="520" MinHeight="180"
+        WindowStartupLocation="CenterScreen"
+        AutomationProperties.Name="StatusBarWindow">
+    <Grid RowDefinitions="Auto,*,Auto" Margin="16" KeyboardNavigation.TabNavigation="Cycle">
+        <TextBlock Grid.Row="0"
+                   Text="{Binding WindowTitle}"
+                   FontSize="20"
+                   FontWeight="SemiBold" />
+
+        <StackPanel Grid.Row="1"
+                    Margin="0,16,0,0"
+                    Spacing="16"
+                    VerticalAlignment="Top">
+            <StackPanel Spacing="4">
+                <TextBlock Text="{Binding Localization[StatusBar.Label.Presentation]}"
+                           FontWeight="SemiBold"
+                           Opacity="0.8" />
+                <TextBlock Text="{Binding PresentationText}"
+                           FontSize="16"
+                           AutomationProperties.Name="StatusBarSlide" />
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="{Binding Localization[StatusBar.Label.Media]}"
+                           FontWeight="SemiBold"
+                           Opacity="0.8" />
+                <TextBlock Text="{Binding MediaText}"
+                           FontSize="16"
+                           TextWrapping="Wrap"
+                           AutomationProperties.Name="StatusBarMedia" />
+            </StackPanel>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8">
+            <Button MinHeight="36" MinWidth="88"
+                    Command="{Binding RefreshCommand}"
+                    Content="{Binding Localization[StatusBar.Button.Refresh]}"
+                    AutomationProperties.Name="StatusBarRefresh" />
+            <Button MinHeight="36" MinWidth="88"
+                    Click="OnCloseClicked"
+                    Content="{Binding Localization[StatusBar.Button.Close]}"
+                    AutomationProperties.Name="StatusBarClose" />
+        </StackPanel>
+    </Grid>
+</Window>

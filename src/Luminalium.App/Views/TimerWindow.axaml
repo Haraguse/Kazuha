@@ -1,0 +1,64 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:Luminalium.App.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="320"
+        x:Class="Luminalium.App.Views.TimerWindow"
+        x:DataType="vm:TimerViewModel"
+        Title="{Binding WindowTitle}"
+        Width="420" Height="320"
+        MinWidth="360" MinHeight="280"
+        WindowStartupLocation="CenterScreen"
+        AutomationProperties.Name="TimerWindow">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16" KeyboardNavigation.TabNavigation="Cycle">
+        <TextBlock Grid.Row="0"
+                   Text="{Binding Localization[Timer.Input.Hint]}"
+                   FontSize="12"
+                   Opacity="0.6" />
+        <TextBox Grid.Row="1"
+                 Margin="0,4,0,0"
+                 MinHeight="40"
+                 Text="{Binding InputText}"
+                 AutomationProperties.Name="TimerInput"
+                 AutomationProperties.HelpText="{Binding Localization[Timer.Input.Hint]}" />
+
+        <TextBlock Grid.Row="2"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   FontSize="56"
+                   FontWeight="SemiBold"
+                   Text="{Binding DisplayText}"
+                   AutomationProperties.Name="TimerDisplay" />
+
+        <TextBlock Grid.Row="2"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Bottom"
+                   Margin="0,0,0,4"
+                   Text="{Binding StatusText}"
+                   AutomationProperties.Name="TimerStatus" />
+
+        <StackPanel Grid.Row="3"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Spacing="8">
+            <Button MinHeight="40" MinWidth="88"
+                    Command="{Binding StartCommand}"
+                    Content="{Binding Localization[Timer.Button.Start]}"
+                    AutomationProperties.Name="TimerStart" />
+            <Button MinHeight="40" MinWidth="88"
+                    Command="{Binding PauseCommand}"
+                    IsEnabled="{Binding CanPause}"
+                    Content="{Binding Localization[Timer.Button.Pause]}"
+                    AutomationProperties.Name="TimerPause" />
+            <Button MinHeight="40" MinWidth="88"
+                    Command="{Binding ResetCommand}"
+                    Content="{Binding Localization[Timer.Button.Reset]}"
+                    AutomationProperties.Name="TimerReset" />
+            <Button MinHeight="40" MinWidth="88"
+                    Click="OnCloseClicked"
+                    Content="{Binding Localization[Timer.Button.Close]}"
+                    AutomationProperties.Name="TimerClose" />
+        </StackPanel>
+    </Grid>
+</Window>

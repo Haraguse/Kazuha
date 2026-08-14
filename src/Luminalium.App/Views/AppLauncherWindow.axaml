@@ -1,0 +1,77 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:Luminalium.App.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="420"
+        x:Class="Luminalium.App.Views.AppLauncherWindow"
+        x:DataType="vm:AppLauncherViewModel"
+        Title="{Binding WindowTitle}"
+        Width="560" Height="420"
+        MinWidth="480" MinHeight="360"
+        WindowStartupLocation="CenterScreen"
+        AutomationProperties.Name="AppLauncherWindow">
+    <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="16" KeyboardNavigation.TabNavigation="Cycle">
+        <StackPanel Grid.Row="0"
+                    Orientation="Horizontal"
+                    Spacing="8">
+            <Button MinHeight="40" MinWidth="96"
+                    Click="OnAddClicked"
+                    Content="{Binding Localization[Launcher.Button.Add]}"
+                    AutomationProperties.Name="LauncherAdd" />
+            <Button MinHeight="40" MinWidth="96"
+                    Command="{Binding LaunchCommand}"
+                    Content="{Binding Localization[Launcher.Button.Launch]}"
+                    AutomationProperties.Name="LauncherLaunch" />
+            <Button MinHeight="40" MinWidth="96"
+                    Click="OnRemoveClicked"
+                    Content="{Binding Localization[Launcher.Button.Remove]}"
+                    AutomationProperties.Name="LauncherRemove" />
+            <Button MinHeight="40" MinWidth="96"
+                    Click="OnCloseClicked"
+                    Content="{Binding Localization[Launcher.Button.Close]}"
+                    AutomationProperties.Name="LauncherClose" />
+        </StackPanel>
+
+        <Grid Grid.Row="1"
+              Margin="0,12,0,0"
+              ColumnDefinitions="2*,3*">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Grid.Column="0"
+                       Text="{Binding Localization[Launcher.Column.Name]}"
+                       FontWeight="SemiBold" />
+            <TextBlock Grid.Row="0" Grid.Column="1"
+                       Text="{Binding Localization[Launcher.Column.Path]}"
+                       FontWeight="SemiBold" />
+
+            <ListBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                     ItemsSource="{Binding Entries}"
+                     SelectedItem="{Binding SelectedEntry}"
+                     AutomationProperties.Name="LauncherList">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:LauncherEntry">
+                        <Grid ColumnDefinitions="2*,3*" Margin="0,2">
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding Name}"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding Path}"
+                                       TextTrimming="CharacterEllipsis"
+                                       Opacity="0.7" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+
+        <TextBlock Grid.Row="2"
+                   Margin="0,8,0,0"
+                   Text="{Binding StatusText}"
+                   TextWrapping="Wrap"
+                   AutomationProperties.Name="LauncherStatus" />
+    </Grid>
+</Window>
