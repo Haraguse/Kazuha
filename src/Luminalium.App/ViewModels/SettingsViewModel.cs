@@ -7,7 +7,7 @@ namespace Luminalium.App.ViewModels;
 public sealed partial class SettingsViewModel : ShellPageViewModel
 {
     private readonly Action<ShellThemeMode> _themeChanged;
-    private readonly Action<AccentOptionViewModel> _accentChanged;
+    private readonly Func<AccentOptionViewModel, Task> _accentChanged;
     private readonly Func<Task<string>> _checkForUpdatesAsync;
 
     [ObservableProperty]
@@ -29,7 +29,7 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
         Func<Task<string>> checkForUpdatesAsync,
         Action clearError,
         Action<ShellThemeMode> themeChanged,
-        Action<AccentOptionViewModel> accentChanged) : base("settings", "Settings")
+        Func<AccentOptionViewModel, Task> accentChanged) : base("settings", "Settings")
     {
         VersionDisplay = versionDisplay;
         _checkForUpdatesAsync = checkForUpdatesAsync;
@@ -57,6 +57,7 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
     public IReadOnlyList<AccentOptionViewModel> AccentOptions { get; } =
     [
         new("system", "System accent"),
+        new("monet", "System (Monet)"),
         new("blue", "Presentation blue"),
         new("teal", "Board teal"),
         new("green", "Status green"),
@@ -91,5 +92,6 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
 
     partial void OnSelectedThemeModeChanged(ShellThemeMode value) => _themeChanged(value);
 
-    partial void OnSelectedAccentOptionChanged(AccentOptionViewModel value) => _accentChanged(value);
+    partial void OnSelectedAccentOptionChanged(AccentOptionViewModel value) =>
+        _ = _accentChanged(value);
 }

@@ -34,6 +34,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Luminalium.Core\Luminalium.Core.csproj" />
     <ProjectReference Include="..\Luminalium.Plugins\Luminalium.Plugins.csproj" />
+    <ProjectReference Include="..\Luminalium.Theming\Luminalium.Theming.csproj" />
     <ProjectReference Include="..\Luminalium.Updater\Luminalium.Updater.csproj" />
   </ItemGroup>
 
@@ -45,5 +46,20 @@
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
+
+  <Target Name="CopyOptionalWindowsThemingProvider" AfterTargets="Build;Publish" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <PropertyGroup>
+      <WindowsThemingProviderPath>$(MSBuildThisFileDirectory)..\Luminalium.Platform.Windows\bin\$(Configuration)\net10.0-windows10.0.17763.0\Luminalium.Platform.Windows.dll</WindowsThemingProviderPath>
+      <WindowsThemingProviderDestination Condition="'$(PublishDir)' != ''">$(PublishDir)</WindowsThemingProviderDestination>
+      <WindowsThemingProviderDestination Condition="'$(WindowsThemingProviderDestination)' == ''">$(OutputPath)</WindowsThemingProviderDestination>
+    </PropertyGroup>
+    <MSBuild Projects="$(MSBuildThisFileDirectory)..\Luminalium.Platform.Windows\Luminalium.Platform.Windows.csproj"
+             Targets="Build"
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=" />
+    <Copy SourceFiles="$(WindowsThemingProviderPath)"
+          DestinationFolder="$(WindowsThemingProviderDestination)"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(WindowsThemingProviderPath)')" />
+  </Target>
 
 </Project>

@@ -1,6 +1,8 @@
 using System.Text;
+using Luminalium.Core.Platform;
 using Luminalium.App.Services;
 using Luminalium.App.ViewModels;
+using Luminalium.Theming;
 using Luminalium.Updater;
 using Xunit;
 
@@ -134,6 +136,46 @@ public sealed class ShellViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task MonetAccentOptionAppliesComputedPaletteThroughThemeService()
+    {
+        var themeService = new RecordingThemeService();
+        var monetService = new MonetThemeService(new RecordingAccentProvider(RgbColor.FromHex("#0078D4")));
+        var viewModel = new ShellViewModel(themeService: themeService, monetThemeService: monetService);
+        var monetOption = Assert.Single(
+            viewModel.Settings.AccentOptions,
+            option => option.Key == "monet");
+
+        await viewModel.ApplyAccentOptionAsync(monetOption);
+
+        Assert.Contains(
+            viewModel.Settings.AccentOptions,
+            option => option.DisplayName == "System (Monet)");
+        Assert.Equal("#0078D4", themeService.MonetPalette!.Seed.ToHexString());
+        Assert.Empty(themeService.AppliedAccentKeys);
+        Assert.False(themeService.SystemAccentUsed);
+    }
+
+    [Fact]
+    public async Task LaterAccentSelectionWinsOverSlowMonetComputation()
+    {
+        var themeService = new RecordingThemeService();
+        var accentProvider = new DelayedAccentProvider(RgbColor.FromHex("#0078D4"));
+        var monetService = new MonetThemeService(accentProvider);
+        var viewModel = new ShellViewModel(themeService: themeService, monetThemeService: monetService);
+        var monetOption = Assert.Single(viewModel.Settings.AccentOptions, option => option.Key == "monet");
+        var blueOption = Assert.Single(viewModel.Settings.AccentOptions, option => option.Key == "blue");
+
+        var monetTask = viewModel.ApplyAccentOptionAsync(monetOption);
+        await accentProvider.WaitForRequestAsync();
+        await viewModel.ApplyAccentOptionAsync(blueOption);
+        accentProvider.Complete();
+        await monetTask;
+
+        Assert.Null(themeService.MonetPalette);
+        Assert.Equal(["blue"], themeService.AppliedAccentKeys);
+    }
+
+    [Fact]
     public async Task CheckForUpdatesCommandUsesDialogServiceStatus()
     {
         var dialogService = new RecordingDialogService("Update check completed.");
@@ -162,15 +204,47 @@ public sealed class ShellViewModelTests : IDisposable
     {
         public List<ShellThemeMode> AppliedModes { get; } = [];
 
+        public List<string> AppliedAccentKeys { get; } = [];
+
+        public bool SystemAccentUsed { get; private set; }
+
+        public MonetPalette? MonetPalette { get; private set; }
+
         public void Apply(ShellThemeMode mode) => AppliedModes.Add(mode);
 
         public void UseSystemAccent()
         {
+            SystemAccentUsed = true;
         }
 
-        public void ApplyAccent(string accentKey)
+        public void ApplyAccent(string accentKey) => AppliedAccentKeys.Add(accentKey);
+
+        public void ApplyMonetPalette(MonetPalette palette)
         {
+            MonetPalette = palette;
         }
+    }
+
+    private sealed class RecordingAccentProvider(RgbColor color) : IAccentProvider
+    {
+        public Task<PlatformOperationResult<RgbColor?>> TryGetAccentAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(PlatformOperation.Success<RgbColor?>(color));
+    }
+
+    private sealed class DelayedAccentProvider(RgbColor color) : IAccentProvider
+    {
+        private readonly TaskCompletionSource _requested = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<PlatformOperationResult<RgbColor?>> _result = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task<PlatformOperationResult<RgbColor?>> TryGetAccentAsync(CancellationToken cancellationToken = default)
+        {
+            _requested.SetResult();
+            return _result.Task;
+        }
+
+        public Task WaitForRequestAsync() => _requested.Task;
+
+        public void Complete() => _result.SetResult(PlatformOperation.Success<RgbColor?>(color));
     }
 
     private sealed class RecordingDialogService(string updateStatus) : IDialogService

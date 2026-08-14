@@ -8,6 +8,7 @@ using Luminalium.App.Services;
 using Luminalium.App.ViewModels;
 using Luminalium.App.Views;
 using Luminalium.Core.Identity;
+using Luminalium.Theming;
 
 namespace Luminalium.App;
 
@@ -25,7 +26,9 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var themeService = new AvaloniaShellThemeService(this);
-            var shellViewModel = new ShellViewModel(themeService: themeService);
+            var shellViewModel = new ShellViewModel(
+                themeService: themeService,
+                monetThemeService: MonetThemeServiceFactory.CreateDefault());
             var mainWindow = new MainWindow(shellViewModel, new DialogService());
             var splashWindow = new SplashWindow(new SplashViewModel(shellViewModel.VersionDisplay));
 

@@ -15,6 +15,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="SkiaSharp" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
@@ -30,6 +31,7 @@
     <ProjectReference Include="..\..\src\Luminalium.Core\Luminalium.Core.csproj" />
     <ProjectReference Include="..\..\src\Luminalium.Platform.Windows\Luminalium.Platform.Windows.csproj" />
     <ProjectReference Include="..\..\src\Luminalium.Plugins\Luminalium.Plugins.csproj" />
+    <ProjectReference Include="..\..\src\Luminalium.Theming\Luminalium.Theming.csproj" />
     <ProjectReference Include="..\..\src\Luminalium.Updater\Luminalium.Updater.csproj" />
     <ProjectReference Include="..\..\src\Luminalium.Wps\Luminalium.Wps.csproj" />
   </ItemGroup>

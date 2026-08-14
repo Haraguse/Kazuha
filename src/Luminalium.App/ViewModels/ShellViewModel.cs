@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Luminalium.App.Services;
 using Luminalium.Core.Identity;
 using Luminalium.Plugins;
+using Luminalium.Theming;
 using Luminalium.Updater;
 
 namespace Luminalium.App.ViewModels;
@@ -12,7 +13,9 @@ public sealed partial class ShellViewModel : ObservableObject
     public const string VersionUnavailableText = "Version metadata unavailable";
 
     private readonly IShellThemeService _themeService;
+    private readonly MonetThemeService _monetThemeService;
     private readonly UpdateOrchestrator _updateOrchestrator;
+    private long _accentRequestId;
     private readonly Stack<ShellPageViewModel> _backStack = new();
     private readonly Dictionary<string, PluginPageViewModel> _pluginPages;
     private bool _syncingThemeMode;
@@ -40,10 +43,12 @@ public sealed partial class ShellViewModel : ObservableObject
     public ShellViewModel(
         string? versionMetadataPath = null,
         IShellThemeService? themeService = null,
+        MonetThemeService? monetThemeService = null,
         IDialogService? dialogService = null,
         UpdateOrchestrator? updateOrchestrator = null)
     {
         _themeService = themeService ?? NullShellThemeService.Instance;
+        _monetThemeService = monetThemeService ?? MonetThemeServiceFactory.CreateDefault();
         DialogService = dialogService ?? NullDialogService.Instance;
         _updateOrchestrator = updateOrchestrator ?? new UpdateOrchestrator();
 
@@ -61,7 +66,7 @@ public sealed partial class ShellViewModel : ObservableObject
             CheckForUpdatesAsync,
             ClearError,
             ApplyThemeMode,
-            ApplyAccentOption);
+            ApplyAccentOptionAsync);
         _pluginPages = Plugins.ToDictionary(
             plugin => plugin.Id,
             plugin => new PluginPageViewModel(plugin),
@@ -198,14 +203,43 @@ public sealed partial class ShellViewModel : ObservableObject
     private static string ResolveInstallDirectory() =>
         Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
 
-    private void ApplyAccentOption(AccentOptionViewModel accentOption)
+    public async Task ApplyAccentOptionAsync(AccentOptionViewModel accentOption)
     {
-        if (accentOption.Key == "system")
+        var requestId = Interlocked.Increment(ref _accentRequestId);
+        try
         {
-            _themeService.UseSystemAccent();
-            return;
-        }
+            if (accentOption.Key == "system")
+            {
+                if (IsCurrentAccentRequest(requestId))
+                {
+                    _themeService.UseSystemAccent();
+                }
 
-        _themeService.ApplyAccent(accentOption.Key);
+                return;
+            }
+
+            if (accentOption.Key == "monet")
+            {
+                var result = await _monetThemeService.BuildPaletteAsync().ConfigureAwait(true);
+                if (IsCurrentAccentRequest(requestId))
+                {
+                    _themeService.ApplyMonetPalette(result.Palette);
+                }
+
+                return;
+            }
+
+            if (IsCurrentAccentRequest(requestId))
+            {
+                _themeService.ApplyAccent(accentOption.Key);
+            }
+        }
+        catch (Exception exception) when (IsCurrentAccentRequest(requestId))
+        {
+            ReportError(ShellErrorKind.Theme, $"Theme update failed: {exception.Message}");
+        }
     }
+
+    private bool IsCurrentAccentRequest(long requestId) =>
+        Interlocked.Read(ref _accentRequestId) == requestId;
 }
