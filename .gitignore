@@ -16,6 +16,7 @@ internalSMTCHelper/
 # IDE
 .idea/
 .vscode/
+.vs/
 .trae/
 *.swp
 *.swo
