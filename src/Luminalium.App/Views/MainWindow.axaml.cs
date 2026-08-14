@@ -1,4 +1,4 @@
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -7,6 +7,7 @@ using FluentAvalonia.UI.Navigation;
 using FluentAvalonia.UI.Windowing;
 using Luminalium.App.Services;
 using Luminalium.App.ViewModels;
+using System.Globalization;
 
 namespace Luminalium.App.Views;
 
@@ -15,6 +16,7 @@ public partial class MainWindow : FAAppWindow
     private readonly ShellViewModel _viewModel;
     private readonly ShellNavigationService _navigationService = new();
     private readonly Dictionary<string, FANavigationViewItem> _navigationItems = new(StringComparer.Ordinal);
+    private OverlayWindow? _overlayWindow;
     private bool _selectionChanging;
 
     public MainWindow()
@@ -59,6 +61,14 @@ public partial class MainWindow : FAAppWindow
             _viewModel.GoBack();
             e.Handled = true;
         }
+
+        if (e.Key == Key.O
+            && e.KeyModifiers.HasFlag(KeyModifiers.Control)
+            && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        {
+            OpenOverlay();
+            e.Handled = true;
+        }
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
@@ -74,24 +84,70 @@ public partial class MainWindow : FAAppWindow
 
     private void BuildNavigationItems()
     {
-        var overviewItem = CreateNavigationItem("Overview", _viewModel.Overview.NavigationKey, "Open Luminalium overview");
+        var overviewItem = CreateNavigationItem(
+            _viewModel.Overview.Title,
+            _viewModel.Overview.NavigationKey,
+            _viewModel.Localization["Navigation.Overview.HelpText"]);
         overviewItem.IconSource = new FASymbolIconSource { Symbol = FASymbol.Home };
         AddTopItem(overviewItem);
 
         foreach (var plugin in _viewModel.Plugins)
         {
-            AddTopItem(CreateNavigationItem(plugin.DisplayName, $"plugin:{plugin.Id}", $"Open {plugin.DisplayName}"));
+            AddTopItem(CreateNavigationItem(
+                plugin.DisplayName,
+                $"plugin:{plugin.Id}",
+                string.Format(CultureInfo.InvariantCulture, _viewModel.Localization["Navigation.Plugin.HelpText"], plugin.DisplayName)));
         }
 
-        var settingsItem = CreateNavigationItem("Settings", _viewModel.Settings.NavigationKey, "Open Luminalium settings");
+        var settingsItem = CreateNavigationItem(
+            _viewModel.Settings.Title,
+            _viewModel.Settings.NavigationKey,
+            _viewModel.Localization["Navigation.Settings.HelpText"]);
         ShellNavigation.FooterMenuItems.Add(settingsItem);
         _navigationItems[_viewModel.Settings.NavigationKey] = settingsItem;
+
+        _viewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(ShellViewModel.LocalizedTextVersion))
+            {
+                RefreshNavigationText();
+            }
+        };
 
         void AddTopItem(FANavigationViewItem item)
         {
             ShellNavigation.MenuItems.Add(item);
             _navigationItems[(string)item.Tag!] = item;
         }
+    }
+
+    private void RefreshNavigationText()
+    {
+        if (_navigationItems.TryGetValue(_viewModel.Overview.NavigationKey, out var overviewItem))
+        {
+            SetNavigationText(overviewItem, _viewModel.Overview.Title, _viewModel.Localization["Navigation.Overview.HelpText"]);
+        }
+
+        if (_navigationItems.TryGetValue(_viewModel.Settings.NavigationKey, out var settingsItem))
+        {
+            SetNavigationText(settingsItem, _viewModel.Settings.Title, _viewModel.Localization["Navigation.Settings.HelpText"]);
+        }
+
+        foreach (var plugin in _viewModel.Plugins)
+        {
+            var key = $"plugin:{plugin.Id}";
+            if (_navigationItems.TryGetValue(key, out var pluginItem))
+            {
+                SetNavigationText(pluginItem, plugin.DisplayName, string.Format(CultureInfo.InvariantCulture, _viewModel.Localization["Navigation.Plugin.HelpText"], plugin.DisplayName));
+            }
+        }
+    }
+
+    private static void SetNavigationText(FANavigationViewItem item, string content, string helpText)
+    {
+        item.Content = content;
+        Avalonia.Automation.AutomationProperties.SetName(item, content);
+        Avalonia.Automation.AutomationProperties.SetHelpText(item, helpText);
     }
 
     private FANavigationViewItem CreateNavigationItem(string content, string tag, string helpText)
@@ -157,6 +213,13 @@ public partial class MainWindow : FAAppWindow
         const string pluginPrefix = "plugin:";
         if (tag.StartsWith(pluginPrefix, StringComparison.Ordinal))
         {
+            if (string.Equals(tag, "plugin:board", StringComparison.Ordinal))
+            {
+                var board = new BoardWindow();
+                board.Show(this);
+                return;
+            }
+
             var plugin = _viewModel.Plugins.FirstOrDefault(candidate =>
                 StringComparer.Ordinal.Equals(candidate.Id, tag[pluginPrefix.Length..]));
             _viewModel.NavigateToPlugin(plugin);
@@ -164,6 +227,35 @@ public partial class MainWindow : FAAppWindow
     }
 
     private void OnBackRequested(object? sender, FANavigationViewBackRequestedEventArgs e) => _viewModel.GoBack();
+
+    private void OnOpenOverlayClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => OpenOverlay();
+
+    public void OpenOverlay()
+    {
+        if (_overlayWindow is { IsVisible: true })
+        {
+            _overlayWindow.Activate();
+            return;
+        }
+
+        var overlayWindow = new OverlayWindow(_viewModel.Localization);
+        overlayWindow.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_overlayWindow, overlayWindow))
+            {
+                _overlayWindow = null;
+            }
+
+            if (IsVisible)
+            {
+                Activate();
+            }
+        };
+
+        _overlayWindow = overlayWindow;
+        overlayWindow.Show(this);
+        overlayWindow.Activate();
+    }
 
     private void NavigateFrame(ShellPageViewModel page)
     {

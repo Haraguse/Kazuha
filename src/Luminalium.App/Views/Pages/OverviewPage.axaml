@@ -22,20 +22,20 @@
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
                 <StackPanel Spacing="{StaticResource ShellSectionSpacing}">
-                    <TextBlock Text="Native shell"
+                    <TextBlock Text="{Binding NativeShellTitle}"
                                FontSize="{StaticResource ShellSectionTitleFontSize}"
                                FontWeight="SemiBold" />
-                    <TextBlock Text="Luminalium is running in an Avalonia + FluentAvalonia desktop shell with native navigation, dialogs, tray identity, and CJK-capable font fallback."
+                    <TextBlock Text="{Binding NativeShellBody}"
                                TextWrapping="Wrap"
                                LineHeight="{StaticResource ShellBodyLineHeight}"
                                Opacity="{StaticResource ShellBodyOpacity}" />
                 </StackPanel>
             </Border>
 
-            <TextBlock Text="Built-in plugins"
+            <TextBlock Text="{Binding BuiltInPluginsTitle}"
                        FontSize="{StaticResource ShellSectionTitleFontSize}"
                        FontWeight="SemiBold" />
-            <ItemsControl ItemsSource="{Binding Plugins}" AutomationProperties.Name="Built-in plugin list">
+            <ItemsControl ItemsSource="{Binding Plugins}" AutomationProperties.Name="{Binding BuiltInPluginListName}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:PluginEntryViewModel">
                         <Border Margin="{StaticResource ShellListItemMargin}"

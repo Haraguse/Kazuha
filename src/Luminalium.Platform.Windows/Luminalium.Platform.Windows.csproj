@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Luminalium.Core\Luminalium.Core.csproj" />
+    <ProjectReference Include="..\Luminalium.Theming\Luminalium.Theming.csproj" />
   </ItemGroup>
 
 </Project>

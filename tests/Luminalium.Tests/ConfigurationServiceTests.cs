@@ -43,6 +43,7 @@ public sealed class ConfigurationServiceTests : IDisposable
         Assert.Equal(LuminaliumConfig.CurrentSchemaVersion, reloaded.Config.SchemaVersion);
         Assert.Equal(ThemeMode.Dark, reloaded.Config.Appearance.ThemeMode);
         Assert.Equal("#0078D4", reloaded.Config.Appearance.AccentColor);
+        Assert.Equal("zh-CN", reloaded.Config.General.Language);
         Assert.Equal("default", reloaded.Config.Appearance.ThemeId);
         Assert.Equal("bottom", reloaded.Config.Overlay.ToolbarPosition.ToString().ToLowerInvariant());
         Assert.Equal("#000000", reloaded.Config.SelfPen.PenColor);
@@ -58,6 +59,7 @@ public sealed class ConfigurationServiceTests : IDisposable
         var json = File.ReadAllText(created.Path, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         Assert.Contains("\"SchemaVersion\": 1", json, StringComparison.Ordinal);
         Assert.Contains("\"ThemeMode\": \"Dark\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"Language\": \"zh-CN\"", json, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -1,4 +1,5 @@
 using Luminalium.App.ViewModels;
+using Luminalium.Theming;
 
 namespace Luminalium.App.Services;
 
@@ -19,6 +20,10 @@ public sealed class NullShellThemeService : IShellThemeService
     }
 
     public void ApplyAccent(string accentKey)
+    {
+    }
+
+    public void ApplyMonetPalette(MonetPalette palette)
     {
     }
 }

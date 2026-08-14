@@ -10,11 +10,13 @@
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <DefineConstants>$(DefineConstants);LUMINALIUM_HEADLESS_TESTS</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="SkiaSharp" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
@@ -29,7 +31,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Luminalium.Core\Luminalium.Core.csproj" />
     <ProjectReference Include="..\..\src\Luminalium.Platform.Windows\Luminalium.Platform.Windows.csproj" />
+    <ProjectReference Include="..\..\src\Luminalium.Presentation\Luminalium.Presentation.csproj" />
+    <ProjectReference Include="..\..\src\Luminalium.Presentation.Windows\Luminalium.Presentation.Windows.csproj" />
     <ProjectReference Include="..\..\src\Luminalium.Plugins\Luminalium.Plugins.csproj" />
+    <ProjectReference Include="..\..\src\Luminalium.Theming\Luminalium.Theming.csproj" />
     <ProjectReference Include="..\..\src\Luminalium.Updater\Luminalium.Updater.csproj" />
     <ProjectReference Include="..\..\src\Luminalium.Wps\Luminalium.Wps.csproj" />
   </ItemGroup>
@@ -39,8 +44,15 @@
     <Compile Include="..\..\src\Luminalium.App\Services\IShellThemeService.cs" Link="App\Services\IShellThemeService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\NullDialogService.cs" Link="App\Services\NullDialogService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\NullShellThemeService.cs" Link="App\Services\NullShellThemeService.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Overlay\IAnnotationSink.cs" Link="App\Overlay\IAnnotationSink.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Overlay\IOverlayScreenProvider.cs" Link="App\Overlay\IOverlayScreenProvider.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Overlay\StrokeModel.cs" Link="App\Overlay\StrokeModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Board\*.cs" Link="App\Board\%(Filename)%(Extension)" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\BoardViewModel.cs" Link="App\ViewModels\BoardViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\AccentOptionViewModel.cs" Link="App\ViewModels\AccentOptionViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\LanguageOptionViewModel.cs" Link="App\ViewModels\LanguageOptionViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\OverviewViewModel.cs" Link="App\ViewModels\OverviewViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\OverlayViewModel.cs" Link="App\ViewModels\OverlayViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\PluginEntryViewModel.cs" Link="App\ViewModels\PluginEntryViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\PluginPageViewModel.cs" Link="App\ViewModels\PluginPageViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\SettingsViewModel.cs" Link="App\ViewModels\SettingsViewModel.cs" />
@@ -48,6 +60,7 @@
     <Compile Include="..\..\src\Luminalium.App\ViewModels\ShellPageViewModel.cs" Link="App\ViewModels\ShellPageViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\ShellThemeMode.cs" Link="App\ViewModels\ShellThemeMode.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\ShellViewModel.cs" Link="App\ViewModels\ShellViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\ThemeModeOptionViewModel.cs" Link="App\ViewModels\ThemeModeOptionViewModel.cs" />
   </ItemGroup>
 
 </Project>

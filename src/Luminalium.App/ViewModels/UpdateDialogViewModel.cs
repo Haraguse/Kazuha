@@ -1,12 +1,27 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Luminalium.Core.Localization;
 using Luminalium.Updater;
+using System.Globalization;
 
 namespace Luminalium.App.ViewModels;
 
 public sealed partial class UpdateDialogViewModel : ObservableObject
 {
+    private readonly ILocalizationService _localization;
+
+    public UpdateDialogViewModel()
+        : this(new LocalizationService())
+    {
+    }
+
+    public UpdateDialogViewModel(ILocalizationService localization)
+    {
+        _localization = localization;
+        statusText = _localization["UpdateDialog.Preparing"];
+    }
+
     [ObservableProperty]
-    private string statusText = "Preparing update check...";
+    private string statusText = string.Empty;
 
     [ObservableProperty]
     private string errorText = string.Empty;
@@ -35,7 +50,7 @@ public sealed partial class UpdateDialogViewModel : ObservableObject
             ErrorText = result.Error!.Detail is { Length: > 0 }
                 ? $"{result.Error.Message} {result.Error.Detail}"
                 : result.Error.Message;
-            StatusText = "Update check failed.";
+            StatusText = _localization["UpdateDialog.Failed"];
             return ErrorText;
         }
 
@@ -47,13 +62,13 @@ public sealed partial class UpdateDialogViewModel : ObservableObject
         if (!preparation.Info.Available)
         {
             var status = UpdateOrchestrator.IsDevEnvironment(installDirectory)
-                ? "Update checks are disabled in this development layout."
-                : "Luminalium is up to date.";
+                ? _localization["UpdateDialog.DevDisabled"]
+                : _localization["UpdateDialog.UpToDate"];
             StatusText = status;
             return status;
         }
 
-        var stagedStatus = $"Update {preparation.Info.Tag} downloaded and validated.";
+        var stagedStatus = string.Format(CultureInfo.InvariantCulture, _localization["UpdateDialog.Downloaded"], preparation.Info.Tag);
         StatusText = stagedStatus;
         return stagedStatus;
     }
@@ -61,6 +76,18 @@ public sealed partial class UpdateDialogViewModel : ObservableObject
     private void OnProgress(UpdateProgress progress)
     {
         ProgressValue = Math.Clamp(progress.Percent, 0, 100);
-        StatusText = progress.Status;
+        StatusText = progress.Stage switch
+        {
+            UpdateProgressStage.Checking => _localization["UpdateDialog.Progress.Checking"],
+            UpdateProgressStage.Downloading => _localization["UpdateDialog.Progress.Downloading"],
+            UpdateProgressStage.Validating => _localization["UpdateDialog.Progress.Validating"],
+            UpdateProgressStage.WaitingForExit => _localization["UpdateDialog.Progress.WaitingForExit"],
+            UpdateProgressStage.BackingUp => _localization["UpdateDialog.Progress.BackingUp"],
+            UpdateProgressStage.Replacing => _localization["UpdateDialog.Progress.Replacing"],
+            UpdateProgressStage.RollingBack => _localization["UpdateDialog.Progress.RollingBack"],
+            UpdateProgressStage.Complete => _localization["UpdateDialog.Progress.Complete"],
+            UpdateProgressStage.Failed => _localization["UpdateDialog.Progress.Failed"],
+            _ => progress.Status,
+        };
     }
 }
