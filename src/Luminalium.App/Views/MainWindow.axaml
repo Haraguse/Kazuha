@@ -56,6 +56,12 @@
                         BorderThickness="{StaticResource ShellFooterBorderThickness}"
                         BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
                     <StackPanel Spacing="{StaticResource ShellCompactSpacing}">
+                        <Button MinHeight="{StaticResource OverlayTouchTargetSize}"
+                                Click="OnOpenOverlayClicked"
+                                Content="Open overlay"
+                                HorizontalAlignment="Stretch"
+                                AutomationProperties.Name="OpenOverlay"
+                                AutomationProperties.HelpText="Open the presentation overlay" />
                         <TextBlock Text="{Binding VersionDisplay}"
                                    FontSize="{StaticResource ShellCaptionFontSize}"
                                    Opacity="{StaticResource ShellMutedOpacity}"

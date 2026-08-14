@@ -22,6 +22,11 @@
         <sys:Double x:Key="ShellSplashWidth">420</sys:Double>
         <sys:Double x:Key="ShellSplashHeight">220</sys:Double>
         <sys:Double x:Key="ShellProgressMinHeight">4</sys:Double>
+        <sys:Double x:Key="OverlayTouchTargetSize">44</sys:Double>
+        <sys:Double x:Key="OverlayToolbarSpacing">8</sys:Double>
+        <sys:Double x:Key="OverlayToolbarOpacity">0.94</sys:Double>
+        <sys:Double x:Key="OverlaySpotlightRadius">150</sys:Double>
+        <sys:Double x:Key="OverlayStatusMaxWidth">260</sys:Double>
         <sys:Double x:Key="ShellPageMaxWidth">880</sys:Double>
         <sys:Double x:Key="ShellSettingsMaxWidth">760</sys:Double>
         <sys:Double x:Key="ShellPluginMaxWidth">780</sys:Double>
@@ -54,6 +59,12 @@
         <Thickness x:Key="ShellBorderThickness">1</Thickness>
         <Thickness x:Key="ShellFooterBorderThickness">0,1,0,0</Thickness>
         <CornerRadius x:Key="ShellCornerRadius">8</CornerRadius>
+        <CornerRadius x:Key="OverlayToolbarCornerRadius">8</CornerRadius>
+
+        <SolidColorBrush x:Key="OverlayToolbarBackgroundBrush" Color="#E5111417" />
+        <SolidColorBrush x:Key="OverlayToolbarBorderBrush" Color="#5EFFFFFF" />
+        <SolidColorBrush x:Key="OverlayToolbarForegroundBrush" Color="#F2FFFFFF" />
+        <SolidColorBrush x:Key="OverlayDimBrush" Color="#A6000000" />
     </Application.Resources>
 
     <Application.Styles>

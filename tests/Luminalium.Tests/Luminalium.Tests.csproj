@@ -10,6 +10,7 @@
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <DefineConstants>$(DefineConstants);LUMINALIUM_HEADLESS_TESTS</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -43,8 +44,12 @@
     <Compile Include="..\..\src\Luminalium.App\Services\IShellThemeService.cs" Link="App\Services\IShellThemeService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\NullDialogService.cs" Link="App\Services\NullDialogService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\NullShellThemeService.cs" Link="App\Services\NullShellThemeService.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Overlay\IAnnotationSink.cs" Link="App\Overlay\IAnnotationSink.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Overlay\IOverlayScreenProvider.cs" Link="App\Overlay\IOverlayScreenProvider.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Overlay\StrokeModel.cs" Link="App\Overlay\StrokeModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\AccentOptionViewModel.cs" Link="App\ViewModels\AccentOptionViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\OverviewViewModel.cs" Link="App\ViewModels\OverviewViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\OverlayViewModel.cs" Link="App\ViewModels\OverlayViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\PluginEntryViewModel.cs" Link="App\ViewModels\PluginEntryViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\PluginPageViewModel.cs" Link="App\ViewModels\PluginPageViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\SettingsViewModel.cs" Link="App\ViewModels\SettingsViewModel.cs" />

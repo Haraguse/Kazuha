@@ -15,6 +15,7 @@ public partial class MainWindow : FAAppWindow
     private readonly ShellViewModel _viewModel;
     private readonly ShellNavigationService _navigationService = new();
     private readonly Dictionary<string, FANavigationViewItem> _navigationItems = new(StringComparer.Ordinal);
+    private OverlayWindow? _overlayWindow;
     private bool _selectionChanging;
 
     public MainWindow()
@@ -57,6 +58,14 @@ public partial class MainWindow : FAAppWindow
         if (e.Key == Key.Left && e.KeyModifiers.HasFlag(KeyModifiers.Alt) && _viewModel.CanGoBack)
         {
             _viewModel.GoBack();
+            e.Handled = true;
+        }
+
+        if (e.Key == Key.O
+            && e.KeyModifiers.HasFlag(KeyModifiers.Control)
+            && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        {
+            OpenOverlay();
             e.Handled = true;
         }
     }
@@ -164,6 +173,35 @@ public partial class MainWindow : FAAppWindow
     }
 
     private void OnBackRequested(object? sender, FANavigationViewBackRequestedEventArgs e) => _viewModel.GoBack();
+
+    private void OnOpenOverlayClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => OpenOverlay();
+
+    public void OpenOverlay()
+    {
+        if (_overlayWindow is { IsVisible: true })
+        {
+            _overlayWindow.Activate();
+            return;
+        }
+
+        var overlayWindow = new OverlayWindow();
+        overlayWindow.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_overlayWindow, overlayWindow))
+            {
+                _overlayWindow = null;
+            }
+
+            if (IsVisible)
+            {
+                Activate();
+            }
+        };
+
+        _overlayWindow = overlayWindow;
+        overlayWindow.Show(this);
+        overlayWindow.Activate();
+    }
 
     private void NavigateFrame(ShellPageViewModel page)
     {

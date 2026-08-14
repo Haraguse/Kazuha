@@ -1,0 +1,136 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:overlay="using:Luminalium.App.Overlay"
+        xmlns:vm="using:Luminalium.App.ViewModels"
+        x:Class="Luminalium.App.Views.OverlayWindow"
+        x:DataType="vm:OverlayViewModel"
+        Title="Luminalium overlay"
+        Width="1280"
+        Height="720"
+        CanResize="False"
+        WindowStartupLocation="Manual"
+        WindowDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        Icon="/Assets/logo.ico"
+        AutomationProperties.Name="Luminalium overlay window">
+    <Grid x:Name="OverlaySurface"
+          RowDefinitions="*,Auto"
+          ClipToBounds="True"
+          Background="Transparent"
+          KeyboardNavigation.TabNavigation="Cycle">
+        <overlay:AnnotationCanvas x:Name="InkCanvas"
+                                  Grid.RowSpan="2"
+                                  Strokes="{Binding Strokes}"
+                                  AnnotationSink="{Binding}"
+                                  CanDraw="{Binding IsDrawingActive}"
+                                  StrokeColor="{Binding PenColor}"
+                                  StrokeWidth="{Binding StrokeThickness}"
+                                  RenderTransformOrigin="0,0"
+                                  AutomationProperties.Name="Annotation canvas">
+            <overlay:AnnotationCanvas.RenderTransform>
+                <ScaleTransform ScaleX="{Binding ZoomScale}" ScaleY="{Binding ZoomScale}" />
+            </overlay:AnnotationCanvas.RenderTransform>
+        </overlay:AnnotationCanvas>
+
+        <Border x:Name="SpotlightDim"
+                Grid.RowSpan="2"
+                Background="{StaticResource OverlayDimBrush}"
+                IsVisible="{Binding IsSpotlightActive}"
+                PointerPressed="OnSpotlightPointerPressed"
+                PointerMoved="OnSpotlightPointerMoved"
+                PointerReleased="OnSpotlightPointerReleased"
+                AutomationProperties.Name="Spotlight dimmer" />
+
+        <Border HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Padding="{StaticResource ShellSectionPadding}"
+                CornerRadius="{StaticResource ShellCornerRadius}"
+                BorderThickness="{StaticResource ShellBorderThickness}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                Background="{DynamicResource LayerFillColorDefaultBrush}"
+                IsVisible="{Binding HasNoActiveSlideshow}">
+            <StackPanel Spacing="{StaticResource ShellCompactSpacing}">
+                <TextBlock Text="No active slideshow"
+                           FontSize="{StaticResource ShellSectionTitleFontSize}"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="Presentation controls are disabled until WPS reports a running slideshow."
+                           Opacity="{StaticResource ShellMutedOpacity}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Margin="{StaticResource ShellSectionPadding}"
+                Padding="{StaticResource ShellCompactPadding}"
+                CornerRadius="{StaticResource OverlayToolbarCornerRadius}"
+                BorderThickness="{StaticResource ShellBorderThickness}"
+                BorderBrush="{StaticResource OverlayToolbarBorderBrush}"
+                Background="{StaticResource OverlayToolbarBackgroundBrush}"
+                Opacity="{StaticResource OverlayToolbarOpacity}">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource OverlayToolbarSpacing}">
+                <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
+                        MinHeight="{StaticResource OverlayTouchTargetSize}"
+                        Command="{Binding PreviousSlideCommand}"
+                        Content="Prev"
+                        AutomationProperties.Name="PreviousSlide"
+                        AutomationProperties.HelpText="{Binding SlideshowCommandHelpText}" />
+                <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
+                        MinHeight="{StaticResource OverlayTouchTargetSize}"
+                        Command="{Binding NextSlideCommand}"
+                        Content="Next"
+                        AutomationProperties.Name="NextSlide"
+                        AutomationProperties.HelpText="{Binding SlideshowCommandHelpText}" />
+                <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
+                        MinHeight="{StaticResource OverlayTouchTargetSize}"
+                        Command="{Binding DrawCommand}"
+                        Content="Draw"
+                        AutomationProperties.Name="Draw"
+                        AutomationProperties.HelpText="{Binding SlideshowCommandHelpText}" />
+                <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
+                        MinHeight="{StaticResource OverlayTouchTargetSize}"
+                        Command="{Binding SpotlightCommand}"
+                        Content="Spot"
+                        AutomationProperties.Name="Spotlight"
+                        AutomationProperties.HelpText="{Binding SlideshowCommandHelpText}" />
+                <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
+                        MinHeight="{StaticResource OverlayTouchTargetSize}"
+                        Command="{Binding ZoomCommand}"
+                        Content="Zoom"
+                        AutomationProperties.Name="Zoom"
+                        AutomationProperties.HelpText="{Binding SlideshowCommandHelpText}" />
+                <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
+                        MinHeight="{StaticResource OverlayTouchTargetSize}"
+                        Command="{Binding ClearCommand}"
+                        Content="Clear"
+                        AutomationProperties.Name="Clear"
+                        AutomationProperties.HelpText="Clear overlay annotations" />
+                <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
+                        MinHeight="{StaticResource OverlayTouchTargetSize}"
+                        Click="OnScreenshotClicked"
+                        IsEnabled="{Binding HasActiveSlideshow}"
+                        Content="Shot"
+                        AutomationProperties.Name="Screenshot"
+                        AutomationProperties.HelpText="{Binding SlideshowCommandHelpText}" />
+                <TextBlock Text="{Binding StatusText}"
+                           MaxWidth="{StaticResource OverlayStatusMaxWidth}"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap"
+                           Foreground="{StaticResource OverlayToolbarForegroundBrush}"
+                           FontSize="{StaticResource ShellCaptionFontSize}"
+                           AutomationProperties.Name="Overlay status" />
+                <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
+                        MinHeight="{StaticResource OverlayTouchTargetSize}"
+                        Command="{Binding CloseOverlayCommand}"
+                        Content="Close"
+                        AutomationProperties.Name="CloseOverlay"
+                        AutomationProperties.HelpText="Close the overlay" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

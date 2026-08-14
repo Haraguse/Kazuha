@@ -100,6 +100,14 @@ public partial class App : Application
         };
         menu.Items.Add(openSettings);
 
+        var openOverlay = new NativeMenuItem("Open overlay");
+        openOverlay.Click += (_, _) =>
+        {
+            ShowMainWindow(mainWindow);
+            mainWindow.OpenOverlay();
+        };
+        menu.Items.Add(openOverlay);
+
         menu.Items.Add(new NativeMenuItemSeparator());
 
         var exit = new NativeMenuItem("Exit");

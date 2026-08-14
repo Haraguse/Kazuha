@@ -259,4 +259,5 @@ public sealed class ShellViewModelTests : IDisposable
             return Task.FromResult(updateStatus);
         }
     }
+
 }
