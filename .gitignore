@@ -10,13 +10,20 @@ artifacts/
 
 # IDE
 .idea/
-.vscode/
 .vs/
 .trae/
 *.swp
 *.swo
 
+# VSCode — 保留团队共享配置（tasks.json/launch.json/extensions.json），
+# 但忽略个人偏好（settings.json）和缓存。
+.vscode/settings.json
+.vscode/*.log
+
 # OS
 .DS_Store
 Thumbs.db
 settings.json
+.vscode/extensions.json
+.vscode/launch.json
+.vscode/tasks.json
