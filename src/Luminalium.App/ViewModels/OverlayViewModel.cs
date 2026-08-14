@@ -1,8 +1,10 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Luminalium.App.Overlay;
+using Luminalium.Core.Localization;
 using Luminalium.Presentation;
+using System.Globalization;
 
 namespace Luminalium.App.ViewModels;
 
@@ -11,7 +13,11 @@ public sealed partial class OverlayViewModel : ObservableObject, IAnnotationSink
     public const string NoActiveSlideshowHelpText = "No active slideshow";
     private static readonly double[] ZoomStops = [1.0, 1.25, 1.5];
 
+    private readonly ILocalizationService _localization;
     private readonly PresentationMonitor _monitor;
+    private string? _statusKey = "Overlay.Status.NoActiveSlideshow";
+    private object[] _statusArguments = [];
+    private string? _externalStatusText;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(NextSlideCommand))]
@@ -51,7 +57,7 @@ public sealed partial class OverlayViewModel : ObservableObject, IAnnotationSink
     private double spotlightCenterY;
 
     [ObservableProperty]
-    private string statusText = NoActiveSlideshowHelpText;
+    private string statusText = string.Empty;
 
     [ObservableProperty]
     private string lastScreenshotPath = string.Empty;
@@ -59,15 +65,19 @@ public sealed partial class OverlayViewModel : ObservableObject, IAnnotationSink
     public OverlayViewModel(
         PresentationMonitor monitor,
         IOverlayScreenProvider screenProvider,
-        int? selectedScreenIndex = null)
+        int? selectedScreenIndex = null,
+        ILocalizationService? localizationService = null)
     {
         ArgumentNullException.ThrowIfNull(monitor);
         ArgumentNullException.ThrowIfNull(screenProvider);
 
+        _localization = localizationService ?? new LocalizationService();
         _monitor = monitor;
         SelectedScreenBounds = NormalizeBounds(screenProvider.GetScreen(selectedScreenIndex));
         SpotlightCenterX = SelectedScreenBounds.Width / 2.0;
         SpotlightCenterY = SelectedScreenBounds.Height / 2.0;
+        StatusText = BuildStatusText();
+        _localization.LanguageChanged += (_, _) => RefreshLocalizedText();
 
         NextSlideCommand = new AsyncRelayCommand(NextSlideAsync, CanUseSlideshowCommand);
         PreviousSlideCommand = new AsyncRelayCommand(PreviousSlideAsync, CanUseSlideshowCommand);
@@ -80,11 +90,37 @@ public sealed partial class OverlayViewModel : ObservableObject, IAnnotationSink
 
     public ObservableCollection<StrokeModel> Strokes { get; } = [];
 
+    public ILocalizationService Localization => _localization;
+
     public OverlayScreenBounds SelectedScreenBounds { get; }
 
     public bool HasNoActiveSlideshow => !HasActiveSlideshow;
 
-    public string SlideshowCommandHelpText => HasActiveSlideshow ? string.Empty : NoActiveSlideshowHelpText;
+    public string SlideshowCommandHelpText => HasActiveSlideshow ? string.Empty : _localization["Overlay.Status.NoActiveSlideshow"];
+
+    public string NoActiveSlideshowTitle => _localization["Overlay.NoActiveSlideshow.Title"];
+
+    public string NoActiveSlideshowDescription => _localization["Overlay.NoActiveSlideshow.Description"];
+
+    public string PreviousSlideText => _localization["Overlay.Toolbar.Previous"];
+
+    public string NextSlideText => _localization["Overlay.Toolbar.Next"];
+
+    public string DrawText => _localization["Overlay.Toolbar.Draw"];
+
+    public string SpotlightText => _localization["Overlay.Toolbar.Spotlight"];
+
+    public string ZoomText => _localization["Overlay.Toolbar.Zoom"];
+
+    public string ClearText => _localization["Overlay.Toolbar.Clear"];
+
+    public string ClearHelpText => _localization["Overlay.Toolbar.Clear.HelpText"];
+
+    public string ScreenshotText => _localization["Overlay.Toolbar.Screenshot"];
+
+    public string CloseText => _localization["Overlay.Toolbar.Close"];
+
+    public string CloseHelpText => _localization["Overlay.Toolbar.Close.HelpText"];
 
     public IAsyncRelayCommand NextSlideCommand { get; }
 
@@ -136,13 +172,13 @@ public sealed partial class OverlayViewModel : ObservableObject, IAnnotationSink
         }
 
         Strokes.Add(StrokeModel.Create(stroke.ColorHex, stroke.Thickness, stroke.Points));
-        StatusText = $"{Strokes.Count} annotation stroke(s)";
+        SetStatus("Overlay.Status.AnnotationStrokes", Strokes.Count);
     }
 
     public void ClearStrokes()
     {
         Strokes.Clear();
-        StatusText = HasActiveSlideshow ? BuildSlideStatus() : NoActiveSlideshowHelpText;
+        SetSlideOrUnavailableStatus();
     }
 
     public void SetSpotlightCenter(double x, double y)
@@ -154,10 +190,10 @@ public sealed partial class OverlayViewModel : ObservableObject, IAnnotationSink
     public void ReportScreenshot(string filePath)
     {
         LastScreenshotPath = filePath;
-        StatusText = "Screenshot captured";
+        SetStatus("Overlay.Status.ScreenshotCaptured");
     }
 
-    public void ReportScreenshotFailure(string message) => StatusText = message;
+    public void ReportScreenshotFailure(string message) => SetExternalStatus(message);
 
     private async Task NextSlideAsync()
     {
@@ -207,7 +243,13 @@ public sealed partial class OverlayViewModel : ObservableObject, IAnnotationSink
         }
 
         IsSpotlightActive = !IsSpotlightActive;
-        StatusText = IsSpotlightActive ? "Spotlight active" : BuildSlideStatus();
+        if (IsSpotlightActive)
+        {
+            SetStatus("Overlay.Status.SpotlightActive");
+            return;
+        }
+
+        SetSlideOrUnavailableStatus();
     }
 
     private async Task ZoomAsync()
@@ -222,7 +264,7 @@ public sealed partial class OverlayViewModel : ObservableObject, IAnnotationSink
         if (result.IsSuccess || result.Error?.Code is PresentationErrorCode.Unsupported)
         {
             ZoomScale = nextScale;
-            StatusText = $"Zoom {ZoomScale:0.##}x";
+            SetStatus("Overlay.Status.Zoom", ZoomScale.ToString("0.##", CultureInfo.InvariantCulture));
             return;
         }
 
@@ -243,7 +285,7 @@ public sealed partial class OverlayViewModel : ObservableObject, IAnnotationSink
             return;
         }
 
-        StatusText = result.Error?.Message ?? NoActiveSlideshowHelpText;
+        SetExternalStatus(result.Error?.Message);
     }
 
     private void ApplyState(PresentationState state)
@@ -252,7 +294,7 @@ public sealed partial class OverlayViewModel : ObservableObject, IAnnotationSink
         SlideCount = state.SlideCount;
         PenColor = StrokeModel.NormalizeColorHex(state.PenColor);
         HasActiveSlideshow = state.IsSlideShow;
-        StatusText = HasActiveSlideshow ? BuildSlideStatus() : NoActiveSlideshowHelpText;
+        SetSlideOrUnavailableStatus();
     }
 
     private void ApplyUnavailable(string message)
@@ -260,12 +302,78 @@ public sealed partial class OverlayViewModel : ObservableObject, IAnnotationSink
         HasActiveSlideshow = false;
         IsDrawingActive = false;
         IsSpotlightActive = false;
-        StatusText = string.IsNullOrWhiteSpace(message) ? NoActiveSlideshowHelpText : message;
+        SetExternalStatus(message);
     }
 
     private bool CanUseSlideshowCommand() => HasActiveSlideshow;
 
-    private string BuildSlideStatus() => SlideCount > 0 ? $"Slide {CurrentSlide} / {SlideCount}" : "Slideshow active";
+    private void SetSlideOrUnavailableStatus()
+    {
+        if (!HasActiveSlideshow)
+        {
+            SetStatus("Overlay.Status.NoActiveSlideshow");
+            return;
+        }
+
+        if (SlideCount > 0)
+        {
+            SetStatus("Overlay.Status.Slide", CurrentSlide, SlideCount);
+            return;
+        }
+
+        SetStatus("Overlay.Status.SlideshowActive");
+    }
+
+    private void SetStatus(string key, params object[] arguments)
+    {
+        _statusKey = key;
+        _statusArguments = arguments;
+        _externalStatusText = null;
+        StatusText = BuildStatusText();
+    }
+
+    private void SetExternalStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status) || StringComparer.Ordinal.Equals(status, NoActiveSlideshowHelpText))
+        {
+            SetStatus("Overlay.Status.NoActiveSlideshow");
+            return;
+        }
+
+        _statusKey = null;
+        _statusArguments = [];
+        _externalStatusText = status;
+        StatusText = BuildStatusText();
+    }
+
+    private string BuildStatusText()
+    {
+        if (_statusKey is null)
+        {
+            return _externalStatusText ?? _localization["Overlay.Status.NoActiveSlideshow"];
+        }
+
+        var template = _localization[_statusKey];
+        return _statusArguments.Length == 0 ? template : string.Format(CultureInfo.InvariantCulture, template, _statusArguments);
+    }
+
+    private void RefreshLocalizedText()
+    {
+        StatusText = BuildStatusText();
+        OnPropertyChanged(nameof(SlideshowCommandHelpText));
+        OnPropertyChanged(nameof(NoActiveSlideshowTitle));
+        OnPropertyChanged(nameof(NoActiveSlideshowDescription));
+        OnPropertyChanged(nameof(PreviousSlideText));
+        OnPropertyChanged(nameof(NextSlideText));
+        OnPropertyChanged(nameof(DrawText));
+        OnPropertyChanged(nameof(SpotlightText));
+        OnPropertyChanged(nameof(ZoomText));
+        OnPropertyChanged(nameof(ClearText));
+        OnPropertyChanged(nameof(ClearHelpText));
+        OnPropertyChanged(nameof(ScreenshotText));
+        OnPropertyChanged(nameof(CloseText));
+        OnPropertyChanged(nameof(CloseHelpText));
+    }
 
     private double NextZoomScale()
     {

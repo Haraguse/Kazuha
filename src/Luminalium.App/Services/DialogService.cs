@@ -1,8 +1,9 @@
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 using FluentAvalonia.UI.Controls;
 using Luminalium.App.ViewModels;
 using Luminalium.App.Views;
 using Luminalium.Updater;
+using System.Globalization;
 
 namespace Luminalium.App.Services;
 
@@ -17,13 +18,13 @@ public sealed class DialogService : IDialogService
     {
         if (_dialogOpen)
         {
-            shellViewModel.ReportError(ShellErrorKind.DialogAlreadyOpen, "A dialog is already open.");
+            shellViewModel.ReportLocalizedError(ShellErrorKind.DialogAlreadyOpen, "Dialog.Error.AlreadyOpen");
             return;
         }
 
         if (_owner is null)
         {
-            shellViewModel.ReportError(ShellErrorKind.DialogFailed, "Dialog owner is not ready.");
+            shellViewModel.ReportLocalizedError(ShellErrorKind.DialogFailed, "Dialog.Error.OwnerNotReady");
             return;
         }
 
@@ -34,9 +35,9 @@ public sealed class DialogService : IDialogService
         {
             var dialog = new FAContentDialog
             {
-                Title = "About Luminalium",
+                Title = shellViewModel.Localization["Dialog.About.Title"],
                 Content = new AboutDialogContent(new AboutDialogViewModel(shellViewModel.VersionDisplay)),
-                PrimaryButtonText = "Close",
+                PrimaryButtonText = shellViewModel.Localization["Dialog.Button.Close"],
                 DefaultButton = FAContentDialogButton.Primary,
             };
 
@@ -44,7 +45,7 @@ public sealed class DialogService : IDialogService
         }
         catch (Exception exception)
         {
-            shellViewModel.ReportError(ShellErrorKind.DialogFailed, $"Dialog failed: {exception.Message}");
+            shellViewModel.ReportLocalizedError(ShellErrorKind.DialogFailed, "Dialog.Error.Failed", exception.Message);
         }
         finally
         {
@@ -56,14 +57,14 @@ public sealed class DialogService : IDialogService
     {
         if (_dialogOpen)
         {
-            shellViewModel.ReportError(ShellErrorKind.DialogAlreadyOpen, "A dialog is already open.");
-            return "A dialog is already open.";
+            shellViewModel.ReportLocalizedError(ShellErrorKind.DialogAlreadyOpen, "Dialog.Error.AlreadyOpen");
+            return shellViewModel.Localization["Dialog.Error.AlreadyOpen"];
         }
 
         if (_owner is null)
         {
-            shellViewModel.ReportError(ShellErrorKind.DialogFailed, "Dialog owner is not ready.");
-            return "Dialog owner is not ready.";
+            shellViewModel.ReportLocalizedError(ShellErrorKind.DialogFailed, "Dialog.Error.OwnerNotReady");
+            return shellViewModel.Localization["Dialog.Error.OwnerNotReady"];
         }
 
         _dialogOpen = true;
@@ -71,12 +72,12 @@ public sealed class DialogService : IDialogService
 
         try
         {
-            var viewModel = new UpdateDialogViewModel();
+            var viewModel = new UpdateDialogViewModel(shellViewModel.Localization);
             var dialog = new FAContentDialog
             {
-                Title = "Luminalium Updates",
+                Title = shellViewModel.Localization["Dialog.Update.Title"],
                 Content = new UpdateDialogContent(viewModel),
-                PrimaryButtonText = "Close",
+                PrimaryButtonText = shellViewModel.Localization["Dialog.Button.Close"],
                 DefaultButton = FAContentDialogButton.Primary,
             };
 
@@ -87,7 +88,7 @@ public sealed class DialogService : IDialogService
         }
         catch (Exception exception)
         {
-            var message = $"Update dialog failed: {exception.Message}";
+            var message = string.Format(CultureInfo.InvariantCulture, shellViewModel.Localization["Dialog.Update.Error.Failed"], exception.Message);
             shellViewModel.ReportError(ShellErrorKind.DialogFailed, message);
             return message;
         }

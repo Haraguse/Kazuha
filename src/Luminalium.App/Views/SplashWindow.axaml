@@ -25,10 +25,13 @@
                 <TextBlock Text="{Binding ProductName}"
                            FontSize="{StaticResource ShellSplashTitleFontSize}"
                            FontWeight="SemiBold" />
-                <TextBlock Text="{Binding VersionDisplay}"
-                           FontSize="{StaticResource ShellSubtitleFontSize}"
-                           Opacity="{StaticResource ShellMutedOpacity}" />
-            </StackPanel>
+                 <TextBlock Text="{Binding VersionDisplay}"
+                            FontSize="{StaticResource ShellSubtitleFontSize}"
+                            Opacity="{StaticResource ShellMutedOpacity}" />
+                 <TextBlock Text="{Binding StartupText}"
+                            FontSize="{StaticResource ShellCaptionFontSize}"
+                            Opacity="{StaticResource ShellMutedOpacity}" />
+             </StackPanel>
             <ProgressBar Grid.Row="1"
                          Grid.ColumnSpan="2"
                          Margin="{StaticResource ShellLargeTopMargin}"

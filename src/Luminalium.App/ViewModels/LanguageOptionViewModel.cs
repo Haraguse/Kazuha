@@ -3,20 +3,22 @@ using Luminalium.Core.Localization;
 
 namespace Luminalium.App.ViewModels;
 
-public sealed class AccentOptionViewModel : ObservableObject
+public sealed class LanguageOptionViewModel : ObservableObject
 {
     private readonly ILocalizationService _localization;
     private readonly string _displayNameKey;
 
-    public AccentOptionViewModel(string key, string displayNameKey, ILocalizationService localization)
+    public LanguageOptionViewModel(AppLanguage language, string displayNameKey, ILocalizationService localization)
     {
-        Key = key;
+        Language = language;
         _displayNameKey = displayNameKey;
         _localization = localization;
         _localization.LanguageChanged += (_, _) => OnPropertyChanged(nameof(DisplayName));
     }
 
-    public string Key { get; }
+    public AppLanguage Language { get; }
+
+    public string Code => Language.ToCode();
 
     public string DisplayName => _localization[_displayNameKey];
 

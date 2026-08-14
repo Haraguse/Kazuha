@@ -54,11 +54,11 @@
                 Background="{DynamicResource LayerFillColorDefaultBrush}"
                 IsVisible="{Binding HasNoActiveSlideshow}">
             <StackPanel Spacing="{StaticResource ShellCompactSpacing}">
-                <TextBlock Text="No active slideshow"
+                <TextBlock Text="{Binding NoActiveSlideshowTitle}"
                            FontSize="{StaticResource ShellSectionTitleFontSize}"
                            FontWeight="SemiBold"
                            HorizontalAlignment="Center" />
-                <TextBlock Text="Presentation controls are disabled until WPS reports a running slideshow."
+                <TextBlock Text="{Binding NoActiveSlideshowDescription}"
                            Opacity="{StaticResource ShellMutedOpacity}" />
             </StackPanel>
         </Border>
@@ -77,44 +77,44 @@
                 <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
                         MinHeight="{StaticResource OverlayTouchTargetSize}"
                         Command="{Binding PreviousSlideCommand}"
-                        Content="Prev"
+                        Content="{Binding PreviousSlideText}"
                         AutomationProperties.Name="PreviousSlide"
                         AutomationProperties.HelpText="{Binding SlideshowCommandHelpText}" />
                 <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
                         MinHeight="{StaticResource OverlayTouchTargetSize}"
                         Command="{Binding NextSlideCommand}"
-                        Content="Next"
+                        Content="{Binding NextSlideText}"
                         AutomationProperties.Name="NextSlide"
                         AutomationProperties.HelpText="{Binding SlideshowCommandHelpText}" />
                 <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
                         MinHeight="{StaticResource OverlayTouchTargetSize}"
                         Command="{Binding DrawCommand}"
-                        Content="Draw"
+                        Content="{Binding DrawText}"
                         AutomationProperties.Name="Draw"
                         AutomationProperties.HelpText="{Binding SlideshowCommandHelpText}" />
                 <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
                         MinHeight="{StaticResource OverlayTouchTargetSize}"
                         Command="{Binding SpotlightCommand}"
-                        Content="Spot"
+                        Content="{Binding SpotlightText}"
                         AutomationProperties.Name="Spotlight"
                         AutomationProperties.HelpText="{Binding SlideshowCommandHelpText}" />
                 <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
                         MinHeight="{StaticResource OverlayTouchTargetSize}"
                         Command="{Binding ZoomCommand}"
-                        Content="Zoom"
+                        Content="{Binding ZoomText}"
                         AutomationProperties.Name="Zoom"
                         AutomationProperties.HelpText="{Binding SlideshowCommandHelpText}" />
                 <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
                         MinHeight="{StaticResource OverlayTouchTargetSize}"
                         Command="{Binding ClearCommand}"
-                        Content="Clear"
+                        Content="{Binding ClearText}"
                         AutomationProperties.Name="Clear"
-                        AutomationProperties.HelpText="Clear overlay annotations" />
+                        AutomationProperties.HelpText="{Binding ClearHelpText}" />
                 <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
                         MinHeight="{StaticResource OverlayTouchTargetSize}"
                         Click="OnScreenshotClicked"
                         IsEnabled="{Binding HasActiveSlideshow}"
-                        Content="Shot"
+                        Content="{Binding ScreenshotText}"
                         AutomationProperties.Name="Screenshot"
                         AutomationProperties.HelpText="{Binding SlideshowCommandHelpText}" />
                 <TextBlock Text="{Binding StatusText}"
@@ -127,9 +127,9 @@
                 <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
                         MinHeight="{StaticResource OverlayTouchTargetSize}"
                         Command="{Binding CloseOverlayCommand}"
-                        Content="Close"
+                        Content="{Binding CloseText}"
                         AutomationProperties.Name="CloseOverlay"
-                        AutomationProperties.HelpText="Close the overlay" />
+                        AutomationProperties.HelpText="{Binding CloseHelpText}" />
             </StackPanel>
         </Border>
     </Grid>

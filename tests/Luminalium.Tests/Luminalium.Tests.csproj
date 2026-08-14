@@ -48,6 +48,7 @@
     <Compile Include="..\..\src\Luminalium.App\Overlay\IOverlayScreenProvider.cs" Link="App\Overlay\IOverlayScreenProvider.cs" />
     <Compile Include="..\..\src\Luminalium.App\Overlay\StrokeModel.cs" Link="App\Overlay\StrokeModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\AccentOptionViewModel.cs" Link="App\ViewModels\AccentOptionViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\LanguageOptionViewModel.cs" Link="App\ViewModels\LanguageOptionViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\OverviewViewModel.cs" Link="App\ViewModels\OverviewViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\OverlayViewModel.cs" Link="App\ViewModels\OverlayViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\PluginEntryViewModel.cs" Link="App\ViewModels\PluginEntryViewModel.cs" />
@@ -57,6 +58,7 @@
     <Compile Include="..\..\src\Luminalium.App\ViewModels\ShellPageViewModel.cs" Link="App\ViewModels\ShellPageViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\ShellThemeMode.cs" Link="App\ViewModels\ShellThemeMode.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\ShellViewModel.cs" Link="App\ViewModels\ShellViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\ThemeModeOptionViewModel.cs" Link="App\ViewModels\ThemeModeOptionViewModel.cs" />
   </ItemGroup>
 
 </Project>

@@ -3,20 +3,20 @@ using Luminalium.Core.Localization;
 
 namespace Luminalium.App.ViewModels;
 
-public sealed class AccentOptionViewModel : ObservableObject
+public sealed class ThemeModeOptionViewModel : ObservableObject
 {
     private readonly ILocalizationService _localization;
     private readonly string _displayNameKey;
 
-    public AccentOptionViewModel(string key, string displayNameKey, ILocalizationService localization)
+    public ThemeModeOptionViewModel(ShellThemeMode mode, string displayNameKey, ILocalizationService localization)
     {
-        Key = key;
+        Mode = mode;
         _displayNameKey = displayNameKey;
         _localization = localization;
         _localization.LanguageChanged += (_, _) => OnPropertyChanged(nameof(DisplayName));
     }
 
-    public string Key { get; }
+    public ShellThemeMode Mode { get; }
 
     public string DisplayName => _localization[_displayNameKey];
 

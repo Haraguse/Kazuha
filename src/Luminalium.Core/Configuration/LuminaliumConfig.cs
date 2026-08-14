@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Luminalium.Core.Localization;
 
 namespace Luminalium.Core.Configuration;
 
@@ -31,6 +32,7 @@ public sealed class AppearanceSettings
 
 public sealed class GeneralSettings
 {
+    public string Language { get; set; } = AppLanguageExtensions.DefaultCode;
     public bool RunAtStartup { get; set; }
     public bool AutoShowOverlay { get; set; } = true;
     public bool DisableAnimations { get; set; }

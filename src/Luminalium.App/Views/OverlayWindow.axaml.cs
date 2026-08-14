@@ -1,11 +1,13 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Luminalium.App.Overlay;
 using Luminalium.App.ViewModels;
+using Luminalium.Core.Localization;
 using Luminalium.Presentation;
+using System.Globalization;
 
 namespace Luminalium.App.Views;
 
@@ -13,15 +15,22 @@ public partial class OverlayWindow : Window, IDisposable
 {
     private readonly OverlayViewModel _viewModel;
     private readonly IScreenshotService _screenshotService;
+    private readonly ILocalizationService _localization;
     private readonly WpsBridgeAutomationAdapter? _ownedAdapter;
     private bool _movingSpotlight;
 
     public OverlayWindow()
+        : this(new LocalizationService())
     {
+    }
+
+    public OverlayWindow(ILocalizationService localization)
+    {
+        _localization = localization;
         InitializeComponent();
         ApplySystemDecorationsNone();
         _ownedAdapter = new WpsBridgeAutomationAdapter();
-        _viewModel = CreateDefaultViewModel(_ownedAdapter, new AvaloniaOverlayScreenProvider(this));
+        _viewModel = CreateDefaultViewModel(_ownedAdapter, new AvaloniaOverlayScreenProvider(this), _localization);
         _screenshotService = new RenderTargetBitmapScreenshotService();
         AttachViewModel();
     }
@@ -29,6 +38,7 @@ public partial class OverlayWindow : Window, IDisposable
     public OverlayWindow(OverlayViewModel viewModel, IScreenshotService? screenshotService = null)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
+        _localization = viewModel.Localization;
         InitializeComponent();
         ApplySystemDecorationsNone();
         _viewModel = viewModel;
@@ -100,12 +110,15 @@ public partial class OverlayWindow : Window, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private static OverlayViewModel CreateDefaultViewModel(WpsBridgeAutomationAdapter adapter, IOverlayScreenProvider screenProvider)
+    private static OverlayViewModel CreateDefaultViewModel(
+        WpsBridgeAutomationAdapter adapter,
+        IOverlayScreenProvider screenProvider,
+        ILocalizationService localization)
     {
         var monitor = new PresentationMonitor(
             [new WpsPresentationHost(adapter)],
             preferredKind: PresentationHostKind.Wps);
-        return new OverlayViewModel(monitor, screenProvider);
+        return new OverlayViewModel(monitor, screenProvider, localizationService: localization);
     }
 
     private void ApplySystemDecorationsNone()
@@ -162,7 +175,7 @@ public partial class OverlayWindow : Window, IDisposable
         }
         catch (Exception exception)
         {
-            _viewModel.ReportScreenshotFailure($"Screenshot failed: {exception.Message}");
+            _viewModel.ReportScreenshotFailure(string.Format(CultureInfo.InvariantCulture, _localization["Overlay.Status.ScreenshotFailed"], exception.Message));
         }
     }
 

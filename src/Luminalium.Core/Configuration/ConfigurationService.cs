@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Luminalium.Core.Localization;
 
 namespace Luminalium.Core.Configuration;
 
@@ -459,7 +460,8 @@ public sealed class ConfigurationService
                 nameof(LuminaliumConfig.Toolbar));
         }
 
-        if (config.General.SplashStyle is null ||
+        if (config.General.Language is null ||
+            config.General.SplashStyle is null ||
             config.General.SplashStartTime is null ||
             config.General.SplashEndTime is null ||
             config.Overlay.OverlayScreen is null ||
@@ -473,6 +475,14 @@ public sealed class ConfigurationService
             return new ConfigurationValidationIssue(
                 ConfigurationLoadWarningCode.InvalidValue,
                 "Configuration string and array values must not be null.");
+        }
+
+        if (!AppLanguageExtensions.IsSupportedCode(config.General.Language))
+        {
+            return new ConfigurationValidationIssue(
+                ConfigurationLoadWarningCode.InvalidValue,
+                $"Language must be one of: {string.Join(", ", AppLanguageExtensions.SupportedLanguages.Select(language => language.ToCode()))}.",
+                nameof(GeneralSettings.Language));
         }
 
         return null;

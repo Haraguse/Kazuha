@@ -1,5 +1,6 @@
 using System.Text;
 using Luminalium.Core.Platform;
+using Luminalium.Core.Localization;
 using Luminalium.App.Services;
 using Luminalium.App.ViewModels;
 using Luminalium.Theming;
@@ -47,7 +48,7 @@ public sealed class ShellViewModelTests : IDisposable
             "日志 - Luminalium",
             "Status Bar",
         ], viewModel.Plugins.Select(plugin => plugin.RawDisplayName));
-        Assert.Equal("settings", viewModel.Plugins[0].DisplayName);
+        Assert.Equal("设置", viewModel.Plugins[0].DisplayName);
     }
 
     [Fact]
@@ -112,7 +113,7 @@ public sealed class ShellViewModelTests : IDisposable
 
         Assert.Equal("1.4.0.9-EMERGENCY | 00611.1409", ShellViewModel.LoadVersionDisplay(validPath));
         Assert.Equal(ShellViewModel.VersionUnavailableText, ShellViewModel.LoadVersionDisplay(malformedPath));
-        Assert.Equal(ShellViewModel.VersionUnavailableText, new ShellViewModel(malformedPath).VersionDisplay);
+        Assert.Equal(new LocalizationService()["Shell.VersionUnavailable"], new ShellViewModel(malformedPath).VersionDisplay);
     }
 
     [Fact]
@@ -149,7 +150,7 @@ public sealed class ShellViewModelTests : IDisposable
 
         Assert.Contains(
             viewModel.Settings.AccentOptions,
-            option => option.DisplayName == "System (Monet)");
+            option => option.DisplayName == "系统（Monet）");
         Assert.Equal("#0078D4", themeService.MonetPalette!.Seed.ToHexString());
         Assert.Empty(themeService.AppliedAccentKeys);
         Assert.False(themeService.SystemAccentUsed);

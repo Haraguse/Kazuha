@@ -81,7 +81,7 @@ public sealed class OverlayViewModelTests
         Assert.False(viewModel.NextSlideCommand.CanExecute(null));
         Assert.False(viewModel.DrawCommand.CanExecute(null));
         Assert.False(viewModel.ZoomCommand.CanExecute(null));
-        Assert.Equal(OverlayViewModel.NoActiveSlideshowHelpText, viewModel.SlideshowCommandHelpText);
+        Assert.Equal(viewModel.Localization["Overlay.Status.NoActiveSlideshow"], viewModel.SlideshowCommandHelpText);
 
         await viewModel.NextSlideCommand.ExecuteAsync(null);
         await viewModel.DrawCommand.ExecuteAsync(null);

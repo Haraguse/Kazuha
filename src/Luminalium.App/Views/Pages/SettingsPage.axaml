@@ -6,7 +6,7 @@
     <ScrollViewer>
         <StackPanel Margin="{StaticResource ShellPageMargin}" Spacing="{StaticResource ShellPageSpacing}" MaxWidth="{StaticResource ShellSettingsMaxWidth}" HorizontalAlignment="Left">
             <StackPanel Spacing="{StaticResource ShellTitleStackSpacing}">
-                <TextBlock Text="Settings"
+                <TextBlock Text="{Binding Title}"
                            FontSize="{StaticResource ShellTitleFontSize}"
                            FontWeight="SemiBold" />
                 <TextBlock Text="{Binding VersionDisplay}"
@@ -19,27 +19,27 @@
                     BorderThickness="{StaticResource ShellBorderThickness}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
-                <Grid RowDefinitions="Auto,Auto" RowSpacing="{StaticResource ShellSettingsRowSpacing}" ColumnSpacing="{StaticResource ShellSettingsColumnSpacing}">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{StaticResource ShellSettingsRowSpacing}" ColumnSpacing="{StaticResource ShellSettingsColumnSpacing}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="{StaticResource ShellSettingsControlColumnWidth}" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Spacing="{StaticResource ShellCompactSpacing}">
-                        <TextBlock Text="Theme mode" FontWeight="SemiBold" />
-                        <TextBlock Text="System follows Windows; Light and Dark pin the shell theme."
+                        <TextBlock Text="{Binding ThemeModeLabel}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding ThemeModeDescription}"
                                    TextWrapping="Wrap"
                                    Opacity="{StaticResource ShellMutedOpacity}" />
                     </StackPanel>
                     <ComboBox Grid.Column="1"
                               MinHeight="{StaticResource ShellTouchTargetMinHeight}"
-                              ItemsSource="{Binding ThemeModes}"
-                              SelectedItem="{Binding SelectedThemeMode, Mode=TwoWay}"
-                              AutomationProperties.Name="Theme mode"
-                              AutomationProperties.HelpText="Choose System, Light, or Dark theme mode" />
+                               ItemsSource="{Binding ThemeModeOptions}"
+                               SelectedItem="{Binding SelectedThemeModeOption, Mode=TwoWay}"
+                               AutomationProperties.Name="{Binding ThemeModeLabel}"
+                               AutomationProperties.HelpText="{Binding ThemeModeHelpText}" />
 
                     <StackPanel Grid.Row="1" Spacing="{StaticResource ShellCompactSpacing}">
-                        <TextBlock Text="Accent color" FontWeight="SemiBold" />
-                        <TextBlock Text="Presets update FluentAvalonia's custom accent color."
+                        <TextBlock Text="{Binding AccentColorLabel}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding AccentColorDescription}"
                                    TextWrapping="Wrap"
                                    Opacity="{StaticResource ShellMutedOpacity}" />
                     </StackPanel>
@@ -48,8 +48,22 @@
                               MinHeight="{StaticResource ShellTouchTargetMinHeight}"
                               ItemsSource="{Binding AccentOptions}"
                               SelectedItem="{Binding SelectedAccentOption, Mode=TwoWay}"
-                              AutomationProperties.Name="Accent color"
-                              AutomationProperties.HelpText="Choose a Fluent accent color preset" />
+                              AutomationProperties.Name="{Binding AccentColorLabel}"
+                              AutomationProperties.HelpText="{Binding AccentColorHelpText}" />
+
+                    <StackPanel Grid.Row="2" Spacing="{StaticResource ShellCompactSpacing}">
+                        <TextBlock Text="{Binding LanguageLabel}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding LanguageDescription}"
+                                   TextWrapping="Wrap"
+                                   Opacity="{StaticResource ShellMutedOpacity}" />
+                    </StackPanel>
+                    <ComboBox Grid.Row="2"
+                              Grid.Column="1"
+                              MinHeight="{StaticResource ShellTouchTargetMinHeight}"
+                              ItemsSource="{Binding LanguageOptions}"
+                              SelectedItem="{Binding SelectedLanguageOption, Mode=TwoWay}"
+                              AutomationProperties.Name="{Binding LanguageLabel}"
+                              AutomationProperties.HelpText="{Binding LanguageHelpText}" />
                 </Grid>
             </Border>
 
@@ -59,7 +73,7 @@
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="{StaticResource ShellIdentityRowSpacing}" ColumnSpacing="{StaticResource ShellIdentityColumnSpacing}">
                     <StackPanel Spacing="{StaticResource ShellCompactSpacing}">
-                        <TextBlock Text="Updates" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding UpdatesTitle}" FontWeight="SemiBold" />
                         <TextBlock Text="{Binding UpdateStatusText}"
                                    TextWrapping="Wrap"
                                    Opacity="{StaticResource ShellMutedOpacity}" />
@@ -67,9 +81,9 @@
                     <Button Grid.Column="1"
                             MinHeight="{StaticResource ShellTouchTargetMinHeight}"
                             Command="{Binding CheckForUpdatesCommand}"
-                            Content="Check for updates"
-                            AutomationProperties.Name="Check for updates"
-                            AutomationProperties.HelpText="Check the Luminalium Windows release feed" />
+                            Content="{Binding CheckForUpdatesText}"
+                            AutomationProperties.Name="{Binding CheckForUpdatesText}"
+                            AutomationProperties.HelpText="{Binding CheckForUpdatesHelpText}" />
                 </Grid>
             </Border>
 
@@ -79,15 +93,15 @@
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="{StaticResource ShellIdentityRowSpacing}" ColumnSpacing="{StaticResource ShellIdentityColumnSpacing}">
                     <StackPanel Spacing="{StaticResource ShellCompactSpacing}">
-                        <TextBlock Text="Application identity" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding ApplicationIdentityTitle}" FontWeight="SemiBold" />
                         <TextBlock Text="{Binding AppUserModelId}" Opacity="{StaticResource ShellMutedOpacity}" />
                     </StackPanel>
                     <Button Grid.Column="1"
                             MinHeight="{StaticResource ShellTouchTargetMinHeight}"
                             Command="{Binding ShowAboutCommand}"
-                            Content="About"
-                            AutomationProperties.Name="About Luminalium"
-                            AutomationProperties.HelpText="Open the Luminalium about dialog" />
+                            Content="{Binding AboutText}"
+                            AutomationProperties.Name="{Binding AboutName}"
+                            AutomationProperties.HelpText="{Binding AboutHelpText}" />
                 </Grid>
             </Border>
         </StackPanel>

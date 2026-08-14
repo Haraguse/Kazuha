@@ -1,10 +1,13 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Luminalium.App.Services;
+using Luminalium.Core.Configuration;
 using Luminalium.Core.Identity;
+using Luminalium.Core.Localization;
 using Luminalium.Plugins;
 using Luminalium.Theming;
 using Luminalium.Updater;
+using System.Globalization;
 
 namespace Luminalium.App.ViewModels;
 
@@ -12,13 +15,19 @@ public sealed partial class ShellViewModel : ObservableObject
 {
     public const string VersionUnavailableText = "Version metadata unavailable";
 
+    private readonly ILocalizationService _localization;
+    private readonly ConfigurationService? _configurationService;
+    private readonly LuminaliumConfig _config;
     private readonly IShellThemeService _themeService;
     private readonly MonetThemeService _monetThemeService;
     private readonly UpdateOrchestrator _updateOrchestrator;
+    private readonly string _versionDisplay;
+    private readonly bool _versionUnavailable;
     private long _accentRequestId;
     private readonly Stack<ShellPageViewModel> _backStack = new();
     private readonly Dictionary<string, PluginPageViewModel> _pluginPages;
     private bool _syncingThemeMode;
+    private string _trayStatusKey = "Tray.Status.Pending";
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(GoBackCommand))]
@@ -38,41 +47,59 @@ public sealed partial class ShellViewModel : ObservableObject
     private string errorText = string.Empty;
 
     [ObservableProperty]
-    private string trayStatusText = "Tray icon pending";
+    private string trayStatusText = string.Empty;
+
+    [ObservableProperty]
+    private int localizedTextVersion;
 
     public ShellViewModel(
         string? versionMetadataPath = null,
         IShellThemeService? themeService = null,
         MonetThemeService? monetThemeService = null,
         IDialogService? dialogService = null,
-        UpdateOrchestrator? updateOrchestrator = null)
+        UpdateOrchestrator? updateOrchestrator = null,
+        LuminaliumConfig? config = null,
+        ConfigurationService? configurationService = null,
+        ILocalizationService? localizationService = null)
     {
+        _config = config ?? LuminaliumConfig.CreateDefault();
+        _configurationService = configurationService;
+        _localization = localizationService ?? new LocalizationService();
+        if (AppLanguageExtensions.TryParseCode(_config.General.Language, out var configuredLanguage))
+        {
+            _localization.SetLanguage(configuredLanguage);
+        }
+
         _themeService = themeService ?? NullShellThemeService.Instance;
         _monetThemeService = monetThemeService ?? MonetThemeServiceFactory.CreateDefault();
         DialogService = dialogService ?? NullDialogService.Instance;
         _updateOrchestrator = updateOrchestrator ?? new UpdateOrchestrator();
 
         ProductName = ProductIdentity.DisplayName;
-        VersionDisplay = LoadVersionDisplay(versionMetadataPath ?? DefaultVersionMetadataPath);
+        (_versionDisplay, _versionUnavailable) = LoadVersionDisplayState(versionMetadataPath ?? DefaultVersionMetadataPath);
         Plugins = BuiltInPluginCatalog.CreateDefaultRegistry()
             .Enumerate()
-            .Select(plugin => new PluginEntryViewModel(plugin.Metadata))
+            .Select(plugin => new PluginEntryViewModel(plugin.Metadata, _localization))
             .ToArray();
 
-        Overview = new OverviewViewModel(ProductName, VersionDisplay, Plugins);
+        Overview = new OverviewViewModel(ProductName, _versionDisplay, _versionUnavailable, Plugins, _localization);
         Settings = new SettingsViewModel(
             VersionDisplay,
             ShowAboutAsync,
             CheckForUpdatesAsync,
             ClearError,
             ApplyThemeMode,
-            ApplyAccentOptionAsync);
+            ApplyAccentOptionAsync,
+            ApplyLanguage,
+            _localization);
         _pluginPages = Plugins.ToDictionary(
             plugin => plugin.Id,
-            plugin => new PluginPageViewModel(plugin),
+            plugin => new PluginPageViewModel(plugin, _localization),
             StringComparer.Ordinal);
 
         currentPage = Overview;
+        trayStatusText = _localization[_trayStatusKey];
+        _localization.LanguageChanged += OnLanguageChanged;
         GoBackCommand = new RelayCommand(GoBack, () => CanGoBack);
         NavigateToOverviewCommand = new RelayCommand(NavigateToOverview);
         NavigateToSettingsCommand = new RelayCommand(NavigateToSettings);
@@ -81,7 +108,9 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public string ProductName { get; }
 
-    public string VersionDisplay { get; }
+    public string VersionDisplay => _versionUnavailable ? _localization["Shell.VersionUnavailable"] : _versionDisplay;
+
+    public ILocalizationService Localization => _localization;
 
     public IReadOnlyList<PluginEntryViewModel> Plugins { get; }
 
@@ -92,6 +121,10 @@ public sealed partial class ShellViewModel : ObservableObject
     public IDialogService DialogService { get; set; }
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorText);
+
+    public string OpenOverlayText => _localization["Shell.OpenOverlay.Button"];
+
+    public string OpenOverlayHelpText => _localization["Shell.OpenOverlay.HelpText"];
 
     public IRelayCommand GoBackCommand { get; }
 
@@ -155,10 +188,36 @@ public sealed partial class ShellViewModel : ObservableObject
         _themeService.Apply(mode);
     }
 
+    public void ApplyLanguage(AppLanguage language)
+    {
+        var result = _localization.SetLanguage(language);
+        if (!result.IsSuccess)
+        {
+            ReportError(ShellErrorKind.Localization, result.Error ?? "Failed to apply language.");
+            return;
+        }
+
+        _config.General.Language = result.Code;
+        _configurationService?.Save(_config);
+        Settings.SyncLanguage(language);
+    }
+
     public void ReportError(ShellErrorKind kind, string message)
     {
         ErrorKind = kind;
         ErrorText = message;
+    }
+
+    public void ReportLocalizedError(ShellErrorKind kind, string key, string? argument = null)
+    {
+        var template = _localization[key];
+        ReportError(kind, argument is null ? template : string.Format(CultureInfo.InvariantCulture, template, argument));
+    }
+
+    public void SetTrayStatus(string key)
+    {
+        _trayStatusKey = key;
+        TrayStatusText = _localization[key];
     }
 
     public void ClearError()
@@ -169,10 +228,16 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public static string LoadVersionDisplay(string path)
     {
+        var (display, unavailable) = LoadVersionDisplayState(path);
+        return unavailable ? VersionUnavailableText : display;
+    }
+
+    private static (string Display, bool Unavailable) LoadVersionDisplayState(string path)
+    {
         var result = VersionMetadataReader.Load(path);
         return result.IsSuccess
-            ? $"{result.Metadata!.VersionName} | {result.Metadata.Build}"
-            : VersionUnavailableText;
+            ? ($"{result.Metadata!.VersionName} | {result.Metadata.Build}", false)
+            : (VersionUnavailableText, true);
     }
 
     private void NavigateTo(ShellPageViewModel page)
@@ -236,8 +301,18 @@ public sealed partial class ShellViewModel : ObservableObject
         }
         catch (Exception exception) when (IsCurrentAccentRequest(requestId))
         {
-            ReportError(ShellErrorKind.Theme, $"Theme update failed: {exception.Message}");
+            ReportLocalizedError(ShellErrorKind.Theme, "Shell.Error.ThemeUpdateFailed", exception.Message);
         }
+    }
+
+    private void OnLanguageChanged(object? sender, LanguageChangedEventArgs args)
+    {
+        TrayStatusText = _localization[_trayStatusKey];
+        Settings.SyncLanguage(args.Language);
+        OnPropertyChanged(nameof(VersionDisplay));
+        OnPropertyChanged(nameof(OpenOverlayText));
+        OnPropertyChanged(nameof(OpenOverlayHelpText));
+        LocalizedTextVersion++;
     }
 
     private bool IsCurrentAccentRequest(long requestId) =>

@@ -58,10 +58,10 @@
                     <StackPanel Spacing="{StaticResource ShellCompactSpacing}">
                         <Button MinHeight="{StaticResource OverlayTouchTargetSize}"
                                 Click="OnOpenOverlayClicked"
-                                Content="Open overlay"
+                                Content="{Binding OpenOverlayText}"
                                 HorizontalAlignment="Stretch"
                                 AutomationProperties.Name="OpenOverlay"
-                                AutomationProperties.HelpText="Open the presentation overlay" />
+                                AutomationProperties.HelpText="{Binding OpenOverlayHelpText}" />
                         <TextBlock Text="{Binding VersionDisplay}"
                                    FontSize="{StaticResource ShellCaptionFontSize}"
                                    Opacity="{StaticResource ShellMutedOpacity}"
