@@ -47,6 +47,8 @@
     <Compile Include="..\..\src\Luminalium.App\Overlay\IAnnotationSink.cs" Link="App\Overlay\IAnnotationSink.cs" />
     <Compile Include="..\..\src\Luminalium.App\Overlay\IOverlayScreenProvider.cs" Link="App\Overlay\IOverlayScreenProvider.cs" />
     <Compile Include="..\..\src\Luminalium.App\Overlay\StrokeModel.cs" Link="App\Overlay\StrokeModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Board\*.cs" Link="App\Board\%(Filename)%(Extension)" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\BoardViewModel.cs" Link="App\ViewModels\BoardViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\AccentOptionViewModel.cs" Link="App\ViewModels\AccentOptionViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\LanguageOptionViewModel.cs" Link="App\ViewModels\LanguageOptionViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\OverviewViewModel.cs" Link="App\ViewModels\OverviewViewModel.cs" />

@@ -1,5 +1,6 @@
 using System.Collections.Specialized;
 using Avalonia;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -77,6 +78,9 @@ public sealed class AnnotationCanvas : Control
             DrawStroke(context, StrokeModel.Create(StrokeColor, StrokeWidth, _pendingPoints));
         }
     }
+
+    protected override AutomationPeer OnCreateAutomationPeer() =>
+        new ControlAutomationPeer(this);
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {

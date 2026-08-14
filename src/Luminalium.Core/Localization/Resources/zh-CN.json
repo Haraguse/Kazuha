@@ -141,5 +141,17 @@
   "Legacy.Overlay.Pen": "画笔",
   "Legacy.Overlay.Eraser": "橡皮擦",
   "Legacy.Overlay.Clear": "清空批注",
-  "Legacy.Overlay.Spotlight": "聚光灯"
+  "Legacy.Overlay.Spotlight": "聚光灯",
+  "Board.Window.Title": "小黑板",
+  "Board.Toolbar.Pen": "画笔",
+  "Board.Toolbar.Eraser": "橡皮擦",
+  "Board.Toolbar.Clear": "清空",
+  "Board.Toolbar.Save": "保存",
+  "Board.Toolbar.Close": "关闭",
+  "Board.Toolbar.Red": "红色",
+  "Board.Status.Strokes": "{0} 条笔迹",
+  "Board.Status.NothingToSave": "没有可保存的内容",
+  "Board.Status.Saved": "已保存到 {0}",
+  "Board.Status.SaveFailed": "保存失败：{0}",
+  "Board.Save.SuggestedFile": "board.json"
 }

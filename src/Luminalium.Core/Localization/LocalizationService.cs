@@ -5,7 +5,7 @@ namespace Luminalium.Core.Localization;
 
 public sealed class LocalizationService : ILocalizationService
 {
-    private readonly Dictionary<AppLanguage, IReadOnlyDictionary<string, string>> _resources;
+    private readonly Dictionary<AppLanguage, Dictionary<string, string>> _resources;
     private AppLanguage _currentLanguage = AppLanguage.ZhCn;
 
     public LocalizationService()
@@ -13,7 +13,7 @@ public sealed class LocalizationService : ILocalizationService
     {
     }
 
-    internal LocalizationService(Dictionary<AppLanguage, IReadOnlyDictionary<string, string>> resources)
+    internal LocalizationService(Dictionary<AppLanguage, Dictionary<string, string>> resources)
     {
         _resources = resources;
     }
@@ -77,10 +77,10 @@ public sealed class LocalizationService : ILocalizationService
         return false;
     }
 
-    private static Dictionary<AppLanguage, IReadOnlyDictionary<string, string>> LoadEmbeddedResources()
+    private static Dictionary<AppLanguage, Dictionary<string, string>> LoadEmbeddedResources()
     {
         var assembly = typeof(LocalizationService).Assembly;
-        var resources = new Dictionary<AppLanguage, IReadOnlyDictionary<string, string>>();
+        var resources = new Dictionary<AppLanguage, Dictionary<string, string>>();
 
         foreach (var language in AppLanguageExtensions.SupportedLanguages)
         {
@@ -93,7 +93,7 @@ public sealed class LocalizationService : ILocalizationService
         return resources;
     }
 
-    private static IReadOnlyDictionary<string, string> LoadResource(Stream stream, string resourceName)
+    private static Dictionary<string, string> LoadResource(Stream stream, string resourceName)
     {
         try
         {

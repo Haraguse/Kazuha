@@ -1,0 +1,61 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:overlay="using:Luminalium.App.Overlay"
+        xmlns:vm="using:Luminalium.App.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+        x:Class="Luminalium.App.Views.BoardWindow"
+        x:DataType="vm:BoardViewModel"
+        Title="{Binding WindowTitle}"
+        Width="900" Height="600"
+        MinWidth="640" MinHeight="480"
+        WindowStartupLocation="CenterScreen"
+        AutomationProperties.Name="BoardWindow">
+    <Grid RowDefinitions="Auto,*" KeyboardNavigation.TabNavigation="Cycle">
+        <Border Grid.Row="0"
+                Padding="8"
+                BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                Background="{DynamicResource LayerFillColorDefaultBrush}">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto" ColumnSpacing="8">
+                <Button MinHeight="40" MinWidth="48"
+                        Command="{Binding SelectRedColorCommand}"
+                        Content="{Binding Localization[Board.Toolbar.Red]}"
+                        AutomationProperties.Name="BoardColorRed" />
+                <Button MinHeight="40" MinWidth="48"
+                        Command="{Binding ToggleEraserCommand}"
+                        Content="{Binding Localization[Board.Toolbar.Eraser]}"
+                        AutomationProperties.Name="BoardEraser" />
+                <Button MinHeight="40" MinWidth="48"
+                        Command="{Binding ClearBoardCommand}"
+                        Content="{Binding Localization[Board.Toolbar.Clear]}"
+                        AutomationProperties.Name="BoardClear" />
+                <Button MinHeight="40" MinWidth="48"
+                        Click="OnSaveClicked"
+                        Content="{Binding Localization[Board.Toolbar.Save]}"
+                        AutomationProperties.Name="BoardSave" />
+                <Button MinHeight="40" MinWidth="48"
+                        Click="OnCloseClicked"
+                        Content="{Binding Localization[Board.Toolbar.Close]}"
+                        AutomationProperties.Name="BoardClose" />
+                <TextBlock Grid.Column="5"
+                           VerticalAlignment="Center"
+                           Text="{Binding StatusText}"
+                           AutomationProperties.Name="BoardStatus" />
+                <TextBlock Grid.Column="6"
+                           VerticalAlignment="Center"
+                           Text="{Binding StrokeCountText}"
+                           AutomationProperties.Name="BoardStrokeCount" />
+            </Grid>
+        </Border>
+
+        <overlay:AnnotationCanvas Grid.Row="1"
+                                  x:Name="BoardCanvas"
+                                  CanDraw="True"
+                                  StrokeColor="{Binding StrokeColor}"
+                                  StrokeWidth="{Binding StrokeWidth}"
+                                  Strokes="{Binding Document.Strokes}"
+                                  AutomationProperties.Name="BoardCanvas" />
+    </Grid>
+</Window>

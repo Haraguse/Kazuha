@@ -141,5 +141,17 @@
   "Legacy.Overlay.Pen": "Pen",
   "Legacy.Overlay.Eraser": "Eraser",
   "Legacy.Overlay.Clear": "Clear annotations",
-  "Legacy.Overlay.Spotlight": "Spotlight"
+  "Legacy.Overlay.Spotlight": "Spotlight",
+  "Board.Window.Title": "Board",
+  "Board.Toolbar.Pen": "Pen",
+  "Board.Toolbar.Eraser": "Eraser",
+  "Board.Toolbar.Clear": "Clear",
+  "Board.Toolbar.Save": "Save",
+  "Board.Toolbar.Close": "Close",
+  "Board.Toolbar.Red": "Red",
+  "Board.Status.Strokes": "{0} strokes",
+  "Board.Status.NothingToSave": "Nothing to save",
+  "Board.Status.Saved": "Saved to {0}",
+  "Board.Status.SaveFailed": "Save failed: {0}",
+  "Board.Save.SuggestedFile": "board.json"
 }

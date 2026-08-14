@@ -213,6 +213,13 @@ public partial class MainWindow : FAAppWindow
         const string pluginPrefix = "plugin:";
         if (tag.StartsWith(pluginPrefix, StringComparison.Ordinal))
         {
+            if (string.Equals(tag, "plugin:board", StringComparison.Ordinal))
+            {
+                var board = new BoardWindow();
+                board.Show(this);
+                return;
+            }
+
             var plugin = _viewModel.Plugins.FirstOrDefault(candidate =>
                 StringComparer.Ordinal.Equals(candidate.Id, tag[pluginPrefix.Length..]));
             _viewModel.NavigateToPlugin(plugin);
