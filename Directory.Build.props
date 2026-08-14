@@ -2,8 +2,7 @@
 
   <!--
     Luminalium C# migration - Task 3: solution-wide build governance.
-    Applies to every project under the repository root, including the
-    pre-existing scripts/smtc_helper helper (which keeps its own TFM).
+    Applies to every project under the repository root.
     Per-project TFMs stay in each .csproj; do not centralize them here.
   -->
 

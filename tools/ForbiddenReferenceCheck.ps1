@@ -1,11 +1,12 @@
 <#
 .SYNOPSIS
     Luminalium C# migration - forbidden dependency, target-platform and
-    source-boundary check (Task 3; Issue #96 cross-platform alignment).
+    source-boundary check (Task 3; Issue #96 cross-platform alignment;
+    Task 9 SMTC in-process adapter boundary).
 
 .DESCRIPTION
     Machine-executable gate over the new C# stack. Scans every project file
-    under the repository-root C# tree (plus Luminalium.sln) and exits
+    under the repository root (plus Luminalium.sln) and exits
     non-zero when any of the following holds:
 
       1. A PackageReference/ProjectReference matches a forbidden dependency
@@ -16,22 +17,23 @@
          staged for a later issue; until then the new stack must not contain
          a Linux-only production project.
       3. A ProjectReference escapes the source boundary: it must resolve
-         inside csharp/ or to the single pre-existing external helper
-         scripts/smtc_helper/SmtcHelper.csproj.
-      4. Luminalium.sln references a project outside csharp/ other than
-         scripts\smtc_helper\SmtcHelper.csproj.
+         inside the repository root.
+      4. Luminalium.sln references a project outside the repository root.
       5. A plain (non-Windows) TargetFramework project references a
          Windows-targeted project. Issue #96 keeps Core, Plugins and Updater
          on plain net10.0 while App, Platform.Windows and the test project
          stay net10.0-windows10.0.17763.0; the ProjectReference graph must
          keep Windows-targeted projects referencing plain ones, never the
          reverse.
+      6. No project references Luminalium.Smtc.Windows directly. The SMTC
+         adapter is solution-listed for build validation and loaded optionally
+         by a later consumer task.
 
     Exit codes: 0 = pass, 1 = violations found (each printed once), 2 = setup
     error (solution missing).
 
 .EXAMPLE
-    powershell -NoProfile -ExecutionPolicy Bypass -File csharp/tools/ForbiddenReferenceCheck.ps1
+    powershell -NoProfile -ExecutionPolicy Bypass -File tools/ForbiddenReferenceCheck.ps1
 #>
 
 [CmdletBinding()]
@@ -57,15 +59,8 @@ $forbiddenTokens = @(
     'VSTO'
 )
 
-# The one pre-existing external helper allowed by Task 3. Anchored to the
-# repository root (script location), not the scanned root, so the allowlist
-# stays valid when the gate is pointed at a fixture or CI checkout.
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$allowedExternal = $null
-$helperPath = Join-Path $repoRoot 'scripts\smtc_helper\SmtcHelper.csproj'
-if (Test-Path -LiteralPath $helperPath) {
-    $allowedExternal = (Resolve-Path -LiteralPath $helperPath).Path
-}
+$smtcWindowsProject = [System.IO.Path]::GetFullPath((Join-Path $repoRoot 'src\Luminalium.Smtc.Windows\Luminalium.Smtc.Windows.csproj'))
 
 $violations = [System.Collections.Generic.List[string]]::new()
 
@@ -76,7 +71,7 @@ function Test-IsUnderPath {
     return $childFull.StartsWith($parentFull, [System.StringComparison]::OrdinalIgnoreCase)
 }
 
-# Rules 1-3, 5: scan every project file under csharp/, skipping generated trees.
+# Rules 1-3, 5-6: scan every project file under the repository root, skipping generated trees.
 Get-ChildItem -Path $csharpRoot -Recurse -Filter *.csproj -File | Where-Object {
     $_.FullName -notmatch '\\(bin|obj|publish|artifacts)\\[^\\]*$'
 } | ForEach-Object {
@@ -110,8 +105,14 @@ Get-ChildItem -Path $csharpRoot -Recurse -Filter *.csproj -File | Where-Object {
             if ($refType -eq 'ProjectReference') {
                 $resolved = [System.IO.Path]::GetFullPath((Join-Path $project.DirectoryName $ref))
                 $insideCsharp = Test-IsUnderPath -Child $resolved -Parent $csharpRoot
-                if (-not $insideCsharp -and $resolved -ne $allowedExternal) {
+                if (-not $insideCsharp) {
                     $violations.Add("$($project.FullName): ProjectReference '$ref' escapes the repository-root boundary")
+                }
+
+                # Rule 6: Luminalium.Smtc.Windows is optional runtime surface and
+                # must not be ProjectReferenced by Core/App/Platform.Windows/Tests.
+                if ([System.IO.Path]::GetFullPath($resolved).Equals($smtcWindowsProject, [System.StringComparison]::OrdinalIgnoreCase)) {
+                    $violations.Add("$($project.FullName): must not ProjectReference Luminalium.Smtc.Windows; it is solution-listed only and loaded optionally by a later consumer task")
                 }
 
                 # Rule 5: plain (non-Windows) project must not reference a
@@ -142,7 +143,7 @@ if (Test-Path -LiteralPath $solution) {
             $slnProj = $Matches['path']
             $resolved = [System.IO.Path]::GetFullPath((Join-Path (Split-Path $solution) $slnProj))
             $insideCsharp = Test-IsUnderPath -Child $resolved -Parent $csharpRoot
-            if (-not $insideCsharp -and $resolved -ne $allowedExternal) {
+            if (-not $insideCsharp) {
                 $violations.Add("${solution}: solution project '$slnProj' escapes the repository-root boundary")
             }
         }
@@ -159,5 +160,5 @@ if ($violations.Count -gt 0) {
     exit 1
 }
 
-Write-Host 'Forbidden reference check passed: no forbidden dependencies, no Linux-only project, no plain-to-Windows ProjectReference, and all references resolve inside the repository root.'
+Write-Host 'Forbidden reference check passed: no forbidden dependencies, no Linux-only project, no plain-to-Windows ProjectReference, no direct Luminalium.Smtc.Windows ProjectReference, and all references resolve inside the repository root.'
 exit 0
