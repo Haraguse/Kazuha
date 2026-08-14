@@ -1,0 +1,67 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Luminalium.App.ViewModels"
+             x:Class="Luminalium.App.Views.Pages.OverviewPage"
+             x:DataType="vm:OverviewViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="{StaticResource ShellPageMargin}" Spacing="{StaticResource ShellPageSpacing}" MaxWidth="{StaticResource ShellPageMaxWidth}" HorizontalAlignment="Left">
+            <StackPanel Spacing="{StaticResource ShellTitleStackSpacing}">
+                <TextBlock Text="{Binding ProductName}"
+                           FontSize="{StaticResource ShellTitleFontSize}"
+                           FontWeight="SemiBold"
+                           AutomationProperties.Name="Luminalium product name" />
+                <TextBlock Text="{Binding VersionDisplay}"
+                           FontSize="{StaticResource ShellSubtitleFontSize}"
+                           Opacity="{StaticResource ShellMutedOpacity}"
+                           AutomationProperties.Name="Luminalium version line" />
+            </StackPanel>
+
+            <Border Padding="{StaticResource ShellSectionPadding}"
+                    CornerRadius="{StaticResource ShellCornerRadius}"
+                    BorderThickness="{StaticResource ShellBorderThickness}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                <StackPanel Spacing="{StaticResource ShellSectionSpacing}">
+                    <TextBlock Text="Native shell"
+                               FontSize="{StaticResource ShellSectionTitleFontSize}"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="Luminalium is running in an Avalonia + FluentAvalonia desktop shell with native navigation, dialogs, tray identity, and CJK-capable font fallback."
+                               TextWrapping="Wrap"
+                               LineHeight="{StaticResource ShellBodyLineHeight}"
+                               Opacity="{StaticResource ShellBodyOpacity}" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="Built-in plugins"
+                       FontSize="{StaticResource ShellSectionTitleFontSize}"
+                       FontWeight="SemiBold" />
+            <ItemsControl ItemsSource="{Binding Plugins}" AutomationProperties.Name="Built-in plugin list">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PluginEntryViewModel">
+                        <Border Margin="{StaticResource ShellListItemMargin}"
+                                Padding="{StaticResource ShellCompactPadding}"
+                                CornerRadius="{StaticResource ShellCornerRadius}"
+                                BorderThickness="{StaticResource ShellBorderThickness}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                            <Grid ColumnDefinitions="2*,Auto,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="{StaticResource ShellPluginColumnSpacing}" RowSpacing="{StaticResource ShellPluginRowSpacing}">
+                                <TextBlock Text="{Binding DisplayName}"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding PluginTypeText}"
+                                           Opacity="{StaticResource ShellMutedOpacity}" />
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding IconKey}"
+                                           Opacity="{StaticResource ShellMutedOpacity}" />
+                                <TextBlock Grid.Row="1"
+                                           Grid.ColumnSpan="3"
+                                           Text="{Binding Description}"
+                                           TextWrapping="Wrap"
+                                           Opacity="{StaticResource ShellDescriptionOpacity}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

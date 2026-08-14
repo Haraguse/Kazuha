@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Luminalium.App.ViewModels"
+             x:Class="Luminalium.App.Views.Pages.PluginPage"
+             x:DataType="vm:PluginPageViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="{StaticResource ShellPageMargin}" Spacing="{StaticResource ShellPageSpacing}" MaxWidth="{StaticResource ShellPluginMaxWidth}" HorizontalAlignment="Left">
+            <StackPanel Spacing="{StaticResource ShellTitleStackSpacing}">
+                <TextBlock Text="{Binding Plugin.DisplayName}"
+                           FontSize="{StaticResource ShellTitleFontSize}"
+                           FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Plugin.Id}"
+                           FontSize="{StaticResource ShellSubtitleFontSize}"
+                           Opacity="{StaticResource ShellMutedOpacity}" />
+            </StackPanel>
+
+            <Border Padding="{StaticResource ShellSectionPadding}"
+                    CornerRadius="{StaticResource ShellCornerRadius}"
+                    BorderThickness="{StaticResource ShellBorderThickness}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="{StaticResource ShellSettingsColumnSpacing}" RowSpacing="{StaticResource ShellSectionSpacing}">
+                    <TextBlock Text="Type" Opacity="{StaticResource ShellMutedOpacity}" />
+                    <TextBlock Grid.Column="1" Text="{Binding Plugin.PluginTypeText}" />
+                    <TextBlock Grid.Row="1" Text="Icon key" Opacity="{StaticResource ShellMutedOpacity}" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Plugin.IconKey}" />
+                    <TextBlock Grid.Row="2" Text="Version" Opacity="{StaticResource ShellMutedOpacity}" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Plugin.Version}" />
+                    <TextBlock Grid.Row="3" Text="Description" Opacity="{StaticResource ShellMutedOpacity}" />
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Plugin.Description}" TextWrapping="Wrap" />
+                </Grid>
+            </Border>
+
+            <Border Padding="{StaticResource ShellSectionPadding}"
+                    CornerRadius="{StaticResource ShellCornerRadius}"
+                    BorderThickness="{StaticResource ShellBorderThickness}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                <StackPanel Spacing="{StaticResource ShellIdentityRowSpacing}">
+                    <TextBlock Text="Plugin view placeholder" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding PlaceholderNotice}"
+                               TextWrapping="Wrap"
+                               LineHeight="{StaticResource ShellBodyLineHeight}"
+                               Opacity="{StaticResource ShellDescriptionOpacity}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

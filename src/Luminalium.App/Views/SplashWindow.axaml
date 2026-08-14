@@ -1,0 +1,40 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Luminalium.App.ViewModels"
+        x:Class="Luminalium.App.Views.SplashWindow"
+        x:DataType="vm:SplashViewModel"
+        Title="Luminalium"
+        Width="{StaticResource ShellSplashWidth}"
+        Height="{StaticResource ShellSplashHeight}"
+        CanResize="False"
+        WindowDecorations="None"
+        WindowStartupLocation="CenterScreen"
+        Icon="/Assets/logo.ico"
+        AutomationProperties.Name="Luminalium splash window">
+    <Border Padding="{StaticResource ShellSplashPadding}"
+            Background="{DynamicResource LayerFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="{StaticResource ShellBorderThickness}"
+            CornerRadius="{StaticResource ShellCornerRadius}">
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="*,Auto">
+            <Image Width="{StaticResource ShellSplashIconSize}"
+                   Height="{StaticResource ShellSplashIconSize}"
+                   Source="/Assets/logo.ico"
+                   AutomationProperties.Name="Luminalium splash icon" />
+            <StackPanel Grid.Column="1" Margin="{StaticResource ShellWideInlineStartMargin}" Spacing="{StaticResource ShellTitleStackSpacing}" VerticalAlignment="Center">
+                <TextBlock Text="{Binding ProductName}"
+                           FontSize="{StaticResource ShellSplashTitleFontSize}"
+                           FontWeight="SemiBold" />
+                <TextBlock Text="{Binding VersionDisplay}"
+                           FontSize="{StaticResource ShellSubtitleFontSize}"
+                           Opacity="{StaticResource ShellMutedOpacity}" />
+            </StackPanel>
+            <ProgressBar Grid.Row="1"
+                         Grid.ColumnSpan="2"
+                         Margin="{StaticResource ShellLargeTopMargin}"
+                         IsIndeterminate="True"
+                         MinHeight="{StaticResource ShellProgressMinHeight}"
+                         AutomationProperties.Name="Luminalium startup progress" />
+        </Grid>
+    </Border>
+</Window>

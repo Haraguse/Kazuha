@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Luminalium.App.ViewModels"
+             x:Class="Luminalium.App.Views.Pages.SettingsPage"
+             x:DataType="vm:SettingsViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="{StaticResource ShellPageMargin}" Spacing="{StaticResource ShellPageSpacing}" MaxWidth="{StaticResource ShellSettingsMaxWidth}" HorizontalAlignment="Left">
+            <StackPanel Spacing="{StaticResource ShellTitleStackSpacing}">
+                <TextBlock Text="Settings"
+                           FontSize="{StaticResource ShellTitleFontSize}"
+                           FontWeight="SemiBold" />
+                <TextBlock Text="{Binding VersionDisplay}"
+                           FontSize="{StaticResource ShellSubtitleFontSize}"
+                           Opacity="{StaticResource ShellMutedOpacity}" />
+            </StackPanel>
+
+            <Border Padding="{StaticResource ShellSectionPadding}"
+                    CornerRadius="{StaticResource ShellCornerRadius}"
+                    BorderThickness="{StaticResource ShellBorderThickness}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                <Grid RowDefinitions="Auto,Auto" RowSpacing="{StaticResource ShellSettingsRowSpacing}" ColumnSpacing="{StaticResource ShellSettingsColumnSpacing}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="{StaticResource ShellSettingsControlColumnWidth}" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="{StaticResource ShellCompactSpacing}">
+                        <TextBlock Text="Theme mode" FontWeight="SemiBold" />
+                        <TextBlock Text="System follows Windows; Light and Dark pin the shell theme."
+                                   TextWrapping="Wrap"
+                                   Opacity="{StaticResource ShellMutedOpacity}" />
+                    </StackPanel>
+                    <ComboBox Grid.Column="1"
+                              MinHeight="{StaticResource ShellTouchTargetMinHeight}"
+                              ItemsSource="{Binding ThemeModes}"
+                              SelectedItem="{Binding SelectedThemeMode, Mode=TwoWay}"
+                              AutomationProperties.Name="Theme mode"
+                              AutomationProperties.HelpText="Choose System, Light, or Dark theme mode" />
+
+                    <StackPanel Grid.Row="1" Spacing="{StaticResource ShellCompactSpacing}">
+                        <TextBlock Text="Accent color" FontWeight="SemiBold" />
+                        <TextBlock Text="Presets update FluentAvalonia's custom accent color."
+                                   TextWrapping="Wrap"
+                                   Opacity="{StaticResource ShellMutedOpacity}" />
+                    </StackPanel>
+                    <ComboBox Grid.Row="1"
+                              Grid.Column="1"
+                              MinHeight="{StaticResource ShellTouchTargetMinHeight}"
+                              ItemsSource="{Binding AccentOptions}"
+                              SelectedItem="{Binding SelectedAccentOption, Mode=TwoWay}"
+                              AutomationProperties.Name="Accent color"
+                              AutomationProperties.HelpText="Choose a Fluent accent color preset" />
+                </Grid>
+            </Border>
+
+            <Border Padding="{StaticResource ShellSectionPadding}"
+                    CornerRadius="{StaticResource ShellCornerRadius}"
+                    BorderThickness="{StaticResource ShellBorderThickness}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="{StaticResource ShellIdentityRowSpacing}" ColumnSpacing="{StaticResource ShellIdentityColumnSpacing}">
+                    <StackPanel Spacing="{StaticResource ShellCompactSpacing}">
+                        <TextBlock Text="Application identity" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding AppUserModelId}" Opacity="{StaticResource ShellMutedOpacity}" />
+                    </StackPanel>
+                    <Button Grid.Column="1"
+                            MinHeight="{StaticResource ShellTouchTargetMinHeight}"
+                            Command="{Binding ShowAboutCommand}"
+                            Content="About"
+                            AutomationProperties.Name="About Luminalium"
+                            AutomationProperties.HelpText="Open the Luminalium about dialog" />
+                </Grid>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

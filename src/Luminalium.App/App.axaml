@@ -1,11 +1,72 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sys="using:System"
              xmlns:sty="using:FluentAvalonia.Styling"
              x:Class="Luminalium.App.App">
+    <Application.Resources>
+        <FontFamily x:Key="LuminaliumFontFamily">Segoe UI, Microsoft YaHei UI, Microsoft JhengHei UI, Yu Gothic UI, Meiryo UI, PingFang SC, PingFang TC, Malgun Gothic, sans-serif</FontFamily>
+
+        <sys:Double x:Key="ShellTitleBarHeight">44</sys:Double>
+        <sys:Double x:Key="ShellTouchTargetMinHeight">40</sys:Double>
+        <sys:Double x:Key="ShellTitleFontSize">30</sys:Double>
+        <sys:Double x:Key="ShellSplashTitleFontSize">24</sys:Double>
+        <sys:Double x:Key="ShellSubtitleFontSize">13</sys:Double>
+        <sys:Double x:Key="ShellSectionTitleFontSize">18</sys:Double>
+        <sys:Double x:Key="ShellCaptionFontSize">12</sys:Double>
+        <sys:Double x:Key="ShellTitleIconSize">18</sys:Double>
+        <sys:Double x:Key="ShellSplashIconSize">52</sys:Double>
+        <sys:Double x:Key="ShellWindowWidth">1040</sys:Double>
+        <sys:Double x:Key="ShellWindowHeight">680</sys:Double>
+        <sys:Double x:Key="ShellWindowMinWidth">880</sys:Double>
+        <sys:Double x:Key="ShellWindowMinHeight">560</sys:Double>
+        <sys:Double x:Key="ShellSplashWidth">420</sys:Double>
+        <sys:Double x:Key="ShellSplashHeight">220</sys:Double>
+        <sys:Double x:Key="ShellProgressMinHeight">4</sys:Double>
+        <sys:Double x:Key="ShellPageMaxWidth">880</sys:Double>
+        <sys:Double x:Key="ShellSettingsMaxWidth">760</sys:Double>
+        <sys:Double x:Key="ShellPluginMaxWidth">780</sys:Double>
+        <sys:Double x:Key="ShellPageSpacing">18</sys:Double>
+        <sys:Double x:Key="ShellTitleStackSpacing">6</sys:Double>
+        <sys:Double x:Key="ShellSectionSpacing">10</sys:Double>
+        <sys:Double x:Key="ShellCompactSpacing">4</sys:Double>
+        <sys:Double x:Key="ShellIdentityRowSpacing">8</sys:Double>
+        <sys:Double x:Key="ShellPluginColumnSpacing">14</sys:Double>
+        <sys:Double x:Key="ShellPluginRowSpacing">5</sys:Double>
+        <sys:Double x:Key="ShellSettingsColumnSpacing">22</sys:Double>
+        <sys:Double x:Key="ShellSettingsRowSpacing">14</sys:Double>
+        <sys:Double x:Key="ShellIdentityColumnSpacing">16</sys:Double>
+        <sys:Double x:Key="ShellMutedOpacity">0.72</sys:Double>
+        <sys:Double x:Key="ShellBodyOpacity">0.86</sys:Double>
+        <sys:Double x:Key="ShellDescriptionOpacity">0.78</sys:Double>
+        <sys:Double x:Key="ShellErrorOpacity">0.9</sys:Double>
+        <sys:Double x:Key="ShellBodyLineHeight">24</sys:Double>
+        <GridLength x:Key="ShellSettingsControlColumnWidth">220</GridLength>
+
+        <Thickness x:Key="ShellPageMargin">36,28,36,36</Thickness>
+        <Thickness x:Key="ShellSectionPadding">18</Thickness>
+        <Thickness x:Key="ShellCompactPadding">12</Thickness>
+        <Thickness x:Key="ShellSplashPadding">28</Thickness>
+        <Thickness x:Key="ShellTitleBarPadding">18,0,0,0</Thickness>
+        <Thickness x:Key="ShellInlineStartMargin">10,0,0,0</Thickness>
+        <Thickness x:Key="ShellWideInlineStartMargin">18,0,0,0</Thickness>
+        <Thickness x:Key="ShellLargeTopMargin">0,24,0,0</Thickness>
+        <Thickness x:Key="ShellListItemMargin">0,0,0,10</Thickness>
+        <Thickness x:Key="ShellBorderThickness">1</Thickness>
+        <Thickness x:Key="ShellFooterBorderThickness">0,1,0,0</Thickness>
+        <CornerRadius x:Key="ShellCornerRadius">8</CornerRadius>
+    </Application.Resources>
+
     <Application.Styles>
-        <!-- Exactly one theme: FluentAvaloniaTheme. No Avalonia FluentTheme is registered.
+        <!-- Exactly one native FluentAvalonia theme is registered.
              PreferSystemTheme + PreferUserAccentColor mirrors Luminalium's
              Monet/system-accent theming intent (Task 2 validated pattern). -->
         <sty:FluentAvaloniaTheme PreferSystemTheme="True" PreferUserAccentColor="True" />
+
+        <Style Selector="Window">
+            <Setter Property="FontFamily" Value="{StaticResource LuminaliumFontFamily}" />
+        </Style>
+        <Style Selector="UserControl">
+            <Setter Property="FontFamily" Value="{StaticResource LuminaliumFontFamily}" />
+        </Style>
     </Application.Styles>
 </Application>
