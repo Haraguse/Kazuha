@@ -23,7 +23,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{C4AD
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "smtc_helper", "smtc_helper", "{F1A1FCDC-C912-D79C-AA86-BC374BAA8321}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmtcHelper", "..\scripts\smtc_helper\SmtcHelper.csproj", "{A8212928-1E4E-429B-AAA4-CA96FF3B34C4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmtcHelper", "scripts\smtc_helper\SmtcHelper.csproj", "{A8212928-1E4E-429B-AAA4-CA96FF3B34C4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

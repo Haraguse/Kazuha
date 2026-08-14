@@ -1,0 +1,110 @@
+name: Nightly Release
+
+# Windows is the first Vela delivery target. Linux CI/artifacts are staged for
+# a later platform implementation and are intentionally not release inputs yet.
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Build Windows (.NET)
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore C# solution
+        shell: pwsh
+        run: dotnet restore Luminalium.sln
+
+      - name: Check C# references and target boundaries
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/ForbiddenReferenceCheck.ps1
+
+      - name: Build C# solution
+        shell: pwsh
+        run: dotnet build Luminalium.sln --configuration Release --no-restore
+
+      - name: Test C# solution
+        shell: pwsh
+        run: dotnet test Luminalium.sln --configuration Release --no-build --logger trx
+
+      - name: Set nightly version metadata
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/Set-NightlyVersion.ps1 -Path version.json
+
+      - name: Publish Windows app
+        shell: pwsh
+        run: >-
+          dotnet publish src/Luminalium.App/Luminalium.App.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          -p:PublishProfile=WindowsNightly
+          -p:PublishDir=${{ github.workspace }}\artifacts\publish
+
+      - name: Check published payload
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/Assert-ForbiddenPayload.ps1 -PublishDir artifacts/publish
+
+      - name: Create deterministic Windows package
+        shell: pwsh
+        run: >-
+          powershell -NoProfile -ExecutionPolicy Bypass
+          -File tools/New-NightlyPackage.ps1
+          -PublishDir artifacts/publish
+          -OutputPath artifacts/Luminalium-Windows.zip
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Luminalium-Windows
+          path: artifacts/Luminalium-Windows.zip
+          if-no-files-found: error
+
+  release:
+    name: Create Nightly Release
+    needs: [build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Luminalium-Windows
+          path: release
+
+      - name: Verify downloaded artifact
+        shell: bash
+        run: test -f release/Luminalium-Windows.zip
+
+      - name: Update nightly release
+        uses: ncipollo/release-action@v1.21.0
+        with:
+          allowUpdates: true
+          artifactErrorsFailBuild: true
+          replacesArtifacts: true
+          tag: nightly
+          name: Nightly Build
+          body: |
+            Luminalium Nightly Build
+            这是自动构建的开发版本，不保证稳定性。
+          prerelease: true
+          makeLatest: true
+          artifacts: release/Luminalium-Windows.zip
+          token: ${{ secrets.GITHUB_TOKEN }}

@@ -252,7 +252,7 @@ if ($SelfTest) {
 
 # --- Resolve target path (default: repository-root version.json).
 
-if (-not $Path) { $Path = Join-Path (Join-Path $PSScriptRoot '..\..') 'version.json' }
+if (-not $Path) { $Path = Join-Path (Join-Path $PSScriptRoot '..') 'version.json' }
 
 if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
     Write-Host "ERROR: version.json not found: $Path" -ForegroundColor Red

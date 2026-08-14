@@ -1,0 +1,26 @@
+# OpenCode working files
+.omo/
+
+# C# build outputs
+**/bin/
+**/obj/
+**/publish/
+artifacts/
+**/TestResults/
+
+# SMTC helper outputs
+scripts/smtc_helper/obj/
+scripts/smtc_helper/bin/
+internalSMTCHelper/
+
+# IDE
+.idea/
+.vscode/
+.trae/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+settings.json

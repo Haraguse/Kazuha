@@ -5,7 +5,7 @@
 
 .DESCRIPTION
     Machine-executable gate over the new C# stack. Scans every project file
-    under the repository-root csharp/ tree (plus Luminalium.sln) and exits
+    under the repository-root C# tree (plus Luminalium.sln) and exits
     non-zero when any of the following holds:
 
       1. A PackageReference/ProjectReference matches a forbidden dependency
@@ -60,7 +60,7 @@ $forbiddenTokens = @(
 # The one pre-existing external helper allowed by Task 3. Anchored to the
 # repository root (script location), not the scanned root, so the allowlist
 # stays valid when the gate is pointed at a fixture or CI checkout.
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $allowedExternal = $null
 $helperPath = Join-Path $repoRoot 'scripts\smtc_helper\SmtcHelper.csproj'
 if (Test-Path -LiteralPath $helperPath) {
@@ -111,7 +111,7 @@ Get-ChildItem -Path $csharpRoot -Recurse -Filter *.csproj -File | Where-Object {
                 $resolved = [System.IO.Path]::GetFullPath((Join-Path $project.DirectoryName $ref))
                 $insideCsharp = Test-IsUnderPath -Child $resolved -Parent $csharpRoot
                 if (-not $insideCsharp -and $resolved -ne $allowedExternal) {
-                    $violations.Add("$($project.FullName): ProjectReference '$ref' escapes csharp/ boundary; only scripts\smtc_helper\SmtcHelper.csproj is allowed externally")
+                    $violations.Add("$($project.FullName): ProjectReference '$ref' escapes the repository-root boundary")
                 }
 
                 # Rule 5: plain (non-Windows) project must not reference a
@@ -143,7 +143,7 @@ if (Test-Path -LiteralPath $solution) {
             $resolved = [System.IO.Path]::GetFullPath((Join-Path (Split-Path $solution) $slnProj))
             $insideCsharp = Test-IsUnderPath -Child $resolved -Parent $csharpRoot
             if (-not $insideCsharp -and $resolved -ne $allowedExternal) {
-                $violations.Add("${solution}: solution project '$slnProj' escapes csharp/ boundary; only scripts\smtc_helper\SmtcHelper.csproj is allowed externally")
+                $violations.Add("${solution}: solution project '$slnProj' escapes the repository-root boundary")
             }
         }
     }
@@ -159,5 +159,5 @@ if ($violations.Count -gt 0) {
     exit 1
 }
 
-Write-Host 'Forbidden reference check passed: no forbidden dependencies, no Linux-only project, no plain-to-Windows ProjectReference, and all references resolve inside csharp/ except scripts\smtc_helper\SmtcHelper.csproj.'
+Write-Host 'Forbidden reference check passed: no forbidden dependencies, no Linux-only project, no plain-to-Windows ProjectReference, and all references resolve inside the repository root.'
 exit 0
