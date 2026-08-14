@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Luminalium.Core\Luminalium.Core.csproj" />
+    <ProjectReference Include="..\Luminalium.Platform.Windows\Luminalium.Platform.Windows.csproj" />
+    <ProjectReference Include="..\Luminalium.Presentation\Luminalium.Presentation.csproj" />
+  </ItemGroup>
+
+</Project>

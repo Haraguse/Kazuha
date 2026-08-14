@@ -38,7 +38,7 @@ dotnet build Luminalium.sln -c Release
 
 ```text
 dotnet test Luminalium.sln -c Release
-已通过! - 失败:     0，通过:    77，已跳过:     0，总计:    77，持续时间: 1 s - Luminalium.Tests.dll (net10.0)
+已通过! - 失败:     0，通过:    77，已跳过:     0，总计:    77，持续时间: 998 ms - Luminalium.Tests.dll (net10.0)
 ```
 
 ```text
