@@ -30,6 +30,7 @@
     <ProjectReference Include="..\..\src\Luminalium.Platform.Windows\Luminalium.Platform.Windows.csproj" />
     <ProjectReference Include="..\..\src\Luminalium.Plugins\Luminalium.Plugins.csproj" />
     <ProjectReference Include="..\..\src\Luminalium.Updater\Luminalium.Updater.csproj" />
+    <ProjectReference Include="..\..\src\Luminalium.Wps\Luminalium.Wps.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/messageBase"
+    },
+    {
+      "properties": {
+        "message_type": {
+          "const": "hello"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "plugin_version": {
+              "type": "string"
+            },
+            "protocol_version": {
+              "type": "integer"
+            },
+            "host": {
+              "$ref": "common.schema.json#/$defs/hostInfo"
+            },
+            "capabilities": {
+              "$ref": "common.schema.json#/$defs/capabilities"
+            }
+          },
+          "required": [
+            "plugin_version",
+            "protocol_version",
+            "host",
+            "capabilities"
+          ]
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

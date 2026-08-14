@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "$defs": {
+    "messageBase": {
+      "properties": {
+        "message_type": {
+          "type": "string"
+        },
+        "message_id": {
+          "type": "string"
+        },
+        "ts": {
+          "type": "integer"
+        },
+        "payload": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "message_type",
+        "payload"
+      ]
+    },
+    "hostInfo": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "windows",
+            "linux",
+            "darwin",
+            "unknown"
+          ]
+        },
+        "app": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "platform",
+        "app"
+      ]
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "can_next": {
+          "type": "boolean"
+        },
+        "can_prev": {
+          "type": "boolean"
+        },
+        "can_goto": {
+          "type": "boolean"
+        },
+        "can_get_state": {
+          "type": "boolean"
+        },
+        "can_set_pen_color": {
+          "type": "boolean"
+        },
+        "can_get_thumbnails": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "can_next",
+        "can_prev",
+        "can_goto",
+        "can_get_state",
+        "can_set_pen_color",
+        "can_get_thumbnails"
+      ]
+    },
+    "documentInfo": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "slide_count": {
+          "type": "integer"
+        },
+        "path": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "slide_count"
+      ]
+    },
+    "presentationState": {
+      "type": "object",
+      "properties": {
+        "current_slide": {
+          "type": "integer"
+        },
+        "is_slide_show": {
+          "type": "boolean"
+        },
+        "pointer_type": {
+          "$ref": "#/$defs/pointerType"
+        },
+        "pen_color": {
+          "$ref": "#/$defs/colorHex"
+        }
+      },
+      "required": [
+        "current_slide",
+        "is_slide_show"
+      ]
+    },
+    "thumbnailItem": {
+      "type": "object",
+      "properties": {
+        "slide_index": {
+          "type": "integer"
+        },
+        "image_url": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "slide_index",
+        "image_url"
+      ]
+    },
+    "resultCode": {
+      "type": "string",
+      "enum": [
+        "OK",
+        "BAD_REQUEST",
+        "UNSUPPORTED_COMMAND",
+        "SLIDE_OUT_OF_RANGE",
+        "SET_PEN_COLOR_FAILED",
+        "THUMBNAIL_EXPORT_FAILED",
+        "INTERNAL_ERROR"
+      ]
+    },
+    "errorCode": {
+      "type": "string",
+      "enum": [
+        "NO_ACTIVE_PRESENTATION",
+        "HOST_API_UNAVAILABLE",
+        "INVALID_STATE",
+        "INTERNAL_ERROR"
+      ]
+    },
+    "pointerType": {
+      "type": "string",
+      "enum": [
+        "arrow",
+        "pen",
+        "highlighter",
+        "eraser",
+        "unknown"
+      ]
+    },
+    "logLevel": {
+      "type": "string",
+      "enum": [
+        "debug",
+        "info",
+        "warn",
+        "error"
+      ]
+    },
+    "colorHex": {
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}$"
+    }
+  }
+}

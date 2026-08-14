@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Luminalium.Tests", "tests\L
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Luminalium.Smtc.Windows", "src\Luminalium.Smtc.Windows\Luminalium.Smtc.Windows.csproj", "{9661001B-AF56-4643-97C2-31C2914BCBEB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Luminalium.Wps", "src\Luminalium.Wps\Luminalium.Wps.csproj", "{ADCFC526-439F-46F6-8928-4B831D44E3AE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -115,6 +117,18 @@ Global
 		{9661001B-AF56-4643-97C2-31C2914BCBEB}.Release|x64.Build.0 = Release|Any CPU
 		{9661001B-AF56-4643-97C2-31C2914BCBEB}.Release|x86.ActiveCfg = Release|Any CPU
 		{9661001B-AF56-4643-97C2-31C2914BCBEB}.Release|x86.Build.0 = Release|Any CPU
+		{ADCFC526-439F-46F6-8928-4B831D44E3AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ADCFC526-439F-46F6-8928-4B831D44E3AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ADCFC526-439F-46F6-8928-4B831D44E3AE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{ADCFC526-439F-46F6-8928-4B831D44E3AE}.Debug|x64.Build.0 = Debug|Any CPU
+		{ADCFC526-439F-46F6-8928-4B831D44E3AE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{ADCFC526-439F-46F6-8928-4B831D44E3AE}.Debug|x86.Build.0 = Debug|Any CPU
+		{ADCFC526-439F-46F6-8928-4B831D44E3AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ADCFC526-439F-46F6-8928-4B831D44E3AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ADCFC526-439F-46F6-8928-4B831D44E3AE}.Release|x64.ActiveCfg = Release|Any CPU
+		{ADCFC526-439F-46F6-8928-4B831D44E3AE}.Release|x64.Build.0 = Release|Any CPU
+		{ADCFC526-439F-46F6-8928-4B831D44E3AE}.Release|x86.ActiveCfg = Release|Any CPU
+		{ADCFC526-439F-46F6-8928-4B831D44E3AE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -127,5 +141,6 @@ Global
 		{331C5E31-CFA4-4967-AEAC-CA58CDF5C603} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{4D0914F5-D34D-4873-9F48-A47CFDAE331A} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{9661001B-AF56-4643-97C2-31C2914BCBEB} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{ADCFC526-439F-46F6-8928-4B831D44E3AE} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

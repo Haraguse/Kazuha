@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/messageBase"
+    },
+    {
+      "properties": {
+        "message_type": {
+          "type": "string",
+          "enum": [
+            "presentation_thumbnails_get"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "range": {
+              "type": "string",
+              "enum": [
+                "all"
+              ]
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "png"
+              ]
+            },
+            "max_width": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "message_type",
+        "payload"
+      ]
+    }
+  ],
+  "unevaluatedProperties": false
+}

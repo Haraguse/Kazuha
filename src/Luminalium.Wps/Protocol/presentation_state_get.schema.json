@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/messageBase"
+    },
+    {
+      "properties": {
+        "message_type": {
+          "const": "presentation_state_get"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}
