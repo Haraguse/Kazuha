@@ -51,6 +51,8 @@
     <Compile Include="..\..\src\Luminalium.App\Services\ShellPageMap.cs" Link="App\Services\ShellPageMap.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\IDialogService.cs" Link="App\Services\IDialogService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\PasswordDialogTypes.cs" Link="App\Services\PasswordDialogTypes.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\AboutDialogViewModel.cs" Link="App\ViewModels\AboutDialogViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\PasswordDialogViewModel.cs" Link="App\ViewModels\PasswordDialogViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\IShellThemeService.cs" Link="App\Services\IShellThemeService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\NullDialogService.cs" Link="App\Services\NullDialogService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\RetryCloseDialogTypes.cs" Link="App\Services\RetryCloseDialogTypes.cs" />

@@ -3,6 +3,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
+using Luminalium.App.ViewModels;
+using Luminalium.Core.Localization;
 using Luminalium.Updater;
 using Xunit;
 
@@ -231,6 +233,88 @@ public sealed class UpdateServiceTests : IDisposable
         Assert.False(replacement.Value!.RolledBack);
         Assert.True(fileSystem.DeleteCalls >= 1, "The locked running executable should be deleted before replacement.");
         Assert.Equal("new-exe", File.ReadAllText(exePath));
+    }
+
+    [Fact]
+    public async Task UpdateDialogSurfacesDevEnvironmentStatusWithoutRestart()
+    {
+        var localization = new LocalizationService();
+        var viewModel = new UpdateDialogViewModel(localization);
+        var devDirectory = Path.Combine(_directory, "dev-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(devDirectory);
+
+        var result = await viewModel.RunAsync(new UpdateOrchestrator(), devDirectory);
+
+        Assert.False(result.RestartRequired);
+        Assert.Equal(localization["UpdateDialog.DevDisabled"], result.Status);
+        Assert.False(viewModel.IsErrorVisible);
+    }
+
+    [Fact]
+    public async Task UpdateDialogSurfacesUpToDateStatusWhenFeedReportsNoUpdate()
+    {
+        var localization = new LocalizationService();
+        var viewModel = new UpdateDialogViewModel(localization);
+        var installDirectory = CreateInstall("old-exe", VersionJson("1.0.0"));
+        var orchestrator = new UpdateOrchestrator(
+            feedClient: new GitHubUpdateFeedClient(
+                new StaticReleaseHandler("1.0.0"),
+                [new UpdateMirror("github", "https://api.github.test")],
+                TimeSpan.FromSeconds(1)));
+
+        var result = await viewModel.RunAsync(orchestrator, installDirectory);
+
+        Assert.False(result.RestartRequired);
+        Assert.Equal(localization["UpdateDialog.UpToDate"], result.Status);
+        Assert.False(viewModel.IsErrorVisible);
+    }
+
+    [Fact]
+    public async Task UpdateDialogSurfacesTypedErrorWhenFeedRejectsArtifact()
+    {
+        var localization = new LocalizationService();
+        var viewModel = new UpdateDialogViewModel(localization);
+        var installDirectory = CreateInstall("old-exe", VersionJson("1.0.0"));
+        var orchestrator = new UpdateOrchestrator(
+            feedClient: new GitHubUpdateFeedClient(
+                new StaticReleaseHandler("2.0.0", "Luminalium-Windows.zip", "https://evil.example/Luminalium-Windows.zip"),
+                [new UpdateMirror("github", "https://api.github.test")],
+                TimeSpan.FromSeconds(1)));
+
+        var result = await viewModel.RunAsync(orchestrator, installDirectory);
+
+        Assert.False(result.RestartRequired);
+        Assert.True(viewModel.IsErrorVisible);
+        Assert.NotEmpty(viewModel.ErrorText);
+        Assert.Equal(localization["UpdateDialog.Failed"], viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task UpdateDialogAppliesStagedUpdateAndRequestsRestart()
+    {
+        var zipBytes = CreateUpdateZip(("Luminalium.exe", "new-exe"), ("version.json", VersionJson("2.0.0")));
+        var checksum = Convert.ToHexString(SHA256.HashData(zipBytes)).ToLowerInvariant();
+        await using var server = await LocalUpdateServer.StartAsync(new Dictionary<string, LocalResponse>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["/Luminalium-Windows.zip"] = LocalResponse.Bytes(zipBytes, "application/zip"),
+            ["/Luminalium-Windows.zip.sha256"] = LocalResponse.Text(checksum),
+        });
+        var localization = new LocalizationService();
+        var viewModel = new UpdateDialogViewModel(localization);
+        var installDirectory = CreateInstall("old-exe", VersionJson("1.0.0"));
+        var orchestrator = new UpdateOrchestrator(
+            feedClient: new StubFeedClient(server.Uri("/Luminalium-Windows.zip"), zipBytes.Length),
+            downloader: new UpdateDownloader(cacheRoot: Path.Combine(_directory, "cache")),
+            validator: new UpdateValidator(),
+            coordinator: new UpdateReplacementCoordinator(processExitTimeout: TimeSpan.FromMilliseconds(250)));
+
+        var result = await viewModel.RunAsync(orchestrator, installDirectory);
+
+        Assert.True(result.RestartRequired);
+        Assert.Equal(100, viewModel.ProgressValue);
+        Assert.False(viewModel.IsErrorVisible);
+        Assert.Contains("2.0.0", result.Status, StringComparison.Ordinal);
+        Assert.Equal("new-exe", File.ReadAllText(Path.Combine(installDirectory, "Luminalium.exe")));
     }
 
     public void Dispose()
@@ -504,5 +588,23 @@ public sealed class UpdateServiceTests : IDisposable
 
             base.DeleteFile(path);
         }
+    }
+
+    /// <summary>
+    /// Feed stub that reports an available update pointing at a local fixture
+    /// server. Bypasses the canonical-URL gate in GitHubUpdateFeedClient so the
+    /// update dialog integration can be exercised against a local archive.
+    /// </summary>
+    private sealed class StubFeedClient(Uri downloadUrl, long size) : IUpdateFeedClient
+    {
+        public Task<UpdateOperationResult<UpdateInfo>> CheckAsync(string currentVersion, bool force, CancellationToken cancellationToken = default) =>
+            Task.FromResult(UpdateOperation.Success(new UpdateInfo(
+                Available: true,
+                Tag: "2.0.0",
+                AssetName: "Luminalium-Windows.zip",
+                DownloadUrl: downloadUrl,
+                Size: size,
+                Changelog: "fixture changelog",
+                Forced: force)));
     }
 }
