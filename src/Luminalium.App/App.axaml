@@ -74,10 +74,10 @@
         <sty:FluentAvaloniaTheme PreferSystemTheme="True" PreferUserAccentColor="True" />
 
         <Style Selector="Window">
-            <Setter Property="FontFamily" Value="{StaticResource LuminaliumFontFamily}" />
+            <Setter Property="FontFamily" Value="{DynamicResource LuminaliumFontFamily}" />
         </Style>
         <Style Selector="UserControl">
-            <Setter Property="FontFamily" Value="{StaticResource LuminaliumFontFamily}" />
+            <Setter Property="FontFamily" Value="{DynamicResource LuminaliumFontFamily}" />
         </Style>
     </Application.Styles>
 </Application>

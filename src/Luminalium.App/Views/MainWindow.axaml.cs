@@ -230,6 +230,11 @@ public partial class MainWindow : FAAppWindow
                 case "plugin:status_bar":
                     new StatusBarWindow().Show(this);
                     return;
+                case "plugin:onboarding":
+                case "plugin:logs":
+                    _viewModel.NavigateToPlugin(_viewModel.Plugins.FirstOrDefault(candidate =>
+                        StringComparer.Ordinal.Equals(candidate.Id, tag[pluginPrefix.Length..])));
+                    return;
             }
 
             var plugin = _viewModel.Plugins.FirstOrDefault(candidate =>

@@ -6,6 +6,7 @@ public enum ShellErrorKind
     Startup,
     Theme,
     Localization,
+    Authorization,
     DialogAlreadyOpen,
     DialogFailed,
 }

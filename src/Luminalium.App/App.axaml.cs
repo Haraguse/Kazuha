@@ -11,11 +11,13 @@ using Luminalium.Core.Configuration;
 using Luminalium.Core.Identity;
 using Luminalium.Core.Localization;
 using Luminalium.Theming;
+using System.Globalization;
 
 namespace Luminalium.App;
 
 public partial class App : Application
 {
+    private static readonly SplashPolicyService SplashPolicy = new();
     private TrayIcons? _trayIcons;
 
     public override void Initialize()
@@ -37,17 +39,46 @@ public partial class App : Application
                 config: configurationLoad.Config,
                 configurationService: configurationService,
                 localizationService: localizationService);
-            var mainWindow = new MainWindow(shellViewModel, new DialogService());
-            var splashWindow = new SplashWindow(new SplashViewModel(shellViewModel.VersionDisplay, localizationService));
+            var dialogService = new DialogService();
+            var startupErrors = new StartupErrorCoordinator(dialogService);
+            var mainWindow = new MainWindow(shellViewModel, dialogService);
+            var splashPolicy = EvaluateSplashPolicy(configurationLoad.Config, isAutoStart: false);
+            var splashWindow = new SplashWindow(new SplashViewModel(shellViewModel.VersionDisplay, localizationService, splashPolicy));
 
             desktop.MainWindow = mainWindow;
-            mainWindow.Opened += (_, _) => splashWindow.Close();
+            Exception? splashException = null;
+            mainWindow.Opened += async (_, _) =>
+            {
+                splashWindow.Close();
+                if (splashException is not null)
+                {
+                    await startupErrors.PresentAsync(
+                        shellViewModel,
+                        splashException,
+                        async () =>
+                        {
+                            var retryException = TryShowSplash(splashWindow, shellViewModel);
+                            return await Task.FromResult(retryException is null).ConfigureAwait(true);
+                        },
+                        () => { }).ConfigureAwait(true);
+                }
+            };
 
-            TryShowSplash(splashWindow, shellViewModel);
+            if (splashPolicy.IsVisible)
+            {
+                splashException = TryShowSplash(splashWindow, shellViewModel);
+            }
             TryInstallTrayIcon(desktop, mainWindow, shellViewModel);
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    public static SplashPolicyResult EvaluateSplashPolicy(LuminaliumConfig config, bool isAutoStart)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+        // Startup origin is explicit. The current app has no reliable launch-origin signal, so App passes false.
+        return SplashPolicy.Evaluate(config.General, isAutoStart, TimeOnly.FromDateTime(DateTime.Now));
     }
 
     private static string GetSettingsDirectoryPath()
@@ -61,15 +92,17 @@ public partial class App : Application
         return Path.Combine(localAppData, ProductIdentity.DisplayName);
     }
 
-    private static void TryShowSplash(SplashWindow splashWindow, ShellViewModel shellViewModel)
+    private static Exception? TryShowSplash(SplashWindow splashWindow, ShellViewModel shellViewModel)
     {
         try
         {
             splashWindow.Show();
+            return null;
         }
         catch (Exception exception)
         {
-            shellViewModel.ReportLocalizedError(ShellErrorKind.Startup, "Shell.Error.SplashUnavailable", exception.Message);
+            shellViewModel.ReportLocalizedError(ShellErrorKind.Startup, "Shell.Error.SplashUnavailable");
+            return exception;
         }
     }
 

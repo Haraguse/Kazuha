@@ -13,6 +13,8 @@ public sealed class ShellPageFactory : IFANavigationPageFactory
     {
         OverviewViewModel viewModel => new OverviewPage { DataContext = viewModel },
         SettingsViewModel viewModel => new SettingsPage { DataContext = viewModel },
+        OnboardingViewModel viewModel => new OnboardingPage { DataContext = viewModel },
+        LogsViewModel viewModel => new LogsPage { DataContext = viewModel },
         PluginPageViewModel viewModel => new PluginPage { DataContext = viewModel },
         _ => null,
     };
