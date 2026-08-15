@@ -1,0 +1,36 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Luminalium.App.ViewModels"
+             xmlns:svc="using:Luminalium.App.Services"
+             x:Class="Luminalium.App.Views.Pages.LogsPage"
+             x:DataType="vm:LogsViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="{StaticResource ShellPageMargin}" Spacing="{StaticResource ShellPageSpacing}" MaxWidth="{StaticResource ShellPageMaxWidth}" HorizontalAlignment="Left">
+            <StackPanel Spacing="{StaticResource ShellTitleStackSpacing}">
+                <TextBlock Text="{Binding Title}" FontSize="{StaticResource ShellTitleFontSize}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Opacity="{StaticResource ShellMutedOpacity}" />
+            </StackPanel>
+            <Border Padding="{StaticResource ShellCompactPadding}" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{StaticResource ShellSettingsColumnSpacing}">
+                    <ComboBox Grid.Column="0" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding SeverityOptions}" SelectedItem="{Binding SelectedSeverity, Mode=TwoWay}" PlaceholderText="{Binding AllSeveritiesText}" AutomationProperties.Name="{Binding FilterLabel}" />
+                    <Button Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" Command="{Binding RefreshCommand}" Content="{Binding RefreshText}" AutomationProperties.Name="{Binding RefreshText}" />
+                    <Button Grid.Column="2" MinHeight="{StaticResource ShellTouchTargetMinHeight}" Click="OnExportClicked" Content="{Binding ExportText}" AutomationProperties.Name="{Binding ExportText}" AutomationProperties.HelpText="{Binding ExportHelpText}" />
+                </Grid>
+            </Border>
+            <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Opacity="{StaticResource ShellMutedOpacity}" AutomationProperties.Name="Logs status" />
+            <ItemsControl ItemsSource="{Binding Entries}" AutomationProperties.Name="Logs entries">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="svc:LogEntry">
+                        <Border Margin="{StaticResource ShellListItemMargin}" Padding="{StaticResource ShellCompactPadding}" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                            <StackPanel Spacing="{StaticResource ShellCompactSpacing}">
+                                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Timestamp}" Opacity="{StaticResource ShellMutedOpacity}" />
+                                <TextBlock Text="{Binding Severity}" Opacity="{StaticResource ShellMutedOpacity}" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

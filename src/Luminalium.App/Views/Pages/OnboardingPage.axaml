@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Luminalium.App.ViewModels"
+             x:Class="Luminalium.App.Views.Pages.OnboardingPage"
+             x:DataType="vm:OnboardingViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="{StaticResource ShellPageMargin}" Spacing="{StaticResource ShellPageSpacing}" MaxWidth="{StaticResource ShellPluginMaxWidth}" HorizontalAlignment="Left">
+            <StackPanel Spacing="{StaticResource ShellTitleStackSpacing}">
+                <TextBlock Text="{Binding Title}" FontSize="{StaticResource ShellTitleFontSize}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Opacity="{StaticResource ShellMutedOpacity}" />
+            </StackPanel>
+            <Border Padding="{StaticResource ShellSectionPadding}" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                <StackPanel Spacing="{StaticResource ShellSectionSpacing}">
+                    <TextBlock Text="{Binding CompletionText}" TextWrapping="Wrap" AutomationProperties.Name="Onboarding status" />
+                    <Button MinHeight="{StaticResource ShellTouchTargetMinHeight}" Command="{Binding CompleteCommand}" Content="{Binding CompleteText}" AutomationProperties.Name="{Binding CompleteText}" AutomationProperties.HelpText="{Binding CompleteHelpText}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
