@@ -51,6 +51,7 @@ public partial class TimerViewModel : ObservableObject
 
     private int _totalSeconds;
     private int _remainingSeconds;
+    private bool _isPaused;
 
     public int TotalSeconds => _totalSeconds;
 
@@ -66,14 +67,23 @@ public partial class TimerViewModel : ObservableObject
             return;
         }
 
-        if (!TryParseInput(InputText, out var totalSeconds))
+        var totalSeconds = 0;
+        if (!_isPaused && !TryParseInput(InputText, out totalSeconds))
         {
             StatusText = Localization["Timer.Status.InvalidFormat"];
             return;
         }
 
-        _totalSeconds = totalSeconds;
-        _remainingSeconds = totalSeconds;
+        if (_isPaused)
+        {
+            _isPaused = false;
+        }
+        else
+        {
+            _totalSeconds = totalSeconds;
+            _remainingSeconds = totalSeconds;
+        }
+
         IsFinished = false;
         StatusText = string.Empty;
         UpdateDisplay();
@@ -84,7 +94,7 @@ public partial class TimerViewModel : ObservableObject
         _countdownCts = cts;
         try
         {
-            await RunCountdownAsync(cts.Token).ConfigureAwait(false);
+            await RunCountdownAsync(cts);
         }
         catch (OperationCanceledException)
         {
@@ -92,11 +102,7 @@ public partial class TimerViewModel : ObservableObject
         }
         finally
         {
-            if (ReferenceEquals(_countdownCts, cts))
-            {
-                _countdownCts = null;
-            }
-
+            Interlocked.CompareExchange(ref _countdownCts, null, cts);
             cts.Dispose();
         }
     }
@@ -112,7 +118,8 @@ public partial class TimerViewModel : ObservableObject
         IsRunning = false;
         OnPropertyChanged(nameof(CanPause));
         StatusText = Localization["Timer.Status.Paused"];
-        _countdownCts?.Cancel();
+        _isPaused = true;
+        CancelCurrentCountdown();
     }
 
     [RelayCommand]
@@ -120,8 +127,8 @@ public partial class TimerViewModel : ObservableObject
     {
         IsRunning = false;
         IsFinished = false;
-        _countdownCts?.Cancel();
-        _countdownCts = null;
+        _isPaused = false;
+        CancelCurrentCountdown();
 
         if (TryParseInput(InputText, out var totalSeconds))
         {
@@ -144,31 +151,39 @@ public partial class TimerViewModel : ObservableObject
     /// </summary>
     public void Terminate()
     {
-        _countdownCts?.Cancel();
-        _countdownCts = null;
+        _isPaused = false;
+        CancelCurrentCountdown();
         IsRunning = false;
         OnPropertyChanged(nameof(CanPause));
     }
 
-    private async Task RunCountdownAsync(CancellationToken cancellationToken)
+    private async Task RunCountdownAsync(CancellationTokenSource countdown)
     {
+        var cancellationToken = countdown.Token;
         try
         {
-            while (!cancellationToken.IsCancellationRequested && _remainingSeconds > 0)
+            while (IsCurrentCountdown(countdown) &&
+                   !cancellationToken.IsCancellationRequested &&
+                   _remainingSeconds > 0)
             {
-                await _clock.DelayAsync(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
-                if (_remainingSeconds > 0)
+                await _clock.DelayAsync(TimeSpan.FromSeconds(1), cancellationToken);
+                if (IsCurrentCountdown(countdown) &&
+                    !cancellationToken.IsCancellationRequested &&
+                    _remainingSeconds > 0)
                 {
                     _remainingSeconds--;
                     UpdateDisplay();
                 }
             }
 
-            if (!cancellationToken.IsCancellationRequested && _remainingSeconds == 0)
+            if (IsCurrentCountdown(countdown) &&
+                !cancellationToken.IsCancellationRequested &&
+                _remainingSeconds == 0)
             {
                 IsRunning = false;
                 IsFinished = true;
                 StatusText = Localization["Timer.Status.Finished"];
+                _isPaused = false;
                 _audioCue.PlayFinishedCue();
                 _notificationCue.ShowFinished(
                     Localization["Timer.Notification.Title"],
@@ -180,6 +195,15 @@ public partial class TimerViewModel : ObservableObject
         {
             // Pause or termination; swallow so the task ends cleanly.
         }
+    }
+
+    private bool IsCurrentCountdown(CancellationTokenSource countdown) =>
+        ReferenceEquals(Volatile.Read(ref _countdownCts), countdown);
+
+    private void CancelCurrentCountdown()
+    {
+        var countdown = Interlocked.Exchange(ref _countdownCts, null);
+        countdown?.Cancel();
     }
 
     private void UpdateDisplay()

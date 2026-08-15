@@ -38,27 +38,36 @@
                    Text="{Binding StatusText}"
                    AutomationProperties.Name="TimerStatus" />
 
-        <StackPanel Grid.Row="3"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Center"
-                    Spacing="8">
-            <Button MinHeight="40" MinWidth="88"
+        <Grid Grid.Row="3"
+              ColumnDefinitions="*,*"
+              RowDefinitions="Auto,Auto"
+              ColumnSpacing="8"
+              RowSpacing="8">
+            <Button Grid.Row="0" Grid.Column="0"
+                    MinHeight="40"
+                    HorizontalAlignment="Stretch"
                     Command="{Binding StartCommand}"
                     Content="{Binding Localization[Timer.Button.Start]}"
                     AutomationProperties.Name="TimerStart" />
-            <Button MinHeight="40" MinWidth="88"
+            <Button Grid.Row="0" Grid.Column="1"
+                    MinHeight="40"
+                    HorizontalAlignment="Stretch"
                     Command="{Binding PauseCommand}"
                     IsEnabled="{Binding CanPause}"
                     Content="{Binding Localization[Timer.Button.Pause]}"
                     AutomationProperties.Name="TimerPause" />
-            <Button MinHeight="40" MinWidth="88"
+            <Button Grid.Row="1" Grid.Column="0"
+                    MinHeight="40"
+                    HorizontalAlignment="Stretch"
                     Command="{Binding ResetCommand}"
                     Content="{Binding Localization[Timer.Button.Reset]}"
                     AutomationProperties.Name="TimerReset" />
-            <Button MinHeight="40" MinWidth="88"
+            <Button Grid.Row="1" Grid.Column="1"
+                    MinHeight="40"
+                    HorizontalAlignment="Stretch"
                     Click="OnCloseClicked"
                     Content="{Binding Localization[Timer.Button.Close]}"
                     AutomationProperties.Name="TimerClose" />
-        </StackPanel>
+        </Grid>
     </Grid>
 </Window>

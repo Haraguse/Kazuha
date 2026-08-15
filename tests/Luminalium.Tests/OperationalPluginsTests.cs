@@ -59,6 +59,37 @@ public class OperationalPluginsTests
         Assert.Equal(0, audio.CallCount);
     }
 
+    [Fact]
+    public async Task PauseAfterElapsedTickPreservesRemainingTimeWhenResumed()
+    {
+        var clock = new PauseResumeClock();
+        var vm = new TimerViewModel(clock: clock)
+        {
+            InputText = "00:00:03",
+        };
+
+        var initialRun = vm.StartCommand.ExecuteAsync(null);
+        await clock.WaitUntilFirstTickAsync();
+        clock.ReleaseFirstTick();
+        await clock.WaitUntilSecondTickAsync();
+
+        vm.PauseCommand.Execute(null);
+        vm.InputText = "00:00:10";
+
+        Assert.False(vm.IsRunning);
+        Assert.Equal(2, vm.RemainingSeconds);
+        Assert.Equal("00:00:02", vm.DisplayText);
+
+        await initialRun.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var resumedRun = vm.StartCommand.ExecuteAsync(null);
+        clock.ReleaseSecondTick();
+        await resumedRun.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.True(vm.IsFinished);
+        Assert.Equal(4, clock.DelayCalls);
+    }
+
     [Theory]
     [InlineData("00:00:03", 3)]
     [InlineData("01:02:03", 3723)]
@@ -203,6 +234,48 @@ public class OperationalPluginsTests
         Assert.Contains("Some Artist", vm.MediaText);
     }
 
+    [Fact]
+    public void RefreshResumesOnTheCallingSynchronizationContext()
+    {
+        var context = new PumpSynchronizationContext();
+        var presentation = new ControllablePresentationStatusSource();
+        var media = new ControllableMediaStatusSource();
+        var vm = new StatusBarViewModel(
+            presentationStatus: presentation,
+            mediaStatus: media);
+        var notificationContexts = new List<SynchronizationContext?>();
+        vm.PropertyChanged += (_, _) => notificationContexts.Add(SynchronizationContext.Current);
+        var previousContext = SynchronizationContext.Current;
+
+        SynchronizationContext.SetSynchronizationContext(context);
+        try
+        {
+            var refreshTask = vm.RefreshCommand.ExecuteAsync(null);
+
+            Assert.False(refreshTask.IsCompleted);
+            Assert.True(presentation.WasRequested);
+
+            presentation.Completion.SetResult(new PresentationStatusSnapshot(2, 8, true));
+            Assert.True(context.RunNext());
+            Assert.True(media.WasRequested);
+
+            media.Completion.SetResult(new MediaStatusSnapshot("Song", "Artist", true));
+            Assert.True(context.RunNext());
+            Assert.True(refreshTask.IsCompletedSuccessfully);
+
+            Assert.NotEmpty(notificationContexts);
+            Assert.All(notificationContexts, notificationContext => Assert.Same(context, notificationContext));
+            Assert.Contains("2", vm.PresentationText);
+            Assert.Contains("8", vm.PresentationText);
+            Assert.Contains("Song", vm.MediaText);
+            Assert.Contains("Artist", vm.MediaText);
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previousContext);
+        }
+    }
+
     // ---------------------------------------------------------------- Fakes
 
     private sealed class FastClock : IClockService
@@ -236,6 +309,49 @@ public class OperationalPluginsTests
 
         public Task WaitUntilBlockedAsync() =>
             _entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    private sealed class PauseResumeClock : IClockService
+    {
+        private readonly TaskCompletionSource _firstTickEntered =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _firstTickRelease =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _secondTickEntered =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _secondTickRelease =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public DateTimeOffset UtcNow { get; set; } = DateTimeOffset.UnixEpoch;
+
+        public int DelayCalls { get; private set; }
+
+        public async Task DelayAsync(TimeSpan delay, CancellationToken cancellationToken)
+        {
+            DelayCalls++;
+            UtcNow = UtcNow.Add(delay);
+
+            if (DelayCalls == 1)
+            {
+                _firstTickEntered.TrySetResult();
+                await _firstTickRelease.Task.WaitAsync(cancellationToken);
+            }
+            else if (DelayCalls == 2)
+            {
+                _secondTickEntered.TrySetResult();
+                await _secondTickRelease.Task.WaitAsync(cancellationToken);
+            }
+        }
+
+        public Task WaitUntilFirstTickAsync() =>
+            _firstTickEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        public void ReleaseFirstTick() => _firstTickRelease.TrySetResult();
+
+        public Task WaitUntilSecondTickAsync() =>
+            _secondTickEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        public void ReleaseSecondTick() => _secondTickRelease.TrySetResult();
     }
 
     private sealed class CountingAudioCue : IAudioCueService
@@ -296,5 +412,55 @@ public class OperationalPluginsTests
 
         public Task<MediaStatusSnapshot> GetStatusAsync(
             CancellationToken cancellationToken = default) => Task.FromResult(_snapshot);
+    }
+
+    private sealed class ControllablePresentationStatusSource : IPresentationStatusSource
+    {
+        public TaskCompletionSource<PresentationStatusSnapshot> Completion { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public bool WasRequested { get; private set; }
+
+        public Task<PresentationStatusSnapshot> GetStatusAsync(
+            CancellationToken cancellationToken = default)
+        {
+            WasRequested = true;
+            return Completion.Task;
+        }
+    }
+
+    private sealed class ControllableMediaStatusSource : IMediaStatusSource
+    {
+        public TaskCompletionSource<MediaStatusSnapshot> Completion { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public bool WasRequested { get; private set; }
+
+        public Task<MediaStatusSnapshot> GetStatusAsync(
+            CancellationToken cancellationToken = default)
+        {
+            WasRequested = true;
+            return Completion.Task;
+        }
+    }
+
+    private sealed class PumpSynchronizationContext : SynchronizationContext
+    {
+        private readonly Queue<(SendOrPostCallback Callback, object? State)> _work = new();
+
+        public override void Post(SendOrPostCallback callback, object? state) =>
+            _work.Enqueue((callback, state));
+
+        public bool RunNext()
+        {
+            if (_work.Count == 0)
+            {
+                return false;
+            }
+
+            var (callback, state) = _work.Dequeue();
+            callback(state);
+            return true;
+        }
     }
 }

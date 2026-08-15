@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Luminalium.App.Overlay;
 using Luminalium.App.ViewModels;
 
 namespace Luminalium.App.Views;
@@ -14,6 +15,7 @@ namespace Luminalium.App.Views;
 public partial class SpotlightWindow : Window
 {
     private readonly SpotlightViewModel _viewModel;
+    private readonly IOverlayScreenProvider _screenProvider;
     private bool _selecting;
 
     public SpotlightWindow()
@@ -21,11 +23,13 @@ public partial class SpotlightWindow : Window
     {
     }
 
-    public SpotlightWindow(SpotlightViewModel viewModel)
+    public SpotlightWindow(SpotlightViewModel viewModel, IOverlayScreenProvider? screenProvider = null)
     {
+        ArgumentNullException.ThrowIfNull(viewModel);
         _viewModel = viewModel;
-        DataContext = viewModel;
         InitializeComponent();
+        _screenProvider = screenProvider ?? new AvaloniaOverlayScreenProvider(this);
+        DataContext = viewModel;
 
         _viewModel.PropertyChanged += (_, args) =>
         {
@@ -40,7 +44,19 @@ public partial class SpotlightWindow : Window
             }
         };
 
-        SizeChanged += (_, _) => UpdateDimMask();
+        Opened += OnOpened;
+        SizeChanged += (_, _) =>
+        {
+            UpdateDimMask();
+            UpdateOutline();
+        };
+    }
+
+    private void OnOpened(object? sender, EventArgs e)
+    {
+        ApplyPlacement();
+        UpdateDimMask();
+        UpdateOutline();
     }
 
     protected override void OnClosed(EventArgs e)
@@ -87,6 +103,14 @@ public partial class SpotlightWindow : Window
     }
 
     private void OnCloseClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => Close();
+
+    private void ApplyPlacement()
+    {
+        var bounds = _screenProvider.GetScreen();
+        Position = new PixelPoint(bounds.X, bounds.Y);
+        Width = Math.Max(1, bounds.Width);
+        Height = Math.Max(1, bounds.Height);
+    }
 
     private void UpdateDimMask()
     {

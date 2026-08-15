@@ -43,7 +43,7 @@ public partial class StatusBarViewModel : ObservableObject
     [RelayCommand]
     private async Task RefreshAsync()
     {
-        var presentation = await _presentationStatus.GetStatusAsync().ConfigureAwait(false);
+        var presentation = await _presentationStatus.GetStatusAsync();
         PresentationText = presentation.IsSlideShow && presentation.SlideCount > 0
             ? string.Format(
                 CultureInfo.InvariantCulture,
@@ -52,7 +52,7 @@ public partial class StatusBarViewModel : ObservableObject
                 presentation.SlideCount)
             : Localization["StatusBar.Status.NoPresentation"];
 
-        var media = await _mediaStatus.GetStatusAsync().ConfigureAwait(false);
+        var media = await _mediaStatus.GetStatusAsync();
         MediaText = string.IsNullOrWhiteSpace(media.Title)
             ? Localization["StatusBar.Status.NoMedia"]
             : string.Format(

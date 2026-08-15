@@ -7,8 +7,6 @@
         x:Class="Luminalium.App.Views.SpotlightWindow"
         x:DataType="vm:SpotlightViewModel"
         Title="{Binding WindowTitle}"
-        Width="1280"
-        Height="720"
         CanResize="False"
         WindowStartupLocation="Manual"
         WindowDecorations="None"
@@ -30,12 +28,15 @@
                 PointerReleased="OnSpotlightPointerReleased"
                 AutomationProperties.Name="SpotlightCanvas" />
 
-        <Rectangle x:Name="SpotlightHoleOutline"
-                   Stroke="White"
-                   StrokeThickness="2"
-                   IsHitTestVisible="False"
-                   IsVisible="{Binding HasSelection}"
-                   AutomationProperties.Name="SpotlightSelection" />
+        <Canvas x:Name="SpotlightOverlay"
+                IsHitTestVisible="False">
+            <Rectangle x:Name="SpotlightHoleOutline"
+                       Stroke="White"
+                       StrokeThickness="2"
+                       IsHitTestVisible="False"
+                       IsVisible="{Binding HasSelection}"
+                       AutomationProperties.Name="SpotlightSelection" />
+        </Canvas>
 
         <StackPanel HorizontalAlignment="Center"
                     VerticalAlignment="Top"

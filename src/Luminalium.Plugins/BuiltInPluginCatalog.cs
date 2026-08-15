@@ -69,8 +69,12 @@ public static class BuiltInPluginCatalog
     {
         var plugin = new BuiltInPlugin(
             metadata,
-            new PlaceholderPluginCommand(metadata.Id),
-            new PlaceholderPluginViewFactory(metadata.DisplayName.Length == 0 ? metadata.Id : metadata.DisplayName));
+            metadata.Id is "onboarding" or "logs"
+                ? new CompletedPluginCommand()
+                : new PlaceholderPluginCommand(metadata.Id),
+            metadata.Id is "onboarding" or "logs"
+                ? new NativeSurfaceViewFactory(metadata.Id)
+                : new PlaceholderPluginViewFactory(metadata.DisplayName.Length == 0 ? metadata.Id : metadata.DisplayName));
         var result = registry.Register(plugin);
         if (!result.IsSuccess)
         {
@@ -96,10 +100,26 @@ public static class BuiltInPluginCatalog
             Task.CompletedTask;
     }
 
+    private sealed class CompletedPluginCommand : IPluginCommand
+    {
+        public Task<PluginExecutionResult> ExecuteAsync(PluginContext context, CancellationToken cancellationToken) =>
+            Task.FromResult(PluginExecutionResult.Success());
+
+        public Task TerminateAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
     private sealed class PlaceholderPluginViewFactory(string label) : IPluginViewFactory
     {
         // Real built-in plugin views are intentionally deferred to Tasks 17-19.
         public Control CreateView() =>
             new TextBlock { Text = $"{label} placeholder view. {PlaceholderDetail}" };
+    }
+
+    private sealed class NativeSurfaceViewFactory(string pluginId) : IPluginViewFactory
+    {
+        public Control CreateView() => new ContentControl
+        {
+            Tag = pluginId,
+        };
     }
 }
