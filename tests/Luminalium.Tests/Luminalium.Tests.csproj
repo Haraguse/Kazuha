@@ -41,6 +41,7 @@
 
   <ItemGroup>
     <Compile Include="..\..\src\Luminalium.App\Features\*.cs" Link="App\Features\%(Filename)%(Extension)" />
+    <Compile Include="..\..\src\Luminalium.App\Services\AsyncSerialGate.cs" Link="App\Services\AsyncSerialGate.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\BuiltInFeatureHostContracts.cs" Link="App\Services\BuiltInFeatureHostContracts.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\BuiltInFeatureHost.cs" Link="App\Services\BuiltInFeatureHost.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\BuiltInFeatureLegacyProjection.cs" Link="App\Services\BuiltInFeatureLegacyProjection.cs" />

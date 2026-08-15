@@ -78,6 +78,45 @@ public sealed class BuiltInFeatureHostTests
         Assert.Equal(2, factory.CreateCount);
     }
 
+    public static TheoryData<BuiltInFeatureId> NativeWindowFeatureIds { get; } =
+        new()
+        {
+            BuiltInFeatureId.Board,
+            BuiltInFeatureId.Timer,
+            BuiltInFeatureId.Spotlight,
+            BuiltInFeatureId.AppLauncher,
+            BuiltInFeatureId.StatusBar,
+        };
+
+    [Theory]
+    [MemberData(nameof(NativeWindowFeatureIds))]
+    public void NativeWindowFeaturesRemainFresh(BuiltInFeatureId id)
+    {
+        Assert.True(BuiltInFeatureCatalog.Default.TryGet(id, out var descriptor));
+        Assert.Equal(BuiltInFeatureActivationMode.FreshWindow, descriptor.ActivationMode);
+    }
+
+    [Theory]
+    [MemberData(nameof(NativeWindowFeatureIds))]
+    public async Task NativeWindowFeaturesActivateFreshAndCloseExactlyOnce(BuiltInFeatureId id)
+    {
+        var factory = new RecordingFactory();
+        await using var host = Host(id, factory);
+
+        var first = await host.ActivateAsync(id);
+        var second = await host.ActivateAsync(id);
+
+        Assert.True(first.IsSuccess);
+        Assert.True(second.IsSuccess);
+        Assert.Equal(2, factory.CreateCount);
+        Assert.Equal(2, factory.Instances.Count);
+        Assert.All(factory.Instances, instance => Assert.Equal(1, instance.ActivateCount));
+
+        await host.BeginShutdownAsync();
+
+        Assert.All(factory.Instances, instance => Assert.Equal(1, instance.CloseCount));
+    }
+
     [Fact]
     public async Task ShutdownAndDisposeCloseEachInstanceExactlyOnce()
     {
