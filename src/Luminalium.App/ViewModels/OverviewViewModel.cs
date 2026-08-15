@@ -1,6 +1,6 @@
-namespace Luminalium.App.ViewModels;
-
 using Luminalium.Core.Localization;
+
+namespace Luminalium.App.ViewModels;
 
 public sealed class OverviewViewModel : ShellPageViewModel
 {
@@ -11,28 +11,22 @@ public sealed class OverviewViewModel : ShellPageViewModel
         string productName,
         string versionDisplay,
         bool versionUnavailable,
-        IReadOnlyList<PluginEntryViewModel> plugins,
+        IReadOnlyList<BuiltInFeatureEntryViewModel> builtInFeatures,
         ILocalizationService localization) : base("overview", "Navigation.Overview", localization)
     {
         ProductName = productName;
         _versionDisplay = versionDisplay;
         _versionUnavailable = versionUnavailable;
-        Plugins = plugins;
+        BuiltInFeatures = builtInFeatures;
     }
 
     public string ProductName { get; }
-
     public string VersionDisplay => _versionUnavailable ? Localization["Shell.VersionUnavailable"] : _versionDisplay;
-
     public string NativeShellTitle => Localization["Overview.NativeShell.Title"];
-
     public string NativeShellBody => Localization["Overview.NativeShell.Body"];
-
     public string BuiltInPluginsTitle => Localization["Overview.BuiltInPlugins.Title"];
-
     public string BuiltInPluginListName => Localization["Overview.BuiltInPlugins.ListName"];
-
-    public IReadOnlyList<PluginEntryViewModel> Plugins { get; }
+    public IReadOnlyList<BuiltInFeatureEntryViewModel> BuiltInFeatures { get; }
 
     protected override void RefreshLocalizedText()
     {

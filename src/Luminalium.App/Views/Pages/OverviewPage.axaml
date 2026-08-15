@@ -35,9 +35,9 @@
             <TextBlock Text="{Binding BuiltInPluginsTitle}"
                        FontSize="{StaticResource ShellSectionTitleFontSize}"
                        FontWeight="SemiBold" />
-            <ItemsControl ItemsSource="{Binding Plugins}" AutomationProperties.Name="{Binding BuiltInPluginListName}">
+            <ItemsControl ItemsSource="{Binding BuiltInFeatures}" AutomationProperties.Name="{Binding BuiltInPluginListName}">
                 <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:PluginEntryViewModel">
+                    <DataTemplate x:DataType="vm:BuiltInFeatureEntryViewModel">
                         <Border Margin="{StaticResource ShellListItemMargin}"
                                 Padding="{StaticResource ShellCompactPadding}"
                                 CornerRadius="{StaticResource ShellCornerRadius}"
@@ -47,7 +47,7 @@
                                 <TextBlock Text="{Binding DisplayName}"
                                            FontWeight="SemiBold" />
                                 <TextBlock Grid.Column="1"
-                                           Text="{Binding PluginTypeText}"
+                                           Text="{Binding FeatureTypeText}"
                                            Opacity="{StaticResource ShellMutedOpacity}" />
                                 <TextBlock Grid.Column="2"
                                            Text="{Binding IconKey}"

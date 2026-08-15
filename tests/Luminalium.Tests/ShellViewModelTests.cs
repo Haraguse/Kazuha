@@ -27,7 +27,7 @@ public sealed class ShellViewModelTests : IDisposable
     {
         var viewModel = new ShellViewModel();
 
-        Assert.Equal(8, viewModel.Plugins.Count);
+        Assert.Equal(8, viewModel.BuiltInFeatures.Count);
         Assert.Equal(
         [
             "settings",
@@ -38,7 +38,7 @@ public sealed class ShellViewModelTests : IDisposable
             "app_launcher",
             "logs",
             "status_bar",
-        ], viewModel.Plugins.Select(plugin => plugin.Id));
+        ], viewModel.BuiltInFeatures.Select(plugin => plugin.Id));
         Assert.Equal(
         [
             "",
@@ -49,25 +49,47 @@ public sealed class ShellViewModelTests : IDisposable
             "App Launcher",
             "日志 - Luminalium",
             "Status Bar",
-        ], viewModel.Plugins.Select(plugin => plugin.RawDisplayName));
-        Assert.Equal("设置", viewModel.Plugins[0].DisplayName);
+        ], viewModel.BuiltInFeatures.Select(plugin => plugin.RawDisplayName));
+        Assert.Equal("设置", viewModel.BuiltInFeatures[0].DisplayName);
+    }
+
+    [Fact]
+    public void FirstRunStartsOnOnboarding()
+    {
+        var config = LuminaliumConfig.CreateDefault();
+
+        var viewModel = new ShellViewModel(config: config);
+
+        Assert.IsType<OnboardingViewModel>(viewModel.CurrentPage);
+    }
+
+    [Fact]
+    public void CompletedConfigurationStartsOnOverview()
+    {
+        var config = LuminaliumConfig.CreateDefault();
+        config.General.OnboardingCompleted = true;
+
+        var viewModel = new ShellViewModel(config: config);
+
+        Assert.Same(viewModel.Overview, viewModel.CurrentPage);
     }
 
     [Fact]
     public void NavigationBackStackDoesNotDuplicateSamePage()
     {
-        var viewModel = new ShellViewModel();
+        var config = LuminaliumConfig.CreateDefault();
+        config.General.OnboardingCompleted = true;
+        var viewModel = new ShellViewModel(config: config);
 
         Assert.False(viewModel.CanGoBack);
         Assert.Same(viewModel.Overview, viewModel.CurrentPage);
 
-        viewModel.NavigateToPlugin(viewModel.Plugins[3]);
+        viewModel.NavigateToFeature("onboarding");
 
         Assert.True(viewModel.CanGoBack);
-        var timerPage = Assert.IsType<PluginPageViewModel>(viewModel.CurrentPage);
-        Assert.Equal("timer", timerPage.Plugin.Id);
+        Assert.IsType<OnboardingViewModel>(viewModel.CurrentPage);
 
-        viewModel.NavigateToPlugin(viewModel.Plugins[3]);
+        viewModel.NavigateToFeature("onboarding");
         viewModel.GoBack();
 
         Assert.False(viewModel.CanGoBack);
@@ -77,13 +99,15 @@ public sealed class ShellViewModelTests : IDisposable
     [Fact]
     public void NavigationBackReturnsToPreviousPage()
     {
-        var viewModel = new ShellViewModel();
+        var config = LuminaliumConfig.CreateDefault();
+        config.General.OnboardingCompleted = true;
+        var viewModel = new ShellViewModel(config: config);
 
         viewModel.NavigateToSettings();
-        viewModel.NavigateToPlugin(viewModel.Plugins[5]);
+        viewModel.NavigateToFeature("logs");
 
         Assert.True(viewModel.CanGoBack);
-        Assert.IsType<PluginPageViewModel>(viewModel.CurrentPage);
+        Assert.IsType<LogsViewModel>(viewModel.CurrentPage);
 
         viewModel.GoBack();
 
@@ -111,21 +135,36 @@ public sealed class ShellViewModelTests : IDisposable
             configurationService: configurationService,
             logService: logService);
 
-        viewModel.NavigateToPlugin(viewModel.Plugins.Single(plugin => plugin.Id == "onboarding"));
+        viewModel.NavigateToFeature("onboarding");
         var onboardingPage = Assert.IsType<OnboardingViewModel>(viewModel.CurrentPage);
         onboardingPage.CompleteCommand.Execute(null);
 
-        viewModel.NavigateToPlugin(viewModel.Plugins.Single(plugin => plugin.Id == "logs"));
+        viewModel.NavigateToFeature("logs");
         var logsPage = Assert.IsType<LogsViewModel>(viewModel.CurrentPage);
 
         Assert.Single(logsPage.Entries);
         Assert.Equal("shell ready", logsPage.Entries[0].Message);
         Assert.True(configurationService.Load().Config.General.OnboardingCompleted);
 
-        viewModel.NavigateToPlugin(viewModel.Plugins.Single(plugin => plugin.Id == "onboarding"));
+        viewModel.NavigateToFeature("onboarding");
         Assert.Same(onboardingPage, viewModel.CurrentPage);
-        viewModel.NavigateToPlugin(viewModel.Plugins.Single(plugin => plugin.Id == "logs"));
+        viewModel.NavigateToFeature("logs");
         Assert.Same(logsPage, viewModel.CurrentPage);
+    }
+
+    [Fact]
+    public void ReportErrorWritesApplicationLogEntryToConfiguredJsonlPath()
+    {
+        var logPath = Path.Combine(_directory, "application-errors.jsonl");
+        var logService = new LocalLogService(logPath: logPath);
+        var viewModel = new ShellViewModel(logService: logService);
+
+        viewModel.ReportError(ShellErrorKind.Startup, "Splash window could not be shown.");
+
+        var entry = Assert.Single(logService.Read());
+        Assert.Equal(LogSeverity.Error, entry.Severity);
+        Assert.Equal("Splash window could not be shown.", entry.Message);
+        Assert.Equal(nameof(ShellErrorKind.Startup), entry.Source);
     }
 
     [Fact]
@@ -438,6 +477,66 @@ public sealed class ShellViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task OverlappingProtectedMutationsShareOneUnlockPromptAndPersistInOrder()
+    {
+        var configurationService = new ConfigurationService(_directory);
+        var passwordService = new PasswordHashService();
+        var config = LuminaliumConfig.CreateDefault();
+        config.Security.PasswordProtectionEnabled = true;
+        config.Security.PasswordHash = passwordService.HashPassword("correct-password", PasswordHashService.MinimumIterations)!;
+        var dialogService = new BlockingUnlockDialogService("correct-password");
+        var viewModel = new ShellViewModel(
+            config: config,
+            configurationService: configurationService,
+            dialogService: dialogService,
+            themeService: new RecordingThemeService(),
+            localizationService: new LocalizationService());
+
+        var themeTask = viewModel.ApplyThemeModeAsync(ShellThemeMode.Dark);
+        await dialogService.UnlockRequested.Task;
+        var languageTask = viewModel.ApplyLanguageAsync(AppLanguage.EnUs);
+
+        Assert.Equal(1, dialogService.UnlockPromptCount);
+        dialogService.CompleteUnlock();
+
+        Assert.True(await themeTask);
+        Assert.True(await languageTask);
+        var persisted = configurationService.Load().Config;
+        Assert.Equal(ThemeMode.Dark, persisted.Appearance.ThemeMode);
+        Assert.Equal("en-US", persisted.General.Language);
+    }
+
+    [Fact]
+    public async Task SerializedProtectedMutationsRollbackEachChangeAfterSaveFailure()
+    {
+        var blockedPath = Path.Combine(_directory, "not-a-directory");
+        File.WriteAllText(blockedPath, "locked");
+        var configurationService = new ConfigurationService(blockedPath);
+        var passwordService = new PasswordHashService();
+        var config = LuminaliumConfig.CreateDefault();
+        config.Security.PasswordProtectionEnabled = true;
+        config.Security.PasswordHash = passwordService.HashPassword("correct-password", PasswordHashService.MinimumIterations)!;
+        var dialogService = new BlockingUnlockDialogService("correct-password");
+        var viewModel = new ShellViewModel(
+            config: config,
+            configurationService: configurationService,
+            dialogService: dialogService,
+            themeService: new RecordingThemeService(),
+            localizationService: new LocalizationService());
+
+        var themeTask = viewModel.ApplyThemeModeAsync(ShellThemeMode.Dark);
+        await dialogService.UnlockRequested.Task;
+        var languageTask = viewModel.ApplyLanguageAsync(AppLanguage.EnUs);
+        dialogService.CompleteUnlock();
+
+        Assert.False(await themeTask);
+        Assert.False(await languageTask);
+        Assert.Equal(ThemeMode.Light, config.Appearance.ThemeMode);
+        Assert.Equal("zh-CN", config.General.Language);
+        Assert.Equal(ShellThemeMode.Light, viewModel.SelectedThemeMode);
+    }
+
+    [Fact]
     public async Task EnableChangeAndDisablePasswordProtectionPersistOnlyHashState()
     {
         var directory = Path.Combine(_directory, "password-lifecycle");
@@ -588,6 +687,38 @@ public sealed class ShellViewModelTests : IDisposable
 
         public Task<RetryCloseDialogResult> ShowRetryCloseAsync(ShellViewModel shellViewModel, RetryCloseDialogRequest request) =>
             Task.FromResult(RetryCloseDialogResult.OwnerNotReady);
+    }
+
+    private sealed class BlockingUnlockDialogService(string password) : IDialogService
+    {
+        public TaskCompletionSource UnlockRequested { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public int UnlockPromptCount { get; private set; }
+
+        public Task ShowAboutAsync(ShellViewModel shellViewModel) => Task.CompletedTask;
+
+        public Task<string> ShowUpdateAsync(ShellViewModel shellViewModel, UpdateOrchestrator orchestrator, string installDirectory) =>
+            Task.FromResult(string.Empty);
+
+        public Task<PasswordDialogResult> ShowPasswordAsync(ShellViewModel shellViewModel, PasswordDialogMode mode)
+        {
+            if (mode != PasswordDialogMode.Unlock)
+            {
+                return Task.FromResult(PasswordDialogResult.Cancelled);
+            }
+
+            UnlockPromptCount++;
+            UnlockRequested.TrySetResult();
+            return UnlockResult.Task;
+        }
+
+        public Task<RetryCloseDialogResult> ShowRetryCloseAsync(ShellViewModel shellViewModel, RetryCloseDialogRequest request) =>
+            Task.FromResult(RetryCloseDialogResult.OwnerNotReady);
+
+        public void CompleteUnlock() => UnlockResult.TrySetResult(PasswordDialogResult.Submitted(password));
+
+        private TaskCompletionSource<PasswordDialogResult> UnlockResult { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
 }

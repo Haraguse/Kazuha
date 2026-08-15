@@ -1,11 +1,11 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Luminalium.App.Services;
 using Luminalium.Core.Configuration;
 using Luminalium.Core.Identity;
 using Luminalium.Core.Localization;
 using Luminalium.Core.Security;
-using Luminalium.Plugins;
+using Luminalium.App.Features;
 using Luminalium.Theming;
 using Luminalium.Updater;
 using System.Globalization;
@@ -36,12 +36,13 @@ public sealed partial class ShellViewModel : ObservableObject
     private readonly string _versionDisplay;
     private readonly bool _versionUnavailable;
     private readonly IPasswordHashService _passwordHashService;
+    private readonly LocalLogService _logService;
     private readonly IReadOnlyList<string> _knownFontFamilies;
     private bool _settingsUnlocked;
+    private readonly AsyncSerialGate _settingsOperationGate = new();
     private long _accentRequestId;
     private readonly Stack<ShellPageViewModel> _backStack = new();
-    private readonly Dictionary<string, ShellPageViewModel> _pluginPages;
-    private bool _syncingThemeMode;
+    private readonly Dictionary<BuiltInFeatureId, ShellPageViewModel> _nativePages;
     private string _trayStatusKey = "Tray.Status.Pending";
 
     [ObservableProperty]
@@ -85,6 +86,8 @@ public sealed partial class ShellViewModel : ObservableObject
         _configurationService = configurationService;
         _passwordHashService = passwordHashService ?? new PasswordHashService();
         _localization = localizationService ?? new LocalizationService();
+        var localLogService = logService ?? new LocalLogService();
+        _logService = localLogService;
         if (AppLanguageExtensions.TryParseCode(_config.General.Language, out var configuredLanguage))
         {
             _localization.SetLanguage(configuredLanguage);
@@ -98,12 +101,14 @@ public sealed partial class ShellViewModel : ObservableObject
 
         ProductName = ProductIdentity.DisplayName;
         (_versionDisplay, _versionUnavailable) = LoadVersionDisplayState(versionMetadataPath ?? DefaultVersionMetadataPath);
-        Plugins = BuiltInPluginCatalog.CreateDefaultRegistry()
-            .Enumerate()
-            .Select(plugin => new PluginEntryViewModel(plugin.Metadata, _localization))
+        BuiltInFeatures = BuiltInFeatureCatalog.Default.Descriptors
+            .Select(descriptor => new BuiltInFeatureEntryViewModel(descriptor, _localization))
             .ToArray();
+        LegacyPlugins = BuiltInFeatures;
+        Plugins = LegacyPlugins;
 
-        Overview = new OverviewViewModel(ProductName, _versionDisplay, _versionUnavailable, Plugins, _localization);
+        Overview = new OverviewViewModel(ProductName, _versionDisplay, _versionUnavailable, BuiltInFeatures, _localization);
+
         Settings = new SettingsViewModel(
             VersionDisplay,
             ShowAboutAsync,
@@ -127,23 +132,21 @@ public sealed partial class ShellViewModel : ObservableObject
             _knownFontFamilies);
         InitializeAppearance();
         InitializeFontAndSplash();
-        _pluginPages = Plugins.ToDictionary<PluginEntryViewModel, string, ShellPageViewModel>(
-            plugin => plugin.Id,
-            plugin => plugin.Id switch
-            {
-                "onboarding" => new OnboardingViewModel(_config, _configurationService, _localization),
-                "logs" => new LogsViewModel(logService ?? new LocalLogService(), _localization),
-                _ => new PluginPageViewModel(plugin, _localization),
-            },
-            StringComparer.Ordinal);
+        _nativePages = new Dictionary<BuiltInFeatureId, ShellPageViewModel>
+        {
+            [BuiltInFeatureId.Onboarding] = new OnboardingViewModel(_config, _configurationService, _localization),
+            [BuiltInFeatureId.Logs] = new LogsViewModel(localLogService, _localization),
+        };
 
-        currentPage = Overview;
+        currentPage = _config.General.OnboardingCompleted
+            ? Overview
+            : _nativePages[BuiltInFeatureId.Onboarding];
         trayStatusText = _localization[_trayStatusKey];
         _localization.LanguageChanged += OnLanguageChanged;
         GoBackCommand = new RelayCommand(GoBack, () => CanGoBack);
         NavigateToOverviewCommand = new RelayCommand(NavigateToOverview);
         NavigateToSettingsCommand = new RelayCommand(NavigateToSettings);
-        NavigateToPluginCommand = new RelayCommand<PluginEntryViewModel>(NavigateToPlugin);
+        NavigateToPluginCommand = new RelayCommand<BuiltInFeatureEntryViewModel>(feature => NavigateToFeature(feature?.RouteKey));
     }
 
     public string ProductName { get; }
@@ -152,7 +155,11 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public ILocalizationService Localization => _localization;
 
-    public IReadOnlyList<PluginEntryViewModel> Plugins { get; }
+    public IReadOnlyList<BuiltInFeatureEntryViewModel> BuiltInFeatures { get; }
+
+    public IReadOnlyList<BuiltInFeatureEntryViewModel> Plugins { get; }
+
+    public IReadOnlyList<BuiltInFeatureEntryViewModel> LegacyPlugins { get; }
 
     public OverviewViewModel Overview { get; }
 
@@ -184,7 +191,7 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public IRelayCommand NavigateToSettingsCommand { get; }
 
-    public IRelayCommand<PluginEntryViewModel> NavigateToPluginCommand { get; }
+    public IRelayCommand<BuiltInFeatureEntryViewModel> NavigateToPluginCommand { get; }
 
     private static string DefaultVersionMetadataPath =>
         Path.Combine(AppContext.BaseDirectory, ProductIdentity.VersionMetadataFileName);
@@ -193,13 +200,34 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public void NavigateToSettings() => NavigateTo(Settings);
 
-    public void NavigateToPlugin(PluginEntryViewModel? plugin)
+    public BuiltInFeatureActivationResult NavigateToFeature(string? route)
     {
-        if (plugin is not null && _pluginPages.TryGetValue(plugin.Id, out var page))
+        var result = new BuiltInFeatureRouteParser().Parse(route);
+        if (!result.IsSuccess)
+        {
+            return result;
+        }
+
+        if (result.FeatureId == BuiltInFeatureId.Settings)
+        {
+            NavigateTo(Settings);
+            return result;
+        }
+
+        if (_nativePages.TryGetValue(result.FeatureId!.Value, out var page))
         {
             NavigateTo(page);
+            return result;
         }
+
+        return BuiltInFeatureActivationResult.Failure(BuiltInFeatureActivationErrorCode.NotFound, route, result.FeatureId, result.CorrelationId);
     }
+
+    [Obsolete("Use NavigateToFeature; retained for one compatibility release.")]
+    public void NavigateToPlugin(BuiltInFeatureEntryViewModel? feature) => NavigateToFeature(feature?.RouteKey);
+
+    [Obsolete("Use NavigateToFeature; retained for one compatibility release.")]
+    public void NavigateToPlugin(PluginEntryViewModel? plugin) => NavigateToFeature(plugin?.Id);
 
     public void GoBack()
     {
@@ -214,13 +242,11 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public void ApplyThemeMode(ShellThemeMode mode) => _ = ApplyThemeModeAsync(mode);
 
-    public async Task<bool> ApplyThemeModeAsync(ShellThemeMode mode)
-    {
-        if (_syncingThemeMode)
-        {
-            return true;
-        }
+    public Task<bool> ApplyThemeModeAsync(ShellThemeMode mode) =>
+        RunSerializedSettingsOperationAsync(() => ApplyThemeModeCoreAsync(mode));
 
+    private async Task<bool> ApplyThemeModeCoreAsync(ShellThemeMode mode)
+    {
         if (!await UnlockSettingsIfRequiredAsync().ConfigureAwait(true))
         {
             return false;
@@ -234,18 +260,7 @@ public sealed partial class ShellViewModel : ObservableObject
             SelectedThemeMode = mode;
         }
 
-        _syncingThemeMode = true;
-        try
-        {
-            if (Settings.SelectedThemeMode != mode)
-            {
-                Settings.SelectedThemeMode = mode;
-            }
-        }
-        finally
-        {
-            _syncingThemeMode = false;
-        }
+        Settings.SyncThemeMode(mode);
 
         _themeService.Apply(mode);
         _config.Appearance.ThemeMode = ToConfigThemeMode(mode);
@@ -263,7 +278,10 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public void ApplyLanguage(AppLanguage language) => _ = ApplyLanguageAsync(language);
 
-    public async Task<bool> ApplyLanguageAsync(AppLanguage language)
+    public Task<bool> ApplyLanguageAsync(AppLanguage language) =>
+        RunSerializedSettingsOperationAsync(() => ApplyLanguageCoreAsync(language));
+
+    private async Task<bool> ApplyLanguageCoreAsync(AppLanguage language)
     {
         if (!await UnlockSettingsIfRequiredAsync().ConfigureAwait(true))
         {
@@ -295,6 +313,7 @@ public sealed partial class ShellViewModel : ObservableObject
     {
         ErrorKind = kind;
         ErrorText = message;
+        _logService.Log(LogSeverity.Error, message, kind.ToString());
     }
 
     public void ReportLocalizedError(ShellErrorKind kind, string key, string? argument = null)
@@ -364,17 +383,32 @@ public sealed partial class ShellViewModel : ObservableObject
 
     private async Task<bool> ApplyAccentOptionGuardedAsync(AccentOptionViewModel accentOption)
     {
-        if (!await UnlockSettingsIfRequiredAsync().ConfigureAwait(true))
+        var requestId = Interlocked.Increment(ref _accentRequestId);
+        MonetPalette? palette = null;
+        if (accentOption.Key == "monet")
         {
-            return false;
+            var result = await _monetThemeService.BuildPaletteAsync().ConfigureAwait(true);
+            palette = result.Palette;
         }
 
-        return await ApplyAccentOptionAsync(accentOption, persist: true).ConfigureAwait(true);
+        return await RunSerializedSettingsOperationAsync(async () =>
+        {
+            if (!await UnlockSettingsIfRequiredAsync().ConfigureAwait(true))
+            {
+                return false;
+            }
+
+            return await ApplyAccentOptionCoreAsync(accentOption, persist: true, requestId, palette).ConfigureAwait(true);
+        }).ConfigureAwait(true);
     }
 
-    private async Task<bool> ApplyAccentOptionAsync(AccentOptionViewModel accentOption, bool persist)
+    private async Task<bool> ApplyAccentOptionCoreAsync(
+        AccentOptionViewModel accentOption,
+        bool persist,
+        long? requestIdOverride = null,
+        MonetPalette? palette = null)
     {
-        var requestId = Interlocked.Increment(ref _accentRequestId);
+        var requestId = requestIdOverride ?? Interlocked.Increment(ref _accentRequestId);
         try
         {
             if (accentOption.Key == "system")
@@ -382,7 +416,7 @@ public sealed partial class ShellViewModel : ObservableObject
                 if (IsCurrentAccentRequest(requestId))
                 {
                     _themeService.UseSystemAccent();
-                    return await PersistAccentAsync(accentOption, persist).ConfigureAwait(true);
+                    return await PersistAccentCoreAsync(accentOption, persist).ConfigureAwait(true);
                 }
 
                 return true;
@@ -390,11 +424,11 @@ public sealed partial class ShellViewModel : ObservableObject
 
             if (accentOption.Key == "monet")
             {
-                var result = await _monetThemeService.BuildPaletteAsync().ConfigureAwait(true);
+                palette ??= (await _monetThemeService.BuildPaletteAsync().ConfigureAwait(true)).Palette;
                 if (IsCurrentAccentRequest(requestId))
                 {
-                    _themeService.ApplyMonetPalette(result.Palette);
-                    return await PersistAccentAsync(accentOption, persist).ConfigureAwait(true);
+                    _themeService.ApplyMonetPalette(palette!);
+                    return await PersistAccentCoreAsync(accentOption, persist).ConfigureAwait(true);
                 }
 
                 return true;
@@ -403,7 +437,7 @@ public sealed partial class ShellViewModel : ObservableObject
             if (IsCurrentAccentRequest(requestId))
             {
                 _themeService.ApplyAccent(accentOption.Key);
-                return await PersistAccentAsync(accentOption, persist).ConfigureAwait(true);
+                return await PersistAccentCoreAsync(accentOption, persist).ConfigureAwait(true);
             }
 
             return true;
@@ -438,7 +472,7 @@ public sealed partial class ShellViewModel : ObservableObject
 
         if (IsKnownAccentValue(_config.Appearance.AccentColor))
         {
-            _ = ApplyAccentOptionAsync(accentOption, persist: false);
+            _ = ApplyAccentOptionCoreAsync(accentOption, persist: false);
         }
     }
 
@@ -456,7 +490,10 @@ public sealed partial class ShellViewModel : ObservableObject
             _knownFontFamilies));
     }
 
-    private async Task<bool> ApplyFontFamilyAsync(string family)
+    private Task<bool> ApplyFontFamilyAsync(string family) =>
+        RunSerializedSettingsOperationAsync(() => ApplyFontFamilyCoreAsync(family));
+
+    private async Task<bool> ApplyFontFamilyCoreAsync(string family)
     {
         if (!await UnlockSettingsIfRequiredAsync().ConfigureAwait(true))
         {
@@ -475,7 +512,10 @@ public sealed partial class ShellViewModel : ObservableObject
         return true;
     }
 
-    private async Task<bool> ApplySplashModeAsync(SplashMode mode)
+    private Task<bool> ApplySplashModeAsync(SplashMode mode) =>
+        RunSerializedSettingsOperationAsync(() => ApplySplashModeCoreAsync(mode));
+
+    private async Task<bool> ApplySplashModeCoreAsync(SplashMode mode)
     {
         if (!await UnlockSettingsIfRequiredAsync().ConfigureAwait(true))
         {
@@ -489,7 +529,10 @@ public sealed partial class ShellViewModel : ObservableObject
             _ => { });
     }
 
-    private async Task<bool> ApplySplashStyleAsync(string style)
+    private Task<bool> ApplySplashStyleAsync(string style) =>
+        RunSerializedSettingsOperationAsync(() => ApplySplashStyleCoreAsync(style));
+
+    private async Task<bool> ApplySplashStyleCoreAsync(string style)
     {
         if (!await UnlockSettingsIfRequiredAsync().ConfigureAwait(true))
         {
@@ -503,7 +546,10 @@ public sealed partial class ShellViewModel : ObservableObject
             _ => { });
     }
 
-    private async Task<bool> ApplyDetailedSplashAsync(bool showDetailed)
+    private Task<bool> ApplyDetailedSplashAsync(bool showDetailed) =>
+        RunSerializedSettingsOperationAsync(() => ApplyDetailedSplashCoreAsync(showDetailed));
+
+    private async Task<bool> ApplyDetailedSplashCoreAsync(bool showDetailed)
     {
         if (!await UnlockSettingsIfRequiredAsync().ConfigureAwait(true))
         {
@@ -517,7 +563,10 @@ public sealed partial class ShellViewModel : ObservableObject
             _ => { });
     }
 
-    private async Task<bool> ApplySplashTimeRangeAsync(string startTime, string endTime)
+    private Task<bool> ApplySplashTimeRangeAsync(string startTime, string endTime) =>
+        RunSerializedSettingsOperationAsync(() => ApplySplashTimeRangeCoreAsync(startTime, endTime));
+
+    private async Task<bool> ApplySplashTimeRangeCoreAsync(string startTime, string endTime)
     {
         if (!await UnlockSettingsIfRequiredAsync().ConfigureAwait(true))
         {
@@ -575,7 +624,7 @@ public sealed partial class ShellViewModel : ObservableObject
         }
     }
 
-    private async Task<bool> PersistAccentAsync(AccentOptionViewModel accentOption, bool persist)
+    private async Task<bool> PersistAccentCoreAsync(AccentOptionViewModel accentOption, bool persist)
     {
         if (!persist || !TryGetConfigAccentValue(accentOption.Key, out var configValue))
         {
@@ -591,13 +640,17 @@ public sealed partial class ShellViewModel : ObservableObject
 
         _config.Appearance.AccentColor = previousValue;
         var previousOption = ResolveAccentOption(previousValue);
-        await ApplyAccentOptionAsync(previousOption, persist: false).ConfigureAwait(true);
+        await ApplyAccentOptionCoreAsync(previousOption, persist: false).ConfigureAwait(true);
         return false;
     }
 
-    public Task<bool> UnlockSettingsAsync() => UnlockSettingsIfRequiredAsync(forcePrompt: true);
+    public Task<bool> UnlockSettingsAsync() =>
+        RunSerializedSettingsOperationAsync(() => UnlockSettingsIfRequiredAsync(forcePrompt: true));
 
-    public async Task<bool> EnablePasswordProtectionAsync()
+    public Task<bool> EnablePasswordProtectionAsync() =>
+        RunSerializedSettingsOperationAsync(EnablePasswordProtectionCoreAsync);
+
+    private async Task<bool> EnablePasswordProtectionCoreAsync()
     {
         var result = await DialogService.ShowPasswordAsync(this, PasswordDialogMode.Enable).ConfigureAwait(true);
         if (!IsSubmittedPassword(result) || !StringComparer.Ordinal.Equals(result.Password, result.Confirmation))
@@ -634,7 +687,10 @@ public sealed partial class ShellViewModel : ObservableObject
         return true;
     }
 
-    public async Task<bool> ChangePasswordAsync()
+    public Task<bool> ChangePasswordAsync() =>
+        RunSerializedSettingsOperationAsync(ChangePasswordCoreAsync);
+
+    private async Task<bool> ChangePasswordCoreAsync()
     {
         if (!await UnlockSettingsIfRequiredAsync().ConfigureAwait(true))
         {
@@ -669,7 +725,10 @@ public sealed partial class ShellViewModel : ObservableObject
         return true;
     }
 
-    public async Task<bool> DisablePasswordProtectionAsync()
+    public Task<bool> DisablePasswordProtectionAsync() =>
+        RunSerializedSettingsOperationAsync(DisablePasswordProtectionCoreAsync);
+
+    private async Task<bool> DisablePasswordProtectionCoreAsync()
     {
         if (!await UnlockSettingsIfRequiredAsync().ConfigureAwait(true))
         {
@@ -729,6 +788,11 @@ public sealed partial class ShellViewModel : ObservableObject
 
         ReportLocalizedError(ShellErrorKind.Authorization, "Settings.Password.SaveFailed");
         return false;
+    }
+
+    private async Task<bool> RunSerializedSettingsOperationAsync(Func<Task<bool>> operation)
+    {
+        return await _settingsOperationGate.RunAsync(operation).ConfigureAwait(true);
     }
 
     private static bool IsSubmittedPassword(PasswordDialogResult result) =>

@@ -43,6 +43,8 @@
     <Compile Include="..\..\src\Luminalium.App\Features\*.cs" Link="App\Features\%(Filename)%(Extension)" />
     <Compile Include="..\..\src\Luminalium.App\Services\BuiltInFeatureHostContracts.cs" Link="App\Services\BuiltInFeatureHostContracts.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\BuiltInFeatureHost.cs" Link="App\Services\BuiltInFeatureHost.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\AvaloniaBuiltInFeatureHostAdapters.cs" Link="App\Services\AvaloniaBuiltInFeatureHostAdapters.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\NativeBuiltInFeatureHostFactory.cs" Link="App\Services\NativeBuiltInFeatureHostFactory.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\IDialogService.cs" Link="App\Services\IDialogService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\PasswordDialogTypes.cs" Link="App\Services\PasswordDialogTypes.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\IShellThemeService.cs" Link="App\Services\IShellThemeService.cs" />
@@ -69,6 +71,7 @@
     <Compile Include="..\..\src\Luminalium.App\ViewModels\StatusBarViewModel.cs" Link="App\ViewModels\StatusBarViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\AccentOptionViewModel.cs" Link="App\ViewModels\AccentOptionViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\LanguageOptionViewModel.cs" Link="App\ViewModels\LanguageOptionViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\BuiltInFeatureEntryViewModel.cs" Link="App\ViewModels\BuiltInFeatureEntryViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\OverviewViewModel.cs" Link="App\ViewModels\OverviewViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\OverlayViewModel.cs" Link="App\ViewModels\OverlayViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\PluginEntryViewModel.cs" Link="App\ViewModels\PluginEntryViewModel.cs" />
