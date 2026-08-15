@@ -1,29 +1,34 @@
 # OpenCode working files
 .omo/
+.dbg/
+.workbuddy/
 
-# C# build outputs
+# .NET build outputs
 **/bin/
 **/obj/
 **/publish/
-artifacts/
 **/TestResults/
+/artifacts/
+/dist/
+/build/
+
+# Local .NET state
+.codex_tmp/
+.dotnet_appdata/
+.dotnet_home/
+.dotnet_localappdata/
+.nuget/
+internalSMTCHelper/
 
 # IDE
 .idea/
 .vs/
+.vscode/
 .trae/
 *.swp
 *.swo
-
-# VSCode — 保留团队共享配置（tasks.json/launch.json/extensions.json），
-# 但忽略个人偏好（settings.json）和缓存。
-.vscode/settings.json
-.vscode/*.log
 
 # OS
 .DS_Store
 Thumbs.db
 settings.json
-.vscode/extensions.json
-.vscode/launch.json
-.vscode/tasks.json
