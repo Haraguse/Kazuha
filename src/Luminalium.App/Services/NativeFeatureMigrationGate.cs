@@ -28,7 +28,6 @@ public sealed class NativeFeatureMigrationGate
     private static readonly string[] NativeWindowTypes =
         ["AppLauncherWindow", "BoardWindow", "StatusBarWindow", "TimerWindow", "SpotlightWindow"];
 
-    private const string CatalogPath = "src/Luminalium.Plugins/BuiltInPluginCatalog.cs";
     private const string ProjectionPath = "src/Luminalium.App/Services/BuiltInFeatureLegacyProjection.cs";
     private const string ShellViewModelPath = "src/Luminalium.App/ViewModels/ShellViewModel.cs";
     private const string ParserPath = "src/Luminalium.App/Features/BuiltInFeatureRouteParser.cs";
@@ -58,7 +57,6 @@ public sealed class NativeFeatureMigrationGate
         "src/Luminalium.App/ViewModels/LogsViewModel.cs (legacy carrier id `plugin:logs` on the input boundary)",
         "src/Luminalium.App/ViewModels/ExtensionPageViewModel.cs (genuine external extension carrier `plugin:{id}`)",
         $"{NativeHostFactoryPath} (sole direct native construction site, behind the feature host)",
-        $"{CatalogPath} (legacy built-in registration authority, removed only after gate approval in T14)",
         "tests/Luminalium.Tests/** (intentional compatibility tests)",
     ];
 
@@ -107,18 +105,17 @@ public sealed class NativeFeatureMigrationGate
             return;
         }
 
-        if (content.Contains("new BuiltInPlugin(", StringComparison.Ordinal) && relative != CatalogPath)
+        if (content.Contains("new BuiltInPlugin(", StringComparison.Ordinal))
         {
             findings.Add(new NativeFeatureMigrationGateFinding(
                 relative,
                 CategoryBuiltInPluginRegistration,
-                "Remove built-in plugin registrations after gate approval (T14); only BuiltInPluginCatalog may register built-ins."));
+                "No built-in feature may be registered as a plugin after T14; only genuine external plugins reach the registry."));
         }
 
-        if ((content.Contains("PlaceholderPluginCommand", StringComparison.Ordinal) ||
-             content.Contains("PlaceholderPluginViewFactory", StringComparison.Ordinal) ||
-             content.Contains("NativeSurfaceViewFactory", StringComparison.Ordinal)) &&
-            relative != CatalogPath)
+        if (content.Contains("PlaceholderPluginCommand", StringComparison.Ordinal) ||
+            content.Contains("PlaceholderPluginViewFactory", StringComparison.Ordinal) ||
+            content.Contains("NativeSurfaceViewFactory", StringComparison.Ordinal))
         {
             findings.Add(new NativeFeatureMigrationGateFinding(
                 relative,

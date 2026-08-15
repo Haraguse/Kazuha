@@ -6,56 +6,6 @@ namespace Luminalium.Tests;
 
 public sealed class BuiltInPluginRegistryTests
 {
-    private static readonly string[] ExpectedDefaultOrder =
-    [
-        "settings",
-        "onboarding",
-        "board",
-        "timer",
-        "spotlight",
-        "app_launcher",
-        "logs",
-        "status_bar",
-    ];
-
-    [Fact]
-    public void DefaultCatalogRegistersLegacyBuiltInsInManifestOrder()
-    {
-        var registry = BuiltInPluginCatalog.CreateDefaultRegistry();
-        var plugins = registry.Enumerate();
-
-        Assert.Equal(8, registry.Count);
-        Assert.Equal(ExpectedDefaultOrder, plugins.Select(plugin => plugin.Metadata.Id));
-        Assert.Equal(8, plugins.Select(plugin => plugin.Metadata.Id).Distinct(StringComparer.Ordinal).Count());
-        Assert.All(plugins, plugin => Assert.False(string.IsNullOrWhiteSpace(plugin.Metadata.Id)));
-
-        AssertMetadata(plugins[0], "settings", "", PluginType.Toolbar, "settings.svg");
-        AssertMetadata(plugins[1], "onboarding", "Onboarding", PluginType.Window, "");
-        AssertMetadata(plugins[2], "board", "板中板 - Luminalium", PluginType.Window, "board-in-board.svg");
-        AssertMetadata(plugins[3], "timer", "Timer", PluginType.Toolbar, "timer.svg");
-        AssertMetadata(plugins[4], "spotlight", "Spotlight", PluginType.Toolbar, "spotlight.svg");
-        AssertMetadata(plugins[5], "app_launcher", "App Launcher", PluginType.ToolbarMulti, "apps.svg");
-        AssertMetadata(plugins[6], "logs", "日志 - Luminalium", PluginType.Window, "debug.svg");
-        AssertMetadata(plugins[7], "status_bar", "Status Bar", PluginType.StatusBar, "");
-    }
-
-    [Fact]
-    public async Task DefaultCatalogUsesPlaceholderCommandsAndViewsUntilLaterTasks()
-    {
-        var registry = BuiltInPluginCatalog.CreateDefaultRegistry();
-        var plugin = registry.Get("timer")!;
-        var result = await plugin.ExecuteAsync(new PluginContext(new RecordingHost(), CancellationToken.None));
-        var view = plugin.ViewFactory.CreateView();
-
-        Assert.False(result.IsSuccess);
-        Assert.Equal(PluginExecutionErrorCode.NotSupported, result.Error!.Code);
-        Assert.Equal("timer", result.Error.PluginId);
-        Assert.Contains("Tasks 17-19", result.Error.Detail, StringComparison.Ordinal);
-        var textBlock = Assert.IsType<TextBlock>(view);
-        Assert.Contains("Tasks 17-19", textBlock.Text, StringComparison.Ordinal);
-        Assert.False(plugin.IsActive);
-    }
-
     [Fact]
     public void DuplicateRegistrationReturnsTypedErrorAndKeepsOriginal()
     {
@@ -152,17 +102,6 @@ public sealed class BuiltInPluginRegistryTests
         Assert.True(first.IsSuccess, first.Error?.Message);
     }
 
-    [Fact]
-    public void CatalogOrderIsStableAcrossFreshRegistries()
-    {
-        var first = BuiltInPluginCatalog.CreateDefaultRegistry().Enumerate();
-        var second = BuiltInPluginCatalog.CreateDefaultRegistry().Enumerate();
-
-        Assert.Equal(
-            first.Select(plugin => (plugin.Metadata.Id, plugin.Metadata.DisplayName, plugin.Metadata.PluginType, plugin.Metadata.IconKey)),
-            second.Select(plugin => (plugin.Metadata.Id, plugin.Metadata.DisplayName, plugin.Metadata.PluginType, plugin.Metadata.IconKey)));
-    }
-
     [Theory]
     [InlineData(null, PluginType.Toolbar)]
     [InlineData("", PluginType.Toolbar)]
@@ -174,20 +113,6 @@ public sealed class BuiltInPluginRegistryTests
     {
         Assert.Equal(expected, PluginTypeMappings.FromLegacyString(legacyType));
         Assert.Equal(legacyType is null or "" ? "toolbar" : legacyType, expected.ToLegacyString());
-    }
-
-    private static void AssertMetadata(
-        BuiltInPlugin plugin,
-        string id,
-        string displayName,
-        PluginType pluginType,
-        string iconKey)
-    {
-        Assert.Equal(id, plugin.Metadata.Id);
-        Assert.Equal(displayName, plugin.Metadata.DisplayName);
-        Assert.Equal(pluginType, plugin.Metadata.PluginType);
-        Assert.Equal(iconKey, plugin.Metadata.IconKey);
-        Assert.Equal("1.0.0", plugin.Metadata.Version);
     }
 
     private static BuiltInPlugin Plugin(string? id, IPluginCommand command) =>

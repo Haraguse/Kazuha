@@ -36,9 +36,9 @@ public sealed class BuiltInFeatureMigrationGateTests
         try
         {
             // Compatibility exceptions present, but no production file references legacy surface
-            // beyond the documented seams.
-            Write(root, "src/Luminalium.Plugins/BuiltInPluginCatalog.cs",
-                "var plugin = new BuiltInPlugin(m, new PlaceholderPluginCommand(id), new PlaceholderPluginViewFactory(label));");
+            // beyond the documented seams. BuiltInPluginCatalog.cs was removed in T14, so the
+            // fixture contains no built-in plugin registration at all — only the files listed
+            // in the compatibility exceptions.
             Write(root, "src/Luminalium.App/Services/BuiltInFeatureLegacyProjection.cs",
                 "public sealed class BuiltInFeatureLegacyProjection { }");
             Write(root, "src/Luminalium.App/ViewModels/ShellViewModel.cs",
