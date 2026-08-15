@@ -41,6 +41,8 @@
 
   <ItemGroup>
     <Compile Include="..\..\src\Luminalium.App\Features\*.cs" Link="App\Features\%(Filename)%(Extension)" />
+    <Compile Include="..\..\src\Luminalium.App\Services\BuiltInFeatureHostContracts.cs" Link="App\Services\BuiltInFeatureHostContracts.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\BuiltInFeatureHost.cs" Link="App\Services\BuiltInFeatureHost.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\IDialogService.cs" Link="App\Services\IDialogService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\PasswordDialogTypes.cs" Link="App\Services\PasswordDialogTypes.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\IShellThemeService.cs" Link="App\Services\IShellThemeService.cs" />
