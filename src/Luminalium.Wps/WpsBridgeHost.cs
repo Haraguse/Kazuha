@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.WebSockets;
+using System.Security.Cryptography;
 using System.Text;
 using Luminalium.Core.Platform;
 
@@ -9,8 +10,11 @@ public sealed class WpsBridgeHost : IAsyncDisposable
 {
     private const string BridgePath = "/ws";
     private const int ReceiveBufferSize = 16 * 1024;
+    private const int DefaultMaxInboundMessageBytes = 1 * 1024 * 1024;
 
     private readonly WpsProtocol _protocol;
+    private readonly string? _authenticationToken;
+    private readonly int _maxInboundMessageBytes;
     private readonly object _stateGate = new();
     private HttpListener? _listener;
     private CancellationTokenSource? _listenerCancellation;
@@ -18,9 +22,25 @@ public sealed class WpsBridgeHost : IAsyncDisposable
     private ClientConnection? _client;
     private int _port;
 
-    public WpsBridgeHost(WpsProtocol? protocol = null)
+    /// <summary>
+    /// Creates a WPS bridge host. A null authentication token explicitly enables
+    /// the legacy unauthenticated compatibility mode for existing callers.
+    /// </summary>
+    public WpsBridgeHost(
+        WpsProtocol? protocol = null,
+        string? authenticationToken = null,
+        int maxInboundMessageBytes = DefaultMaxInboundMessageBytes)
     {
+        if (authenticationToken is not null && authenticationToken.Length is 0)
+        {
+            throw new ArgumentException("Authentication token must not be empty.", nameof(authenticationToken));
+        }
+
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxInboundMessageBytes);
+
         _protocol = protocol ?? new WpsProtocol();
+        _authenticationToken = authenticationToken;
+        _maxInboundMessageBytes = maxInboundMessageBytes;
     }
 
     public event Action? OnClientConnected;
@@ -266,6 +286,13 @@ public sealed class WpsBridgeHost : IAsyncDisposable
             return;
         }
 
+        if (!IsAuthenticationValid(context.Request.QueryString["token"]))
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            context.Response.Close();
+            return;
+        }
+
         var webSocketContext = await AcceptWebSocketSafelyAsync(context).ConfigureAwait(false);
         if (webSocketContext is null)
         {
@@ -310,7 +337,7 @@ public sealed class WpsBridgeHost : IAsyncDisposable
         {
             while (!cancellationToken.IsCancellationRequested && connection.Socket.State is WebSocketState.Open)
             {
-                var rawText = await ReceiveTextAsync(connection.Socket, cancellationToken).ConfigureAwait(false);
+                var rawText = await ReceiveTextAsync(connection.Socket, _maxInboundMessageBytes, cancellationToken).ConfigureAwait(false);
                 if (rawText is null)
                 {
                     break;
@@ -357,7 +384,22 @@ public sealed class WpsBridgeHost : IAsyncDisposable
         }
     }
 
-    private static async Task<string?> ReceiveTextAsync(WebSocket socket, CancellationToken cancellationToken)
+    private bool IsAuthenticationValid(string? suppliedToken)
+    {
+        if (_authenticationToken is null)
+        {
+            return true;
+        }
+
+        var expectedBytes = SHA256.HashData(Encoding.UTF8.GetBytes(_authenticationToken));
+        var suppliedBytes = SHA256.HashData(Encoding.UTF8.GetBytes(suppliedToken ?? string.Empty));
+        return CryptographicOperations.FixedTimeEquals(expectedBytes, suppliedBytes);
+    }
+
+    private static async Task<string?> ReceiveTextAsync(
+        WebSocket socket,
+        int maxMessageBytes,
+        CancellationToken cancellationToken)
     {
         var buffer = new byte[ReceiveBufferSize];
         using var stream = new MemoryStream();
@@ -373,13 +415,42 @@ public sealed class WpsBridgeHost : IAsyncDisposable
 
             if (result.MessageType is not WebSocketMessageType.Text)
             {
-                continue;
+                await CloseSocketAsync(
+                    socket,
+                    WebSocketCloseStatus.PolicyViolation,
+                    "WPS bridge accepts text messages only",
+                    CancellationToken.None).ConfigureAwait(false);
+                return null;
             }
 
-            stream.Write(buffer, 0, result.Count);
+            if (result.Count > maxMessageBytes - stream.Length)
+            {
+                await CloseSocketAsync(
+                    socket,
+                    WebSocketCloseStatus.PolicyViolation,
+                    "WPS bridge message exceeds the maximum size",
+                    CancellationToken.None).ConfigureAwait(false);
+                return null;
+            }
+
+            if (result.Count > 0)
+            {
+                stream.Write(buffer, 0, result.Count);
+            }
+
             if (result.EndOfMessage)
             {
-                return Encoding.UTF8.GetString(stream.ToArray());
+                return Encoding.UTF8.GetString(stream.GetBuffer(), 0, checked((int)stream.Length));
+            }
+
+            if (stream.Length == maxMessageBytes)
+            {
+                await CloseSocketAsync(
+                    socket,
+                    WebSocketCloseStatus.PolicyViolation,
+                    "WPS bridge message exceeds the maximum size",
+                    CancellationToken.None).ConfigureAwait(false);
+                return null;
             }
         }
     }

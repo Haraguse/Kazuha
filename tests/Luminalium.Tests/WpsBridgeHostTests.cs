@@ -46,6 +46,77 @@ public sealed class WpsBridgeHostTests
     }
 
     [Fact]
+    public async Task StrictModeAcceptsValidTokenAndConnectsClient()
+    {
+        const string token = "test-token-valid";
+        await using var host = new WpsBridgeHost(authenticationToken: token);
+        var connected = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        host.OnClientConnected += () => connected.TrySetResult(true);
+
+        var started = await host.StartAsync();
+        Assert.True(started.IsSuccess, started.Error?.Message);
+
+        using var client = await ConnectAsync(started.Value.Port, "/ws?token=" + Uri.EscapeDataString(token));
+        Assert.True(await WithTimeout(connected.Task));
+        Assert.True(host.IsConnected);
+        Assert.Equal(WebSocketState.Open, client.State);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("test-token-invalid")]
+    public async Task StrictModeRejectsMissingOrInvalidTokenWithoutReplacingClient(string? token)
+    {
+        const string expectedToken = "test-token-valid";
+        await using var host = new WpsBridgeHost(authenticationToken: expectedToken);
+        var connectedCount = 0;
+        host.OnClientConnected += () => Interlocked.Increment(ref connectedCount);
+
+        var started = await host.StartAsync();
+        Assert.True(started.IsSuccess, started.Error?.Message);
+        using var validClient = await ConnectAsync(started.Value.Port, "/ws?token=" + expectedToken);
+        await WaitForAsync(() => Volatile.Read(ref connectedCount) is 1);
+
+        var path = token is null ? "/ws" : "/ws?token=" + token;
+        await Assert.ThrowsAnyAsync<WebSocketException>(() => ConnectAsync(started.Value.Port, path));
+
+        Assert.True(host.IsConnected);
+        Assert.Equal(1, Volatile.Read(ref connectedCount));
+        Assert.Equal(WebSocketState.Open, validClient.State);
+    }
+
+    [Fact]
+    public async Task OversizedFragmentedTextClosesWithPolicyViolationWithoutDispatchingMessage()
+    {
+        const int maxMessageBytes = 32;
+        await using var host = new WpsBridgeHost(maxInboundMessageBytes: maxMessageBytes);
+        var received = new TaskCompletionSource<WpsMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        host.OnMessageReceived += message => received.TrySetResult(message);
+
+        var started = await host.StartAsync();
+        Assert.True(started.IsSuccess, started.Error?.Message);
+        using var client = await ConnectAsync(started.Value.Port, "/ws");
+
+        using var timeout = new CancellationTokenSource(TestTimeout);
+        await client.SendAsync(
+            Encoding.UTF8.GetBytes(new string('x', maxMessageBytes)),
+            WebSocketMessageType.Text,
+            endOfMessage: false,
+            timeout.Token);
+        await client.SendAsync(
+            Encoding.UTF8.GetBytes("overflow"),
+            WebSocketMessageType.Text,
+            endOfMessage: true,
+            timeout.Token);
+
+        var close = await ReceiveAsync(client);
+        Assert.Equal(WebSocketMessageType.Close, close.MessageType);
+        Assert.Equal(WebSocketCloseStatus.PolicyViolation, close.CloseStatus);
+        Assert.False(received.Task.IsCompleted);
+        Assert.False(host.IsConnected);
+    }
+
+    [Fact]
     public async Task CorrelationUsesExplicitMessageIdsAndTrackerCompletesOrTimesOut()
     {
         var protocol = new WpsProtocol();
@@ -298,19 +369,28 @@ public sealed class WpsBridgeHostTests
             }
             catch (WebSocketException)
             {
-                return new ReceivedWebSocketMessage(WebSocketMessageType.Close, stream.ToArray());
+                return new ReceivedWebSocketMessage(WebSocketMessageType.Close, stream.ToArray(), client.CloseStatus);
             }
 
             if (result.MessageType is WebSocketMessageType.Close)
             {
-                return new ReceivedWebSocketMessage(result.MessageType, stream.ToArray());
+                return new ReceivedWebSocketMessage(result.MessageType, stream.ToArray(), result.CloseStatus);
             }
 
             stream.Write(buffer, 0, result.Count);
             if (result.EndOfMessage)
             {
-                return new ReceivedWebSocketMessage(result.MessageType, stream.ToArray());
+                return new ReceivedWebSocketMessage(result.MessageType, stream.ToArray(), result.CloseStatus);
             }
+        }
+    }
+
+    private static async Task WaitForAsync(Func<bool> condition)
+    {
+        using var timeout = new CancellationTokenSource(TestTimeout);
+        while (!condition())
+        {
+            await Task.Delay(10, timeout.Token);
         }
     }
 
@@ -369,5 +449,8 @@ public sealed class WpsBridgeHostTests
         }
         """;
 
-    private sealed record ReceivedWebSocketMessage(WebSocketMessageType MessageType, byte[] Bytes);
+    private sealed record ReceivedWebSocketMessage(
+        WebSocketMessageType MessageType,
+        byte[] Bytes,
+        WebSocketCloseStatus? CloseStatus);
 }
