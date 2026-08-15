@@ -1,10 +1,10 @@
-using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using FluentAvalonia.UI.Windowing;
 using Luminalium.App.ViewModels;
 
 namespace Luminalium.App.Views;
 
-public partial class BoardWindow : Window
+public partial class BoardWindow : FAAppWindow
 {
     private readonly BoardViewModel _viewModel;
 
@@ -18,6 +18,9 @@ public partial class BoardWindow : Window
         _viewModel = viewModel;
         DataContext = viewModel;
         InitializeComponent();
+
+        TitleBar.ExtendsContentIntoTitleBar = true;
+        TitleBar.Height = 44;
 
         BoardCanvas.AnnotationSink = new BoardGestureSink(_viewModel);
     }

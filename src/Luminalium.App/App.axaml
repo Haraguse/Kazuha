@@ -79,5 +79,11 @@
         <Style Selector="UserControl">
             <Setter Property="FontFamily" Value="{DynamicResource LuminaliumFontFamily}" />
         </Style>
+        <!-- ComboBox content vertical centering for CJK text (default FluentAvalonia template
+             leaves text anchored near the top on taller touch-target heights). -->
+        <Style Selector="ComboBox">
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Padding" Value="12,6,8,6" />
+        </Style>
     </Application.Styles>
 </Application>

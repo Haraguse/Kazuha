@@ -2,8 +2,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Luminalium.App.ViewModels"
              xmlns:svc="using:Luminalium.App.Services"
+             xmlns:converters="using:Luminalium.App.Converters"
              x:Class="Luminalium.App.Views.Pages.LogsPage"
              x:DataType="vm:LogsViewModel">
+    <UserControl.Resources>
+        <converters:LogSeverityToBrushConverter x:Key="LogSeverityToBrushConverter" />
+    </UserControl.Resources>
     <ScrollViewer>
         <StackPanel Margin="{StaticResource ShellPageMargin}" Spacing="{StaticResource ShellPageSpacing}" MaxWidth="{StaticResource ShellPageMaxWidth}" HorizontalAlignment="Left">
             <StackPanel Spacing="{StaticResource ShellTitleStackSpacing}">
@@ -21,12 +25,32 @@
             <ItemsControl ItemsSource="{Binding Entries}" AutomationProperties.Name="Logs entries">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="svc:LogEntry">
-                        <Border Margin="{StaticResource ShellListItemMargin}" Padding="{StaticResource ShellCompactPadding}" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
-                            <StackPanel Spacing="{StaticResource ShellCompactSpacing}">
-                                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding Timestamp}" Opacity="{StaticResource ShellMutedOpacity}" />
-                                <TextBlock Text="{Binding Severity}" Opacity="{StaticResource ShellMutedOpacity}" />
-                            </StackPanel>
+                        <Border Margin="{StaticResource ShellListItemMargin}"
+                                Padding="{StaticResource ShellCompactPadding}"
+                                CornerRadius="{StaticResource ShellCornerRadius}"
+                                BorderThickness="{StaticResource ShellBorderThickness}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                            <Grid ColumnDefinitions="4,*">
+                                <Border Grid.Column="0"
+                                        CornerRadius="2,0,0,2"
+                                        Background="{Binding Severity, Converter={StaticResource LogSeverityToBrushConverter}}" />
+                                <StackPanel Grid.Column="1"
+                                            Margin="8,0,0,0"
+                                            Spacing="{StaticResource ShellCompactSpacing}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{Binding Severity}"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{Binding Severity, Converter={StaticResource LogSeverityToBrushConverter}}" />
+                                        <TextBlock Text="{Binding Timestamp}"
+                                                   Opacity="{StaticResource ShellMutedOpacity}" />
+                                        <TextBlock Text="{Binding Source}"
+                                                   Opacity="{StaticResource ShellMutedOpacity}"
+                                                   FontStyle="Italic" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding Message}"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Grid>
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

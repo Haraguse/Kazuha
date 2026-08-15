@@ -30,15 +30,25 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var themeService = new AvaloniaShellThemeService(this);
-            var configurationService = new ConfigurationService(GetSettingsDirectoryPath());
+            var settingsDirectory = GetSettingsDirectoryPath();
+            var configurationService = new ConfigurationService(settingsDirectory);
             var configurationLoad = configurationService.Load();
             var localizationService = new LocalizationService();
+            var logService = new LocalLogService(logPath: Path.Combine(settingsDirectory, "logs", "luminalium.log"));
+            var versionPath = Path.Combine(AppContext.BaseDirectory, ProductIdentity.VersionMetadataFileName);
+            var versionResult = VersionMetadataReader.Load(versionPath);
+            var versionText = versionResult is { IsSuccess: true, Metadata: not null }
+                ? versionResult.Metadata.Version
+                : "unknown";
+            logService.Log(LogSeverity.Information, $"Luminalium started (version {versionText}).", "App");
+            logService.Log(LogSeverity.Information, $"Settings directory: {settingsDirectory}.", "App");
             var shellViewModel = new ShellViewModel(
                 themeService: themeService,
                 monetThemeService: MonetThemeServiceFactory.CreateDefault(),
                 config: configurationLoad.Config,
                 configurationService: configurationService,
-                localizationService: localizationService);
+                localizationService: localizationService,
+                logService: logService);
             var dialogService = new DialogService();
             var startupErrors = new StartupErrorCoordinator(dialogService);
             var mainWindow = new MainWindow(shellViewModel, dialogService);

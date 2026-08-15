@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -29,7 +29,7 @@ public partial class OverlayWindow : Window, IDisposable
         _localization = localization;
         InitializeComponent();
         ApplySystemDecorationsNone();
-        _ownedAdapter = new WpsBridgeAutomationAdapter();
+        _ownedAdapter = TryCreateWpsAdapter();
         _viewModel = CreateDefaultViewModel(_ownedAdapter, new AvaloniaOverlayScreenProvider(this), _localization);
         _screenshotService = new RenderTargetBitmapScreenshotService();
         AttachViewModel();
@@ -110,14 +110,29 @@ public partial class OverlayWindow : Window, IDisposable
         GC.SuppressFinalize(this);
     }
 
+    private static WpsBridgeAutomationAdapter? TryCreateWpsAdapter()
+    {
+        try
+        {
+            return new WpsBridgeAutomationAdapter();
+        }
+        catch (InvalidOperationException)
+        {
+            // Production WPS bridge requires LUMINALIUM_WPS_BRIDGE_TOKEN. Degrade
+            // gracefully so the overlay can still open for annotation/screenshot use.
+            return null;
+        }
+    }
+
     private static OverlayViewModel CreateDefaultViewModel(
-        WpsBridgeAutomationAdapter adapter,
+        WpsBridgeAutomationAdapter? adapter,
         IOverlayScreenProvider screenProvider,
         ILocalizationService localization)
     {
-        var monitor = new PresentationMonitor(
-            [new WpsPresentationHost(adapter)],
-            preferredKind: PresentationHostKind.Wps);
+        var hosts = adapter is not null
+            ? new IPresentationHost[] { new WpsPresentationHost(adapter) }
+            : Array.Empty<IPresentationHost>();
+        var monitor = new PresentationMonitor(hosts, preferredKind: PresentationHostKind.Wps);
         return new OverlayViewModel(monitor, screenProvider, localizationService: localization);
     }
 
