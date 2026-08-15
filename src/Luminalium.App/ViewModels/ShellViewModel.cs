@@ -40,6 +40,7 @@ public sealed partial class ShellViewModel : ObservableObject
     private readonly IReadOnlyList<string> _knownFontFamilies;
     private bool _settingsUnlocked;
     private readonly AsyncSerialGate _settingsOperationGate = new();
+    private readonly BuiltInFeatureLegacyProjection _legacyProjection = new();
     private long _accentRequestId;
     private readonly Stack<ShellPageViewModel> _backStack = new();
     private readonly Dictionary<BuiltInFeatureId, ShellPageViewModel> _nativePages;
@@ -104,8 +105,6 @@ public sealed partial class ShellViewModel : ObservableObject
         BuiltInFeatures = BuiltInFeatureCatalog.Default.Descriptors
             .Select(descriptor => new BuiltInFeatureEntryViewModel(descriptor, _localization))
             .ToArray();
-        LegacyPlugins = BuiltInFeatures;
-        Plugins = LegacyPlugins;
 
         Overview = new OverviewViewModel(ProductName, _versionDisplay, _versionUnavailable, BuiltInFeatures, _localization);
 
@@ -157,9 +156,11 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public IReadOnlyList<BuiltInFeatureEntryViewModel> BuiltInFeatures { get; }
 
-    public IReadOnlyList<BuiltInFeatureEntryViewModel> Plugins { get; }
+    [Obsolete("Use BuiltInFeatures; retained for one compatibility release.")]
+    public IReadOnlyList<BuiltInFeatureEntryViewModel> Plugins => LegacyPlugins;
 
-    public IReadOnlyList<BuiltInFeatureEntryViewModel> LegacyPlugins { get; }
+    [Obsolete("Use BuiltInFeatures; retained for one compatibility release.")]
+    public IReadOnlyList<BuiltInFeatureEntryViewModel> LegacyPlugins => _legacyProjection.Entries(_localization);
 
     public OverviewViewModel Overview { get; }
 

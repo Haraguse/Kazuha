@@ -1,4 +1,5 @@
 using System.Text;
+using Luminalium.App.Features;
 using Luminalium.Core.Configuration;
 using Luminalium.Core.Platform;
 using Luminalium.Core.Localization;
@@ -51,6 +52,52 @@ public sealed class ShellViewModelTests : IDisposable
             "Status Bar",
         ], viewModel.BuiltInFeatures.Select(plugin => plugin.RawDisplayName));
         Assert.Equal("设置", viewModel.BuiltInFeatures[0].DisplayName);
+    }
+
+    [Fact]
+    public void OverviewListsNativeFeaturesFromCatalogInStableOrder()
+    {
+        var viewModel = new ShellViewModel();
+        var overview = viewModel.Overview;
+
+        Assert.Equal(BuiltInFeatureCatalog.Default.Descriptors.Count, overview.BuiltInFeatures.Count);
+        Assert.Equal(
+            BuiltInFeatureCatalog.Default.Descriptors.Select(descriptor => descriptor.Id.Value),
+            overview.BuiltInFeatures.Select(entry => entry.Id));
+        Assert.Equal(
+            BuiltInFeatureCatalog.Default.Descriptors.Select(descriptor => descriptor.FallbackDisplayName),
+            overview.BuiltInFeatures.Select(entry => entry.RawDisplayName));
+    }
+
+    [Fact]
+    public void LegacyPluginsProjectionIsReadOnlyAndBackedByCatalog()
+    {
+#pragma warning disable CS0618 // Exercising the one-release compatibility surface on purpose.
+        var viewModel = new ShellViewModel();
+
+        var legacy = viewModel.LegacyPlugins;
+        Assert.Equal(BuiltInFeatureCatalog.Default.Descriptors.Count, legacy.Count);
+        Assert.Equal(
+            BuiltInFeatureCatalog.Default.Descriptors.Select(descriptor => descriptor.Id.Value),
+            legacy.Select(entry => entry.Id));
+
+        // Projected entries wrap the very same immutable catalog descriptors, so
+        // the compatibility projection cannot diverge from the native catalog.
+        Assert.All(legacy, entry =>
+        {
+            Assert.True(BuiltInFeatureCatalog.Default.TryGet(entry.FeatureId, out var canonical));
+            Assert.Same(canonical, entry.Descriptor);
+        });
+
+        // The obsolete plugin alias routes through the same projection and
+        // exposes the same immutable catalog descriptors.
+        Assert.Equal(
+            viewModel.Plugins.Select(entry => entry.Descriptor).ToArray(),
+            viewModel.LegacyPlugins.Select(entry => entry.Descriptor).ToArray());
+        Assert.Equal(
+            BuiltInFeatureCatalog.Default.Descriptors.Select(descriptor => descriptor.Id.Value),
+            viewModel.Plugins.Select(entry => entry.Id));
+#pragma warning restore CS0618
     }
 
     [Fact]
