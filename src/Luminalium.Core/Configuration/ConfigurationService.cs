@@ -442,7 +442,8 @@ public sealed class ConfigurationService
 
         if (config.Appearance.ThemeId is null ||
             config.Appearance.OverlayTheme is null ||
-            config.Appearance.AccentColor is null)
+            config.Appearance.AccentColor is null ||
+            config.Appearance.FontFamily is null)
         {
             return new ConfigurationValidationIssue(
                 ConfigurationLoadWarningCode.InvalidValue,

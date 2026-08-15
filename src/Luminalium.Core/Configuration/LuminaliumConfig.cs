@@ -28,6 +28,7 @@ public sealed class AppearanceSettings
     public string ThemeId { get; set; } = "default";
     public string OverlayTheme { get; set; } = "default";
     public string AccentColor { get; set; } = "#3275F5";
+    public string FontFamily { get; set; } = string.Empty;
 }
 
 public sealed class GeneralSettings
@@ -47,6 +48,7 @@ public sealed class GeneralSettings
     public bool ShowDetailedSplash { get; set; }
     public string SplashStartTime { get; set; } = "08:00";
     public string SplashEndTime { get; set; } = "20:00";
+    public bool OnboardingCompleted { get; set; }
 }
 
 public sealed class ToolbarSettings
@@ -138,9 +140,9 @@ public sealed class SecuritySettings
     public bool PasswordProtectionEnabled { get; set; }
 
     /// <summary>
-    /// An algorithm-prefixed salted password hash supplied by a future
-    /// password-management surface; plaintext passwords are not accepted or
-    /// stored by this configuration model.
+    /// An algorithm-prefixed salted password hash. The built-in PBKDF2
+    /// password service emits <c>pbkdf2$sha256$iterations$salt$derived</c>;
+    /// plaintext passwords are not accepted or stored by this configuration model.
     /// </summary>
     public string PasswordHash { get; set; } = string.Empty;
 }
