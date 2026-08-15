@@ -57,9 +57,30 @@ jobs:
           -p:PublishProfile=WindowsNightly
           -p:PublishDir=${{ github.workspace }}\artifacts\publish
 
+      - name: Check release version metadata
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/Assert-ReleaseVersion.ps1 -PublishDir artifacts/publish
+
       - name: Check published payload
         shell: pwsh
         run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/Assert-ForbiddenPayload.ps1 -PublishDir artifacts/publish
+
+      - name: Run desktop UI smoke
+        shell: pwsh
+        run: >-
+          powershell -NoProfile -ExecutionPolicy Bypass
+          -File tools/Invoke-DesktopQASmoke.ps1
+          -AppPath artifacts/publish/Luminalium.exe
+          -Scenario all
+          -EvidenceDir artifacts/qa-evidence
+          -LaunchTimeoutSeconds 90
+
+      - name: Upload desktop QA evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: Luminalium-DesktopQA
+          path: artifacts/qa-evidence
+          if-no-files-found: error
 
       - name: Create deterministic Windows package
         shell: pwsh
