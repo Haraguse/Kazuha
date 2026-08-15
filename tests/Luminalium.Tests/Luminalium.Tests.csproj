@@ -40,9 +40,13 @@
   </ItemGroup>
 
   <ItemGroup>
-<Compile Include="..\..\src\Luminalium.App\Services\IDialogService.cs" Link="App\Services\IDialogService.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\IDialogService.cs" Link="App\Services\IDialogService.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\PasswordDialogTypes.cs" Link="App\Services\PasswordDialogTypes.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\IShellThemeService.cs" Link="App\Services\IShellThemeService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\NullDialogService.cs" Link="App\Services\NullDialogService.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\RetryCloseDialogTypes.cs" Link="App\Services\RetryCloseDialogTypes.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\StartupErrorCoordinator.cs" Link="App\Services\StartupErrorCoordinator.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\RetryCloseDialogViewModel.cs" Link="App\ViewModels\RetryCloseDialogViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\NullShellThemeService.cs" Link="App\Services\NullShellThemeService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\IClockService.cs" Link="App\Services\IClockService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\IAudioCueService.cs" Link="App\Services\IAudioCueService.cs" />
@@ -50,6 +54,7 @@
     <Compile Include="..\..\src\Luminalium.App\Services\IProcessLaunchService.cs" Link="App\Services\IProcessLaunchService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\IPresentationStatusSource.cs" Link="App\Services\IPresentationStatusSource.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\IMediaStatusSource.cs" Link="App\Services\IMediaStatusSource.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\LocalLogService.cs" Link="App\Services\LocalLogService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Overlay\IAnnotationSink.cs" Link="App\Overlay\IAnnotationSink.cs" />
     <Compile Include="..\..\src\Luminalium.App\Overlay\IOverlayScreenProvider.cs" Link="App\Overlay\IOverlayScreenProvider.cs" />
     <Compile Include="..\..\src\Luminalium.App\Overlay\StrokeModel.cs" Link="App\Overlay\StrokeModel.cs" />
@@ -65,11 +70,17 @@
     <Compile Include="..\..\src\Luminalium.App\ViewModels\OverlayViewModel.cs" Link="App\ViewModels\OverlayViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\PluginEntryViewModel.cs" Link="App\ViewModels\PluginEntryViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\PluginPageViewModel.cs" Link="App\ViewModels\PluginPageViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\OnboardingViewModel.cs" Link="App\ViewModels\OnboardingViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\LogsViewModel.cs" Link="App\ViewModels\LogsViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\SettingsViewModel.cs" Link="App\ViewModels\SettingsViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\FontFamilyOptionViewModel.cs" Link="App\ViewModels\FontFamilyOptionViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\SplashModeOptionViewModel.cs" Link="App\ViewModels\SplashModeOptionViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\SplashStyleOptionViewModel.cs" Link="App\ViewModels\SplashStyleOptionViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\ShellErrorKind.cs" Link="App\ViewModels\ShellErrorKind.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\ShellPageViewModel.cs" Link="App\ViewModels\ShellPageViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\ShellThemeMode.cs" Link="App\ViewModels\ShellThemeMode.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\ShellViewModel.cs" Link="App\ViewModels\ShellViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\SplashViewModel.cs" Link="App\ViewModels\SplashViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\ThemeModeOptionViewModel.cs" Link="App\ViewModels\ThemeModeOptionViewModel.cs" />
   </ItemGroup>
 

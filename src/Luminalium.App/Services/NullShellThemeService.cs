@@ -15,6 +15,10 @@ public sealed class NullShellThemeService : IShellThemeService
     {
     }
 
+    public void ApplyFontFamily(string resolvedFontFamily)
+    {
+    }
+
     public void UseSystemAccent()
     {
     }

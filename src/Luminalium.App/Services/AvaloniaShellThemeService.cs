@@ -54,6 +54,12 @@ public sealed class AvaloniaShellThemeService : IShellThemeService
         ApplyStoredMonetPalette();
     }
 
+    public void ApplyFontFamily(string resolvedFontFamily)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(resolvedFontFamily);
+        _application.Resources["LuminaliumFontFamily"] = new FontFamily(resolvedFontFamily);
+    }
+
     public void UseSystemAccent()
     {
         _monetPalette = null;

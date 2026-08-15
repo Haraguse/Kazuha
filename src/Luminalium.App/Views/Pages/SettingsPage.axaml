@@ -19,7 +19,7 @@
                     BorderThickness="{StaticResource ShellBorderThickness}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
-                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{StaticResource ShellSettingsRowSpacing}" ColumnSpacing="{StaticResource ShellSettingsColumnSpacing}">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{StaticResource ShellSettingsRowSpacing}" ColumnSpacing="{StaticResource ShellSettingsColumnSpacing}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="{StaticResource ShellSettingsControlColumnWidth}" />
@@ -63,7 +63,76 @@
                               ItemsSource="{Binding LanguageOptions}"
                               SelectedItem="{Binding SelectedLanguageOption, Mode=TwoWay}"
                               AutomationProperties.Name="{Binding LanguageLabel}"
-                              AutomationProperties.HelpText="{Binding LanguageHelpText}" />
+                               AutomationProperties.HelpText="{Binding LanguageHelpText}" />
+
+                    <StackPanel Grid.Row="3" Spacing="{StaticResource ShellCompactSpacing}">
+                        <TextBlock Text="{Binding FontFamilyLabel}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding FontFamilyDescription}" TextWrapping="Wrap" Opacity="{StaticResource ShellMutedOpacity}" />
+                    </StackPanel>
+                    <ComboBox Grid.Row="3" Grid.Column="1"
+                              MinHeight="{StaticResource ShellTouchTargetMinHeight}"
+                              ItemsSource="{Binding FontFamilyOptions}"
+                              SelectedItem="{Binding SelectedFontFamilyOption, Mode=TwoWay}"
+                              AutomationProperties.Name="{Binding FontFamilyLabel}"
+                              AutomationProperties.HelpText="{Binding FontFamilyHelpText}" />
+                </Grid>
+            </Border>
+
+            <Border Padding="{StaticResource ShellSectionPadding}"
+                    CornerRadius="{StaticResource ShellCornerRadius}"
+                    BorderThickness="{StaticResource ShellBorderThickness}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                <StackPanel Spacing="{StaticResource ShellSectionSpacing}">
+                    <StackPanel Spacing="{StaticResource ShellCompactSpacing}">
+                        <TextBlock Text="{Binding SplashTitle}" FontSize="{StaticResource ShellSectionTitleFontSize}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding SplashDescription}" TextWrapping="Wrap" Opacity="{StaticResource ShellMutedOpacity}" />
+                    </StackPanel>
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="{StaticResource ShellSettingsColumnSpacing}" RowSpacing="{StaticResource ShellSettingsRowSpacing}">
+                        <TextBlock Text="{Binding SplashModeLabel}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}"
+                                  ItemsSource="{Binding SplashModeOptions}"
+                                  SelectedItem="{Binding SelectedSplashModeOption, Mode=TwoWay}"
+                                  AutomationProperties.Name="{Binding SplashModeLabel}"
+                                  AutomationProperties.HelpText="{Binding SplashModeHelpText}" />
+                        <TextBlock Grid.Row="1" Text="{Binding SplashStyleLabel}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <ComboBox Grid.Row="1" Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}"
+                                  ItemsSource="{Binding SplashStyleOptions}"
+                                  SelectedItem="{Binding SelectedSplashStyleOption, Mode=TwoWay}"
+                                  AutomationProperties.Name="{Binding SplashStyleLabel}"
+                                  AutomationProperties.HelpText="{Binding SplashStyleHelpText}" />
+                        <TextBlock Grid.Row="2" Text="{Binding SplashDetailedLabel}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <CheckBox Grid.Row="2" Grid.Column="1" IsChecked="{Binding ShowDetailedSplash, Mode=TwoWay}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource ShellSettingsColumnSpacing}">
+                        <StackPanel Spacing="{StaticResource ShellCompactSpacing}">
+                            <TextBlock Text="{Binding SplashStartTimeLabel}" FontWeight="SemiBold" />
+                            <TextBox Text="{Binding SplashStartTime, Mode=TwoWay}" MinHeight="{StaticResource ShellTouchTargetMinHeight}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="{StaticResource ShellCompactSpacing}">
+                            <TextBlock Text="{Binding SplashEndTimeLabel}" FontWeight="SemiBold" />
+                            <TextBox Text="{Binding SplashEndTime, Mode=TwoWay}" MinHeight="{StaticResource ShellTouchTargetMinHeight}" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Padding="{StaticResource ShellSectionPadding}"
+                    CornerRadius="{StaticResource ShellCornerRadius}"
+                    BorderThickness="{StaticResource ShellBorderThickness}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="{StaticResource ShellIdentityRowSpacing}" ColumnSpacing="{StaticResource ShellIdentityColumnSpacing}">
+                    <StackPanel Spacing="{StaticResource ShellCompactSpacing}">
+                        <TextBlock Text="{Binding PasswordProtectionTitle}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding PasswordProtectionDescription}" TextWrapping="Wrap" Opacity="{StaticResource ShellMutedOpacity}" />
+                        <TextBlock Text="{Binding PasswordProtectionStatusText}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Spacing="{StaticResource ShellCompactSpacing}">
+                        <Button MinHeight="{StaticResource ShellTouchTargetMinHeight}" Command="{Binding EnablePasswordProtectionCommand}" Content="{Binding EnablePasswordProtectionText}" />
+                        <Button MinHeight="{StaticResource ShellTouchTargetMinHeight}" Command="{Binding ChangePasswordCommand}" Content="{Binding ChangePasswordText}" />
+                        <Button MinHeight="{StaticResource ShellTouchTargetMinHeight}" Command="{Binding DisablePasswordProtectionCommand}" Content="{Binding DisablePasswordProtectionText}" />
+                        <Button MinHeight="{StaticResource ShellTouchTargetMinHeight}" Command="{Binding UnlockSettingsCommand}" Content="{Binding UnlockSettingsText}" />
+                    </StackPanel>
                 </Grid>
             </Border>
 

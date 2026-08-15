@@ -7,6 +7,8 @@ public interface IShellThemeService
 {
     void Apply(ShellThemeMode mode);
 
+    void ApplyFontFamily(string resolvedFontFamily);
+
     void UseSystemAccent();
 
     void ApplyAccent(string accentKey);

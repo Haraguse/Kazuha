@@ -15,4 +15,12 @@ public sealed class NullDialogService : IDialogService
 
     public Task<string> ShowUpdateAsync(ShellViewModel shellViewModel, UpdateOrchestrator orchestrator, string installDirectory) =>
         Task.FromResult(shellViewModel.Localization["Dialog.Update.Error.ServiceUnavailable"]);
+
+    public Task<PasswordDialogResult> ShowPasswordAsync(ShellViewModel shellViewModel, PasswordDialogMode mode) =>
+        Task.FromResult(PasswordDialogResult.Cancelled);
+
+    public Task<RetryCloseDialogResult> ShowRetryCloseAsync(
+        ShellViewModel shellViewModel,
+        RetryCloseDialogRequest request) =>
+        Task.FromResult(RetryCloseDialogResult.OwnerNotReady);
 }

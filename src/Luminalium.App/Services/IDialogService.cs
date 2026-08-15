@@ -8,4 +8,10 @@ public interface IDialogService
     Task ShowAboutAsync(ShellViewModel shellViewModel);
 
     Task<string> ShowUpdateAsync(ShellViewModel shellViewModel, UpdateOrchestrator orchestrator, string installDirectory);
+
+    Task<PasswordDialogResult> ShowPasswordAsync(ShellViewModel shellViewModel, PasswordDialogMode mode);
+
+    Task<RetryCloseDialogResult> ShowRetryCloseAsync(
+        ShellViewModel shellViewModel,
+        RetryCloseDialogRequest request);
 }
