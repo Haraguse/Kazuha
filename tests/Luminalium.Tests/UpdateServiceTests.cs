@@ -308,13 +308,27 @@ public sealed class UpdateServiceTests : IDisposable
             validator: new UpdateValidator(),
             coordinator: new UpdateReplacementCoordinator(processExitTimeout: TimeSpan.FromMilliseconds(250)));
 
-        var result = await viewModel.RunAsync(orchestrator, installDirectory);
+        // xUnit runs async tests without a SynchronizationContext, so Progress<T>
+        // would deliver reports on the thread pool asynchronously and an
+        // intermediate report (e.g. Replacing at 20) could land after RunAsync
+        // returns, clobbering the final 100. An inline context delivers reports
+        // synchronously and in order, keeping this a deterministic green gate.
+        var previousContext = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(new InlineSynchronizationContext());
+        try
+        {
+            var result = await viewModel.RunAsync(orchestrator, installDirectory);
 
-        Assert.True(result.RestartRequired);
-        Assert.Equal(100, viewModel.ProgressValue);
-        Assert.False(viewModel.IsErrorVisible);
-        Assert.Contains("2.0.0", result.Status, StringComparison.Ordinal);
-        Assert.Equal("new-exe", File.ReadAllText(Path.Combine(installDirectory, "Luminalium.exe")));
+            Assert.True(result.RestartRequired);
+            Assert.Equal(100, viewModel.ProgressValue);
+            Assert.False(viewModel.IsErrorVisible);
+            Assert.Contains("2.0.0", result.Status, StringComparison.Ordinal);
+            Assert.Equal("new-exe", File.ReadAllText(Path.Combine(installDirectory, "Luminalium.exe")));
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previousContext);
+        }
     }
 
     public void Dispose()
@@ -323,6 +337,18 @@ public sealed class UpdateServiceTests : IDisposable
         {
             Directory.Delete(_directory, recursive: true);
         }
+    }
+
+    /// <summary>
+    /// Executes posted callbacks synchronously and in order, so Progress&lt;T&gt;
+    /// reports are deterministic even though xUnit runs async tests without a
+    /// synchronization context.
+    /// </summary>
+    private sealed class InlineSynchronizationContext : SynchronizationContext
+    {
+        public override void Post(SendOrPostCallback callback, object? state) => callback(state);
+
+        public override void Send(SendOrPostCallback callback, object? state) => callback(state);
     }
 
     private string CreateInstall(string executableContent, string versionContent)
