@@ -47,6 +47,7 @@
     <Compile Include="..\..\src\Luminalium.App\Services\BuiltInFeatureLegacyProjection.cs" Link="App\Services\BuiltInFeatureLegacyProjection.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\BuiltInFeatureMigrationDiagnostics.cs" Link="App\Services\BuiltInFeatureMigrationDiagnostics.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\ExternalExtensionRegistry.cs" Link="App\Services\ExternalExtensionRegistry.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\NativeFeatureMigrationGate.cs" Link="App\Services\NativeFeatureMigrationGate.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\ShellPageMap.cs" Link="App\Services\ShellPageMap.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\IDialogService.cs" Link="App\Services\IDialogService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\PasswordDialogTypes.cs" Link="App\Services\PasswordDialogTypes.cs" />

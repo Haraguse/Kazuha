@@ -1,14 +1,20 @@
 namespace Luminalium.App.Features;
 
+using Luminalium.App.Services;
+
 public sealed class BuiltInFeatureRouteParser
 {
     private const string PluginPrefix = "plugin:";
     private const string FeaturePrefix = "feature:";
     private readonly BuiltInFeatureCatalog _catalog;
+    private readonly BuiltInFeatureMigrationDiagnostics _diagnostics;
 
-    public BuiltInFeatureRouteParser(BuiltInFeatureCatalog? catalog = null)
+    public BuiltInFeatureRouteParser(
+        BuiltInFeatureCatalog? catalog = null,
+        BuiltInFeatureMigrationDiagnostics? diagnostics = null)
     {
         _catalog = catalog ?? BuiltInFeatureCatalog.Default;
+        _diagnostics = diagnostics ?? new BuiltInFeatureMigrationDiagnostics();
     }
 
     public BuiltInFeatureActivationResult Parse(string? route, string? correlationId = null)
@@ -35,6 +41,11 @@ public sealed class BuiltInFeatureRouteParser
 
         var usesLegacyAlias = route.StartsWith(PluginPrefix, StringComparison.Ordinal) ||
                               route.StartsWith(FeaturePrefix, StringComparison.Ordinal);
+        if (usesLegacyAlias)
+        {
+            _diagnostics.Record(BuiltInFeatureDiagnosticKind.LegacyAliasUsed);
+        }
+
         return BuiltInFeatureActivationResult.Success(
             id,
             sourceRoute,
