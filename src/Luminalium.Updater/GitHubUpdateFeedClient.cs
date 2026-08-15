@@ -61,7 +61,7 @@ public sealed class GitHubUpdateFeedClient : IUpdateFeedClient, IDisposable
 
                 await using var stream = await response.Content.ReadAsStreamAsync(timeoutSource.Token).ConfigureAwait(false);
                 using var document = await JsonDocument.ParseAsync(stream, DocumentOptions, timeoutSource.Token).ConfigureAwait(false);
-                return ParseRelease(document.RootElement, currentVersion, force, mirror);
+                return ParseRelease(document.RootElement, currentVersion, force);
             }
             catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
             {
@@ -88,11 +88,6 @@ public sealed class GitHubUpdateFeedClient : IUpdateFeedClient, IDisposable
     public static IReadOnlyList<UpdateMirror> CreateDefaultMirrors() =>
     [
         new("github", "https://api.github.com"),
-        new("ghproxy", "https://ghproxy.net/https://api.github.com"),
-        new("moeyy", "https://github.moeyy.xyz/https://api.github.com"),
-        new("ghproxy2", "https://mirror.ghproxy.com/https://api.github.com"),
-        new("idayer", "https://gh.idayer.com/https://api.github.com"),
-        new("kkgithub", "https://api.kkgithub.com"),
     ];
 
     private static Uri BuildReleaseUri(UpdateMirror mirror) =>
@@ -101,8 +96,7 @@ public sealed class GitHubUpdateFeedClient : IUpdateFeedClient, IDisposable
     private static UpdateOperationResult<UpdateInfo> ParseRelease(
         JsonElement root,
         string currentVersion,
-        bool force,
-        UpdateMirror mirror)
+        bool force)
     {
         if (!root.TryGetProperty("tag_name", out var tagElement) || tagElement.ValueKind is not JsonValueKind.String)
         {
@@ -131,7 +125,7 @@ public sealed class GitHubUpdateFeedClient : IUpdateFeedClient, IDisposable
         {
             return UpdateOperation.Failure<UpdateInfo>(new UpdateError(
                 UpdateErrorCode.AssetUnavailable,
-                $"No {ProductIdentity.WindowsArtifactName}, .zip, .exe, or .7z asset was found on the latest release."));
+                $"No {ProductIdentity.WindowsArtifactName} asset was found on the latest release."));
         }
 
         var available = force || !string.Equals(tag, currentVersion, StringComparison.OrdinalIgnoreCase);
@@ -139,7 +133,13 @@ public sealed class GitHubUpdateFeedClient : IUpdateFeedClient, IDisposable
             ? bodyElement.GetString() ?? string.Empty
             : string.Empty;
 
-        var downloadUrl = NormalizeDownloadUrl(asset.Value.DownloadUrl, mirror.Name);
+        if (!TryParseCanonicalDownloadUrl(asset.Value.DownloadUrl, tag, out var downloadUrl))
+        {
+            return UpdateOperation.Failure<UpdateInfo>(new UpdateError(
+                UpdateErrorCode.AssetUnavailable,
+                $"The {ProductIdentity.WindowsArtifactName} asset URL was not a canonical GitHub release download URL."));
+        }
+
         var updateInfo = new UpdateInfo(
             available,
             tag,
@@ -154,8 +154,6 @@ public sealed class GitHubUpdateFeedClient : IUpdateFeedClient, IDisposable
 
     private static ReleaseAsset? SelectAsset(JsonElement assetsElement)
     {
-        ReleaseAsset? fallback = null;
-
         foreach (var assetElement in assetsElement.EnumerateArray())
         {
             if (!TryReadAsset(assetElement, out var asset))
@@ -163,18 +161,13 @@ public sealed class GitHubUpdateFeedClient : IUpdateFeedClient, IDisposable
                 continue;
             }
 
-            if (string.Equals(asset.Name, ProductIdentity.WindowsArtifactName, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(asset.Name, ProductIdentity.WindowsArtifactName, StringComparison.Ordinal))
             {
                 return asset;
             }
-
-            if (fallback is null && IsFallbackAsset(asset.Name))
-            {
-                fallback = asset;
-            }
         }
 
-        return fallback;
+        return null;
     }
 
     private static bool TryReadAsset(JsonElement assetElement, out ReleaseAsset asset)
@@ -201,29 +194,28 @@ public sealed class GitHubUpdateFeedClient : IUpdateFeedClient, IDisposable
         return true;
     }
 
-    private static bool IsFallbackAsset(string name) =>
-        name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
-        name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ||
-        name.EndsWith(".7z", StringComparison.OrdinalIgnoreCase);
-
-    private static Uri NormalizeDownloadUrl(string downloadUrl, string mirrorName)
+    private static bool TryParseCanonicalDownloadUrl(string downloadUrl, string tag, out Uri uri)
     {
-        if (!downloadUrl.StartsWith("https://github.com", StringComparison.OrdinalIgnoreCase))
+        uri = null!;
+        if (!Uri.TryCreate(downloadUrl, UriKind.Absolute, out var parsed) ||
+            parsed.Scheme != Uri.UriSchemeHttps ||
+            !string.Equals(parsed.Host, "github.com", StringComparison.OrdinalIgnoreCase) ||
+            parsed.Port != 443 ||
+            !string.IsNullOrEmpty(parsed.UserInfo) ||
+            !string.IsNullOrEmpty(parsed.Fragment) ||
+            !string.IsNullOrEmpty(parsed.Query))
         {
-            return new Uri(downloadUrl, UriKind.Absolute);
+            return false;
         }
 
-        var normalized = mirrorName switch
+        var expectedPath = $"/SECTL/Luminalium/releases/download/{tag}/{ProductIdentity.WindowsArtifactName}";
+        if (!string.Equals(parsed.AbsolutePath, expectedPath, StringComparison.Ordinal))
         {
-            "ghproxy" => "https://ghproxy.net/" + downloadUrl,
-            "moeyy" => "https://github.moeyy.xyz/" + downloadUrl,
-            "ghproxy2" => "https://mirror.ghproxy.com/" + downloadUrl,
-            "idayer" => "https://gh.idayer.com/" + downloadUrl,
-            "kkgithub" => downloadUrl.Replace("https://github.com", "https://kkgithub.com", StringComparison.OrdinalIgnoreCase),
-            _ => downloadUrl,
-        };
+            return false;
+        }
 
-        return new Uri(normalized, UriKind.Absolute);
+        uri = parsed;
+        return true;
     }
 
     private readonly record struct ReleaseAsset(string Name, string DownloadUrl, long? Size);

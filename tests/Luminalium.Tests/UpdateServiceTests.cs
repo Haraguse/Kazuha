@@ -73,6 +73,24 @@ public sealed class UpdateServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task MissingChecksumFailsClosedBeforeReplacement()
+    {
+        var zipBytes = CreateUpdateZip(("Luminalium.exe", "new-exe"), ("version.json", VersionJson("2.0.0")));
+        await using var server = await LocalUpdateServer.StartAsync(new Dictionary<string, LocalResponse>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["/Luminalium-Windows.zip"] = LocalResponse.Bytes(zipBytes, "application/zip"),
+        });
+        var downloader = new UpdateDownloader(cacheRoot: Path.Combine(_directory, "cache"));
+        var updateInfo = new UpdateInfo(true, "nightly", "Luminalium-Windows.zip", server.Uri("/Luminalium-Windows.zip"), zipBytes.Length, string.Empty, false);
+
+        var download = await downloader.DownloadAsync(updateInfo);
+
+        Assert.False(download.IsSuccess);
+        Assert.Equal(UpdateErrorCode.ChecksumMismatch, download.Error!.Code);
+        Assert.Contains("unavailable", download.Error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task StructurallyInvalidZipFailsValidationBeforeReplacement()
     {
         var zipPath = Path.Combine(_directory, "invalid.zip");
@@ -129,6 +147,39 @@ public sealed class UpdateServiceTests : IDisposable
         Assert.Equal(force, result.Value.Forced);
         Assert.Equal("Luminalium-Windows.zip", result.Value.AssetName);
         Assert.Equal(tag, result.Value.Tag);
+    }
+
+    [Theory]
+    [InlineData("http://github.com/SECTL/Luminalium/releases/download/nightly/Luminalium-Windows.zip")]
+    [InlineData("https://evil.example/SECTL/Luminalium/releases/download/nightly/Luminalium-Windows.zip")]
+    [InlineData("https://user:password@github.com/SECTL/Luminalium/releases/download/nightly/Luminalium-Windows.zip")]
+    [InlineData("https://github.com/SECTL/Luminalium/releases/download/nightly/Luminalium-Windows.zip#fragment")]
+    [InlineData("https://github.com/SECTL/Other/releases/download/nightly/Luminalium-Windows.zip")]
+    public async Task FeedRejectsNonCanonicalArtifactUrls(string downloadUrl)
+    {
+        using var client = new GitHubUpdateFeedClient(
+            new StaticReleaseHandler("nightly", "Luminalium-Windows.zip", downloadUrl),
+            [new UpdateMirror("github", "https://api.github.test")],
+            TimeSpan.FromSeconds(1));
+
+        var result = await client.CheckAsync("1.0.0", false);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(UpdateErrorCode.AssetUnavailable, result.Error!.Code);
+    }
+
+    [Fact]
+    public async Task FeedRejectsArbitraryArchiveFallbackAssets()
+    {
+        using var client = new GitHubUpdateFeedClient(
+            new StaticReleaseHandler("nightly", "installer.exe", "https://github.com/SECTL/Luminalium/releases/download/nightly/installer.exe"),
+            [new UpdateMirror("github", "https://api.github.test")],
+            TimeSpan.FromSeconds(1));
+
+        var result = await client.CheckAsync("1.0.0", false);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(UpdateErrorCode.AssetUnavailable, result.Error!.Code);
     }
 
     [Fact]
@@ -202,17 +253,20 @@ public sealed class UpdateServiceTests : IDisposable
         }
         """;
 
-    private sealed class StaticReleaseHandler(string tag) : HttpMessageHandler
+    private sealed class StaticReleaseHandler(
+        string tag,
+        string assetName = "Luminalium-Windows.zip",
+        string? downloadUrl = null) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            downloadUrl ??= $"https://github.com/SECTL/Luminalium/releases/download/{tag}/Luminalium-Windows.zip";
             var json = $$"""
             {
               "tag_name": "{{tag}}",
               "body": "fixture changelog",
               "assets": [
-                { "name": "installer.exe", "browser_download_url": "https://github.com/SECTL/Luminalium/releases/download/{{tag}}/installer.exe", "size": 9 },
-                { "name": "Luminalium-Windows.zip", "browser_download_url": "https://github.com/SECTL/Luminalium/releases/download/{{tag}}/Luminalium-Windows.zip", "size": 42 }
+                { "name": "{{assetName}}", "browser_download_url": "{{downloadUrl}}", "size": 42 }
               ]
             }
             """;

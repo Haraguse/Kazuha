@@ -146,7 +146,10 @@ public sealed class UpdateDownloader : IDisposable
         using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         if (response.StatusCode is not HttpStatusCode.OK)
         {
-            return UpdateOperationResult.Success();
+            return UpdateOperationResult.Failure(new UpdateError(
+                UpdateErrorCode.ChecksumMismatch,
+                "The update checksum sidecar was unavailable.",
+                $"HTTP {(int)response.StatusCode} from {sidecarUri}."));
         }
 
         var text = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
