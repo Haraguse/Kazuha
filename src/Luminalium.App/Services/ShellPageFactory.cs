@@ -9,13 +9,20 @@ public sealed class ShellPageFactory : IFANavigationPageFactory
 {
     public Control? GetPage(Type srcType) => null;
 
-    public Control? GetPageFromObject(object target) => target switch
+    public Control? GetPageFromObject(object target)
     {
-        OverviewViewModel viewModel => new OverviewPage { DataContext = viewModel },
-        SettingsViewModel viewModel => new SettingsPage { DataContext = viewModel },
-        OnboardingViewModel viewModel => new OnboardingPage { DataContext = viewModel },
-        LogsViewModel viewModel => new LogsPage { DataContext = viewModel },
-        PluginPageViewModel viewModel => new PluginPage { DataContext = viewModel },
-        _ => null,
-    };
+        if (target is not ShellPageViewModel viewModel)
+        {
+            return null;
+        }
+
+        return ShellPageMap.ResolvePageKind(viewModel.GetType()) switch
+        {
+            ShellPageKind.Overview => new OverviewPage { DataContext = viewModel },
+            ShellPageKind.Settings => new SettingsPage { DataContext = viewModel },
+            ShellPageKind.Onboarding => new OnboardingPage { DataContext = viewModel },
+            ShellPageKind.Logs => new LogsPage { DataContext = viewModel },
+            _ => null,
+        };
+    }
 }
