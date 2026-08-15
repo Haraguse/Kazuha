@@ -7,6 +7,7 @@ Frozen migration traceability artifacts for the C# version, produced by plan Tas
 
 | Document | Contents |
 |---|---|
+| [RUNBOOK.md](./RUNBOOK.md) | Maintenance handoff runbook (Task 25): solution structure, SDK/toolchain, commands, release, configuration, exclusions/deferred features and their warnings, and COM prerequisites. |
 | [FEATURE_PARITY_MATRIX.md](./FEATURE_PARITY_MATRIX.md) | Every README feature (F-01..F-17), every built-in plugin (P-01..P-08), and every core capability (C-01..C-13) mapped to source references, destination C# task numbers, acceptance criteria, negative cases, and evidence slugs; intentional exclusions X-02..X-07 and deferred item X-01 (Linux staged after Windows-first delivery) with confirmed rationale. |
 | [LEGACY_CAPABILITY_INVENTORY.md](./LEGACY_CAPABILITY_INVENTORY.md) | `plugins/webview_runner.py` capability catalog (W-01..W-38: page lifecycle, window hosting, dialogs, crash UI, titlebar, timer, spotlight, settings, logs, onboarding, bridge protocol), legacy surface inventory (L-01..L-28), `Luminalium.spec` payload/exclusion map, and the Task 24 retirement map. |
 
