@@ -1,9 +1,16 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Luminalium.Core.Localization;
 using Luminalium.Updater;
 using System.Globalization;
 
 namespace Luminalium.App.ViewModels;
+
+/// <summary>
+/// Result of a completed update dialog run. <see cref="Status"/> is the text to
+/// surface to the user; <see cref="RestartRequired"/> tells the shell to relaunch
+/// Luminalium because the installation files were replaced.
+/// </summary>
+public sealed record UpdateDialogResult(string Status, bool RestartRequired);
 
 public sealed partial class UpdateDialogViewModel : ObservableObject
 {
@@ -35,7 +42,7 @@ public sealed partial class UpdateDialogViewModel : ObservableObject
 
     public bool HasError => IsErrorVisible;
 
-    public async Task<string> RunAsync(
+    public async Task<UpdateDialogResult> RunAsync(
         UpdateOrchestrator orchestrator,
         string installDirectory,
         CancellationToken cancellationToken = default)
@@ -45,17 +52,10 @@ public sealed partial class UpdateDialogViewModel : ObservableObject
 
         if (!result.IsSuccess)
         {
-            ProgressValue = 0;
-            IsErrorVisible = true;
-            ErrorText = result.Error!.Detail is { Length: > 0 }
-                ? $"{result.Error.Message} {result.Error.Detail}"
-                : result.Error.Message;
-            StatusText = _localization["UpdateDialog.Failed"];
-            return ErrorText;
+            return Fail(result.Error!);
         }
 
         var preparation = result.Value!;
-        ProgressValue = 100;
         IsErrorVisible = false;
         ErrorText = string.Empty;
 
@@ -65,12 +65,32 @@ public sealed partial class UpdateDialogViewModel : ObservableObject
                 ? _localization["UpdateDialog.DevDisabled"]
                 : _localization["UpdateDialog.UpToDate"];
             StatusText = status;
-            return status;
+            return new UpdateDialogResult(status, RestartRequired: false);
         }
 
-        var stagedStatus = string.Format(CultureInfo.InvariantCulture, _localization["UpdateDialog.Downloaded"], preparation.Info.Tag);
-        StatusText = stagedStatus;
-        return stagedStatus;
+        var applied = await orchestrator.ApplyAsync(preparation, installDirectory, progress, cancellationToken).ConfigureAwait(true);
+        if (!applied.IsSuccess)
+        {
+            return Fail(applied.Error!);
+        }
+
+        ProgressValue = 100;
+        IsErrorVisible = false;
+        ErrorText = string.Empty;
+        var appliedStatus = string.Format(CultureInfo.InvariantCulture, _localization["UpdateDialog.Applied"], preparation.Info.Tag);
+        StatusText = appliedStatus;
+        return new UpdateDialogResult(appliedStatus, RestartRequired: true);
+    }
+
+    private UpdateDialogResult Fail(UpdateError error)
+    {
+        ProgressValue = 0;
+        IsErrorVisible = true;
+        ErrorText = error.Detail is { Length: > 0 }
+            ? $"{error.Message} {error.Detail}"
+            : error.Message;
+        StatusText = _localization["UpdateDialog.Failed"];
+        return new UpdateDialogResult(ErrorText, RestartRequired: false);
     }
 
     private void OnProgress(UpdateProgress progress)

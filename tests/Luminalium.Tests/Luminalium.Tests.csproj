@@ -92,6 +92,7 @@
     <Compile Include="..\..\src\Luminalium.App\ViewModels\ShellViewModel.cs" Link="App\ViewModels\ShellViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\SplashViewModel.cs" Link="App\ViewModels\SplashViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\ThemeModeOptionViewModel.cs" Link="App\ViewModels\ThemeModeOptionViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\UpdateDialogViewModel.cs" Link="App\ViewModels\UpdateDialogViewModel.cs" />
   </ItemGroup>
 
 </Project>

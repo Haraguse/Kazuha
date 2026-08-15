@@ -457,13 +457,55 @@ public sealed class ShellViewModelTests : IDisposable
     public async Task CheckForUpdatesCommandUsesDialogServiceStatus()
     {
         var dialogService = new RecordingDialogService("Update check completed.");
-        var viewModel = new ShellViewModel(dialogService: dialogService);
+        var launched = new List<string>();
+        var viewModel = new ShellViewModel(
+            dialogService: dialogService,
+            processLaunchService: new RecordingProcessLaunchService(launched));
+        var restarts = 0;
+        viewModel.RestartRequired += (_, _) => restarts++;
 
         await viewModel.Settings.CheckForUpdatesCommand.ExecuteAsync(null);
 
         Assert.True(dialogService.UpdateDialogShown);
         Assert.Equal("Update check completed.", viewModel.Settings.UpdateStatusText);
         Assert.False(viewModel.Settings.IsCheckingForUpdates);
+        Assert.Equal(0, restarts);
+        Assert.Empty(launched);
+    }
+
+    [Fact]
+    public async Task CheckForUpdatesRelaunchesAndRequestsRestartWhenDialogReportsApplied()
+    {
+        var dialogService = new RestartDialogService("Update applied.");
+        var launched = new List<string>();
+        var viewModel = new ShellViewModel(
+            dialogService: dialogService,
+            processLaunchService: new RecordingProcessLaunchService(launched));
+        var restarts = 0;
+        viewModel.RestartRequired += (_, _) => restarts++;
+
+        await viewModel.Settings.CheckForUpdatesCommand.ExecuteAsync(null);
+
+        Assert.Equal(1, restarts);
+        Assert.Equal("Update applied.", viewModel.Settings.UpdateStatusText);
+        var launchedExecutable = Assert.Single(launched);
+        Assert.EndsWith("Luminalium.exe", launchedExecutable, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task CheckForUpdatesSkipsRestartWhenLaunchFails()
+    {
+        var dialogService = new RestartDialogService("Update applied.");
+        var viewModel = new ShellViewModel(
+            dialogService: dialogService,
+            processLaunchService: new FailingProcessLaunchService());
+        var restarts = 0;
+        viewModel.RestartRequired += (_, _) => restarts++;
+
+        await viewModel.Settings.CheckForUpdatesCommand.ExecuteAsync(null);
+
+        Assert.Equal(0, restarts);
+        Assert.Equal("Update applied.", viewModel.Settings.UpdateStatusText);
     }
 
     [Fact]
@@ -707,10 +749,10 @@ public sealed class ShellViewModelTests : IDisposable
 
         public Task ShowAboutAsync(ShellViewModel shellViewModel) => Task.CompletedTask;
 
-        public Task<string> ShowUpdateAsync(ShellViewModel shellViewModel, UpdateOrchestrator orchestrator, string installDirectory)
+        public Task<UpdateDialogResult> ShowUpdateAsync(ShellViewModel shellViewModel, UpdateOrchestrator orchestrator, string installDirectory)
         {
             UpdateDialogShown = true;
-            return Task.FromResult(updateStatus);
+            return Task.FromResult(new UpdateDialogResult(updateStatus, RestartRequired: false));
         }
 
         public Task<PasswordDialogResult> ShowPasswordAsync(ShellViewModel shellViewModel, PasswordDialogMode mode) =>
@@ -726,8 +768,8 @@ public sealed class ShellViewModelTests : IDisposable
 
         public Task ShowAboutAsync(ShellViewModel shellViewModel) => Task.CompletedTask;
 
-        public Task<string> ShowUpdateAsync(ShellViewModel shellViewModel, UpdateOrchestrator orchestrator, string installDirectory) =>
-            Task.FromResult(string.Empty);
+        public Task<UpdateDialogResult> ShowUpdateAsync(ShellViewModel shellViewModel, UpdateOrchestrator orchestrator, string installDirectory) =>
+            Task.FromResult(new UpdateDialogResult(string.Empty, RestartRequired: false));
 
         public Task<PasswordDialogResult> ShowPasswordAsync(ShellViewModel shellViewModel, PasswordDialogMode mode) =>
             Task.FromResult(_passwordResults.Count == 0 ? PasswordDialogResult.Cancelled : _passwordResults.Dequeue());
@@ -744,8 +786,8 @@ public sealed class ShellViewModelTests : IDisposable
 
         public Task ShowAboutAsync(ShellViewModel shellViewModel) => Task.CompletedTask;
 
-        public Task<string> ShowUpdateAsync(ShellViewModel shellViewModel, UpdateOrchestrator orchestrator, string installDirectory) =>
-            Task.FromResult(string.Empty);
+        public Task<UpdateDialogResult> ShowUpdateAsync(ShellViewModel shellViewModel, UpdateOrchestrator orchestrator, string installDirectory) =>
+            Task.FromResult(new UpdateDialogResult(string.Empty, RestartRequired: false));
 
         public Task<PasswordDialogResult> ShowPasswordAsync(ShellViewModel shellViewModel, PasswordDialogMode mode)
         {
@@ -766,6 +808,37 @@ public sealed class ShellViewModelTests : IDisposable
 
         private TaskCompletionSource<PasswordDialogResult> UnlockResult { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+
+    private sealed class RestartDialogService(string updateStatus) : IDialogService
+    {
+        public Task ShowAboutAsync(ShellViewModel shellViewModel) => Task.CompletedTask;
+
+        public Task<UpdateDialogResult> ShowUpdateAsync(ShellViewModel shellViewModel, UpdateOrchestrator orchestrator, string installDirectory) =>
+            Task.FromResult(new UpdateDialogResult(updateStatus, RestartRequired: true));
+
+        public Task<PasswordDialogResult> ShowPasswordAsync(ShellViewModel shellViewModel, PasswordDialogMode mode) =>
+            Task.FromResult(PasswordDialogResult.Cancelled);
+
+        public Task<RetryCloseDialogResult> ShowRetryCloseAsync(ShellViewModel shellViewModel, RetryCloseDialogRequest request) =>
+            Task.FromResult(RetryCloseDialogResult.OwnerNotReady);
+    }
+
+    private sealed class RecordingProcessLaunchService(List<string> launched) : IProcessLaunchService
+    {
+        public PlatformOperationResult Launch(string path)
+        {
+            launched.Add(path);
+            return PlatformOperationResult.Success();
+        }
+    }
+
+    private sealed class FailingProcessLaunchService : IProcessLaunchService
+    {
+        public PlatformOperationResult Launch(string path) =>
+            PlatformOperationResult.Failure(new PlatformOperationError(
+                PlatformOperationErrorCode.Failed,
+                "Simulated launch failure."));
     }
 
 }

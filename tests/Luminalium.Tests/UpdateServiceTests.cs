@@ -208,6 +208,31 @@ public sealed class UpdateServiceTests : IDisposable
         Assert.True(first.IsSuccess, first.Error?.Message);
     }
 
+    [Fact]
+    public async Task LockedRunningExecutableIsDeletedThenReplacedForSelfUpdate()
+    {
+        var zipPath = Path.Combine(_directory, "selfupdate.zip");
+        await File.WriteAllBytesAsync(
+            zipPath,
+            CreateUpdateZip(("Luminalium.exe", "new-exe"), ("version.json", VersionJson("2.0.0"))),
+            CancellationToken.None);
+        var installDirectory = CreateInstall("old-exe", VersionJson("1.0.0"));
+        var exePath = Path.Combine(installDirectory, "Luminalium.exe");
+        var fileSystem = new LockedDestinationFileSystem(exePath);
+        var coordinator = new UpdateReplacementCoordinator(
+            fileSystem: fileSystem,
+            mutexName: "Luminalium_Updater_" + Guid.NewGuid().ToString("N"),
+            processExitTimeout: TimeSpan.FromMilliseconds(250));
+        var staged = new StagedUpdate("2.0.0", zipPath, _directory, new FileInfo(zipPath).Length);
+
+        var replacement = await coordinator.ReplaceAsync(staged, installDirectory);
+
+        Assert.True(replacement.IsSuccess, replacement.Error?.Message);
+        Assert.False(replacement.Value!.RolledBack);
+        Assert.True(fileSystem.DeleteCalls >= 1, "The locked running executable should be deleted before replacement.");
+        Assert.Equal("new-exe", File.ReadAllText(exePath));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_directory))
@@ -444,6 +469,40 @@ public sealed class UpdateServiceTests : IDisposable
         {
             _release.Dispose();
             BlockReached.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Simulates the self-update case: the running Luminalium.exe cannot be
+    /// overwritten in place, but it is opened with FILE_SHARE_DELETE so it can
+    /// be deleted to free the path for the replacement to be installed.
+    /// </summary>
+    private sealed class LockedDestinationFileSystem(string lockedPath) : DelegatingUpdateFileSystem
+    {
+        private bool _locked = true;
+
+        public int DeleteCalls { get; private set; }
+
+        public override void CopyFile(string sourcePath, string destinationPath, bool overwrite)
+        {
+            if (_locked &&
+                string.Equals(Path.GetFullPath(destinationPath), Path.GetFullPath(lockedPath), StringComparison.OrdinalIgnoreCase))
+            {
+                throw new IOException("Injected locked destination copy failure.");
+            }
+
+            base.CopyFile(sourcePath, destinationPath, overwrite);
+        }
+
+        public override void DeleteFile(string path)
+        {
+            if (string.Equals(Path.GetFullPath(path), Path.GetFullPath(lockedPath), StringComparison.OrdinalIgnoreCase))
+            {
+                _locked = false;
+                DeleteCalls++;
+            }
+
+            base.DeleteFile(path);
         }
     }
 }

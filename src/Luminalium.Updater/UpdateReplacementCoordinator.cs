@@ -227,6 +227,30 @@ public sealed class UpdateReplacementCoordinator
         string destinationPath,
         CancellationToken cancellationToken)
     {
+        var firstAttempt = await CopyWithRetriesCoreAsync(sourcePath, destinationPath, cancellationToken).ConfigureAwait(false);
+        if (firstAttempt.IsSuccess || !_fileSystem.FileExists(destinationPath))
+        {
+            return firstAttempt;
+        }
+
+        // Self-update: a running Luminalium.exe cannot be overwritten in place on
+        // Windows. The existing destination is already preserved in the backup;
+        // the running executable is opened with FILE_SHARE_DELETE, so deleting it
+        // frees the path for the replacement to be installed.
+        var deleteResult = TryDeleteLockedDestination(destinationPath);
+        if (!deleteResult.IsSuccess)
+        {
+            return deleteResult;
+        }
+
+        return await CopyWithRetriesCoreAsync(sourcePath, destinationPath, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<UpdateOperationResult> CopyWithRetriesCoreAsync(
+        string sourcePath,
+        string destinationPath,
+        CancellationToken cancellationToken)
+    {
         Exception? lastException = null;
         for (var attempt = 1; attempt <= 3; attempt++)
         {
@@ -250,6 +274,23 @@ public sealed class UpdateReplacementCoordinator
             "A replacement file could not be copied after retrying.",
             lastException?.Message,
             lastException));
+    }
+
+    private UpdateOperationResult TryDeleteLockedDestination(string destinationPath)
+    {
+        try
+        {
+            _fileSystem.DeleteFile(destinationPath);
+            return UpdateOperationResult.Success();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            return UpdateOperationResult.Failure(new UpdateError(
+                UpdateErrorCode.FileLocked,
+                "A locked destination could not be cleared for replacement.",
+                exception.Message,
+                exception));
+        }
     }
 
     private UpdateOperationResult RestoreBackup(

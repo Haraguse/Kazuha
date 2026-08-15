@@ -53,18 +53,18 @@ public sealed class DialogService : IDialogService
         }
     }
 
-    public async Task<string> ShowUpdateAsync(ShellViewModel shellViewModel, UpdateOrchestrator orchestrator, string installDirectory)
+    public async Task<UpdateDialogResult> ShowUpdateAsync(ShellViewModel shellViewModel, UpdateOrchestrator orchestrator, string installDirectory)
     {
         if (_dialogOpen)
         {
             shellViewModel.ReportLocalizedError(ShellErrorKind.DialogAlreadyOpen, "Dialog.Error.AlreadyOpen");
-            return shellViewModel.Localization["Dialog.Error.AlreadyOpen"];
+            return new UpdateDialogResult(shellViewModel.Localization["Dialog.Error.AlreadyOpen"], RestartRequired: false);
         }
 
         if (_owner is null)
         {
             shellViewModel.ReportLocalizedError(ShellErrorKind.DialogFailed, "Dialog.Error.OwnerNotReady");
-            return shellViewModel.Localization["Dialog.Error.OwnerNotReady"];
+            return new UpdateDialogResult(shellViewModel.Localization["Dialog.Error.OwnerNotReady"], RestartRequired: false);
         }
 
         _dialogOpen = true;
@@ -90,7 +90,7 @@ public sealed class DialogService : IDialogService
         {
             var message = string.Format(CultureInfo.InvariantCulture, shellViewModel.Localization["Dialog.Update.Error.Failed"], exception.Message);
             shellViewModel.ReportError(ShellErrorKind.DialogFailed, message);
-            return message;
+            return new UpdateDialogResult(message, RestartRequired: false);
         }
         finally
         {

@@ -33,6 +33,7 @@ public sealed partial class ShellViewModel : ObservableObject
     private readonly IShellThemeService _themeService;
     private readonly MonetThemeService _monetThemeService;
     private readonly UpdateOrchestrator _updateOrchestrator;
+    private readonly IProcessLaunchService _processLaunchService;
     private readonly string _versionDisplay;
     private readonly bool _versionUnavailable;
     private readonly IPasswordHashService _passwordHashService;
@@ -80,12 +81,14 @@ public sealed partial class ShellViewModel : ObservableObject
         ILocalizationService? localizationService = null,
         LocalLogService? logService = null,
         IPasswordHashService? passwordHashService = null,
-        IEnumerable<string>? knownFontFamilies = null)
+        IEnumerable<string>? knownFontFamilies = null,
+        IProcessLaunchService? processLaunchService = null)
     {
         _config = config ?? LuminaliumConfig.CreateDefault();
         _knownFontFamilies = (knownFontFamilies ?? ResolveKnownFontFamilies()).ToArray();
         _configurationService = configurationService;
         _passwordHashService = passwordHashService ?? new PasswordHashService();
+        _processLaunchService = processLaunchService ?? new ProcessLaunchService();
         _localization = localizationService ?? new LocalizationService();
         var localLogService = logService ?? new LocalLogService();
         _logService = localLogService;
@@ -167,6 +170,11 @@ public sealed partial class ShellViewModel : ObservableObject
     public SettingsViewModel Settings { get; }
 
     public IDialogService DialogService { get; set; }
+
+    /// <summary>
+    /// Raised when a completed update replacement requires Luminalium to restart.
+    /// </summary>
+    public event EventHandler? RestartRequired;
 
     public bool PasswordProtectionEnabled => _config.Security.PasswordProtectionEnabled;
 
@@ -371,8 +379,25 @@ public sealed partial class ShellViewModel : ObservableObject
 
     private Task ShowAboutAsync() => DialogService.ShowAboutAsync(this);
 
-    private Task<string> CheckForUpdatesAsync() =>
-        DialogService.ShowUpdateAsync(this, _updateOrchestrator, ResolveInstallDirectory());
+    private async Task<string> CheckForUpdatesAsync()
+    {
+        var result = await DialogService.ShowUpdateAsync(this, _updateOrchestrator, ResolveInstallDirectory()).ConfigureAwait(true);
+        if (result.RestartRequired)
+        {
+            RestartAfterUpdate();
+        }
+
+        return result.Status;
+    }
+
+    private void RestartAfterUpdate()
+    {
+        var executablePath = Path.Combine(ResolveInstallDirectory(), "Luminalium.exe");
+        if (_processLaunchService.Launch(executablePath).IsSuccess)
+        {
+            RestartRequired?.Invoke(this, EventArgs.Empty);
+        }
+    }
 
     private static string ResolveInstallDirectory() =>
         Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;

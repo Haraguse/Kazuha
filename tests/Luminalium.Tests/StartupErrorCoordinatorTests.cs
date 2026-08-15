@@ -83,7 +83,8 @@ public sealed class StartupErrorCoordinatorTests
         public RetryCloseDialogRequest? Request { get; private set; }
 
         public Task ShowAboutAsync(ShellViewModel shellViewModel) => Task.CompletedTask;
-        public Task<string> ShowUpdateAsync(ShellViewModel shellViewModel, Luminalium.Updater.UpdateOrchestrator orchestrator, string installDirectory) => Task.FromResult(string.Empty);
+        public Task<UpdateDialogResult> ShowUpdateAsync(ShellViewModel shellViewModel, Luminalium.Updater.UpdateOrchestrator orchestrator, string installDirectory) =>
+            Task.FromResult(new UpdateDialogResult(string.Empty, RestartRequired: false));
         public Task<PasswordDialogResult> ShowPasswordAsync(ShellViewModel shellViewModel, PasswordDialogMode mode) => Task.FromResult(PasswordDialogResult.Cancelled);
         public virtual Task<RetryCloseDialogResult> ShowRetryCloseAsync(ShellViewModel shellViewModel, RetryCloseDialogRequest request)
         {

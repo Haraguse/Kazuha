@@ -107,6 +107,29 @@ public sealed class UpdateOrchestrator
         return await _coordinator.ReplaceAsync(preparation.Value.StagedUpdate, installDirectory, Combine(progress), cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Applies an already prepared update (download + validation already done) by
+    /// replacing the installation files. Used by the UI flow so an update is only
+    /// checked and downloaded once before it is applied.
+    /// </summary>
+    public async Task<UpdateOperationResult<UpdateReplacementResult>> ApplyAsync(
+        UpdatePreparation preparation,
+        string installDirectory,
+        IProgress<UpdateProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(preparation);
+
+        if (preparation.StagedUpdate is null)
+        {
+            return UpdateOperation.Failure<UpdateReplacementResult>(new UpdateError(
+                UpdateErrorCode.UpToDate,
+                "No staged update is available to apply."));
+        }
+
+        return await _coordinator.ReplaceAsync(preparation.StagedUpdate, installDirectory, Combine(progress), cancellationToken).ConfigureAwait(false);
+    }
+
     private static string ReadCurrentVersion(string installDirectory)
     {
         var result = VersionMetadataReader.Load(Path.Combine(installDirectory, ProductIdentity.VersionMetadataFileName));

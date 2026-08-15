@@ -184,6 +184,7 @@
   "UpdateDialog.DevDisabled": "开发布局中已禁用更新检查。",
   "UpdateDialog.UpToDate": "Luminalium 已是最新版本。",
   "UpdateDialog.Downloaded": "更新 {0} 已下载并验证。",
+  "UpdateDialog.Applied": "更新 {0} 已应用，正在重启...",
   "UpdateDialog.Progress.Checking": "正在检查更新...",
   "UpdateDialog.Progress.Downloading": "正在下载更新...",
   "UpdateDialog.Progress.Validating": "正在验证更新包...",

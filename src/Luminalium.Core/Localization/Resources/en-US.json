@@ -184,6 +184,7 @@
   "UpdateDialog.DevDisabled": "Update checks are disabled in this development layout.",
   "UpdateDialog.UpToDate": "Luminalium is up to date.",
   "UpdateDialog.Downloaded": "Update {0} downloaded and validated.",
+  "UpdateDialog.Applied": "Update {0} applied. Restarting...",
   "UpdateDialog.Progress.Checking": "Checking for updates...",
   "UpdateDialog.Progress.Downloading": "Downloading update...",
   "UpdateDialog.Progress.Validating": "Validating update archive...",

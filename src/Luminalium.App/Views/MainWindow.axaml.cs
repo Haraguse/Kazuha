@@ -1,4 +1,6 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -35,6 +37,7 @@ public partial class MainWindow : FAAppWindow
 
         dialogService.AttachOwner(this);
         viewModel.DialogService = dialogService;
+        viewModel.RestartRequired += (_, _) => ShutdownForRestart();
 
         TitleBar.ExtendsContentIntoTitleBar = true;
         TitleBar.Height = 44;
@@ -236,6 +239,17 @@ public partial class MainWindow : FAAppWindow
     {
         await _featureHost.DisposeAsync().ConfigureAwait(true);
         base.OnClosed(e);
+    }
+
+    private void ShutdownForRestart()
+    {
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            desktop.Shutdown();
+            return;
+        }
+
+        Close();
     }
 
     private void OnOpenOverlayClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => OpenOverlay();
