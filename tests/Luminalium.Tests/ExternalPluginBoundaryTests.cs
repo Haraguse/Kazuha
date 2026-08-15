@@ -101,6 +101,29 @@ public sealed class ExternalPluginBoundaryTests
         Assert.DoesNotContain("Luminalium.App", referenced);
     }
 
+    [Fact]
+    public void NativeBuiltInsOperateWithoutAnyPluginRegistration()
+    {
+        // T15 final integration: the plugin registry and the app-facing
+        // external extension registry both start empty. No built-in feature
+        // is registered as a plugin; every one of the eight native features is
+        // resolved solely from the typed native catalog.
+        var pluginRegistry = new BuiltInPluginRegistry();
+        var externalRegistry = new ExternalExtensionRegistry();
+
+        Assert.Equal(0, pluginRegistry.Count);
+        Assert.Equal(0, externalRegistry.Count);
+        Assert.Equal(8, BuiltInFeatureCatalog.Default.Count);
+
+        foreach (var descriptor in BuiltInFeatureCatalog.Default.Descriptors)
+        {
+            Assert.True(
+                BuiltInFeatureCatalog.Default.TryGet(descriptor.Id, out var canonical),
+                $"Native feature '{descriptor.Id.Value}' must resolve from the catalog without plugin registration.");
+            Assert.Same(descriptor, canonical);
+        }
+    }
+
     private sealed class SuccessfulCommand : IPluginCommand
     {
         public int TerminateCount { get; private set; }
