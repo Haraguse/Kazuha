@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Luminalium.App.ViewModels"
+             x:Class="Luminalium.App.Views.RetryCloseDialogContent"
+             x:DataType="vm:RetryCloseDialogViewModel">
+    <StackPanel Width="460" Spacing="12">
+        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding RetryError}"
+                   IsVisible="{Binding HasRetryError}"
+                   TextWrapping="Wrap" />
+    </StackPanel>
+</UserControl>
