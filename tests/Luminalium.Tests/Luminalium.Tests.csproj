@@ -46,6 +46,7 @@
     <Compile Include="..\..\src\Luminalium.App\Services\BuiltInFeatureHost.cs" Link="App\Services\BuiltInFeatureHost.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\BuiltInFeatureLegacyProjection.cs" Link="App\Services\BuiltInFeatureLegacyProjection.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\BuiltInFeatureMigrationDiagnostics.cs" Link="App\Services\BuiltInFeatureMigrationDiagnostics.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\ExternalExtensionRegistry.cs" Link="App\Services\ExternalExtensionRegistry.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\ShellPageMap.cs" Link="App\Services\ShellPageMap.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\IDialogService.cs" Link="App\Services\IDialogService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\PasswordDialogTypes.cs" Link="App\Services\PasswordDialogTypes.cs" />
@@ -76,8 +77,8 @@
     <Compile Include="..\..\src\Luminalium.App\ViewModels\BuiltInFeatureEntryViewModel.cs" Link="App\ViewModels\BuiltInFeatureEntryViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\OverviewViewModel.cs" Link="App\ViewModels\OverviewViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\OverlayViewModel.cs" Link="App\ViewModels\OverlayViewModel.cs" />
-    <Compile Include="..\..\src\Luminalium.App\ViewModels\PluginEntryViewModel.cs" Link="App\ViewModels\PluginEntryViewModel.cs" />
-    <Compile Include="..\..\src\Luminalium.App\ViewModels\PluginPageViewModel.cs" Link="App\ViewModels\PluginPageViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\ExtensionEntryViewModel.cs" Link="App\ViewModels\ExtensionEntryViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\ExtensionPageViewModel.cs" Link="App\ViewModels\ExtensionPageViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\OnboardingViewModel.cs" Link="App\ViewModels\OnboardingViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\LogsViewModel.cs" Link="App\ViewModels\LogsViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\SettingsViewModel.cs" Link="App\ViewModels\SettingsViewModel.cs" />

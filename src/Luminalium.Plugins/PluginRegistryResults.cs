@@ -8,6 +8,16 @@ public sealed record DuplicateRegistrationError(string DuplicateId)
 public sealed record PluginRegistrationValidationError(string ValidationMessage, string? InvalidPluginId = null)
     : PluginRegistryError(ValidationMessage, InvalidPluginId);
 
+/// <summary>
+/// An external plugin ID collided with an ID reserved by the host application
+/// (for Luminalium, a canonical native built-in feature). The registry stays
+/// generic; the host application supplies the reserved-by policy.
+/// </summary>
+public sealed record PluginRegistrationCollisionError(string CollisionId, string ReservedBy)
+    : PluginRegistryError(
+        $"Plugin id '{CollisionId}' is reserved by {ReservedBy} and cannot be registered externally.",
+        CollisionId);
+
 public sealed record PluginTerminationFailure(string PluginId, string Message, string? Detail = null);
 
 public sealed record PluginTerminationAggregateError : PluginRegistryError

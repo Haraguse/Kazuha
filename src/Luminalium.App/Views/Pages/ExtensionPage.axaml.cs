@@ -2,9 +2,9 @@ using Avalonia.Controls;
 
 namespace Luminalium.App.Views.Pages;
 
-public partial class PluginPage : UserControl
+public partial class ExtensionPage : UserControl
 {
-    public PluginPage()
+    public ExtensionPage()
     {
         InitializeComponent();
     }

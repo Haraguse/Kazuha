@@ -2,20 +2,25 @@ namespace Luminalium.App.ViewModels;
 
 using Luminalium.Core.Localization;
 
-public sealed class PluginPageViewModel : ShellPageViewModel
+/// <summary>
+/// Shell page model for a genuine external extension's detail surface. Built-in
+/// features never route through this carrier; it exists only for the external
+/// plugin compatibility boundary.
+/// </summary>
+public sealed class ExtensionPageViewModel : ShellPageViewModel
 {
     private readonly ILocalizationService _localization;
 
-    public PluginPageViewModel(PluginEntryViewModel plugin, ILocalizationService localization)
-        : base($"plugin:{plugin.Id}", "PluginPage.Title", localization)
+    public ExtensionPageViewModel(ExtensionEntryViewModel extension, ILocalizationService localization)
+        : base($"plugin:{extension.Id}", "PluginPage.Title", localization)
     {
         _localization = localization;
-        Plugin = plugin;
+        Extension = extension;
     }
 
-    public PluginEntryViewModel Plugin { get; }
+    public ExtensionEntryViewModel Extension { get; }
 
-    public override string Title => Plugin.DisplayName;
+    public override string Title => Extension.DisplayName;
 
     public string TypeLabel => _localization["PluginPage.Type"];
 

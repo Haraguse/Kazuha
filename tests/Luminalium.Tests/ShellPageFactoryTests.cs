@@ -25,7 +25,7 @@ public sealed class ShellPageFactoryTests
     [Theory]
     [InlineData(typeof(object))]
     [InlineData(typeof(ShellViewModel))]
-    [InlineData(typeof(PluginPageViewModel))]
+    [InlineData(typeof(ExtensionPageViewModel))]
     [InlineData(typeof(ShellPageViewModel))]
     public void UnknownOrPluginCarrierTargetsFailSafely(Type viewModelType)
     {
@@ -33,8 +33,8 @@ public sealed class ShellPageFactoryTests
     }
 
     [Fact]
-    public void PluginPageViewModelHasNoBuiltInPageConsumer()
+    public void ExtensionPageViewModelHasNoBuiltInPageConsumer()
     {
-        Assert.Null(ShellPageMap.ResolvePageKind(typeof(PluginPageViewModel)));
+        Assert.Null(ShellPageMap.ResolvePageKind(typeof(ExtensionPageViewModel)));
     }
 }

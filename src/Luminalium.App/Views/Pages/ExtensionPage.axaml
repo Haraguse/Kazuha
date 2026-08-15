@@ -1,15 +1,15 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Luminalium.App.ViewModels"
-             x:Class="Luminalium.App.Views.Pages.PluginPage"
-             x:DataType="vm:PluginPageViewModel">
+             x:Class="Luminalium.App.Views.Pages.ExtensionPage"
+             x:DataType="vm:ExtensionPageViewModel">
     <ScrollViewer>
         <StackPanel Margin="{StaticResource ShellPageMargin}" Spacing="{StaticResource ShellPageSpacing}" MaxWidth="{StaticResource ShellPluginMaxWidth}" HorizontalAlignment="Left">
             <StackPanel Spacing="{StaticResource ShellTitleStackSpacing}">
-                <TextBlock Text="{Binding Plugin.DisplayName}"
+                <TextBlock Text="{Binding Extension.DisplayName}"
                            FontSize="{StaticResource ShellTitleFontSize}"
                            FontWeight="SemiBold" />
-                <TextBlock Text="{Binding Plugin.Id}"
+                <TextBlock Text="{Binding Extension.Id}"
                            FontSize="{StaticResource ShellSubtitleFontSize}"
                            Opacity="{StaticResource ShellMutedOpacity}" />
             </StackPanel>
@@ -21,13 +21,13 @@
                     Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
                 <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="{StaticResource ShellSettingsColumnSpacing}" RowSpacing="{StaticResource ShellSectionSpacing}">
                     <TextBlock Text="{Binding TypeLabel}" Opacity="{StaticResource ShellMutedOpacity}" />
-                    <TextBlock Grid.Column="1" Text="{Binding Plugin.PluginTypeText}" />
+                    <TextBlock Grid.Column="1" Text="{Binding Extension.PluginTypeText}" />
                     <TextBlock Grid.Row="1" Text="{Binding IconKeyLabel}" Opacity="{StaticResource ShellMutedOpacity}" />
-                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Plugin.IconKey}" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Extension.IconKey}" />
                     <TextBlock Grid.Row="2" Text="{Binding VersionLabel}" Opacity="{StaticResource ShellMutedOpacity}" />
-                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Plugin.Version}" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Extension.Version}" />
                     <TextBlock Grid.Row="3" Text="{Binding DescriptionLabel}" Opacity="{StaticResource ShellMutedOpacity}" />
-                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Plugin.Description}" TextWrapping="Wrap" />
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Extension.Description}" TextWrapping="Wrap" />
                 </Grid>
             </Border>
 

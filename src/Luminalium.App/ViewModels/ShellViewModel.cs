@@ -228,7 +228,7 @@ public sealed partial class ShellViewModel : ObservableObject
     public void NavigateToPlugin(BuiltInFeatureEntryViewModel? feature) => NavigateToFeature(feature?.RouteKey);
 
     [Obsolete("Use NavigateToFeature; retained for one compatibility release.")]
-    public void NavigateToPlugin(PluginEntryViewModel? plugin) => NavigateToFeature(plugin?.Id);
+    public void NavigateToPlugin(ExtensionEntryViewModel? plugin) => NavigateToFeature(plugin?.Id);
 
     public void GoBack()
     {

@@ -4,12 +4,17 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Luminalium.App.ViewModels;
 
-public sealed class PluginEntryViewModel : ObservableObject
+/// <summary>
+/// App-facing entry model for a genuine external extension. Built-in features
+/// are modeled by <see cref="BuiltInFeatureEntryViewModel"/>; this type wraps a
+/// real external plugin's metadata for the one-release compatibility surface.
+/// </summary>
+public sealed class ExtensionEntryViewModel : ObservableObject
 {
     private readonly PluginMetadata _metadata;
     private readonly ILocalizationService _localization;
 
-    public PluginEntryViewModel(PluginMetadata metadata, ILocalizationService localization)
+    public ExtensionEntryViewModel(PluginMetadata metadata, ILocalizationService localization)
     {
         _metadata = metadata;
         _localization = localization;
