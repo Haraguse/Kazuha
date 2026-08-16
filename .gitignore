@@ -28,6 +28,8 @@ internalSMTCHelper/
 *.swp
 *.swo
 
+*.DotSettings.user
+
 # OS
 .DS_Store
 Thumbs.db

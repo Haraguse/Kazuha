@@ -1,0 +1,42 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <HotAvaloniaIncludeExtensions>True</HotAvaloniaIncludeExtensions>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <HotAvaloniaAutoEnable>False</HotAvaloniaAutoEnable>
+        <HotAvalonia Condition="'$(Configuration)' == 'Debug'">True</HotAvalonia>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <AvaloniaResource Include="Assets\**"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AsyncImageLoader.Avalonia" />
+        <PackageReference Include="Avalonia"/>
+        <PackageReference Include="Avalonia.Desktop"/>
+        <PackageReference Include="Avalonia.Markup.Xaml.Loader" />
+        <PackageReference Include="CommunityToolkit.Mvvm" />
+        <PackageReference Include="DynamicData" />
+        <PackageReference Include="FluentAvaloniaUI" />
+        <PackageReference Include="HotAvalonia" />
+        <PackageReference Include="HotAvalonia.Core" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" />
+        <PackageReference Include="Pastel" />
+        <PackageReference Include="Xaml.Behaviors" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Luminalium.Core\Luminalium.Core.csproj" />
+        <ProjectReference Include="..\Luminalium.Plugins\Luminalium.Plugins.csproj" />
+        <ProjectReference Include="..\Luminalium.Presentation\Luminalium.Presentation.csproj" />
+        <ProjectReference Include="..\Luminalium.Theming\Luminalium.Theming.csproj" />
+        <ProjectReference Include="..\Luminalium.Updater\Luminalium.Updater.csproj" />
+    </ItemGroup>
+</Project>

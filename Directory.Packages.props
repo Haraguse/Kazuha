@@ -1,44 +1,42 @@
 <Project>
-
   <!--
     Luminalium C# migration - Task 3: central package management.
     Every PackageVersion below is pinned exactly (Task 2 validated stack).
     Projects reference packages WITHOUT a Version attribute.
   -->
-
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
-
   <ItemGroup>
     <!-- Avalonia 12 line, pinned to 12.1.1 (FluentAvaloniaUI 3.0.2 requires >= 12.0.0). -->
+    <PackageVersion Include="AsyncImageLoader.Avalonia" Version="3.8.0" />
     <PackageVersion Include="Avalonia" Version="12.1.1" />
     <PackageVersion Include="Avalonia.Desktop" Version="12.1.1" />
+    <PackageVersion Include="Avalonia.Markup.Xaml.Loader" Version="12.1.1" />
     <PackageVersion Include="Avalonia.Skia" Version="12.1.1" />
     <!-- FA pulls these two transitively; pinning them keeps one Avalonia version in the graph. -->
     <PackageVersion Include="Avalonia.Controls.ColorPicker" Version="12.1.1" />
     <PackageVersion Include="Avalonia.Controls.DataGrid" Version="12.1.1" />
-
     <!-- FluentAvaloniaUI 3.x on net10.0. -->
+    <PackageVersion Include="DynamicData" Version="9.4.33" />
     <PackageVersion Include="FluentAvaloniaUI" Version="3.0.2" />
-
     <!-- SkiaSharp is used by the cross-platform Monet wallpaper sampler. -->
+    <PackageVersion Include="HotAvalonia" Version="3.1.4" />
+    <PackageVersion Include="HotAvalonia.Core" Version="3.1.4" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="11.0.0-preview.7.26381.103" />
+    <PackageVersion Include="Pastel" Version="8.0.0" />
     <PackageVersion Include="SkiaSharp" Version="3.119.4" />
-
     <!-- MVVM toolkit validated alongside the UI stack. -->
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-
     <!-- DotNetCampus.AvaloniaInkCanvas 2.0.0 powers the board's handwriting canvas (requires Avalonia >= 12.1.0). -->
     <PackageVersion Include="DotNetCampus.AvaloniaInkCanvas" Version="2.0.0" />
-
     <!-- Test stack (xUnit). -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="Xaml.Behaviors" Version="12.0.5" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
-
     <!-- JSON Schema draft 2020-12 validation for the embedded WPS bridge protocol. -->
     <PackageVersion Include="JsonSchema.Net" Version="9.4.0" />
   </ItemGroup>
-
 </Project>

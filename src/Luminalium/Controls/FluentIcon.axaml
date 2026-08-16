@@ -1,0 +1,11 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:lumn="http://luminalium.sectl.cn/schemas/xaml/core">
+    <Design.PreviewWith>
+        <lumn:FluentIcon />
+    </Design.PreviewWith>
+
+    <Style Selector="lumn|FluentIcon">
+        <Setter Property="FontFamily" Value="{DynamicResource FluentSystemIconsResizeable}" />
+    </Style>
+</Styles>

@@ -1,0 +1,14 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Luminalium.App"
+             RequestedThemeVariant="Default">
+    <Application.Styles>
+        <StyleInclude Source="./Styles.axaml" />
+    </Application.Styles>
+    
+    <Application.Resources>
+        <ResourceDictionary>
+            <FontFamily x:Key="FluentSystemIconsResizeable">avares://Luminalium/Assets/Fonts/#FluentSystemIcons-Resizable</FontFamily>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:lumn="http://luminalium.sectl.cn/schemas/xaml/core"
+             mc:Ignorable="d" d:DesignWidth="200" d:DesignHeight="40"
+             x:Class="Luminalium.Controls.IconText">
+    <StackPanel Orientation="Horizontal" Spacing="{Binding $parent[lumn:IconText].Spacing, Mode=OneWay}">
+        <lumn:FluentIcon Glyph="{Binding $parent[lumn:IconText].Glyph, Mode=OneWay}"
+                       VerticalAlignment="Center"
+                       FontSize="16">
+            <lumn:FluentIcon.IsVisible>
+                <Binding Path="$parent[lumn:IconText].Glyph" Converter="{x:Static StringConverters.IsNotNullOrEmpty}" />
+            </lumn:FluentIcon.IsVisible>
+        </lumn:FluentIcon>
+        <TextBlock Text="{Binding $parent[lumn:IconText].Text}"
+                   VerticalAlignment="Center"
+                   LineSpacing="0"
+                   x:Name="TextElement"
+                   Margin="0 0 0 -1"
+                   IsVisible="{Binding $parent[lumn:IconText].Text, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+</UserControl>

@@ -1,9 +1,10 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Media;
+using Luminalium.Extensions;
 
-namespace Luminalium.App;
+namespace Luminalium;
 
-internal static class Program
+sealed class Program
 {
     // Initialization code. Don't use any Avalonia, third-party APIs or any
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
@@ -12,7 +13,7 @@ internal static class Program
     public static void Main(string[] args) => BuildAvaloniaApp()
         .StartWithClassicDesktopLifetime(args);
 
-    // Avalonia configuration. Don't remove; also used by the visual designer.
+    // Avalonia configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
@@ -20,5 +21,6 @@ internal static class Program
             {
                 DefaultFamilyName = "MiSans"
             })
-            .LogToTrace();
+            .LogToTrace()
+            .LogToHostSink();
 }

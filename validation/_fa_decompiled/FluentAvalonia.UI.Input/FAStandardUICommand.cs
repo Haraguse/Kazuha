@@ -72,7 +72,7 @@ public class FAStandardUICommand : FAXamlUICommand
 		//IL_0387: Unknown result type (might be due to invalid IL or missing references)
 		//IL_0391: Expected O, but got Unknown
 		//IL_03c2: Unknown result type (might be due to invalid IL or missing references)
-		//IL_03cc: Expected O, but got Unknown
+		//IL_03lumn: Expected O, but got Unknown
 		switch (Kind)
 		{
 		case FAStandardUICommandKind.None:

@@ -1,0 +1,125 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:fa="clr-namespace:FluentAvalonia.UI.Controls;assembly=FluentAvalonia"
+             xmlns:lumn="http://luminalium.sectl.cn/schemas/xaml/core"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Luminalium.Views.SettingsPages.HelloSettingsPage">
+    <UserControl.Resources>
+        <!-- ReSharper disable once Xaml.RedundantResource -->
+        <StackPanel x:Key="DrawerTest" Margin="16" Width="300">
+            <TextBlock Text="Drawer Test" />
+        </StackPanel>
+    </UserControl.Resources>
+    
+    <ScrollViewer>
+        <StackPanel Classes="page-container animated-intro">
+            <TextBlock>Hello Luminalium</TextBlock>
+            
+            <fa:FAInfoBar Title="Title" Message="Message" Severity="Informational"
+                          IsOpen="True" IsClosable="False">
+                <fa:FAInfoBar.ActionButton>
+                    <Button>Action</Button>
+                </fa:FAInfoBar.ActionButton>
+            </fa:FAInfoBar>
+            
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Click="ShowFAContentDialog">Show FAContentDialog</Button>
+                <Button Click="ShowToast_OnClick">Show Toast</Button>
+                <Button Click="OpenDrawer">Open Drawer</Button>
+                <Button Click="RequestRestart">Request Restart</Button>
+            </StackPanel>
+            
+            <lumn:Field Label="Your Facorite Chip">
+                <ListBox Theme="{StaticResource ChipListBoxTheme}">
+                    <ListBoxItem>Chip 1</ListBoxItem>
+                    <ListBoxItem IsSelected="True">Chip 2</ListBoxItem>
+                    <ListBoxItem>Chip 3</ListBoxItem>
+                    <ListBoxItem>Chip 4</ListBoxItem>
+                </ListBox>
+            </lumn:Field>
+            
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <fa:FAProgressRing />
+                <TextBlock VerticalAlignment="Center">Processing</TextBlock>
+            </StackPanel>
+            
+            <fa:FASettingsExpander Header="Header"
+                                   Description="Description"
+                                   IconSource="{lumn:FluentIconSource {lumn:Fi SettingsRegular}}">
+                <fa:FASettingsExpander.Footer>
+                    <ToggleSwitch />
+                </fa:FASettingsExpander.Footer>
+            </fa:FASettingsExpander> 
+            
+            <fa:FASettingsExpander Header="Header"
+                                   Description="Description"
+                                   IconSource="{lumn:FluentIconSource {lumn:Fi SettingsRegular}}"
+                                   IsClickEnabled="True"
+                                   ActionIconSource="{lumn:FluentIconSource {lumn:Fi ChevronRightRegular}}">
+                <fa:FASettingsExpander.Footer>
+                    <TextBlock>Clickable</TextBlock>
+                </fa:FASettingsExpander.Footer>
+            </fa:FASettingsExpander> 
+            
+            <fa:FASettingsExpander Header="Header"
+                                   Description="Description"
+                                   IconSource="{lumn:FluentIconSource {lumn:Fi SettingsRegular}}">
+                <fa:FASettingsExpander.Footer>
+                    <TextBlock>Footer</TextBlock>
+                </fa:FASettingsExpander.Footer>
+                
+                <fa:FASettingsExpanderItem Content="Header"
+                                           Description="Description"
+                                           IconSource="{lumn:FluentIconSource {lumn:Fi SettingsRegular}}">
+                    <fa:FASettingsExpanderItem.Footer>
+                        <TextBlock>Footer</TextBlock>
+                    </fa:FASettingsExpanderItem.Footer>
+                </fa:FASettingsExpanderItem>
+            </fa:FASettingsExpander>
+            
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock VerticalAlignment="Center">Popup Animation:</TextBlock>
+                
+                <Button Content="Flyout">
+                    <Button.Flyout>
+                        <Flyout>
+                            <TextBlock>Chinese Can Fly</TextBlock>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+                
+                <Button Content="ToolTip" ToolTip.Tip="What's this?" />
+            </StackPanel>
+            
+            <TabStrip Theme="{StaticResource TabStripStyle}" Classes="toggle">
+                <TabStripItem>Toggle 1</TabStripItem>
+                <TabStripItem>Toggle 2</TabStripItem>
+            </TabStrip>
+            
+            <TabStrip Theme="{StaticResource TabStripStyle}" x:Name="TabStrip">
+                <TabStripItem>Page 1</TabStripItem>
+                <TabStripItem>Page 2</TabStripItem>
+                <TabStripItem>Page 3</TabStripItem>
+            </TabStrip>
+            
+            <Carousel Classes="animated" SelectedIndex="{Binding #TabStrip.SelectedIndex}">
+                <TextBlock Height="100"
+                           Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                    Page 1
+                </TextBlock>
+                
+                <TextBlock Height="100"
+                           Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                    Page 2
+                </TextBlock>
+                
+                <TextBlock Height="100"
+                           Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                    Page 3
+                </TextBlock>
+            </Carousel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

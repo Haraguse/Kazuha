@@ -1,0 +1,103 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:fa="using:FluentAvalonia.UI.Controls"
+             xmlns:lumn="http://luminalium.sectl.cn/schemas/xaml/core"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Luminalium.Controls.AppToastAdorner"
+             x:Name="Adorner"
+             HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+    <Grid RowDefinitions="Auto, *"
+          DataContext="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=lumn:AppToastAdorner}}">
+        <!-- Gap for Windows title bar -->
+        <Border Height="48" Grid.Row="0" />
+
+        <ItemsControl Grid.Row="1"
+                      ItemsSource="{Binding Messages}"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Stretch"
+                      MaxWidth="400"
+                      ClipToBounds="True"
+                      Margin="4">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border RenderTransformOrigin="{x:Static RelativePoint.BottomRight}" x:Name="Root">
+                        <Border.Transitions>
+                            <Transitions>
+                                <TransformOperationsTransition Duration="0:0:0.3" Easing="0, 0.5, 0, 1"
+                                                               Property="RenderTransform" />
+                                <DoubleTransition Duration="0:0:0.3" Property="Opacity" />
+                            </Transitions>
+                        </Border.Transitions>
+
+                        <Border.Styles>
+                            <Style Selector="Border#Root">
+                                <Setter Property="Opacity" Value="0" />
+                                <Setter Property="RenderTransform" Value="translateY(-25px)" />
+                            </Style>
+
+                            <Style Selector="Border#Root.open">
+                                <Setter Property="Opacity" Value="1" />
+                                <Setter Property="RenderTransform" Value="translateY(0px)" />
+                            </Style>
+
+                            <Style Selector="Border#Root.open.closed">
+                                <Setter Property="Opacity" Value="0" />
+                                <Setter Property="RenderTransform" Value="translateY(0px)" />
+                            </Style>
+
+                            <Style Selector="fa|FAInfoBar[Severity=Informational]">
+                                <Setter Property="Background"
+                                        Value="{DynamicResource SystemFillColorSolidNeutralBackgroundBrush}" />
+                            </Style>
+                        </Border.Styles>
+
+                        <Interaction.Behaviors>
+                            <DataTriggerBehavior Binding="{Binding IsOpen}" Value="True">
+                                <AddClassAction ClassName="open" />
+                            </DataTriggerBehavior>
+                            <DataTriggerBehavior Binding="{Binding IsOpen}" Value="False">
+                                <AddClassAction ClassName="closed" />
+                            </DataTriggerBehavior>
+                        </Interaction.Behaviors>
+
+                        <fa:FAInfoBar Severity="{Binding Severity}"
+                                      Title="{Binding Title}"
+                                      Message="{Binding Message}"
+                                      ActionButton="{Binding ActionContent}"
+                                      IsEnabled="{Binding IsOpen}"
+                                      IsClosable="{Binding CanUserClose}"
+                                      IsOpen="True"
+                                      IsVisible="{Binding $self.IsOpen}"
+                                      Margin="0 0 0 4"
+                                      HorizontalAlignment="Right"
+                                      CloseButtonCommand="{Binding #Adorner.CloseToastCommand}"
+                                      CloseButtonCommandParameter="{Binding}" />
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+
+            <ItemsControl.Template>
+                <ControlTemplate TargetType="ItemsControl">
+                    <ScrollViewer VerticalAlignment="Bottom" HorizontalAlignment="Right"
+                                  ClipToBounds="False">
+                        <ScrollViewer.Styles>
+                            <Style Selector="ScrollViewer /template/ ScrollContentPresenter#PART_ContentPresenter">
+                                <Setter Property="ClipToBounds" Value="False" />
+                            </Style>
+                        </ScrollViewer.Styles>
+                        <ItemsPresenter ItemsPanel="{TemplateBinding ItemsPanel}"
+                                        ClipToBounds="False" />
+                    </ScrollViewer>
+                </ControlTemplate>
+            </ItemsControl.Template>
+        </ItemsControl>
+    </Grid>
+</UserControl>

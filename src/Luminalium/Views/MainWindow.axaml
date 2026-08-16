@@ -1,0 +1,18 @@
+<windowing:FAAppWindow xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:windowing="clr-namespace:FluentAvalonia.UI.Windowing;assembly=FluentAvalonia"
+                       xmlns:lumn="http://luminalium.sectl.cn/schemas/xaml/core"
+                       mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+                       x:Class="Luminalium.Views.MainWindow"
+                       Icon="/Assets/logo.ico"
+                       Title="Luminalium">
+    <Grid>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Button Click="OpenSettings_OnClick">
+                <lumn:IconText Glyph="{lumn:Fi SettingsRegular}" Text="OpenSettings" />
+            </Button>
+        </StackPanel>
+    </Grid>
+</windowing:FAAppWindow>

@@ -91,7 +91,7 @@ public class FAImageIcon : FAIconElement
 		//IL_00c0: Unknown result type (might be due to invalid IL or missing references)
 		//IL_00c2: Unknown result type (might be due to invalid IL or missing references)
 		//IL_00c7: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00cc: Unknown result type (might be due to invalid IL or missing references)
+		//IL_00lumn: Unknown result type (might be due to invalid IL or missing references)
 		//IL_00d1: Unknown result type (might be due to invalid IL or missing references)
 		//IL_00d5: Unknown result type (might be due to invalid IL or missing references)
 		//IL_00d7: Unknown result type (might be due to invalid IL or missing references)

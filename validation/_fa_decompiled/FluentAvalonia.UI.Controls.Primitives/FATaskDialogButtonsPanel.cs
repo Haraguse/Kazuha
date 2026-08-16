@@ -59,7 +59,7 @@ public class FATaskDialogButtonsPanel : Panel
 
 	protected override Size ArrangeOverride(Size finalSize)
 	{
-		//IL_00cc: Unknown result type (might be due to invalid IL or missing references)
+		//IL_00lumn: Unknown result type (might be due to invalid IL or missing references)
 		//IL_004d: Unknown result type (might be due to invalid IL or missing references)
 		//IL_00a7: Unknown result type (might be due to invalid IL or missing references)
 		int count = ((AvaloniaList<Control>)(object)((Panel)this).Children).Count;

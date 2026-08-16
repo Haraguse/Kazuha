@@ -1,0 +1,25 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:lumn="http://luminalium.sectl.cn/schemas/xaml/core"
+                    xmlns:shared="clr-namespace:Luminalium.Shared">
+    <ControlTemplate x:Key="DevelopmentBuildAdornerControlTemplate"
+                     TargetType="lumn:DevelopmentBuildAdorner">
+        <Grid VerticalAlignment="Stretch"
+              IsHitTestVisible="False"
+              HorizontalAlignment="Stretch">
+            <TextBlock VerticalAlignment="Bottom"
+                       HorizontalAlignment="Left"
+                       TextAlignment="Left"
+                       FontSize="12"
+                       Opacity="0.8">
+                Luminalium<LineBreak />
+                开发中画面，不代表最终品质。
+            </TextBlock>
+        </Grid>
+    </ControlTemplate>
+
+    <ControlTheme TargetType="lumn:DevelopmentBuildAdorner"
+                  x:Key="{x:Type lumn:DevelopmentBuildAdorner}">
+        <Setter Property="Template" Value="{StaticResource DevelopmentBuildAdornerControlTemplate}" />
+    </ControlTheme>
+</ResourceDictionary>
