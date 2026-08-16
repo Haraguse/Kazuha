@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Luminalium.App.ViewModels"
+             x:Class="Luminalium.App.Views.Pages.StatusBarSettingsPage"
+             x:DataType="vm:StatusBarSettingsViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="0,0,0,36" Spacing="24">
+            <TextBlock Text="{Binding PageTitle}" FontSize="28" FontWeight="SemiBold" />
+
+            <!-- 显示状态栏 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding VisibilitySectionTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding ShowStatusBarLabel}" FontWeight="SemiBold" FontSize="14" />
+                            <TextBlock Text="{Binding ShowStatusBarDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding ShowStatusBar, Mode=TwoWay}" OnContent="{x:Null}" OffContent="{x:Null}" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <!-- 状态栏项目 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding ItemsSectionTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="12">
+                        <ToggleSwitch Content="{Binding ShowTimeLabel}" IsChecked="{Binding ShowTime, Mode=TwoWay}" />
+                        <ToggleSwitch Content="{Binding ShowSecondsLabel}" IsChecked="{Binding ShowSeconds, Mode=TwoWay}" />
+                        <ToggleSwitch Content="{Binding ShowBatteryLabel}" IsChecked="{Binding ShowBattery, Mode=TwoWay}" />
+                        <ToggleSwitch Content="{Binding ShowVolumeLabel}" IsChecked="{Binding ShowVolume, Mode=TwoWay}" />
+                        <ToggleSwitch Content="{Binding ShowNetworkLabel}" IsChecked="{Binding ShowNetwork, Mode=TwoWay}" />
+                        <ToggleSwitch Content="{Binding ShowMusicLabel}" IsChecked="{Binding ShowMusic, Mode=TwoWay}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

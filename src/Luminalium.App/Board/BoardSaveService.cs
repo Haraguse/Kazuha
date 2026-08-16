@@ -1,5 +1,5 @@
-using System.Text.Json;
-using Luminalium.App.Overlay;
+using DotNetCampus.Inking;
+using SkiaSharp;
 
 namespace Luminalium.App.Board;
 
@@ -12,43 +12,51 @@ public sealed record BoardSaveResult(bool IsSuccess, string? Path, string? Error
     public static BoardSaveResult Failure(string error) => new(false, null, error);
 }
 
-public sealed record BoardStrokeRecord(string Color, double Thickness, double[][] Points);
-
 /// <summary>
-/// Exports a board document as JSON stroke records. Empty documents produce a
-/// typed NothingToSave result; IO/access/path failures produce typed failures
-/// and never lose the in-memory strokes (this service never mutates the document).
+/// Exports the board's collected strokes as a single vector SVG file. Empty
+/// stroke sets produce a typed NothingToSave result; IO/access/path failures
+/// produce typed failures and never mutate the source strokes.
 /// </summary>
 public static class BoardSaveService
 {
-    private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
-
     public static async Task<BoardSaveResult> SaveAsync(
-        BoardDocument document,
+        IReadOnlyList<SkiaStroke> strokes,
+        double width,
+        double height,
         string path,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(strokes);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        if (document.Count == 0)
+        if (strokes.Count == 0)
         {
             return BoardSaveResult.NothingToSave();
         }
 
         try
         {
-            var records = document.Strokes
-                .Select(stroke => new BoardStrokeRecord(
-                    stroke.ColorHex,
-                    stroke.Thickness,
-                    stroke.Points
-                        .Select(point => new[] { point.X, point.Y, point.Pressure })
-                        .ToArray()))
-                .ToArray();
+            var bounds = SKRect.Create(0, 0, MathF.Max(1, (float)width), MathF.Max(1, (float)height));
+            using var stream = File.Create(path);
+            using var canvas = SKSvgCanvas.Create(bounds, stream);
+            using var paint = new SKPaint
+            {
+                IsAntialias = true,
+                Style = SKPaintStyle.Fill,
+            };
 
-            var json = JsonSerializer.Serialize(records, SerializerOptions);
-            await File.WriteAllTextAsync(path, json, cancellationToken).ConfigureAwait(false);
+            foreach (var stroke in strokes)
+            {
+                if (stroke.Path is null)
+                {
+                    continue;
+                }
+
+                paint.Color = stroke.Color;
+                canvas.DrawPath(stroke.Path, paint);
+            }
+
+            await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
             return BoardSaveResult.Success(path);
         }
         catch (Exception exception) when (exception is IOException

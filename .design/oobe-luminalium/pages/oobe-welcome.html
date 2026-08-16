@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>欢迎 — Luminalium</title>
+    <style id="theme-vars">
+/* Luminalium OOBE — Colors & Type
+   Free-explore mode: single brand hue, no secondary/accent */
+
+:root {
+  /* === Spacing (8pt grid) === */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 80px;
+  --s-9: 120px;
+
+  /* === Type Scale === */
+  --text-display: clamp(40px, 6vw, 64px);
+  --text-h1: clamp(28px, 3.5vw, 40px);
+  --text-h2: clamp(22px, 2.4vw, 28px);
+  --text-h3: 20px;
+  --text-body-l: 18px;
+  --text-body: 16px;
+  --text-caption: 13px;
+  --text-mono: 14px;
+
+  --leading-display: 1.08;
+  --leading-h1: 1.18;
+  --leading-h2: 1.25;
+  --leading-h3: 1.3;
+  --leading-body: 1.6;
+  --leading-caption: 1.5;
+
+  --weight-display: 600;
+  --weight-heading: 600;
+  --weight-body: 400;
+  --weight-mono: 500;
+
+  /* === Radius === */
+  --r-xs: 2px;
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  /* === Shadows === */
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 1px rgba(15, 23, 42, 0.02);
+  --shadow-2: 0 8px 24px -8px rgba(15, 23, 42, 0.12);
+  --shadow-3: 0 24px 60px -20px rgba(15, 23, 42, 0.22);
+
+  /* === Light Theme === */
+  --brand-background: #FAFBFD;
+  --brand-foreground: #1A1D26;
+  --brand-card: #FFFFFF;
+  --brand-card-foreground: #1A1D26;
+  --brand-popover: #FFFFFF;
+  --brand-popover-foreground: #1A1D26;
+  --brand-primary: #4F6EF7;
+  --brand-primary-foreground: #FFFFFF;
+  --brand-muted: #F4F5F7;
+  --brand-muted-foreground: #5F6570;
+  --brand-border: #E5E7EB;
+  --brand-input: #E5E7EB;
+  --brand-ring: rgba(79, 110, 247, 0.3);
+
+  /* === Semantic surface & text aliases === */
+  --brand-surface: #FFFFFF;
+  --brand-surface-2: #F4F5F7;
+  --brand-ink: #1A1D26;
+  --brand-ink-2: #5F6570;
+  --brand-ink-3: #9CA3AF;
+  --brand-line: #E5E7EB;
+  --brand-brand-ink: #FFFFFF;
+
+  /* === State colors === */
+  --brand-state-success: #22C55E;
+  --brand-state-warning: #F59E0B;
+  --brand-state-error: #EF4444;
+  --brand-state-info: #3B82F6;
+
+  /* === Radius aliases for head contract === */
+  --brand-radius-sm: 4px;
+  --brand-radius-md: 8px;
+  --brand-radius-lg: 16px;
+}
+
+/* === Dark Theme === */
+.dark {
+  --brand-background: #0D0F15;
+  --brand-foreground: #E8EAF0;
+  --brand-card: #151820;
+  --brand-card-foreground: #E8EAF0;
+  --brand-popover: #151820;
+  --brand-popover-foreground: #E8EAF0;
+  --brand-primary: #6B8AFF;
+  --brand-primary-foreground: #0D0F15;
+  --brand-muted: #1A1E2A;
+  --brand-muted-foreground: #8B92A0;
+  --brand-border: #252A36;
+  --brand-input: #252A36;
+  --brand-ring: rgba(107, 138, 255, 0.3);
+  --brand-surface: #151820;
+  --brand-surface-2: #1A1E2A;
+  --brand-ink: #E8EAF0;
+  --brand-ink-2: #8B92A0;
+  --brand-ink-3: #5C6370;
+  --brand-line: #252A36;
+  --brand-brand-ink: #0D0F15;
+  --brand-state-success: #4ADE80;
+  --brand-state-warning: #FBBF24;
+  --brand-state-error: #F87171;
+  --brand-state-info: #60A5FA;
+}
+
+/* === Base === */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  color: var(--brand-foreground);
+  background: var(--brand-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* === Utility === */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--brand-background);
+    --color-foreground: var(--brand-foreground);
+    --color-card: var(--brand-card);
+    --color-card-foreground: var(--brand-card-foreground);
+    --color-popover: var(--brand-popover);
+    --color-popover-foreground: var(--brand-popover-foreground);
+    --color-primary: var(--brand-primary);
+    --color-primary-foreground: var(--brand-primary-foreground);
+    --color-muted: var(--brand-muted);
+    --color-muted-foreground: var(--brand-muted-foreground);
+    --color-border: var(--brand-border);
+    --color-input: var(--brand-input);
+    --color-ring: var(--brand-ring);
+    --radius-sm: var(--brand-radius-sm);
+    --radius-md: var(--brand-radius-md);
+    --radius-lg: var(--brand-radius-lg);
+  }
+  @layer base {
+    body { background: var(--brand-background); color: var(--brand-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--brand-background); }
+      .text-background { color: var(--brand-background); }
+      .border-background { border-color: var(--brand-background); }
+      .ring-background { --tw-ring-color: var(--brand-background); }
+      .bg-foreground { background-color: var(--brand-foreground); }
+      .text-foreground { color: var(--brand-foreground); }
+      .border-foreground { border-color: var(--brand-foreground); }
+      .ring-foreground { --tw-ring-color: var(--brand-foreground); }
+      .bg-card { background-color: var(--brand-card); }
+      .text-card { color: var(--brand-card); }
+      .border-card { border-color: var(--brand-card); }
+      .ring-card { --tw-ring-color: var(--brand-card); }
+      .bg-card-foreground { background-color: var(--brand-card-foreground); }
+      .text-card-foreground { color: var(--brand-card-foreground); }
+      .border-card-foreground { border-color: var(--brand-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--brand-card-foreground); }
+      .bg-popover { background-color: var(--brand-popover); }
+      .text-popover { color: var(--brand-popover); }
+      .border-popover { border-color: var(--brand-popover); }
+      .ring-popover { --tw-ring-color: var(--brand-popover); }
+      .bg-popover-foreground { background-color: var(--brand-popover-foreground); }
+      .text-popover-foreground { color: var(--brand-popover-foreground); }
+      .border-popover-foreground { border-color: var(--brand-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--brand-popover-foreground); }
+      .bg-primary { background-color: var(--brand-primary); }
+      .text-primary { color: var(--brand-primary); }
+      .border-primary { border-color: var(--brand-primary); }
+      .ring-primary { --tw-ring-color: var(--brand-primary); }
+      .bg-primary-foreground { background-color: var(--brand-primary-foreground); }
+      .text-primary-foreground { color: var(--brand-primary-foreground); }
+      .border-primary-foreground { border-color: var(--brand-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--brand-primary-foreground); }
+      .bg-muted { background-color: var(--brand-muted); }
+      .text-muted { color: var(--brand-muted); }
+      .border-muted { border-color: var(--brand-muted); }
+      .ring-muted { --tw-ring-color: var(--brand-muted); }
+      .bg-muted-foreground { background-color: var(--brand-muted-foreground); }
+      .text-muted-foreground { color: var(--brand-muted-foreground); }
+      .border-muted-foreground { border-color: var(--brand-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--brand-muted-foreground); }
+      .bg-border { background-color: var(--brand-border); }
+      .text-border { color: var(--brand-border); }
+      .border-border { border-color: var(--brand-border); }
+      .ring-border { --tw-ring-color: var(--brand-border); }
+      .bg-input { background-color: var(--brand-input); }
+      .text-input { color: var(--brand-input); }
+      .border-input { border-color: var(--brand-input); }
+      .ring-input { --tw-ring-color: var(--brand-input); }
+      .bg-ring { background-color: var(--brand-ring); }
+      .text-ring { color: var(--brand-ring); }
+      .border-ring { border-color: var(--brand-ring); }
+      .ring-ring { --tw-ring-color: var(--brand-ring); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <main class="flex items-center justify-center min-h-screen p-6 relative">
+      <!-- Subtle gradient surface behind the card -->
+      <div class="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/[0.04] pointer-events-none"></div>
+
+      <!-- Wizard Card — 960x720 glass-morphism container -->
+      <div class="relative w-full max-w-[960px] h-[720px] bg-card border border-border rounded-lg shadow-2 flex overflow-hidden">
+
+        <!-- Left Sidebar — step indicator -->
+        <div class="w-[72px] bg-muted border-r border-border flex flex-col items-center justify-center gap-5 shrink-0" data-section="step-indicator">
+          <div class="w-3 h-3 rounded-full bg-primary" aria-label="步骤 1 / 6 — 当前步骤"></div>
+          <div class="w-3 h-3 rounded-full border-2 border-border bg-transparent" aria-label="步骤 2 / 6"></div>
+          <div class="w-3 h-3 rounded-full border-2 border-border bg-transparent" aria-label="步骤 3 / 6"></div>
+          <div class="w-3 h-3 rounded-full border-2 border-border bg-transparent" aria-label="步骤 4 / 6"></div>
+          <div class="w-3 h-3 rounded-full border-2 border-border bg-transparent" aria-label="步骤 5 / 6"></div>
+          <div class="w-3 h-3 rounded-full border-2 border-border bg-transparent" aria-label="步骤 6 / 6"></div>
+        </div>
+
+        <!-- Right Content Area -->
+        <div class="flex-1 flex flex-col items-center justify-center px-12 py-10 relative" data-section="hero-welcome">
+
+          <style>
+            @keyframes oobeWelcomeFadeIn {
+              from { opacity: 0; transform: translateY(12px); }
+              to   { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes oobeLogoScaleIn {
+              from { opacity: 0; transform: scale(0.82); }
+              to   { opacity: 1; transform: scale(1); }
+            }
+          </style>
+
+          <!-- Hero content block -->
+          <div class="flex flex-col items-center text-center max-w-[460px] mx-auto" style="animation: oobeWelcomeFadeIn 0.75s ease-out both;">
+
+            <!-- Logo — 64x64 geometric play icon, brand-indigo -->
+            <div class="mb-6" style="animation: oobeLogoScaleIn 0.55s ease-out 0.12s both;">
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect width="64" height="64" rx="16" fill="var(--brand-primary)" fill-opacity="0.12" />
+                <path d="M24 20L44 32L24 44V20Z" fill="var(--brand-primary)" stroke="var(--brand-primary)" stroke-width="2" stroke-linejoin="round" />
+              </svg>
+            </div>
+
+            <!-- Brand name -->
+            <h1 class="text-display font-semibold leading-tight tracking-tight text-foreground mb-3" style="font-weight: var(--weight-display);">
+              Luminalium
+            </h1>
+
+            <!-- Subtitle -->
+            <p class="text-body-l text-muted-foreground mb-4" style="font-size: var(--text-body-l);">
+              让每一次演示都光彩夺目
+            </p>
+
+            <!-- Description -->
+            <p class="text-body text-muted-foreground mb-10 max-w-[380px]" style="font-size: var(--text-body); line-height: var(--leading-body);">
+              Luminalium 是您的智能演示助手，帮助您轻松掌控每一场演讲。
+            </p>
+
+            <!-- Primary action button -->
+            <div data-section="nav-buttons">
+              <button type="button" class="inline-flex items-center gap-2.5 px-6 py-3 bg-primary text-primary-foreground rounded-md font-medium text-body hover:opacity-90 transition-opacity duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" style="font-size: var(--text-body);">
+                <span>开始设置</span>
+                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Version caption -->
+          <p class="absolute bottom-6 text-caption text-muted-foreground" style="font-size: var(--text-caption);">
+            版本 1.0.0
+          </p>
+
+        </div>
+
+      </div>
+    </main>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

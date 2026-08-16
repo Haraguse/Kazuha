@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>FluentAvalonia</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>14.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RootNamespace />
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="-AvaloniaResources" />
+    <EmbeddedResource Include="-AvaloniaResources" LogicalName="!AvaloniaResources" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Avalonia.Base" />
+    <Reference Include="Avalonia.Controls" />
+    <Reference Include="Avalonia.Markup" />
+    <Reference Include="Avalonia.Markup.Xaml" />
+    <Reference Include="SkiaSharp" />
+    <Reference Include="Avalonia.Skia" />
+    <Reference Include="MicroCom.Runtime" />
+    <Reference Include="Avalonia.Controls.ColorPicker" />
+    <Reference Include="Avalonia.Controls.DataGrid" />
+    <Reference Include="Avalonia.Dialogs" />
+  </ItemGroup>
+</Project>

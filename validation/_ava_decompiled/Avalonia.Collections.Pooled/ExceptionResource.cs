@@ -1,0 +1,35 @@
+namespace Avalonia.Collections.Pooled;
+
+internal enum ExceptionResource
+{
+	ArgumentOutOfRange_Index,
+	ArgumentOutOfRange_Count,
+	Arg_ArrayPlusOffTooSmall,
+	NotSupported_ReadOnlyCollection,
+	Arg_RankMultiDimNotSupported,
+	Arg_NonZeroLowerBound,
+	ArgumentOutOfRange_ListInsert,
+	ArgumentOutOfRange_NeedNonNegNum,
+	ArgumentOutOfRange_SmallCapacity,
+	Argument_InvalidOffLen,
+	ArgumentOutOfRange_BiggerThanCollection,
+	Serialization_MissingKeys,
+	Serialization_NullKey,
+	NotSupported_KeyCollectionSet,
+	NotSupported_ValueCollectionSet,
+	InvalidOperation_NullArray,
+	InvalidOperation_HSCapacityOverflow,
+	NotSupported_StringComparison,
+	ConcurrentCollection_SyncRoot_NotSupported,
+	ArgumentException_OtherNotArrayOfCorrectLength,
+	ArgumentOutOfRange_EndIndexStartIndex,
+	ArgumentOutOfRange_HugeArrayNotSupported,
+	Argument_AddingDuplicate,
+	Argument_InvalidArgumentForComparison,
+	Arg_LowerBoundsMustMatch,
+	Arg_MustBeType,
+	InvalidOperation_IComparerFailed,
+	NotSupported_FixedSizeCollection,
+	Rank_MultiDimNotSupported,
+	Arg_TypeNotSupported
+}

@@ -1,0 +1,40 @@
+using System;
+
+[Flags]
+internal enum CompositionVisualChangedFields : ulong
+{
+	Root = 1uL,
+	Parent = 2uL,
+	Visible = 4uL,
+	VisibleAnimated = 8uL,
+	Opacity = 0x10uL,
+	OpacityAnimated = 0x20uL,
+	Clip = 0x40uL,
+	ClipToBounds = 0x80uL,
+	ClipToBoundsAnimated = 0x100uL,
+	Offset = 0x200uL,
+	OffsetAnimated = 0x400uL,
+	Translation = 0x800uL,
+	TranslationAnimated = 0x1000uL,
+	Size = 0x2000uL,
+	SizeAnimated = 0x4000uL,
+	AnchorPoint = 0x8000uL,
+	AnchorPointAnimated = 0x10000uL,
+	CenterPoint = 0x20000uL,
+	CenterPointAnimated = 0x40000uL,
+	RotationAngle = 0x80000uL,
+	RotationAngleAnimated = 0x100000uL,
+	Orientation = 0x200000uL,
+	OrientationAnimated = 0x400000uL,
+	Scale = 0x800000uL,
+	ScaleAnimated = 0x1000000uL,
+	TransformMatrix = 0x2000000uL,
+	TransformMatrixAnimated = 0x4000000uL,
+	AdornedVisual = 0x8000000uL,
+	AdornerIsClipped = 0x10000000uL,
+	OpacityMaskBrush = 0x20000000uL,
+	Effect = 0x40000000uL,
+	RenderOptions = 0x80000000uL,
+	TextOptions = 0x100000000uL,
+	CacheMode = 0x200000000uL
+}

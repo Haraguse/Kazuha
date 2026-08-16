@@ -1,0 +1,41 @@
+namespace Avalonia.Rendering.Composition.Expressions;
+
+internal enum ExpressionType
+{
+	[PrettyPrintString("+")]
+	Add,
+	[PrettyPrintString("-")]
+	Subtract,
+	[PrettyPrintString("/")]
+	Divide,
+	[PrettyPrintString("*")]
+	Multiply,
+	[PrettyPrintString(">")]
+	MoreThan,
+	[PrettyPrintString("<")]
+	LessThan,
+	[PrettyPrintString(">=")]
+	MoreThanOrEqual,
+	[PrettyPrintString("<=")]
+	LessThanOrEqual,
+	[PrettyPrintString("&&")]
+	LogicalAnd,
+	[PrettyPrintString("||")]
+	LogicalOr,
+	[PrettyPrintString("%")]
+	Remainder,
+	[PrettyPrintString("==")]
+	Equals,
+	[PrettyPrintString("!=")]
+	NotEquals,
+	[PrettyPrintString("!")]
+	Not,
+	[PrettyPrintString("-")]
+	UnaryMinus,
+	MemberAccess,
+	Parameter,
+	FunctionCall,
+	Keyword,
+	Constant,
+	ConditionalExpression
+}

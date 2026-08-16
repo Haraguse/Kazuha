@@ -17,21 +17,19 @@ public sealed class AvaloniaBuiltInFeatureDispatcher : IBuiltInFeatureDispatcher
 public sealed class AvaloniaBuiltInFeatureFactory : IBuiltInFeatureFactory
 {
     private readonly Func<Window> _createWindow;
-    private readonly Func<Window> _ownerProvider;
 
-    public AvaloniaBuiltInFeatureFactory(Func<Window> ownerProvider, Func<Window> createWindow)
+    public AvaloniaBuiltInFeatureFactory(Func<Window> createWindow)
     {
-        _ownerProvider = ownerProvider ?? throw new ArgumentNullException(nameof(ownerProvider));
         _createWindow = createWindow ?? throw new ArgumentNullException(nameof(createWindow));
     }
 
     public Task<IBuiltInFeatureInstance> CreateAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult<IBuiltInFeatureInstance>(new WindowFeatureInstance(_ownerProvider(), _createWindow()));
+        return Task.FromResult<IBuiltInFeatureInstance>(new WindowFeatureInstance(_createWindow()));
     }
 
-    private sealed class WindowFeatureInstance(Window owner, Window window) : IBuiltInFeatureInstance
+    private sealed class WindowFeatureInstance(Window window) : IBuiltInFeatureInstance
     {
         private int _closed;
 
@@ -40,7 +38,7 @@ public sealed class AvaloniaBuiltInFeatureFactory : IBuiltInFeatureFactory
             cancellationToken.ThrowIfCancellationRequested();
             if (!window.IsVisible)
             {
-                window.Show(owner);
+                window.Show();
             }
             window.Activate();
             return Task.CompletedTask;

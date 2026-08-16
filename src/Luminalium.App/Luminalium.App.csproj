@@ -29,6 +29,10 @@
     <PackageReference Include="FluentAvaloniaUI" />
     <!-- MVVM toolkit validated alongside the UI stack. -->
     <PackageReference Include="CommunityToolkit.Mvvm" />
+    <!-- AVALONIA: handwriting/canvas control for the board. -->
+    <PackageReference Include="DotNetCampus.AvaloniaInkCanvas" />
+    <!-- SkiaSharp is used to export board strokes as SVG. -->
+    <PackageReference Include="SkiaSharp" />
   </ItemGroup>
 
   <ItemGroup>
@@ -61,6 +65,21 @@
           DestinationFolder="$(WindowsThemingProviderDestination)"
           SkipUnchangedFiles="true"
           Condition="Exists('$(WindowsThemingProviderPath)')" />
+  </Target>
+
+  <Target Name="CopyOptionalWindowsPresentationProvider" AfterTargets="Build;Publish" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <PropertyGroup>
+      <WindowsPresentationPath>$(MSBuildThisFileDirectory)..\Luminalium.Presentation.Windows\bin\$(Configuration)\net10.0-windows10.0.17763.0\Luminalium.Presentation.Windows.dll</WindowsPresentationPath>
+      <WindowsPresentationDestination Condition="'$(PublishDir)' != ''">$(PublishDir)</WindowsPresentationDestination>
+      <WindowsPresentationDestination Condition="'$(WindowsPresentationDestination)' == ''">$(OutputPath)</WindowsPresentationDestination>
+    </PropertyGroup>
+    <MSBuild Projects="$(MSBuildThisFileDirectory)..\Luminalium.Presentation.Windows\Luminalium.Presentation.Windows.csproj"
+             Targets="Build"
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=" />
+    <Copy SourceFiles="$(WindowsPresentationPath)"
+          DestinationFolder="$(WindowsPresentationDestination)"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(WindowsPresentationPath)')" />
   </Target>
 
 </Project>

@@ -1,4 +1,6 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using FluentAvalonia.UI.Controls;
 using Luminalium.App.ViewModels;
 using Luminalium.App.Views;
@@ -14,6 +16,23 @@ public sealed class DialogService : IDialogService
 
     public void AttachOwner(Window owner) => _owner = owner;
 
+    // Dialogs need a visible owner window. The app's main window is a hidden
+    // tray-only owner, so fall back to the first visible window when available.
+    private Window? ResolveOwner()
+    {
+        if (_owner is { IsVisible: true })
+        {
+            return _owner;
+        }
+
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            return desktop.Windows.FirstOrDefault(static window => window.IsVisible);
+        }
+
+        return null;
+    }
+
     public async Task ShowAboutAsync(ShellViewModel shellViewModel)
     {
         if (_dialogOpen)
@@ -22,7 +41,7 @@ public sealed class DialogService : IDialogService
             return;
         }
 
-        if (_owner is null)
+        if (ResolveOwner() is not { } owner)
         {
             shellViewModel.ReportLocalizedError(ShellErrorKind.DialogFailed, "Dialog.Error.OwnerNotReady");
             return;
@@ -41,7 +60,7 @@ public sealed class DialogService : IDialogService
                 DefaultButton = FAContentDialogButton.Primary,
             };
 
-            await dialog.ShowAsync(_owner);
+            await dialog.ShowAsync(owner);
         }
         catch (Exception exception)
         {
@@ -61,7 +80,7 @@ public sealed class DialogService : IDialogService
             return new UpdateDialogResult(shellViewModel.Localization["Dialog.Error.AlreadyOpen"], RestartRequired: false);
         }
 
-        if (_owner is null)
+        if (ResolveOwner() is not { } owner)
         {
             shellViewModel.ReportLocalizedError(ShellErrorKind.DialogFailed, "Dialog.Error.OwnerNotReady");
             return new UpdateDialogResult(shellViewModel.Localization["Dialog.Error.OwnerNotReady"], RestartRequired: false);
@@ -81,7 +100,7 @@ public sealed class DialogService : IDialogService
                 DefaultButton = FAContentDialogButton.Primary,
             };
 
-            var showTask = dialog.ShowAsync(_owner);
+            var showTask = dialog.ShowAsync(owner);
             var status = await viewModel.RunAsync(orchestrator, installDirectory).ConfigureAwait(true);
             await showTask.ConfigureAwait(true);
             return status;
@@ -106,7 +125,7 @@ public sealed class DialogService : IDialogService
             return PasswordDialogResult.Cancelled;
         }
 
-        if (_owner is null)
+        if (ResolveOwner() is not { } owner)
         {
             shellViewModel.ReportLocalizedError(ShellErrorKind.DialogFailed, "Dialog.Error.OwnerNotReady");
             return PasswordDialogResult.Cancelled;
@@ -127,7 +146,7 @@ public sealed class DialogService : IDialogService
                 DefaultButton = FAContentDialogButton.Primary,
             };
 
-            var result = await dialog.ShowAsync(_owner).ConfigureAwait(true);
+            var result = await dialog.ShowAsync(owner).ConfigureAwait(true);
             return result == FAContentDialogResult.Primary
                 ? viewModel.Submit()
                 : PasswordDialogResult.Cancelled;
@@ -153,7 +172,8 @@ public sealed class DialogService : IDialogService
             return RetryCloseDialogResult.AlreadyOpen;
         }
 
-        if (_owner is null || !_owner.IsVisible)
+        var owner = ResolveOwner();
+        if (owner is null)
         {
             shellViewModel.ReportLocalizedError(ShellErrorKind.DialogFailed, "Dialog.Error.OwnerNotReady");
             return RetryCloseDialogResult.OwnerNotReady;
@@ -187,7 +207,7 @@ public sealed class DialogService : IDialogService
                     CloseButtonText = shellViewModel.Localization["Dialog.Button.Close"],
                     DefaultButton = FAContentDialogButton.Primary,
                 };
-                var result = await dialog.ShowAsync(_owner).ConfigureAwait(true);
+                var result = await dialog.ShowAsync(owner).ConfigureAwait(true);
                 if (result != FAContentDialogResult.Primary)
                 {
                     CloseOnce();

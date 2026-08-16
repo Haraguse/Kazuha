@@ -1,0 +1,228 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Luminalium.App.ViewModels"
+             x:Class="Luminalium.App.Views.Pages.StorageSettingsPage"
+             x:DataType="vm:StorageSettingsViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="0,0,0,36" Spacing="24">
+            <!-- Page title -->
+            <TextBlock Text="{Binding PageTitle}"
+                       FontSize="28"
+                       FontWeight="SemiBold" />
+
+            <!-- Status message -->
+            <Border IsVisible="{Binding HasStatus}"
+                    Padding="14,10"
+                    CornerRadius="{StaticResource ShellCornerRadius}"
+                    BorderThickness="{StaticResource ShellBorderThickness}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    Background="{DynamicResource LayerFillColorDefaultBrush}">
+                <TextBlock Text="{Binding StatusMessage}"
+                           TextWrapping="Wrap"
+                           FontSize="13" />
+            </Border>
+
+            <!-- 当前活动档案 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="当前活动档案"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Opacity="0.9" />
+                <Border Padding="18"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding ActiveProfileName}"
+                                   FontWeight="SemiBold"
+                                   FontSize="16"
+                                   Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                        <TextBlock Text="{Binding SettingsDirectoryPath}"
+                                   TextWrapping="Wrap"
+                                   Opacity="0.6"
+                                   FontSize="12" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 档案管理 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="档案管理"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Opacity="0.9" />
+                <Border Padding="18"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="14">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="选择档案"
+                                       FontWeight="SemiBold"
+                                       FontSize="13" />
+                            <ComboBox ItemsSource="{Binding Profiles}"
+                                      SelectedItem="{Binding SelectedProfile}"
+                                      MinHeight="{StaticResource ShellTouchTargetMinHeight}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="切换到此档案"
+                                        Command="{Binding SwitchProfileCommand}"
+                                        MinHeight="{StaticResource ShellTouchTargetMinHeight}" />
+                                <Button Content="删除档案"
+                                        Command="{Binding DeleteProfileCommand}"
+                                        MinHeight="{StaticResource ShellTouchTargetMinHeight}" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="新建档案（名称）"
+                                       FontWeight="SemiBold"
+                                       FontSize="13" />
+                            <TextBox Text="{Binding NewProfileName}"
+                                     PlaceholderText="档案名称"
+                                     MinHeight="{StaticResource ShellTouchTargetMinHeight}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="创建档案"
+                                        Command="{Binding CreateProfileCommand}"
+                                        MinHeight="{StaticResource ShellTouchTargetMinHeight}" />
+                                <Button Content="重命名所选档案为此名称"
+                                        Command="{Binding RenameProfileCommand}"
+                                        MinHeight="{StaticResource ShellTouchTargetMinHeight}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 配置备份 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="配置备份"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Opacity="0.9" />
+                <Border Padding="18"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="14">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="选择备份"
+                                       FontWeight="SemiBold"
+                                       FontSize="13" />
+                            <ComboBox ItemsSource="{Binding Backups}"
+                                      SelectedItem="{Binding SelectedBackup}"
+                                      MinHeight="{StaticResource ShellTouchTargetMinHeight}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="恢复到当前配置"
+                                        Command="{Binding RestoreBackupCommand}"
+                                        MinHeight="{StaticResource ShellTouchTargetMinHeight}" />
+                                <Button Content="删除备份"
+                                        Command="{Binding DeleteBackupCommand}"
+                                        MinHeight="{StaticResource ShellTouchTargetMinHeight}" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="新建备份（名称，留空自动命名）"
+                                       FontWeight="SemiBold"
+                                       FontSize="13" />
+                            <TextBox Text="{Binding NewBackupName}"
+                                     PlaceholderText="备份名称"
+                                     MinHeight="{StaticResource ShellTouchTargetMinHeight}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="创建备份"
+                                        Command="{Binding CreateBackupCommand}"
+                                        MinHeight="{StaticResource ShellTouchTargetMinHeight}" />
+                                <Button Content="重命名所选备份为此名称"
+                                        Command="{Binding RenameBackupCommand}"
+                                        MinHeight="{StaticResource ShellTouchTargetMinHeight}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 存储占用与清理 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="存储占用与清理"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Opacity="0.9" />
+                <Border Padding="18"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,2">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="配置目录" FontWeight="SemiBold" FontSize="13" />
+                                <TextBlock Text="{Binding SettingsDirectoryPath}"
+                                           TextWrapping="Wrap"
+                                           Opacity="0.6"
+                                           FontSize="11" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding SettingsDirectorySize}"
+                                       VerticalAlignment="Center"
+                                       FontWeight="SemiBold" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,2">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="备份目录" FontWeight="SemiBold" FontSize="13" />
+                                <TextBlock Text="{Binding BackupsDirectoryPath}"
+                                           TextWrapping="Wrap"
+                                           Opacity="0.6"
+                                           FontSize="11" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding BackupsDirectorySize}"
+                                       VerticalAlignment="Center"
+                                       FontWeight="SemiBold" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,2">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="更新缓存" FontWeight="SemiBold" FontSize="13" />
+                                <TextBlock Text="{Binding UpdateCacheDirectoryPath}"
+                                           TextWrapping="Wrap"
+                                           Opacity="0.6"
+                                           FontSize="11" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding UpdateCacheDirectorySize}"
+                                       VerticalAlignment="Center"
+                                       FontWeight="SemiBold" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,2">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="日志目录" FontWeight="SemiBold" FontSize="13" />
+                                <TextBlock Text="{Binding LogsDirectoryPath}"
+                                           TextWrapping="Wrap"
+                                           Opacity="0.6"
+                                           FontSize="11" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding LogsDirectorySize}"
+                                       VerticalAlignment="Center"
+                                       FontWeight="SemiBold" />
+                        </Grid>
+
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="刷新占用"
+                                    Command="{Binding RefreshStorageCommand}"
+                                    MinHeight="{StaticResource ShellTouchTargetMinHeight}" />
+                            <Button Content="清理更新缓存"
+                                    Command="{Binding CleanUpdateCacheCommand}"
+                                    MinHeight="{StaticResource ShellTouchTargetMinHeight}" />
+                            <Button Content="清理全部备份"
+                                    Command="{Binding CleanBackupsCommand}"
+                                    MinHeight="{StaticResource ShellTouchTargetMinHeight}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

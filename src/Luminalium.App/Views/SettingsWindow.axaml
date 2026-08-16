@@ -1,0 +1,15 @@
+<windowing:FAAppWindow xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:windowing="using:FluentAvalonia.UI.Windowing"
+                       xmlns:pages="using:Luminalium.App.Views.Pages"
+                       xmlns:vm="using:Luminalium.App.ViewModels"
+                       x:Class="Luminalium.App.Views.SettingsWindow"
+                       x:DataType="vm:SettingsViewModel"
+                       Title="设置"
+                       Width="980"
+                       Height="720"
+                       MinWidth="760"
+                       MinHeight="560"
+                       WindowStartupLocation="CenterOwner">
+    <pages:SettingsPage DataContext="{Binding}" />
+</windowing:FAAppWindow>

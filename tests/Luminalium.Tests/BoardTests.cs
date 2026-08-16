@@ -1,7 +1,9 @@
-using System.Text.Json;
+using DotNetCampus.Inking;
+using DotNetCampus.Inking.Primitive;
+using DotNetCampus.Inking.StrokeRenderers;
 using Luminalium.App.Board;
-using Luminalium.App.Overlay;
 using Luminalium.App.ViewModels;
+using SkiaSharp;
 using Xunit;
 
 namespace Luminalium.Tests;
@@ -18,29 +20,31 @@ public sealed class BoardTests : IDisposable
     }
 
     [Fact]
-    public async Task SaveRoundTripPreservesThreeRedStrokes()
+    public async Task SaveWritesWellFormedSvgDocument()
     {
-        var document = CreateDocument(3, "#FF0000");
-        var path = Path.Combine(_directory, "board.json");
+        var strokes = new[]
+        {
+            CreateStroke("#FF0000", 4.0, new InkStylusPoint(0, 0, 1), new InkStylusPoint(50, 50, 1)),
+            CreateStroke("#0000FF", 6.0, new InkStylusPoint(100, 100, 1), new InkStylusPoint(200, 200, 1)),
+        };
+        var path = Path.Combine(_directory, "board.svg");
 
-        var result = await BoardSaveService.SaveAsync(document, path);
+        var result = await BoardSaveService.SaveAsync(strokes, 480, 360, path);
 
         Assert.True(result.IsSuccess);
         Assert.True(File.Exists(path));
 
-        var records = JsonSerializer.Deserialize<BoardStrokeRecord[]>(await File.ReadAllTextAsync(path));
-        Assert.NotNull(records);
-        Assert.Equal(3, records!.Length);
-        Assert.All(records, record => Assert.Equal("#FF0000", record.Color));
-        Assert.All(records, record => Assert.NotEmpty(record.Points));
+        var svg = await File.ReadAllTextAsync(path);
+        Assert.Contains("<svg", svg, StringComparison.OrdinalIgnoreCase);
+        Assert.EndsWith("</svg>", svg.Replace("\r", "").Replace("\n", "").Trim(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task EmptyBoardSaveReturnsNothingToSaveAndWritesNoFile()
     {
-        var path = Path.Combine(_directory, "empty.json");
+        var path = Path.Combine(_directory, "empty.svg");
 
-        var result = await BoardSaveService.SaveAsync(new BoardDocument(), path);
+        var result = await BoardSaveService.SaveAsync([], 480, 360, path);
 
         Assert.False(result.IsSuccess);
         Assert.Equal("NothingToSave", result.Error);
@@ -48,73 +52,167 @@ public sealed class BoardTests : IDisposable
     }
 
     [Fact]
-    public async Task InvalidSavePathFailsWithoutLosingStrokes()
+    public async Task InvalidSavePathFailsWithoutMutatingStrokes()
     {
-        var document = CreateDocument(3, "#FF0000");
-        var path = Path.Combine(_directory, "missing-dir", "board.json");
+        var strokes = new List<SkiaStroke>
+        {
+            CreateStroke("#FF0000", 4.0, new InkStylusPoint(0, 0, 1), new InkStylusPoint(50, 50, 1)),
+        };
+        var path = Path.Combine(_directory, "missing-dir", "board.svg");
 
-        var result = await BoardSaveService.SaveAsync(document, path);
+        var result = await BoardSaveService.SaveAsync(strokes, 480, 360, path);
 
         Assert.False(result.IsSuccess);
         Assert.NotNull(result.Error);
-        Assert.Equal(3, document.Count);
+        Assert.Single(strokes);
     }
 
     [Fact]
-    public void EraseRemovesOnlyIntersectingStrokes()
-    {
-        var document = new BoardDocument();
-        document.Add(StrokeAt("#FF0000", 10, 10));   // inside eraser path
-        document.Add(StrokeAt("#00FF00", 300, 300)); // outside eraser path
-        document.Add(StrokeAt("#0000FF", 20, 20));   // inside eraser path
-
-        var removed = document.Erase(
-        [
-            new StrokePoint(0, 0),
-            new StrokePoint(100, 100),
-        ]);
-
-        Assert.Equal(2, removed);
-        Assert.Equal(1, document.Count);
-        Assert.Equal("#00FF00", document.Strokes[0].ColorHex);
-    }
-
-    [Fact]
-    public void ClearEmptiesDeterministically()
-    {
-        var document = CreateDocument(5, "#FF0000");
-
-        document.Clear();
-
-        Assert.Equal(0, document.Count);
-    }
-
-    [Fact]
-    public void ViewModelRecordsPenAndEraserGestures()
+    public void ClearBoardRaisesClearRequested()
     {
         var viewModel = new BoardViewModel();
-        viewModel.StrokeColor = "#FF0000";
+        var cleared = false;
+        viewModel.ClearRequested += (_, _) => cleared = true;
 
-        viewModel.RecordGesture(StrokeAt("#FF0000", 10, 10));
-        viewModel.RecordGesture(StrokeAt("#FF0000", 200, 200));
+        viewModel.ClearBoardCommand.Execute(null);
 
-        Assert.Equal(2, viewModel.Document.Count);
-
-        viewModel.IsEraser = true;
-        viewModel.RecordGesture(
-            StrokeModel.Create("#000000", 24.0, [new StrokePoint(0, 0), new StrokePoint(50, 50)]));
-
-        Assert.Equal(1, viewModel.Document.Count);
-        Assert.Equal("#FF0000", viewModel.Document.Strokes[0].ColorHex);
+        Assert.True(cleared);
     }
 
     [Fact]
-    public void BenchmarkRunsAndReturnsDuration()
+    public void SetStrokeCountUpdatesCountTextAndStatus()
     {
-        var elapsed = BoardBenchmark.Run(strokeCount: 100, pointsPerStroke: 16);
+        var viewModel = new BoardViewModel();
 
-        Assert.True(elapsed >= TimeSpan.Zero);
-        Assert.True(elapsed < TimeSpan.FromSeconds(30));
+        viewModel.SetStrokeCount(3);
+
+        Assert.Equal(3, viewModel.StrokeCount);
+        Assert.Contains("3", viewModel.StrokeCountText);
+        Assert.Contains("3", viewModel.StatusText);
+    }
+
+    [Fact]
+    public void HandleSaveResultSuccessClearsErrorAndReportsPath()
+    {
+        var viewModel = new BoardViewModel();
+
+        viewModel.HandleSaveResult(BoardSaveResult.Success(@"C:\tmp\board.svg"));
+
+        Assert.False(viewModel.HasError);
+        Assert.Contains("board.svg", viewModel.StatusText);
+    }
+
+    [Fact]
+    public void HandleSaveResultNothingToSaveClearsErrorFlag()
+    {
+        var viewModel = new BoardViewModel();
+
+        viewModel.HandleSaveResult(BoardSaveResult.NothingToSave());
+
+        Assert.False(viewModel.HasError);
+        Assert.NotEqual("Save failed", viewModel.StatusText);
+    }
+
+    [Fact]
+    public void HandleSaveResultFailureSetsErrorFlag()
+    {
+        var viewModel = new BoardViewModel();
+
+        viewModel.HandleSaveResult(BoardSaveResult.Failure("UnauthorizedAccessException"));
+
+        Assert.True(viewModel.HasError);
+        Assert.Contains("UnauthorizedAccessException", viewModel.StatusText);
+    }
+
+    [Fact]
+    public void IsEraserTogglesStrokeWidthForEraser()
+    {
+        var viewModel = new BoardViewModel();
+        Assert.False(viewModel.IsEraser);
+        Assert.Equal(4.0, viewModel.StrokeWidth);
+
+        viewModel.IsEraser = true;
+
+        Assert.True(viewModel.IsEraser);
+        Assert.Equal(24.0, viewModel.StrokeWidth);
+    }
+
+    [Fact]
+    public void IsPenActiveTracksEraserState()
+    {
+        var viewModel = new BoardViewModel();
+        Assert.True(viewModel.IsPenActive);
+        Assert.False(viewModel.IsEraser);
+
+        viewModel.IsEraser = true;
+
+        Assert.False(viewModel.IsPenActive);
+        Assert.True(viewModel.IsEraser);
+    }
+
+    [Fact]
+    public void ActivateEraserAndPenCommandsAreMutuallyExclusive()
+    {
+        var viewModel = new BoardViewModel();
+
+        viewModel.ActivateEraserCommand.Execute(null);
+        Assert.True(viewModel.IsEraser);
+        Assert.False(viewModel.IsPenActive);
+
+        viewModel.ActivatePenCommand.Execute(null);
+        Assert.False(viewModel.IsEraser);
+        Assert.True(viewModel.IsPenActive);
+    }
+
+    [Fact]
+    public void StrokeColorsInitializedWithDefaultFirstColor()
+    {
+        var viewModel = new BoardViewModel();
+
+        Assert.Equal(6, viewModel.StrokeColors.Count);
+        Assert.True(viewModel.StrokeColors[0].IsSelected);
+        Assert.Equal("#FF0000", viewModel.StrokeColors[0].Hex);
+        Assert.False(viewModel.StrokeColors[1].IsSelected);
+    }
+
+    [Fact]
+    public void SelectColorUpdatesStrokeColorAndSelectionState()
+    {
+        var viewModel = new BoardViewModel();
+        var target = viewModel.StrokeColors[3];
+
+        viewModel.SelectColorCommand.Execute(target);
+
+        Assert.Equal(target.Hex, viewModel.StrokeColor);
+        Assert.True(target.IsSelected);
+        foreach (var color in viewModel.StrokeColors)
+        {
+            Assert.Equal(ReferenceEquals(target, color), color.IsSelected);
+        }
+    }
+
+    [Fact]
+    public void SelectColorExitsEraserMode()
+    {
+        var viewModel = new BoardViewModel();
+        viewModel.IsEraser = true;
+
+        viewModel.SelectColorCommand.Execute(viewModel.StrokeColors[0]);
+
+        Assert.False(viewModel.IsEraser);
+        Assert.True(viewModel.IsPenActive);
+    }
+
+    [Fact]
+    public void SelectColorWithNullIsIgnored()
+    {
+        var viewModel = new BoardViewModel();
+        var original = viewModel.StrokeColor;
+
+        viewModel.SelectColorCommand.Execute(null);
+
+        Assert.Equal(original, viewModel.StrokeColor);
+        Assert.True(viewModel.StrokeColors[0].IsSelected);
     }
 
     public void Dispose()
@@ -125,21 +223,39 @@ public sealed class BoardTests : IDisposable
         }
     }
 
-    private static BoardDocument CreateDocument(int count, string colorHex)
+    private static SkiaStroke CreateStroke(string colorHex, double thickness, params InkStylusPoint[] points)
     {
-        var document = new BoardDocument();
-        for (var index = 0; index < count; index++)
+        var stroke = new SkiaStroke(new InkId(0))
         {
-            document.Add(StrokeAt(colorHex, 10 + index, 10 + index));
+            InkStrokeRenderer = new TestStrokeRenderer(),
+            Color = SKColor.Parse(colorHex),
+            InkThickness = (float)thickness,
+        };
+
+        foreach (var point in points)
+        {
+            stroke.AddPoint(point);
         }
 
-        return document;
+        return stroke;
     }
 
-    private static StrokeModel StrokeAt(string colorHex, double x, double y) =>
-        StrokeModel.Create(colorHex, 4.0,
-        [
-            new StrokePoint(x, y),
-            new StrokePoint(x + 20, y + 20),
-        ]);
+    /// <summary>Minimal renderer that traces a polyline from the stylus points.</summary>
+    private sealed class TestStrokeRenderer : ISkiaInkStrokeRenderer
+    {
+        public SKPath RenderInkToPath(IReadOnlyList<InkStylusPoint> points, double thickness)
+        {
+            var path = new SKPath();
+            if (points.Count > 0)
+            {
+                path.MoveTo((float)points[0].X, (float)points[0].Y);
+                for (var index = 1; index < points.Count; index++)
+                {
+                    path.LineTo((float)points[index].X, (float)points[index].Y);
+                }
+            }
+
+            return path;
+        }
+    }
 }

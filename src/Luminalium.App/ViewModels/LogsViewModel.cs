@@ -20,7 +20,7 @@ public sealed partial class LogsViewModel : ShellPageViewModel
     private string statusText = string.Empty;
 
     public LogsViewModel(LocalLogService logService, ILocalizationService localization)
-        : base("plugin:logs", "Plugin.logs.Name", localization)
+        : base("Plugin.logs.Name", localization)
     {
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         SeverityOptions = [null, .. Enum.GetValues<LogSeverity>().Cast<LogSeverity?>()];

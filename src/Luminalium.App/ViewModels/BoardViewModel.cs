@@ -2,23 +2,37 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Luminalium.App.Board;
-using Luminalium.App.Overlay;
 using Luminalium.Core.Localization;
 
 namespace Luminalium.App.ViewModels;
 
 public partial class BoardViewModel : ObservableObject
 {
-    private readonly BoardDocument _document = new();
-
     public BoardViewModel(ILocalizationService? localization = null)
     {
         Localization = localization ?? new LocalizationService();
+        StrokeColors =
+        [
+            new BoardColorOption("#FF0000", Localization["Board.Toolbar.Color.Red"]),
+            new BoardColorOption("#FF8C00", Localization["Board.Toolbar.Color.Orange"]),
+            new BoardColorOption("#FFD700", Localization["Board.Toolbar.Color.Yellow"]),
+            new BoardColorOption("#00A000", Localization["Board.Toolbar.Color.Green"]),
+            new BoardColorOption("#0078D4", Localization["Board.Toolbar.Color.Blue"]),
+            new BoardColorOption("#000000", Localization["Board.Toolbar.Color.Black"]),
+        ];
+        StrokeColors[0].IsSelected = true;
     }
 
     public ILocalizationService Localization { get; }
 
-    public BoardDocument Document => _document;
+    /// <summary>The pen colors offered in the palette (first item is the default).</summary>
+    public IReadOnlyList<BoardColorOption> StrokeColors { get; }
+
+    /// <summary>
+    /// Raised when the user clears the board so the host can reset the
+    /// InkCanvas stroke store (the canvas owns the actual strokes).
+    /// </summary>
+    public event EventHandler? ClearRequested;
 
     [ObservableProperty]
     private string _strokeColor = "#FF0000";
@@ -35,32 +49,62 @@ public partial class BoardViewModel : ObservableObject
     [ObservableProperty]
     private bool _hasError;
 
+    public string WindowTitle => Localization["Board.Window.Title"];
+
     public string StrokeCountText => string.Format(
         CultureInfo.InvariantCulture,
         Localization["Board.Status.Strokes"],
-        _document.Count);
+        StrokeCount);
 
-    public string WindowTitle => Localization["Board.Window.Title"];
+    public int StrokeCount { get; private set; }
 
-    [RelayCommand]
-    private void SelectRedColor() => StrokeColor = "#FF0000";
-
-    [RelayCommand]
-    private void ToggleEraser() => IsEraser = !IsEraser;
+    /// <summary>True while the pen tool is active (the inverse of the eraser).</summary>
+    public bool IsPenActive => !IsEraser;
 
     [RelayCommand]
-    private void ClearBoard()
+    private void SelectColor(BoardColorOption? option)
     {
-        _document.Clear();
-        UpdateStrokeCount();
-        SetStatus(Localization["Board.Status.Strokes"] == string.Empty
-            ? string.Empty
-            : string.Format(CultureInfo.InvariantCulture, Localization["Board.Status.Strokes"], 0));
+        if (option is null)
+        {
+            return;
+        }
+
+        StrokeColor = option.Hex;
+        foreach (var color in StrokeColors)
+        {
+            color.IsSelected = ReferenceEquals(color, option);
+        }
+
+        IsEraser = false;
     }
 
-    public async Task SaveAsync(string path, CancellationToken cancellationToken = default)
+    [RelayCommand]
+    private void ActivatePen() => IsEraser = false;
+
+    [RelayCommand]
+    private void ActivateEraser() => IsEraser = true;
+
+    [RelayCommand]
+    private void ClearBoard() => ClearRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>Updates the stroke count shown in the status bar after a stroke is collected or erased.</summary>
+    public void SetStrokeCount(int count)
     {
-        var result = await BoardSaveService.SaveAsync(_document, path, cancellationToken).ConfigureAwait(false);
+        StrokeCount = Math.Max(0, count);
+        OnPropertyChanged(nameof(StrokeCountText));
+        SetStatus(string.Format(
+            CultureInfo.InvariantCulture,
+            Localization["Board.Status.Strokes"],
+            StrokeCount));
+    }
+
+    /// <summary>Applies a save result to the status bar and error flag.</summary>
+    public void HandleSaveResult(BoardSaveResult? result)
+    {
+        if (result is null)
+        {
+            return;
+        }
 
         if (result.IsSuccess)
         {
@@ -86,40 +130,11 @@ public partial class BoardViewModel : ObservableObject
             result.Error));
     }
 
-    /// <summary>
-    /// Routes a finished canvas gesture: eraser gestures remove intersecting
-    /// strokes, pen gestures append a stroke.
-    /// </summary>
-    public void RecordGesture(StrokeModel stroke)
-    {
-        if (IsEraser)
-        {
-            _document.Erase(stroke.Points);
-        }
-        else
-        {
-            _document.Add(stroke);
-        }
-
-        UpdateStrokeCount();
-    }
-
-    private void UpdateStrokeCount()
-    {
-        OnPropertyChanged(nameof(StrokeCountText));
-        SetStatus(string.Format(
-            CultureInfo.InvariantCulture,
-            Localization["Board.Status.Strokes"],
-            _document.Count));
-    }
-
-    private void SetStatus(string text)
-    {
-        StatusText = text;
-    }
+    private void SetStatus(string text) => StatusText = text;
 
     partial void OnIsEraserChanged(bool value)
     {
         StrokeWidth = value ? 24.0 : 4.0;
+        OnPropertyChanged(nameof(IsPenActive));
     }
 }

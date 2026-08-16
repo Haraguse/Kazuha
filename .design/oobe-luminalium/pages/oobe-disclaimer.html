@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>条款与许可 — Luminalium</title>
+    <style id="theme-vars">
+/* Luminalium OOBE — Colors & Type
+   Free-explore mode: single brand hue, no secondary/accent */
+
+:root {
+  /* === Spacing (8pt grid) === */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 80px;
+  --s-9: 120px;
+
+  /* === Type Scale === */
+  --text-display: clamp(40px, 6vw, 64px);
+  --text-h1: clamp(28px, 3.5vw, 40px);
+  --text-h2: clamp(22px, 2.4vw, 28px);
+  --text-h3: 20px;
+  --text-body-l: 18px;
+  --text-body: 16px;
+  --text-caption: 13px;
+  --text-mono: 14px;
+
+  --leading-display: 1.08;
+  --leading-h1: 1.18;
+  --leading-h2: 1.25;
+  --leading-h3: 1.3;
+  --leading-body: 1.6;
+  --leading-caption: 1.5;
+
+  --weight-display: 600;
+  --weight-heading: 600;
+  --weight-body: 400;
+  --weight-mono: 500;
+
+  /* === Radius === */
+  --r-xs: 2px;
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  /* === Shadows === */
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 1px rgba(15, 23, 42, 0.02);
+  --shadow-2: 0 8px 24px -8px rgba(15, 23, 42, 0.12);
+  --shadow-3: 0 24px 60px -20px rgba(15, 23, 42, 0.22);
+
+  /* === Light Theme === */
+  --brand-background: #FAFBFD;
+  --brand-foreground: #1A1D26;
+  --brand-card: #FFFFFF;
+  --brand-card-foreground: #1A1D26;
+  --brand-popover: #FFFFFF;
+  --brand-popover-foreground: #1A1D26;
+  --brand-primary: #4F6EF7;
+  --brand-primary-foreground: #FFFFFF;
+  --brand-muted: #F4F5F7;
+  --brand-muted-foreground: #5F6570;
+  --brand-border: #E5E7EB;
+  --brand-input: #E5E7EB;
+  --brand-ring: rgba(79, 110, 247, 0.3);
+
+  /* === Semantic surface & text aliases === */
+  --brand-surface: #FFFFFF;
+  --brand-surface-2: #F4F5F7;
+  --brand-ink: #1A1D26;
+  --brand-ink-2: #5F6570;
+  --brand-ink-3: #9CA3AF;
+  --brand-line: #E5E7EB;
+  --brand-brand-ink: #FFFFFF;
+
+  /* === State colors === */
+  --brand-state-success: #22C55E;
+  --brand-state-warning: #F59E0B;
+  --brand-state-error: #EF4444;
+  --brand-state-info: #3B82F6;
+
+  /* === Radius aliases for head contract === */
+  --brand-radius-sm: 4px;
+  --brand-radius-md: 8px;
+  --brand-radius-lg: 16px;
+}
+
+/* === Dark Theme === */
+.dark {
+  --brand-background: #0D0F15;
+  --brand-foreground: #E8EAF0;
+  --brand-card: #151820;
+  --brand-card-foreground: #E8EAF0;
+  --brand-popover: #151820;
+  --brand-popover-foreground: #E8EAF0;
+  --brand-primary: #6B8AFF;
+  --brand-primary-foreground: #0D0F15;
+  --brand-muted: #1A1E2A;
+  --brand-muted-foreground: #8B92A0;
+  --brand-border: #252A36;
+  --brand-input: #252A36;
+  --brand-ring: rgba(107, 138, 255, 0.3);
+  --brand-surface: #151820;
+  --brand-surface-2: #1A1E2A;
+  --brand-ink: #E8EAF0;
+  --brand-ink-2: #8B92A0;
+  --brand-ink-3: #5C6370;
+  --brand-line: #252A36;
+  --brand-brand-ink: #0D0F15;
+  --brand-state-success: #4ADE80;
+  --brand-state-warning: #FBBF24;
+  --brand-state-error: #F87171;
+  --brand-state-info: #60A5FA;
+}
+
+/* === Base === */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  color: var(--brand-foreground);
+  background: var(--brand-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* === Utility === */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--brand-background);
+    --color-foreground: var(--brand-foreground);
+    --color-card: var(--brand-card);
+    --color-card-foreground: var(--brand-card-foreground);
+    --color-popover: var(--brand-popover);
+    --color-popover-foreground: var(--brand-popover-foreground);
+    --color-primary: var(--brand-primary);
+    --color-primary-foreground: var(--brand-primary-foreground);
+    --color-muted: var(--brand-muted);
+    --color-muted-foreground: var(--brand-muted-foreground);
+    --color-border: var(--brand-border);
+    --color-input: var(--brand-input);
+    --color-ring: var(--brand-ring);
+    --radius-sm: var(--brand-radius-sm);
+    --radius-md: var(--brand-radius-md);
+    --radius-lg: var(--brand-radius-lg);
+  }
+  @layer base {
+    body { background: var(--brand-background); color: var(--brand-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--brand-background); }
+      .text-background { color: var(--brand-background); }
+      .border-background { border-color: var(--brand-background); }
+      .ring-background { --tw-ring-color: var(--brand-background); }
+      .bg-foreground { background-color: var(--brand-foreground); }
+      .text-foreground { color: var(--brand-foreground); }
+      .border-foreground { border-color: var(--brand-foreground); }
+      .ring-foreground { --tw-ring-color: var(--brand-foreground); }
+      .bg-card { background-color: var(--brand-card); }
+      .text-card { color: var(--brand-card); }
+      .border-card { border-color: var(--brand-card); }
+      .ring-card { --tw-ring-color: var(--brand-card); }
+      .bg-card-foreground { background-color: var(--brand-card-foreground); }
+      .text-card-foreground { color: var(--brand-card-foreground); }
+      .border-card-foreground { border-color: var(--brand-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--brand-card-foreground); }
+      .bg-popover { background-color: var(--brand-popover); }
+      .text-popover { color: var(--brand-popover); }
+      .border-popover { border-color: var(--brand-popover); }
+      .ring-popover { --tw-ring-color: var(--brand-popover); }
+      .bg-popover-foreground { background-color: var(--brand-popover-foreground); }
+      .text-popover-foreground { color: var(--brand-popover-foreground); }
+      .border-popover-foreground { border-color: var(--brand-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--brand-popover-foreground); }
+      .bg-primary { background-color: var(--brand-primary); }
+      .text-primary { color: var(--brand-primary); }
+      .border-primary { border-color: var(--brand-primary); }
+      .ring-primary { --tw-ring-color: var(--brand-primary); }
+      .bg-primary-foreground { background-color: var(--brand-primary-foreground); }
+      .text-primary-foreground { color: var(--brand-primary-foreground); }
+      .border-primary-foreground { border-color: var(--brand-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--brand-primary-foreground); }
+      .bg-muted { background-color: var(--brand-muted); }
+      .text-muted { color: var(--brand-muted); }
+      .border-muted { border-color: var(--brand-muted); }
+      .ring-muted { --tw-ring-color: var(--brand-muted); }
+      .bg-muted-foreground { background-color: var(--brand-muted-foreground); }
+      .text-muted-foreground { color: var(--brand-muted-foreground); }
+      .border-muted-foreground { border-color: var(--brand-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--brand-muted-foreground); }
+      .bg-border { background-color: var(--brand-border); }
+      .text-border { color: var(--brand-border); }
+      .border-border { border-color: var(--brand-border); }
+      .ring-border { --tw-ring-color: var(--brand-border); }
+      .bg-input { background-color: var(--brand-input); }
+      .text-input { color: var(--brand-input); }
+      .border-input { border-color: var(--brand-input); }
+      .ring-input { --tw-ring-color: var(--brand-input); }
+      .bg-ring { background-color: var(--brand-ring); }
+      .text-ring { color: var(--brand-ring); }
+      .border-ring { border-color: var(--brand-ring); }
+      .ring-ring { --tw-ring-color: var(--brand-ring); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <main class="min-h-screen flex items-center justify-center p-6">
+        <!-- Wizard Card -->
+        <div class="relative w-[960px] h-[720px] bg-card/85 backdrop-blur-xl rounded-lg shadow-3 border border-border flex overflow-hidden">
+            <!-- Left Sidebar — Step Indicator -->
+            <aside class="w-[200px] shrink-0 bg-muted/60 border-r border-border flex flex-col items-center py-10">
+                <div class="text-caption text-muted-foreground font-medium mb-8 tracking-wide">设置向导</div>
+                <nav class="flex flex-col items-center gap-0 flex-1">
+                    <!-- Step 1: 欢迎 (completed) -->
+                    <div class="flex flex-col items-center">
+                        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold bg-primary text-primary-foreground shadow-1">
+                            <i data-lucide="check" class="w-4 h-4"></i>
+                        </div>
+                        <div class="w-0.5 h-7 bg-primary/40"></div>
+                    </div>
+                    <!-- Step 2: 条款与许可 (active) -->
+                    <div class="flex flex-col items-center">
+                        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold bg-primary text-primary-foreground shadow-1 ring-2 ring-ring ring-offset-2 ring-offset-card">
+                            <i data-lucide="file-text" class="w-4 h-4"></i>
+                        </div>
+                        <div class="w-0.5 h-7 bg-border"></div>
+                    </div>
+                    <!-- Step 3: 外观 (pending) -->
+                    <div class="flex flex-col items-center">
+                        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold bg-muted text-muted-foreground">
+                            <i data-lucide="palette" class="w-4 h-4"></i>
+                        </div>
+                        <div class="w-0.5 h-7 bg-border"></div>
+                    </div>
+                    <!-- Step 4: 行为 (pending) -->
+                    <div class="flex flex-col items-center">
+                        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold bg-muted text-muted-foreground">
+                            <i data-lucide="settings" class="w-4 h-4"></i>
+                        </div>
+                        <div class="w-0.5 h-7 bg-border"></div>
+                    </div>
+                    <!-- Step 5: 叠加层 (pending) -->
+                    <div class="flex flex-col items-center">
+                        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold bg-muted text-muted-foreground">
+                            <i data-lucide="layers" class="w-4 h-4"></i>
+                        </div>
+                        <div class="w-0.5 h-7 bg-border"></div>
+                    </div>
+                    <!-- Step 6: 完成 (pending) -->
+                    <div class="flex flex-col items-center">
+                        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold bg-muted text-muted-foreground">
+                            <i data-lucide="flag" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                </nav>
+            </aside>
+
+            <!-- Right Content Area -->
+            <div class="flex-1 flex flex-col p-8 overflow-hidden">
+                <!-- Heading -->
+                <h2 class="text-h2 font-semibold leading-h2 text-foreground mb-2">条款与许可</h2>
+                <p class="text-body text-muted-foreground leading-body mb-6">请仔细阅读并同意以下条款，然后继续设置。</p>
+
+                <!-- Tab Switcher -->
+                <div class="flex gap-1 bg-muted rounded-lg p-1 mb-5 w-fit">
+                    <button id="tab-disclaimer" class="px-5 py-2 text-sm font-medium rounded-md transition-all duration-200 bg-primary text-primary-foreground shadow-1 cursor-pointer" onclick="switchTab('disclaimer')">免责声明</button>
+                    <button id="tab-license" class="px-5 py-2 text-sm font-medium rounded-md transition-all duration-200 bg-transparent text-muted-foreground hover:text-foreground cursor-pointer" onclick="switchTab('license')">开源许可</button>
+                </div>
+
+                <!-- Scrollable Text Area -->
+                <div class="bg-muted rounded-md border border-border/60 overflow-hidden mb-6 flex-1 min-h-0">
+                    <div class="max-h-[280px] overflow-y-auto p-5 text-sm text-foreground leading-relaxed no-scrollbar" id="scrollable-text">
+                        <!-- Disclaimer Tab Content -->
+                        <div id="content-disclaimer" class="space-y-3">
+                            <p>Luminalium 是一款免费开源的演示辅助工具。本软件按「原样」提供，不提供任何明示或暗示的保证，包括但不限于适销性、特定用途适用性以及不侵权的保证。</p>
+                            <p>使用本软件即表示您同意自行承担相关风险。在任何情况下，开发者均不对因使用或无法使用本软件而产生的任何直接、间接、偶然、特殊、惩罚性或后果性损害（包括但不限于数据丢失、业务中断、利润损失或其他经济损失）承担责任，即使已被告知此类损害的可能性。</p>
+                            <p>本软件可能包含第三方开源组件，各组件按其各自的许可条款发布。使用本软件即表示您同时接受相关第三方组件的许可条款。</p>
+                            <p>Luminalium 不收集、存储或传输任何个人身份信息。所有数据均存储在您的本地设备上，您对数据的完整性和安全性负有全部责任。</p>
+                        </div>
+                        <!-- License Tab Content -->
+                        <div id="content-license" class="hidden space-y-3">
+                            <p class="font-semibold text-foreground">GNU General Public License v3.0</p>
+                            <p>本软件采用 GNU General Public License v3.0（GPL v3.0）许可证发布。GPL v3.0 是自由软件基金会发布的自由软件许可证，旨在保障用户自由使用、研究、修改和分发软件的权利。</p>
+                            <p class="font-semibold text-foreground mt-4">主要条款：</p>
+                            <ul class="list-disc pl-5 space-y-2">
+                                <li><strong>自由使用：</strong>您可以出于任何目的运行本软件，不受限制。</li>
+                                <li><strong>自由研究：</strong>您可以查看和修改本软件的源代码，以满足您的需求。</li>
+                                <li><strong>自由分发：</strong>您可以将本软件的原始副本或修改后的版本分发给他人。</li>
+                                <li><strong>Copyleft 条款：</strong>如果您分发修改后的版本，必须以相同的 GPL v3.0 许可证发布，并公开源代码。</li>
+                                <li><strong>专利授权：</strong>贡献者自动授予接收者使用其相关专利的权利。</li>
+                                <li><strong>免责声明：</strong>软件按「原样」提供，不提供任何形式的保证。作者或版权持有人不对任何索赔或损害承担责任。</li>
+                                <li><strong>源代码可用性：</strong>分发二进制版本时，必须同时提供或指明获取源代码的方式。</li>
+                            </ul>
+                            <p class="text-muted-foreground text-xs mt-3">完整的 GPL v3.0 许可证文本请访问 <a href="https://www.gnu.org/licenses/gpl-3.0.html" class="text-primary underline" target="_blank" rel="noopener noreferrer">https://www.gnu.org/licenses/gpl-3.0.html</a></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Checkbox -->
+                <label class="flex items-center gap-3 cursor-pointer select-none mb-6 group" id="checkbox-label">
+                    <input type="checkbox" class="sr-only peer" id="agreement-checkbox" onchange="toggleAgreement()">
+                    <span class="w-5 h-5 rounded-sm border border-border flex items-center justify-center transition-all duration-200 peer-checked:bg-primary peer-checked:border-primary group-hover:border-primary/60">
+                        <i data-lucide="check" class="w-3.5 h-3.5 text-primary-foreground hidden peer-checked:block"></i>
+                    </span>
+                    <span class="text-sm text-foreground">我已阅读并同意上述条款</span>
+                </label>
+
+                <!-- Navigation Buttons -->
+                <div class="flex items-center justify-between">
+                    <button class="px-6 py-2.5 text-sm font-medium rounded-md border border-border text-foreground hover:bg-muted transition-all duration-200 cursor-pointer" onclick="goBack()">上一步</button>
+                    <button id="btn-agree" class="px-6 py-2.5 text-sm font-medium rounded-md bg-primary text-primary-foreground shadow-1 transition-all duration-200 opacity-50 cursor-not-allowed" disabled onclick="goNext()">同意并继续</button>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script>
+        let activeTab = 'disclaimer';
+        let agreed = false;
+
+        function switchTab(tab) {
+            activeTab = tab;
+            const btnDisclaimer = document.getElementById('tab-disclaimer');
+            const btnLicense = document.getElementById('tab-license');
+            const contentDisclaimer = document.getElementById('content-disclaimer');
+            const contentLicense = document.getElementById('content-license');
+
+            if (tab === 'disclaimer') {
+                btnDisclaimer.className = 'px-5 py-2 text-sm font-medium rounded-md transition-all duration-200 bg-primary text-primary-foreground shadow-1 cursor-pointer';
+                btnLicense.className = 'px-5 py-2 text-sm font-medium rounded-md transition-all duration-200 bg-transparent text-muted-foreground hover:text-foreground cursor-pointer';
+                contentDisclaimer.classList.remove('hidden');
+                contentLicense.classList.add('hidden');
+            } else {
+                btnLicense.className = 'px-5 py-2 text-sm font-medium rounded-md transition-all duration-200 bg-primary text-primary-foreground shadow-1 cursor-pointer';
+                btnDisclaimer.className = 'px-5 py-2 text-sm font-medium rounded-md transition-all duration-200 bg-transparent text-muted-foreground hover:text-foreground cursor-pointer';
+                contentLicense.classList.remove('hidden');
+                contentDisclaimer.classList.add('hidden');
+            }
+        }
+
+        function toggleAgreement() {
+            const checkbox = document.getElementById('agreement-checkbox');
+            const btnAgree = document.getElementById('btn-agree');
+            agreed = checkbox.checked;
+            if (agreed) {
+                btnAgree.disabled = false;
+                btnAgree.className = 'px-6 py-2.5 text-sm font-medium rounded-md bg-primary text-primary-foreground shadow-1 hover:opacity-90 transition-all duration-200 cursor-pointer';
+            } else {
+                btnAgree.disabled = true;
+                btnAgree.className = 'px-6 py-2.5 text-sm font-medium rounded-md bg-primary text-primary-foreground shadow-1 transition-all duration-200 opacity-50 cursor-not-allowed';
+            }
+        }
+
+        function goBack() {
+            // Navigate to previous step
+        }
+
+        function goNext() {
+            if (!agreed) return;
+            // Navigate to next step
+        }
+    </script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -422,6 +422,26 @@ public sealed class ConfigurationService
             return MissingSection(nameof(LuminaliumConfig.Security));
         }
 
+        if (config.BoardInBoard is null)
+        {
+            return MissingSection(nameof(LuminaliumConfig.BoardInBoard));
+        }
+
+        if (config.Timer is null)
+        {
+            return MissingSection(nameof(LuminaliumConfig.Timer));
+        }
+
+        if (config.Fonts is null)
+        {
+            return MissingSection(nameof(LuminaliumConfig.Fonts));
+        }
+
+        if (config.Updates is null)
+        {
+            return MissingSection(nameof(LuminaliumConfig.Updates));
+        }
+
         if (config.Security.PasswordProtectionEnabled &&
             string.IsNullOrWhiteSpace(config.Security.PasswordHash))
         {
@@ -471,7 +491,13 @@ public sealed class ConfigurationService
             config.SelfPen.HighlightColor is null ||
             config.SelfPen.CustomPenColors is null ||
             config.SelfPen.CustomHighlightColors is null ||
-            config.Security.PasswordHash is null)
+            config.Security.PasswordHash is null ||
+            config.BoardInBoard.BackgroundColor is null ||
+            config.Timer.QuickAddPresets is null ||
+            config.Fonts.Family is null ||
+            config.Fonts.Weight is null ||
+            config.Fonts.PreviewSample is null ||
+            config.Fonts.PerLanguageFonts is null)
         {
             return new ConfigurationValidationIssue(
                 ConfigurationLoadWarningCode.InvalidValue,
@@ -486,8 +512,53 @@ public sealed class ConfigurationService
                 nameof(GeneralSettings.Language));
         }
 
+        if (!Enum.IsDefined(config.Appearance.ThemeMode) ||
+            !Enum.IsDefined(config.General.CrashAutoHandleMode) ||
+            !Enum.IsDefined(config.General.SplashMode) ||
+            !Enum.IsDefined(config.Overlay.ClearMode) ||
+            !Enum.IsDefined(config.Overlay.ToolbarPosition) ||
+            !Enum.IsDefined(config.Overlay.FlipperPosition) ||
+            !Enum.IsDefined(config.Ppt.PenMode) ||
+            !Enum.IsDefined(config.SelfPen.FrameRateMode) ||
+            !Enum.IsDefined(config.SelfPen.PenEffect) ||
+            !Enum.IsDefined(config.BoardInBoard.WindowPosition) ||
+            !Enum.IsDefined(config.BoardInBoard.EraserMode) ||
+            !Enum.IsDefined(config.BoardInBoard.PenEffect) ||
+            !Enum.IsDefined(config.Timer.FullscreenBehavior) ||
+            !Enum.IsDefined(config.Updates.Source))
+        {
+            return new ConfigurationValidationIssue(
+                ConfigurationLoadWarningCode.InvalidValue,
+                "Configuration contains an unsupported enum value.");
+        }
+
+        if (config.Ppt.PageTurnRateLimit is < 1 or > 30 ||
+            config.Overlay.SafeArea is < 0 or > 200 ||
+            config.Overlay.Scale is < 0.5 or > 3.0 ||
+            config.Overlay.PopWindowScale is < 0.5 or > 3.0 ||
+            config.Overlay.ToolbarOpacity is < 0.1 or > 1.0 ||
+            config.Overlay.SidePageOpacity is < 0.1 or > 1.0 ||
+            config.Overlay.ZOrderCheckInterval is < 50 or > 10000)
+        {
+            return new ConfigurationValidationIssue(
+                ConfigurationLoadWarningCode.InvalidValue,
+                "Configuration contains an out-of-range overlay or presentation value.");
+        }
+
+        if (config.Timer.QuickAddPresets.Length > MaxQuickAddPresetCount ||
+            config.Timer.QuickAddPresets.Any(preset => preset < MinimumQuickAddPresetMinutes))
+        {
+            return new ConfigurationValidationIssue(
+                ConfigurationLoadWarningCode.InvalidValue,
+                $"QuickAddPresets must contain at most {MaxQuickAddPresetCount} presets, each at least {MinimumQuickAddPresetMinutes} minute.",
+                nameof(TimerSettings.QuickAddPresets));
+        }
+
         return null;
     }
+
+    private const int MaxQuickAddPresetCount = 4;
+    private const int MinimumQuickAddPresetMinutes = 1;
 
     private static ConfigurationValidationIssue? ValidateSchemaVersion(JsonElement root)
     {

@@ -1,0 +1,15 @@
+<windowing:FAAppWindow xmlns="https://github.com/avaloniaui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:windowing="using:FluentAvalonia.UI.Windowing"
+                       xmlns:pages="using:Luminalium.App.Views.Pages"
+                       xmlns:vm="using:Luminalium.App.ViewModels"
+                       x:Class="Luminalium.App.Views.OnboardingWindow"
+                       x:DataType="vm:OnboardingViewModel"
+                       Title="{Binding Title}"
+                       Width="760"
+                       Height="600"
+                       MinWidth="600"
+                       MinHeight="480"
+                       WindowStartupLocation="CenterOwner">
+    <pages:OnboardingPage DataContext="{Binding}" />
+</windowing:FAAppWindow>

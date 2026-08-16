@@ -55,21 +55,6 @@ public sealed class ShellViewModelTests : IDisposable
     }
 
     [Fact]
-    public void OverviewListsNativeFeaturesFromCatalogInStableOrder()
-    {
-        var viewModel = new ShellViewModel();
-        var overview = viewModel.Overview;
-
-        Assert.Equal(BuiltInFeatureCatalog.Default.Descriptors.Count, overview.BuiltInFeatures.Count);
-        Assert.Equal(
-            BuiltInFeatureCatalog.Default.Descriptors.Select(descriptor => descriptor.Id.Value),
-            overview.BuiltInFeatures.Select(entry => entry.Id));
-        Assert.Equal(
-            BuiltInFeatureCatalog.Default.Descriptors.Select(descriptor => descriptor.FallbackDisplayName),
-            overview.BuiltInFeatures.Select(entry => entry.RawDisplayName));
-    }
-
-    [Fact]
     public void LegacyPluginsProjectionIsReadOnlyAndBackedByCatalog()
     {
 #pragma warning disable CS0618 // Exercising the one-release compatibility surface on purpose.
@@ -101,102 +86,37 @@ public sealed class ShellViewModelTests : IDisposable
     }
 
     [Fact]
-    public void FirstRunStartsOnOnboarding()
+    public void FirstRunExposesOnboardingFlow()
     {
         var config = LuminaliumConfig.CreateDefault();
 
         var viewModel = new ShellViewModel(config: config);
 
-        Assert.IsType<OnboardingViewModel>(viewModel.CurrentPage);
+        Assert.NotNull(viewModel.Onboarding);
+        Assert.False(viewModel.Onboarding.IsCompleted);
     }
 
     [Fact]
-    public void CompletedConfigurationStartsOnOverview()
+    public void CompletedConfigurationReportsOnboardingCompleted()
     {
         var config = LuminaliumConfig.CreateDefault();
         config.General.OnboardingCompleted = true;
 
         var viewModel = new ShellViewModel(config: config);
 
-        Assert.Same(viewModel.Overview, viewModel.CurrentPage);
+        Assert.True(viewModel.Onboarding.IsCompleted);
     }
 
     [Fact]
-    public void NavigationBackStackDoesNotDuplicateSamePage()
+    public void NavigateToSettingsOpensStandaloneSettingsWindow()
     {
-        var config = LuminaliumConfig.CreateDefault();
-        config.General.OnboardingCompleted = true;
-        var viewModel = new ShellViewModel(config: config);
-
-        Assert.False(viewModel.CanGoBack);
-        Assert.Same(viewModel.Overview, viewModel.CurrentPage);
-
-        viewModel.NavigateToFeature("onboarding");
-
-        Assert.True(viewModel.CanGoBack);
-        Assert.IsType<OnboardingViewModel>(viewModel.CurrentPage);
-
-        viewModel.NavigateToFeature("onboarding");
-        viewModel.GoBack();
-
-        Assert.False(viewModel.CanGoBack);
-        Assert.Same(viewModel.Overview, viewModel.CurrentPage);
-    }
-
-    [Fact]
-    public void NavigationBackReturnsToPreviousPage()
-    {
-        var config = LuminaliumConfig.CreateDefault();
-        config.General.OnboardingCompleted = true;
-        var viewModel = new ShellViewModel(config: config);
+        var viewModel = new ShellViewModel();
+        var raised = false;
+        viewModel.RequestOpenSettingsWindow += (_, _) => raised = true;
 
         viewModel.NavigateToSettings();
-        viewModel.NavigateToFeature("logs");
 
-        Assert.True(viewModel.CanGoBack);
-        Assert.IsType<LogsViewModel>(viewModel.CurrentPage);
-
-        viewModel.GoBack();
-
-        Assert.True(viewModel.CanGoBack);
-        Assert.Same(viewModel.Settings, viewModel.CurrentPage);
-
-        viewModel.GoBack();
-
-        Assert.False(viewModel.CanGoBack);
-        Assert.Same(viewModel.Overview, viewModel.CurrentPage);
-    }
-
-    [Fact]
-    public void NativePluginNavigationUsesDedicatedPagesAndSharedInstances()
-    {
-        var config = LuminaliumConfig.CreateDefault();
-        var configurationService = new ConfigurationService(_directory);
-        var logPath = Path.Combine(_directory, "logs.jsonl");
-        File.WriteAllText(
-            logPath,
-            "{\"timestamp\":\"2026-01-01T00:00:00Z\",\"severity\":\"Information\",\"message\":\"shell ready\"}");
-        var logService = new LocalLogService(logPath: logPath);
-        var viewModel = new ShellViewModel(
-            config: config,
-            configurationService: configurationService,
-            logService: logService);
-
-        viewModel.NavigateToFeature("onboarding");
-        var onboardingPage = Assert.IsType<OnboardingViewModel>(viewModel.CurrentPage);
-        onboardingPage.CompleteCommand.Execute(null);
-
-        viewModel.NavigateToFeature("logs");
-        var logsPage = Assert.IsType<LogsViewModel>(viewModel.CurrentPage);
-
-        Assert.Single(logsPage.Entries);
-        Assert.Equal("shell ready", logsPage.Entries[0].Message);
-        Assert.True(configurationService.Load().Config.General.OnboardingCompleted);
-
-        viewModel.NavigateToFeature("onboarding");
-        Assert.Same(onboardingPage, viewModel.CurrentPage);
-        viewModel.NavigateToFeature("logs");
-        Assert.Same(logsPage, viewModel.CurrentPage);
+        Assert.True(raised);
     }
 
     [Fact]

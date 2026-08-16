@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Luminalium.App.Services;
 using Luminalium.Core.Localization;
@@ -25,6 +25,8 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
     private readonly Func<Task<bool>> _changePassword;
     private readonly Func<Task<bool>> _disablePasswordProtection;
     private readonly Func<Task<bool>> _unlockSettings;
+    private readonly SettingsCoordinator? _settingsCoordinator;
+    private readonly DiagnosticService? _diagnosticService;
     private string? _updateStatusKey = "Settings.Updates.Ready";
     private string? _updateStatusArgument;
     private bool _syncingThemeMode;
@@ -110,9 +112,16 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
           Func<string, Task<bool>>? splashStyleChanged = null,
           Func<bool, Task<bool>>? detailedSplashChanged = null,
           Func<string, string, Task<bool>>? splashTimeRangeChanged = null,
-          IEnumerable<string>? fontFamilies = null) : base("settings", "Navigation.Settings", localization)
+          IEnumerable<string>? fontFamilies = null,
+          SettingsCoordinator? settingsCoordinator = null,
+          ProfileService? profileService = null,
+          ConfigurationBackupService? backupService = null,
+          StorageService? storageService = null,
+          DiagnosticService? diagnosticService = null) : base("Navigation.Settings", localization)
     {
         _localization = localization;
+        _settingsCoordinator = settingsCoordinator;
+        _diagnosticService = diagnosticService;
         VersionDisplay = versionDisplay;
         _checkForUpdatesAsync = checkForUpdatesAsync;
         _themeChanged = themeChanged;
@@ -190,9 +199,61 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
         selectedFontFamilyOption = FontFamilyOptions[0];
         selectedSplashModeOption = SplashModeOptions[0];
         selectedSplashStyleOption = SplashStyleOptions[0];
+        GeneralSettings = new GeneralSettingsViewModel(_settingsCoordinator?.Current, _settingsCoordinator);
+        PersonalizationSettings = new PersonalizationSettingsViewModel(_settingsCoordinator?.Current, _settingsCoordinator);
+        ToolbarSettings = new ToolbarSettingsViewModel(_settingsCoordinator?.Current, _settingsCoordinator);
+        FontSettings = new FontSettingsViewModel(_settingsCoordinator?.Current, _settingsCoordinator);
+        LinkageSettings = new LinkageSettingsViewModel(_settingsCoordinator?.Current, _settingsCoordinator);
+        BuiltInSettings = new BuiltInSettingsViewModel(_settingsCoordinator?.Current, _settingsCoordinator);
+        PenSettings = new PenSettingsViewModel(_settingsCoordinator?.Current, _settingsCoordinator);
+        WindowSettings = new WindowSettingsViewModel(_settingsCoordinator?.Current, _settingsCoordinator);
+        StatusBarSettings = new StatusBarSettingsViewModel(_settingsCoordinator?.Current, _settingsCoordinator);
+        StorageSettings = new StorageSettingsViewModel(profileService, backupService, storageService, _settingsCoordinator);
+        NotificationSettings = new NotificationSettingsViewModel(_settingsCoordinator?.Current, _settingsCoordinator);
+        AboutSettings = new AboutSettingsViewModel(
+            VersionDisplay,
+            ProductName,
+            diagnosticService: _diagnosticService,
+            config: _settingsCoordinator?.Current,
+            coordinator: _settingsCoordinator,
+            checkForUpdatesAsync: _checkForUpdatesAsync);
+
+        _categories =
+        [
+            new SettingsCategory("general", "常规"),
+            new SettingsCategory("personalization", "个性化设置"),
+            new SettingsCategory("fonts", "全局应用字体"),
+            new SettingsCategory("toolbar", "插件/工具栏"),
+            new SettingsCategory("linkage", "联动"),
+            new SettingsCategory("built-in", "内建功能"),
+            new SettingsCategory("pen", "画笔"),
+            new SettingsCategory("window", "窗口"),
+            new SettingsCategory("statusbar", "状态栏"),
+            new SettingsCategory("storage", "存储、档案和备份"),
+            new SettingsCategory("notifications", "通知"),
+            new SettingsCategory("about", "关于"),
+        ];
+
+        _categoryViewModels = new Dictionary<string, ObservableObject>
+        {
+            ["general"] = GeneralSettings,
+            ["personalization"] = PersonalizationSettings,
+            ["toolbar"] = ToolbarSettings,
+            ["fonts"] = FontSettings,
+            ["linkage"] = LinkageSettings,
+            ["built-in"] = BuiltInSettings,
+            ["pen"] = PenSettings,
+            ["window"] = WindowSettings,
+            ["statusbar"] = StatusBarSettings,
+            ["storage"] = StorageSettings,
+            ["notifications"] = NotificationSettings,
+            ["about"] = AboutSettings,
+        };
+
         _lastAcceptedFontFamilyOption = selectedFontFamilyOption;
         _lastAcceptedSplashModeOption = selectedSplashModeOption;
         _lastAcceptedSplashStyleOption = selectedSplashStyleOption;
+        currentCategoryViewModel = GeneralSettings;
         updateStatusText = BuildUpdateStatusText();
     }
 
@@ -201,6 +262,51 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
     public string AppUserModelId { get; } = ProductIdentity.WindowsAppUserModelId;
 
     public string VersionDisplay { get; }
+
+    public GeneralSettingsViewModel GeneralSettings { get; }
+
+    public PersonalizationSettingsViewModel PersonalizationSettings { get; }
+
+    public ToolbarSettingsViewModel ToolbarSettings { get; }
+
+    public FontSettingsViewModel FontSettings { get; }
+
+    public LinkageSettingsViewModel LinkageSettings { get; }
+
+    public BuiltInSettingsViewModel BuiltInSettings { get; }
+
+    public PenSettingsViewModel PenSettings { get; }
+
+    public WindowSettingsViewModel WindowSettings { get; }
+
+    public StatusBarSettingsViewModel StatusBarSettings { get; }
+
+    public StorageSettingsViewModel StorageSettings { get; }
+
+    public NotificationSettingsViewModel NotificationSettings { get; }
+
+    public AboutSettingsViewModel AboutSettings { get; }
+
+    [ObservableProperty]
+    private int selectedCategoryIndex;
+
+    [ObservableProperty]
+    private ObservableObject currentCategoryViewModel;
+
+    private readonly IReadOnlyList<SettingsCategory> _categories;
+    private readonly IReadOnlyDictionary<string, ObservableObject> _categoryViewModels;
+
+    partial void OnSelectedCategoryIndexChanged(int value)
+    {
+        if (value < 0 || value >= _categories.Count)
+        {
+            return;
+        }
+
+        CurrentCategoryViewModel = _categoryViewModels[_categories[value].Id];
+    }
+
+    public IReadOnlyList<SettingsCategory> Categories => _categories;
 
     public IReadOnlyList<ThemeModeOptionViewModel> ThemeModeOptions { get; }
 
@@ -754,3 +860,9 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
         return _updateStatusArgument is null ? template : string.Format(CultureInfo.InvariantCulture, template, _updateStatusArgument);
     }
 }
+
+/// <summary>
+/// Stable identity for a settings navigation category. Navigation maps by
+/// <see cref="Id"/> rather than by raw list index so route fallback cannot occur.
+/// </summary>
+public sealed record SettingsCategory(string Id, string Title, params string[] Keywords);

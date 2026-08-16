@@ -32,7 +32,7 @@
                                   RenderTransformOrigin="0,0"
                                   AutomationProperties.Name="Annotation canvas">
             <overlay:AnnotationCanvas.RenderTransform>
-                <ScaleTransform ScaleX="{Binding ZoomScale}" ScaleY="{Binding ZoomScale}" />
+                                  <ScaleTransform ScaleX="{Binding ZoomScale}" ScaleY="{Binding ZoomScale}" />
             </overlay:AnnotationCanvas.RenderTransform>
         </overlay:AnnotationCanvas>
 
@@ -72,16 +72,18 @@
                 BorderThickness="{StaticResource ShellBorderThickness}"
                 BorderBrush="{StaticResource OverlayToolbarBorderBrush}"
                 Background="{StaticResource OverlayToolbarBackgroundBrush}"
-                Opacity="{StaticResource OverlayToolbarOpacity}">
+                Opacity="{Binding ToolbarOpacity}">
             <StackPanel Orientation="Horizontal" Spacing="{StaticResource OverlayToolbarSpacing}">
                 <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
                         MinHeight="{StaticResource OverlayTouchTargetSize}"
+                        IsVisible="{Binding IsSpotlightVisible}"
                         Command="{Binding PreviousSlideCommand}"
                         Content="{Binding PreviousSlideText}"
                         AutomationProperties.Name="PreviousSlide"
                         AutomationProperties.HelpText="{Binding SlideshowCommandHelpText}" />
                 <Button MinWidth="{StaticResource OverlayTouchTargetSize}"
                         MinHeight="{StaticResource OverlayTouchTargetSize}"
+                        IsVisible="{Binding IsClearVisible}"
                         Command="{Binding NextSlideCommand}"
                         Content="{Binding NextSlideText}"
                         AutomationProperties.Name="NextSlide"
@@ -118,6 +120,7 @@
                         AutomationProperties.Name="Screenshot"
                         AutomationProperties.HelpText="{Binding SlideshowCommandHelpText}" />
                 <TextBlock Text="{Binding StatusText}"
+                           IsVisible="{Binding ShowStatusBar}"
                            MaxWidth="{StaticResource OverlayStatusMaxWidth}"
                            VerticalAlignment="Center"
                            TextWrapping="Wrap"

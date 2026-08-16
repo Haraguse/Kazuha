@@ -1,0 +1,119 @@
+using System;
+using Avalonia.Media;
+using Avalonia.Rendering.Composition.Server;
+
+namespace Avalonia.Rendering.Composition;
+
+public abstract class CompositionCustomVisualHandler
+{
+	private ServerCompositionCustomVisual? _host;
+
+	private bool _inRender;
+
+	private Rect _currentTransformedClip;
+
+	private Matrix _currentTransform;
+
+	protected Vector EffectiveSize
+	{
+		get
+		{
+			VerifyAccess();
+			return _host.Size;
+		}
+	}
+
+	protected TimeSpan CompositionNow
+	{
+		get
+		{
+			VerifyAccess();
+			return _host.Compositor.ServerNow;
+		}
+	}
+
+	public virtual void OnMessage(object message)
+	{
+	}
+
+	public virtual void OnAnimationFrameUpdate()
+	{
+	}
+
+	internal void Render(ImmediateDrawingContext drawingContext, Rect currentTransformedClip)
+	{
+		_inRender = true;
+		_currentTransformedClip = currentTransformedClip;
+		_currentTransform = drawingContext.CurrentTransform;
+		try
+		{
+			OnRender(drawingContext);
+		}
+		finally
+		{
+			_inRender = false;
+		}
+	}
+
+	public abstract void OnRender(ImmediateDrawingContext drawingContext);
+
+	private void VerifyAccess()
+	{
+		if (_host == null)
+		{
+			throw new InvalidOperationException("Object is not yet attached to the compositor");
+		}
+		_host.Compositor.VerifyAccess();
+	}
+
+	private void VerifyInRender()
+	{
+		VerifyAccess();
+		if (!_inRender)
+		{
+			throw new InvalidOperationException("This API is only available from OnRender");
+		}
+	}
+
+	public virtual Rect GetRenderBounds()
+	{
+		return new Rect(0.0, 0.0, EffectiveSize.X, EffectiveSize.Y);
+	}
+
+	internal void Attach(ServerCompositionCustomVisual visual)
+	{
+		_host = visual;
+	}
+
+	protected void Invalidate()
+	{
+		VerifyAccess();
+		_host.HandlerInvalidate();
+	}
+
+	protected void Invalidate(Rect rc)
+	{
+		VerifyAccess();
+		_host.HandlerInvalidate(rc);
+	}
+
+	protected void RegisterForNextAnimationFrameUpdate()
+	{
+		VerifyAccess();
+		_host.HandlerRegisterForNextAnimationFrameUpdate();
+	}
+
+	protected bool RenderClipContains(Point pt)
+	{
+		VerifyInRender();
+		pt = pt.Transform(_currentTransform);
+		return _currentTransformedClip.Contains(pt);
+	}
+
+	protected bool RenderClipIntersectes(Rect rc)
+	{
+		VerifyInRender();
+		rc = rc.TransformToAABB(_currentTransform);
+		return _currentTransformedClip.Intersects(rc);
+	}
+}

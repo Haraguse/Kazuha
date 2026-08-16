@@ -1,0 +1,199 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Luminalium.App.ViewModels"
+             x:Class="Luminalium.App.Views.Pages.AboutSettingsPage"
+             x:DataType="vm:AboutSettingsViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="0,0,0,36" Spacing="24">
+            <!-- Page title -->
+            <TextBlock Text="{Binding PageTitle}"
+                       FontSize="28"
+                       FontWeight="SemiBold" />
+
+            <!-- 关于信息 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding AboutSectionTitle}"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Opacity="0.9" />
+
+                <Border Padding="18"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="0">
+                        <Grid ColumnDefinitions="160,*" Margin="0,8,0,8">
+                            <TextBlock Text="{Binding ProductNameLabel}" VerticalAlignment="Center" Opacity="0.65" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding ProductName}" FontWeight="SemiBold" FontSize="14" />
+                        </Grid>
+                        <Grid ColumnDefinitions="160,*" Margin="0,8,0,8">
+                            <TextBlock Text="{Binding VersionLabel}" VerticalAlignment="Center" Opacity="0.65" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding VersionDisplay}" FontWeight="SemiBold" FontSize="14" />
+                        </Grid>
+                        <Grid ColumnDefinitions="160,*" Margin="0,8,0,8">
+                            <TextBlock Text="{Binding BuildLabel}" VerticalAlignment="Center" Opacity="0.65" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding Build}" FontWeight="SemiBold" FontSize="14" />
+                        </Grid>
+                        <Grid ColumnDefinitions="160,*" Margin="0,8,0,8">
+                            <TextBlock Text="{Binding PlatformLabel}" VerticalAlignment="Center" Opacity="0.65" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding Platform}" TextWrapping="Wrap" FontSize="13" />
+                        </Grid>
+                        <Grid ColumnDefinitions="160,*" Margin="0,8,0,8">
+                            <TextBlock Text="{Binding CopyrightLabel}" VerticalAlignment="Center" Opacity="0.65" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding Copyright}" FontSize="13" />
+                        </Grid>
+                        <Grid ColumnDefinitions="160,*" Margin="0,8,0,8">
+                            <TextBlock Text="{Binding ProjectUrlLabel}" VerticalAlignment="Center" Opacity="0.65" FontSize="13" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                                <TextBlock Text="{Binding ProjectUrl}" VerticalAlignment="Center" FontSize="13" TextWrapping="Wrap" />
+                                <Button Content="{Binding ProjectUrlActionText}"
+                                        Command="{Binding CopyDiagnosticsCommand}"
+                                        FontSize="12"
+                                        Padding="10,4" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid ColumnDefinitions="160,*" Margin="0,8,0,8">
+                            <TextBlock Text="{Binding ThirdPartyNoticesLabel}" VerticalAlignment="Top" Opacity="0.65" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding ThirdPartyNotices}" TextWrapping="Wrap" FontSize="13" LineHeight="20" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 诊断信息 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding DiagnosticsSectionTitle}"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Opacity="0.9" />
+
+                <Border Padding="18"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="0">
+                        <TextBlock Text="{Binding DiagnosticsDescription}"
+                                   TextWrapping="Wrap"
+                                   Opacity="0.65"
+                                   FontSize="12"
+                                   Margin="0,0,0,12" />
+                        <Grid ColumnDefinitions="160,*" Margin="0,6,0,6">
+                            <TextBlock Text="{Binding VersionLabel}" VerticalAlignment="Center" Opacity="0.65" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding DiagnosticVersion}" FontSize="13" />
+                        </Grid>
+                        <Grid ColumnDefinitions="160,*" Margin="0,6,0,6">
+                            <TextBlock Text="{Binding PlatformLabel}" VerticalAlignment="Center" Opacity="0.65" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding DiagnosticPlatform}" TextWrapping="Wrap" FontSize="13" />
+                        </Grid>
+                        <Grid ColumnDefinitions="160,*" Margin="0,6,0,6">
+                            <TextBlock Text="配置 Schema 版本" VerticalAlignment="Center" Opacity="0.65" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding ConfigSchemaVersionText}" FontSize="13" />
+                        </Grid>
+                        <Grid ColumnDefinitions="160,*" Margin="0,6,0,6">
+                            <TextBlock Text="配置目录" VerticalAlignment="Center" Opacity="0.65" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding ConfigDirectoryPath}" TextWrapping="Wrap" FontSize="13" />
+                        </Grid>
+                        <Grid ColumnDefinitions="160,*" Margin="0,6,0,6">
+                            <TextBlock Text="活动档案" VerticalAlignment="Center" Opacity="0.65" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding ActiveProfileNameText}" FontSize="13" />
+                        </Grid>
+                        <Grid ColumnDefinitions="160,*" Margin="0,6,0,6">
+                            <TextBlock Text="日志目录" VerticalAlignment="Center" Opacity="0.65" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding LogDirectory}" TextWrapping="Wrap" FontSize="13" />
+                        </Grid>
+                        <Grid ColumnDefinitions="160,*" Margin="0,6,0,6">
+                            <TextBlock Text="更新缓存目录" VerticalAlignment="Center" Opacity="0.65" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding UpdateCacheDirectory}" TextWrapping="Wrap" FontSize="13" />
+                        </Grid>
+                        <Grid ColumnDefinitions="160,*" Margin="0,6,0,6">
+                            <TextBlock Text="最近日志条数" VerticalAlignment="Center" Opacity="0.65" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding RecentLogCountText}" FontSize="13" />
+                        </Grid>
+                        <Grid ColumnDefinitions="160,*" Margin="0,6,0,6">
+                            <TextBlock Text="最后错误级日志" VerticalAlignment="Top" Opacity="0.65" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding LastErrorLogText}" TextWrapping="Wrap" FontSize="13" />
+                        </Grid>
+                        <Button Content="{Binding CopyDiagnosticsText}"
+                                Command="{Binding CopyDiagnosticsCommand}"
+                                HorizontalAlignment="Left"
+                                Margin="0,14,0,0"
+                                Padding="14,6" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 更新 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding UpdateSectionTitle}"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Opacity="0.9" />
+
+                <Border Padding="18"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="0">
+                        <!-- 自动检查更新 -->
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,8">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding AutoCheckLabel}" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="{Binding AutoCheckDescription}"
+                                           TextWrapping="Wrap"
+                                           Opacity="0.65"
+                                           FontSize="12" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="10"
+                                        VerticalAlignment="Center">
+                                <ToggleSwitch IsChecked="{Binding AutoCheckEnabled, Mode=TwoWay}"
+                                              OnContent="{x:Null}"
+                                              OffContent="{x:Null}" />
+                                <TextBlock Text="{Binding AutoCheckStatusText}"
+                                           VerticalAlignment="Center"
+                                           Opacity="0.8" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 更新源 -->
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,8">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding UpdateSourceLabel}" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="选择从哪个源获取正式版更新；当前仅 GitHub 源可实际执行检查。"
+                                           TextWrapping="Wrap"
+                                           Opacity="0.65"
+                                           FontSize="12" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1"
+                                      MinHeight="{StaticResource ShellTouchTargetMinHeight}"
+                                      ItemsSource="{Binding UpdateSources}"
+                                      SelectedIndex="{Binding SelectedUpdateSourceIndex, Mode=TwoWay}"
+                                      Width="140"
+                                      VerticalAlignment="Center" />
+                        </Grid>
+
+                        <!-- 检查更新 -->
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,8">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding UpdateStatusLabel}" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="{Binding UpdateStatusText}"
+                                           TextWrapping="Wrap"
+                                           Opacity="0.65"
+                                           FontSize="12" />
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    Content="{Binding CheckForUpdatesText}"
+                                    Command="{Binding CheckForUpdatesCommand}"
+                                    VerticalAlignment="Center"
+                                    Padding="14,6" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

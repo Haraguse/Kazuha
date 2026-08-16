@@ -6,16 +6,16 @@ namespace Luminalium.App.Services;
 
 public static class NativeBuiltInFeatureHostFactory
 {
-    public static BuiltInFeatureHost Create(Func<Window> ownerProvider) =>
+    public static BuiltInFeatureHost Create() =>
         new(
             BuiltInFeatureCatalog.Default,
             new AvaloniaBuiltInFeatureDispatcher(),
             new Dictionary<BuiltInFeatureId, IBuiltInFeatureFactory>
             {
-                [BuiltInFeatureId.Board] = new AvaloniaBuiltInFeatureFactory(ownerProvider, static () => new BoardWindow()),
-                [BuiltInFeatureId.Timer] = new AvaloniaBuiltInFeatureFactory(ownerProvider, static () => new TimerWindow()),
-                [BuiltInFeatureId.Spotlight] = new AvaloniaBuiltInFeatureFactory(ownerProvider, static () => new SpotlightWindow()),
-                [BuiltInFeatureId.AppLauncher] = new AvaloniaBuiltInFeatureFactory(ownerProvider, static () => new AppLauncherWindow()),
-                [BuiltInFeatureId.StatusBar] = new AvaloniaBuiltInFeatureFactory(ownerProvider, static () => new StatusBarWindow()),
+                [BuiltInFeatureId.Board] = new AvaloniaBuiltInFeatureFactory(static () => new BoardWindow()),
+                [BuiltInFeatureId.Timer] = new AvaloniaBuiltInFeatureFactory(static () => new TimerWindow()),
+                [BuiltInFeatureId.Spotlight] = new AvaloniaBuiltInFeatureFactory(static () => new SpotlightWindow()),
+                [BuiltInFeatureId.AppLauncher] = new AvaloniaBuiltInFeatureFactory(static () => new AppLauncherWindow()),
+                [BuiltInFeatureId.StatusBar] = new AvaloniaBuiltInFeatureFactory(static () => new StatusBarWindow()),
             });
 }

@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:sys="using:System"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="FluentAvaloniaValidation.Views.OverviewPage">
     <ScrollViewer>
@@ -31,6 +32,34 @@
                            VerticalAlignment="Center"
                            FontSize="13" Opacity="0.85" />
             </StackPanel>
+
+            <Border Margin="0,6,0,0" Padding="16" CornerRadius="8"
+                    BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="ComboBox 垂直居中验证 · Vertical Centering"
+                               FontSize="15" FontWeight="SemiBold" />
+                    <TextBlock Text="默认高度(32)" FontSize="13" Opacity="0.8" />
+                    <ComboBox x:Name="ComboDefault32" MinHeight="32" Width="260" HorizontalAlignment="Left" SelectedIndex="0">
+                        <ComboBoxItem>默认高度选项</ComboBoxItem>
+                        <ComboBoxItem>第二项</ComboBoxItem>
+                    </ComboBox>
+                    <TextBlock Text="触摸目标高度(40)" FontSize="13" Opacity="0.8" />
+                    <ComboBox x:Name="ComboTouch40" MinHeight="40" Width="260" HorizontalAlignment="Left" SelectedIndex="0">
+                        <ComboBoxItem>触摸目标高度选项</ComboBoxItem>
+                        <ComboBoxItem>第二项</ComboBoxItem>
+                    </ComboBox>
+                    <TextBlock Text="高度40 + 应用样式(Selector=ComboBox)" FontSize="13" Opacity="0.8" />
+                    <ComboBox x:Name="ComboAppStyle" MinHeight="40" Width="260" HorizontalAlignment="Left" SelectedIndex="0">
+                        <ComboBoxItem>应用样式选项</ComboBoxItem>
+                        <ComboBoxItem>第二项</ComboBoxItem>
+                    </ComboBox>
+                    <TextBlock Text="字符串 ItemsSource 高度40 (真实应用场景)" FontSize="13" Opacity="0.8" />
+                    <ComboBox x:Name="ComboString40" MinHeight="40" Width="260" HorizontalAlignment="Left" SelectedIndex="0">
+                        <sys:String>字符串选项一</sys:String>
+                        <sys:String>字符串选项二</sys:String>
+                    </ComboBox>
+                </StackPanel>
+            </Border>
 
             <Border Margin="0,6,0,0" Padding="16" CornerRadius="8"
                     BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">

@@ -1,0 +1,117 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Luminalium.App.ViewModels"
+             x:Class="Luminalium.App.Views.Pages.WindowSettingsPage"
+             x:DataType="vm:WindowSettingsViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="0,0,0,36" Spacing="24">
+            <TextBlock Text="{Binding PageTitle}" FontSize="28" FontWeight="SemiBold" />
+
+            <!-- 显示与位置 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding DisplaySectionTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding OverlayScreenLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding Screens}" SelectedIndex="{Binding SelectedScreenIndex, Mode=TwoWay}" Width="150" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding ToolbarPositionLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding ToolbarPositions}" SelectedIndex="{Binding SelectedToolbarPositionIndex, Mode=TwoWay}" Width="150" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding FlipperPositionLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding FlipperPositions}" SelectedIndex="{Binding SelectedFlipperPositionIndex, Mode=TwoWay}" Width="150" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding SafeAreaLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center" MinWidth="220">
+                                <Slider Minimum="0" Maximum="50" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding SafeArea, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding SafeAreaDisplay}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding ScaleLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center" MinWidth="220">
+                                <Slider Minimum="0.5" Maximum="2.0" TickFrequency="0.05" Value="{Binding Scale, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding ScaleDisplay}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding PopWindowScaleLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center" MinWidth="220">
+                                <Slider Minimum="0.5" Maximum="2.0" TickFrequency="0.05" Value="{Binding PopWindowScale, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding PopWindowScaleDisplay}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 边缘与对齐 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding EdgeSectionTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding StrictEdgeAlignmentLabel}" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="{Binding StrictEdgeAlignmentDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding StrictEdgeAlignment, Mode=TwoWay}" OnContent="{x:Null}" OffContent="{x:Null}" VerticalAlignment="Center" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding ToolbarAutoHalfCollapseLabel}" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="{Binding ToolbarAutoHalfCollapseDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding ToolbarAutoHalfCollapse, Mode=TwoWay}" OnContent="{x:Null}" OffContent="{x:Null}" VerticalAlignment="Center" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 高级 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding AdvancedSectionTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding UiAccessTopmostLabel}" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="{Binding UiAccessTopmostDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding UiAccessTopmost, Mode=TwoWay}" OnContent="{x:Null}" OffContent="{x:Null}" VerticalAlignment="Center" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding AllowRecordingLabel}" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="{Binding AllowRecordingDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding AllowRecording, Mode=TwoWay}" OnContent="{x:Null}" OffContent="{x:Null}" VerticalAlignment="Center" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding ZOrderCheckIntervalLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding ZOrderIntervalsDisplay}" SelectedIndex="{Binding SelectedZOrderIntervalIndex, Mode=TwoWay}" Width="150" HorizontalAlignment="Right" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

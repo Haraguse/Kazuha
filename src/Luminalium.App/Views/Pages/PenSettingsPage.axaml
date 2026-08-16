@@ -1,0 +1,127 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Luminalium.App.ViewModels"
+             x:Class="Luminalium.App.Views.Pages.PenSettingsPage"
+             x:DataType="vm:PenSettingsViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="0,0,0,36" Spacing="24">
+            <TextBlock Text="{Binding PageTitle}" FontSize="28" FontWeight="SemiBold" />
+
+            <!-- 画笔模式 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding PenModeSectionTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding PenModeLabel}" FontWeight="SemiBold" FontSize="14" />
+                        </StackPanel>
+                        <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding PenModes}" SelectedIndex="{Binding SelectedPenModeIndex, Mode=TwoWay}" Width="150" HorizontalAlignment="Right" />
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <!-- 画笔 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding PenSectionTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding PenWidthLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center" MinWidth="220">
+                                <Slider Minimum="1" Maximum="10" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding PenWidth, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding PenWidthDisplay}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding PenColorLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding PenColors}" SelectedIndex="{Binding SelectedPenColorIndex, Mode=TwoWay}" Width="150" HorizontalAlignment="Right" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 荧光笔 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding HighlightSectionTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding HighlightWidthLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center" MinWidth="220">
+                                <Slider Minimum="1" Maximum="50" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding HighlightWidth, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding HighlightWidthDisplay}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding HighlightOpacityLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center" MinWidth="220">
+                                <Slider Minimum="0.1" Maximum="1.0" TickFrequency="0.05" Value="{Binding HighlightOpacity, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding HighlightOpacityDisplay}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding HighlightColorLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding HighlightColors}" SelectedIndex="{Binding SelectedHighlightColorIndex, Mode=TwoWay}" Width="150" HorizontalAlignment="Right" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 橡皮 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding EraserSectionTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding EraserWidthLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center" MinWidth="220">
+                                <Slider Minimum="1" Maximum="50" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding EraserWidth, Mode=TwoWay}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding EraserWidthDisplay}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding PalmEraseLabel}" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="{Binding PalmEraseDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding PalmErase, Mode=TwoWay}" OnContent="{x:Null}" OffContent="{x:Null}" VerticalAlignment="Center" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 性能 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding PerformanceSectionTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding FrameRateModeLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding FrameRateModes}" SelectedIndex="{Binding SelectedFrameRateModeIndex, Mode=TwoWay}" Width="150" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding PenEffectLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding PenEffects}" SelectedIndex="{Binding SelectedPenEffectIndex, Mode=TwoWay}" Width="150" HorizontalAlignment="Right" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

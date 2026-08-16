@@ -41,18 +41,10 @@ public sealed partial class ShellViewModel : ObservableObject
     private readonly IReadOnlyList<string> _knownFontFamilies;
     private bool _settingsUnlocked;
     private readonly AsyncSerialGate _settingsOperationGate = new();
+    private readonly SettingsCoordinator _settingsCoordinator;
     private readonly BuiltInFeatureLegacyProjection _legacyProjection = new();
     private long _accentRequestId;
-    private readonly Stack<ShellPageViewModel> _backStack = new();
-    private readonly Dictionary<BuiltInFeatureId, ShellPageViewModel> _nativePages;
     private string _trayStatusKey = "Tray.Status.Pending";
-
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(GoBackCommand))]
-    private bool canGoBack;
-
-    [ObservableProperty]
-    private ShellPageViewModel currentPage;
 
     [ObservableProperty]
     private ShellThemeMode selectedThemeMode;
@@ -87,6 +79,17 @@ public sealed partial class ShellViewModel : ObservableObject
         _config = config ?? LuminaliumConfig.CreateDefault();
         _knownFontFamilies = (knownFontFamilies ?? ResolveKnownFontFamilies()).ToArray();
         _configurationService = configurationService;
+        _settingsCoordinator = new SettingsCoordinator(_config, _configurationService);
+
+        ProfileService? profileService = null;
+        ConfigurationBackupService? backupService = null;
+        StorageService? storageService = null;
+        if (_configurationService is not null)
+        {
+            profileService = new ProfileService(_configurationService);
+            backupService = new ConfigurationBackupService(_configurationService);
+            storageService = new StorageService(_configurationService);
+        }
         _passwordHashService = passwordHashService ?? new PasswordHashService();
         _processLaunchService = processLaunchService ?? new ProcessLaunchService();
         _localization = localizationService ?? new LocalizationService();
@@ -109,7 +112,21 @@ public sealed partial class ShellViewModel : ObservableObject
             .Select(descriptor => new BuiltInFeatureEntryViewModel(descriptor, _localization))
             .ToArray();
 
-        Overview = new OverviewViewModel(ProductName, _versionDisplay, _versionUnavailable, BuiltInFeatures, _localization);
+        Onboarding = new OnboardingViewModel(_config, _configurationService, _localization);
+        Logs = new LogsViewModel(localLogService, _localization);
+
+        var diagnosticService = _configurationService is null
+            ? null
+            : new DiagnosticService(
+                ProductName,
+                VersionDisplay,
+                DiagnosticService.DefaultPlatform(),
+                _config.SchemaVersion,
+                _configurationService.SettingsDirectoryPath,
+                profileService?.GetActiveProfileName(),
+                localLogService.LogPath,
+                DiagnosticService.DefaultUpdateCacheDirectory(),
+                localLogService);
 
         Settings = new SettingsViewModel(
             VersionDisplay,
@@ -131,24 +148,17 @@ public sealed partial class ShellViewModel : ObservableObject
             ApplySplashStyleAsync,
             ApplyDetailedSplashAsync,
             ApplySplashTimeRangeAsync,
-            _knownFontFamilies);
+            _knownFontFamilies,
+            _settingsCoordinator,
+            profileService,
+            backupService,
+            storageService,
+            diagnosticService);
         InitializeAppearance();
         InitializeFontAndSplash();
-        _nativePages = new Dictionary<BuiltInFeatureId, ShellPageViewModel>
-        {
-            [BuiltInFeatureId.Onboarding] = new OnboardingViewModel(_config, _configurationService, _localization),
-            [BuiltInFeatureId.Logs] = new LogsViewModel(localLogService, _localization),
-        };
-
-        currentPage = _config.General.OnboardingCompleted
-            ? Overview
-            : _nativePages[BuiltInFeatureId.Onboarding];
         trayStatusText = _localization[_trayStatusKey];
         _localization.LanguageChanged += OnLanguageChanged;
-        GoBackCommand = new RelayCommand(GoBack, () => CanGoBack);
-        NavigateToOverviewCommand = new RelayCommand(NavigateToOverview);
         NavigateToSettingsCommand = new RelayCommand(NavigateToSettings);
-        NavigateToPluginCommand = new RelayCommand<BuiltInFeatureEntryViewModel>(feature => NavigateToFeature(feature?.RouteKey));
     }
 
     public string ProductName { get; }
@@ -165,9 +175,13 @@ public sealed partial class ShellViewModel : ObservableObject
     [Obsolete("Use BuiltInFeatures; retained for one compatibility release.")]
     public IReadOnlyList<BuiltInFeatureEntryViewModel> LegacyPlugins => _legacyProjection.Entries(_localization);
 
-    public OverviewViewModel Overview { get; }
+    public OnboardingViewModel Onboarding { get; }
+
+    public LogsViewModel Logs { get; }
 
     public SettingsViewModel Settings { get; }
+
+    public SettingsCoordinator SettingsCoordinator => _settingsCoordinator;
 
     public IDialogService DialogService { get; set; }
 
@@ -175,6 +189,12 @@ public sealed partial class ShellViewModel : ObservableObject
     /// Raised when a completed update replacement requires Luminalium to restart.
     /// </summary>
     public event EventHandler? RestartRequired;
+
+    /// <summary>
+    /// Raised when the user navigates to the settings page. The main window should
+    /// open a standalone settings window instead of embedding the page in the shell.
+    /// </summary>
+    public event EventHandler? RequestOpenSettingsWindow;
 
     public bool PasswordProtectionEnabled => _config.Security.PasswordProtectionEnabled;
 
@@ -194,59 +214,14 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public string OpenOverlayHelpText => _localization["Shell.OpenOverlay.HelpText"];
 
-    public IRelayCommand GoBackCommand { get; }
-
-    public IRelayCommand NavigateToOverviewCommand { get; }
-
     public IRelayCommand NavigateToSettingsCommand { get; }
-
-    public IRelayCommand<BuiltInFeatureEntryViewModel> NavigateToPluginCommand { get; }
 
     private static string DefaultVersionMetadataPath =>
         Path.Combine(AppContext.BaseDirectory, ProductIdentity.VersionMetadataFileName);
 
-    public void NavigateToOverview() => NavigateTo(Overview);
-
-    public void NavigateToSettings() => NavigateTo(Settings);
-
-    public BuiltInFeatureActivationResult NavigateToFeature(string? route)
+    public void NavigateToSettings()
     {
-        var result = new BuiltInFeatureRouteParser().Parse(route);
-        if (!result.IsSuccess)
-        {
-            return result;
-        }
-
-        if (result.FeatureId == BuiltInFeatureId.Settings)
-        {
-            NavigateTo(Settings);
-            return result;
-        }
-
-        if (_nativePages.TryGetValue(result.FeatureId!.Value, out var page))
-        {
-            NavigateTo(page);
-            return result;
-        }
-
-        return BuiltInFeatureActivationResult.Failure(BuiltInFeatureActivationErrorCode.NotFound, route, result.FeatureId, result.CorrelationId);
-    }
-
-    [Obsolete("Use NavigateToFeature; retained for one compatibility release.")]
-    public void NavigateToPlugin(BuiltInFeatureEntryViewModel? feature) => NavigateToFeature(feature?.RouteKey);
-
-    [Obsolete("Use NavigateToFeature; retained for one compatibility release.")]
-    public void NavigateToPlugin(ExtensionEntryViewModel? plugin) => NavigateToFeature(plugin?.Id);
-
-    public void GoBack()
-    {
-        if (_backStack.Count == 0)
-        {
-            return;
-        }
-
-        SetCurrentPage(_backStack.Pop());
-        UpdateBackState();
+        RequestOpenSettingsWindow?.Invoke(this, EventArgs.Empty);
     }
 
     public void ApplyThemeMode(ShellThemeMode mode) => _ = ApplyThemeModeAsync(mode);
@@ -356,26 +331,6 @@ public sealed partial class ShellViewModel : ObservableObject
             ? ($"{result.Metadata!.VersionName} | {result.Metadata.Build}", false)
             : (VersionUnavailableText, true);
     }
-
-    private void NavigateTo(ShellPageViewModel page)
-    {
-        if (StringComparer.Ordinal.Equals(CurrentPage.NavigationKey, page.NavigationKey))
-        {
-            return;
-        }
-
-        _backStack.Push(CurrentPage);
-        SetCurrentPage(page);
-        UpdateBackState();
-    }
-
-    private void SetCurrentPage(ShellPageViewModel page)
-    {
-        CurrentPage = page;
-        ClearError();
-    }
-
-    private void UpdateBackState() => CanGoBack = _backStack.Count > 0;
 
     private Task ShowAboutAsync() => DialogService.ShowAboutAsync(this);
 

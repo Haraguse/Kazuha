@@ -1,0 +1,121 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Luminalium.App.ViewModels"
+             x:Class="Luminalium.App.Views.Pages.ToolbarSettingsPage"
+             x:DataType="vm:ToolbarSettingsViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="0,0,0,36" Spacing="24">
+            <TextBlock Text="{Binding PageTitle}" FontSize="28" FontWeight="SemiBold" />
+
+            <!-- 工具显示 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding VisibilityTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="{Binding ToolVisibilityDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                        <ItemsControl ItemsSource="{Binding Tools}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ToolAvailabilityItem">
+                                    <Grid ColumnDefinitions="*,Auto" MinHeight="36">
+                                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" />
+                                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding IsVisible, Mode=TwoWay}" OnContent="{x:Null}" OffContent="{x:Null}" VerticalAlignment="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 工具栏显示 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding DisplayTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="{Binding DisplayDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                        <ToggleSwitch Content="{Binding ShowToolbarTextLabel}" IsChecked="{Binding ShowToolbarText, Mode=TwoWay}" />
+                        <ToggleSwitch Content="{Binding ShowTooltipsLabel}" IsChecked="{Binding ShowTooltips, Mode=TwoWay}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 清屏和透明度 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding ClearAndOpacityTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding ClearModeLabel}" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="{Binding ClearModeDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding ClearModes}" SelectedIndex="{Binding SelectedClearModeIndex, Mode=TwoWay}" Width="150" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding ToolbarOpacityLabel}" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="{Binding ToolbarOpacityDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                                <Slider Minimum="0.1" Maximum="1.0" TickFrequency="0.05" IsSnapToTickEnabled="True" Value="{Binding ToolbarOpacity, Mode=TwoWay}" />
+                                <TextBlock Text="{Binding ToolbarOpacityDisplay}" Width="48" TextAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding SyncOpacityLabel}" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="{Binding SyncOpacityDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding SyncOpacity, Mode=TwoWay}" OnContent="{x:Null}" OffContent="{x:Null}" VerticalAlignment="Center" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 工具顺序 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding OrderTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="{Binding OrderDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                        <ItemsControl ItemsSource="{Binding ToolOrderItems}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ToolOrderItem">
+                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" />
+                                        <Button Grid.Column="1" Content="{Binding $parent[ItemsControl].DataContext.MoveUpLabel}" Command="{Binding $parent[ItemsControl].DataContext.MoveToolUpCommand}" CommandParameter="{Binding}" />
+                                        <Button Grid.Column="2" Content="{Binding $parent[ItemsControl].DataContext.MoveDownLabel}" Command="{Binding $parent[ItemsControl].DataContext.MoveToolDownCommand}" CommandParameter="{Binding}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 快速启动应用 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding QuickLaunchTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="{Binding QuickLaunchDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <TextBox MinHeight="{StaticResource ShellTouchTargetMinHeight}" Text="{Binding NewQuickLaunchApp, Mode=TwoWay}" PlaceholderText="{Binding QuickLaunchPlaceholder}" />
+                            <Button Grid.Column="1" Content="{Binding AddLabel}" Command="{Binding AddQuickLaunchAppCommand}" />
+                        </Grid>
+                        <ItemsControl ItemsSource="{Binding QuickLaunchApps}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <TextBlock Text="{Binding}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                        <Button Grid.Column="1" Content="{Binding $parent[ItemsControl].DataContext.RemoveLabel}" Command="{Binding $parent[ItemsControl].DataContext.RemoveQuickLaunchAppCommand}" CommandParameter="{Binding}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

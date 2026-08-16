@@ -1,0 +1,82 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Luminalium.App.ViewModels"
+             x:Class="Luminalium.App.Views.Pages.FontSettingsPage"
+             x:DataType="vm:FontSettingsViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="0,0,0,36" Spacing="24">
+            <TextBlock Text="{Binding PageTitle}" FontSize="28" FontWeight="SemiBold" />
+
+            <!-- 自定义字体开关 -->
+            <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Spacing="3" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding CustomFontLabel}" FontWeight="SemiBold" FontSize="14" />
+                        <TextBlock Text="{Binding CustomFontDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                    </StackPanel>
+                    <ToggleSwitch Grid.Column="1" IsChecked="{Binding CustomFont, Mode=TwoWay}" OnContent="{x:Null}" OffContent="{x:Null}" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <!-- 字体选择 -->
+            <StackPanel Spacing="10" IsVisible="{Binding FontSelectionEnabled}">
+                <TextBlock Text="{Binding FontSelectionSectionTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding FamilyLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding FontFamilies}" SelectedIndex="{Binding SelectedFamilyIndex, Mode=TwoWay}" Width="220" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding WeightLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding Weights}" SelectedIndex="{Binding SelectedWeightIndex, Mode=TwoWay}" Width="220" HorizontalAlignment="Right" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 按语言覆盖字体 -->
+            <StackPanel Spacing="10" IsVisible="{Binding LanguageOverridesEnabled}">
+                <StackPanel Spacing="3">
+                    <TextBlock Text="{Binding LanguageOverrideSectionTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                    <TextBlock Text="{Binding LanguageOverrideDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                </StackPanel>
+                <ItemsControl ItemsSource="{Binding LanguageOverrideItems}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="0,0,0,8" Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="{Binding LanguageDisplay}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" />
+                                    <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding FontFamilies}" SelectedIndex="{Binding SelectedFamilyIndex, Mode=TwoWay}" Width="220" HorizontalAlignment="Right" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- 字体预览 -->
+            <StackPanel Spacing="10" IsVisible="{Binding FontSelectionEnabled}">
+                <TextBlock Text="{Binding PreviewSectionTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding PreviewSampleLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <TextBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" Text="{Binding PreviewSample, Mode=TwoWay}" Width="300" HorizontalAlignment="Right" PlaceholderText="输入用于预览的文本" />
+                        </Grid>
+                        <Border Padding="14" CornerRadius="8" Background="{DynamicResource LayerFillColorSecondaryBrush}">
+                            <TextBlock Text="{Binding PreviewSample}" FontSize="20" TextWrapping="Wrap" />
+                        </Border>
+                        <TextBlock Text="{Binding PreviewHint}" Opacity="0.65" FontSize="12" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

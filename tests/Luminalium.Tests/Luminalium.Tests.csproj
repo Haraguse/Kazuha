@@ -17,6 +17,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="DotNetCampus.AvaloniaInkCanvas" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
@@ -42,13 +43,20 @@
   <ItemGroup>
     <Compile Include="..\..\src\Luminalium.App\Features\*.cs" Link="App\Features\%(Filename)%(Extension)" />
     <Compile Include="..\..\src\Luminalium.App\Services\AsyncSerialGate.cs" Link="App\Services\AsyncSerialGate.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\SettingsCoordinator.cs" Link="App\Services\SettingsCoordinator.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\StorageOperationResult.cs" Link="App\Services\StorageOperationResult.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\ProfileService.cs" Link="App\Services\ProfileService.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\ConfigurationBackupService.cs" Link="App\Services\ConfigurationBackupService.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\StorageService.cs" Link="App\Services\StorageService.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\OverlayToolbarSnapshot.cs" Link="App\Services\OverlayToolbarSnapshot.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\BuiltInFeatureHostContracts.cs" Link="App\Services\BuiltInFeatureHostContracts.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\BuiltInFeatureHost.cs" Link="App\Services\BuiltInFeatureHost.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\BuiltInFeatureLegacyProjection.cs" Link="App\Services\BuiltInFeatureLegacyProjection.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\BuiltInFeatureMigrationDiagnostics.cs" Link="App\Services\BuiltInFeatureMigrationDiagnostics.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\ExternalExtensionRegistry.cs" Link="App\Services\ExternalExtensionRegistry.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\NativeFeatureMigrationGate.cs" Link="App\Services\NativeFeatureMigrationGate.cs" />
-    <Compile Include="..\..\src\Luminalium.App\Services\ShellPageMap.cs" Link="App\Services\ShellPageMap.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\PresentationHostFactory.cs" Link="App\Services\PresentationHostFactory.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\SlideshowWatcher.cs" Link="App\Services\SlideshowWatcher.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\IDialogService.cs" Link="App\Services\IDialogService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\PasswordDialogTypes.cs" Link="App\Services\PasswordDialogTypes.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\AboutDialogViewModel.cs" Link="App\ViewModels\AboutDialogViewModel.cs" />
@@ -66,11 +74,13 @@
     <Compile Include="..\..\src\Luminalium.App\Services\IPresentationStatusSource.cs" Link="App\Services\IPresentationStatusSource.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\IMediaStatusSource.cs" Link="App\Services\IMediaStatusSource.cs" />
     <Compile Include="..\..\src\Luminalium.App\Services\LocalLogService.cs" Link="App\Services\LocalLogService.cs" />
+    <Compile Include="..\..\src\Luminalium.App\Services\DiagnosticService.cs" Link="App\Services\DiagnosticService.cs" />
     <Compile Include="..\..\src\Luminalium.App\Overlay\IAnnotationSink.cs" Link="App\Overlay\IAnnotationSink.cs" />
     <Compile Include="..\..\src\Luminalium.App\Overlay\IOverlayScreenProvider.cs" Link="App\Overlay\IOverlayScreenProvider.cs" />
     <Compile Include="..\..\src\Luminalium.App\Overlay\StrokeModel.cs" Link="App\Overlay\StrokeModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\Board\*.cs" Link="App\Board\%(Filename)%(Extension)" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\BoardViewModel.cs" Link="App\ViewModels\BoardViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\BoardColorOption.cs" Link="App\ViewModels\BoardColorOption.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\TimerViewModel.cs" Link="App\ViewModels\TimerViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\SpotlightViewModel.cs" Link="App\ViewModels\SpotlightViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\AppLauncherViewModel.cs" Link="App\ViewModels\AppLauncherViewModel.cs" />
@@ -78,7 +88,6 @@
     <Compile Include="..\..\src\Luminalium.App\ViewModels\AccentOptionViewModel.cs" Link="App\ViewModels\AccentOptionViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\LanguageOptionViewModel.cs" Link="App\ViewModels\LanguageOptionViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\BuiltInFeatureEntryViewModel.cs" Link="App\ViewModels\BuiltInFeatureEntryViewModel.cs" />
-    <Compile Include="..\..\src\Luminalium.App\ViewModels\OverviewViewModel.cs" Link="App\ViewModels\OverviewViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\OverlayViewModel.cs" Link="App\ViewModels\OverlayViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\ExtensionEntryViewModel.cs" Link="App\ViewModels\ExtensionEntryViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\ExtensionPageViewModel.cs" Link="App\ViewModels\ExtensionPageViewModel.cs" />
@@ -86,6 +95,19 @@
     <Compile Include="..\..\src\Luminalium.App\ViewModels\LogsViewModel.cs" Link="App\ViewModels\LogsViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\SettingsViewModel.cs" Link="App\ViewModels\SettingsViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\FontFamilyOptionViewModel.cs" Link="App\ViewModels\FontFamilyOptionViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\GeneralSettingsViewModel.cs" Link="App\ViewModels\GeneralSettingsViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\BuiltInSettingsViewModel.cs" Link="App\ViewModels\BuiltInSettingsViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\FontSettingsViewModel.cs" Link="App\ViewModels\FontSettingsViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\PersonalizationSettingsViewModel.cs" Link="App\ViewModels\PersonalizationSettingsViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\ToolbarSettingsViewModel.cs" Link="App\ViewModels\ToolbarSettingsViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\ToolbarToolItem.cs" Link="App\ViewModels\ToolbarToolItem.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\LinkageSettingsViewModel.cs" Link="App\ViewModels\LinkageSettingsViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\NotificationSettingsViewModel.cs" Link="App\ViewModels\NotificationSettingsViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\WindowSettingsViewModel.cs" Link="App\ViewModels\WindowSettingsViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\StatusBarSettingsViewModel.cs" Link="App\ViewModels\StatusBarSettingsViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\PenSettingsViewModel.cs" Link="App\ViewModels\PenSettingsViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\AboutSettingsViewModel.cs" Link="App\ViewModels\AboutSettingsViewModel.cs" />
+    <Compile Include="..\..\src\Luminalium.App\ViewModels\StorageSettingsViewModel.cs" Link="App\ViewModels\StorageSettingsViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\SplashModeOptionViewModel.cs" Link="App\ViewModels\SplashModeOptionViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\SplashStyleOptionViewModel.cs" Link="App\ViewModels\SplashStyleOptionViewModel.cs" />
     <Compile Include="..\..\src\Luminalium.App\ViewModels\ShellErrorKind.cs" Link="App\ViewModels\ShellErrorKind.cs" />

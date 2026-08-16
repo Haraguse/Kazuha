@@ -8,23 +8,19 @@ public abstract class ShellPageViewModel : ObservableObject
     private readonly string? _titleKey;
     private readonly string _fallbackTitle;
 
-    protected ShellPageViewModel(string navigationKey, string titleKey, ILocalizationService localization)
+    protected ShellPageViewModel(string titleKey, ILocalizationService localization)
     {
-        NavigationKey = navigationKey;
         _titleKey = titleKey;
         _fallbackTitle = titleKey;
         Localization = localization;
         Localization.LanguageChanged += OnLanguageChanged;
     }
 
-    protected ShellPageViewModel(string navigationKey, string fallbackTitle)
+    protected ShellPageViewModel(string fallbackTitle)
     {
-        NavigationKey = navigationKey;
         _fallbackTitle = fallbackTitle;
         Localization = new LocalizationService();
     }
-
-    public string NavigationKey { get; }
 
     public virtual string Title => _titleKey is null ? _fallbackTitle : Localization[_titleKey];
 

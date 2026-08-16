@@ -4,13 +4,10 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using FluentAvalonia.UI.Controls;
-using FluentAvalonia.UI.Navigation;
 using FluentAvalonia.UI.Windowing;
 using Luminalium.App.Features;
 using Luminalium.App.Services;
 using Luminalium.App.ViewModels;
-using System.Globalization;
 
 namespace Luminalium.App.Views;
 
@@ -18,10 +15,10 @@ public partial class MainWindow : FAAppWindow
 {
     private readonly ShellViewModel _viewModel;
     private readonly IBuiltInFeatureHost _featureHost;
-    private readonly ShellNavigationService _navigationService = new();
-    private readonly Dictionary<string, FANavigationViewItem> _navigationItems = new(StringComparer.Ordinal);
     private OverlayWindow? _overlayWindow;
-    private bool _selectionChanging;
+    private SettingsWindow? _settingsWindow;
+    private LogsWindow? _logsWindow;
+    private OnboardingWindow? _onboardingWindow;
 
     public MainWindow()
         : this(new ShellViewModel(), new DialogService())
@@ -38,35 +35,12 @@ public partial class MainWindow : FAAppWindow
         dialogService.AttachOwner(this);
         viewModel.DialogService = dialogService;
         viewModel.RestartRequired += (_, _) => ShutdownForRestart();
-
-        TitleBar.ExtendsContentIntoTitleBar = true;
-        TitleBar.Height = 44;
-        Icon = new Bitmap(AssetLoader.Open(new Uri("avares://Luminalium/Assets/logo.ico")));
-
-        _navigationService.AttachFrame(ShellFrame);
-        BuildNavigationItems();
-        NavigateFrame(viewModel.CurrentPage);
-        SelectNavigationItem(viewModel.CurrentPage.NavigationKey);
-
-        viewModel.PropertyChanged += (_, args) =>
-        {
-            if (args.PropertyName == nameof(ShellViewModel.CurrentPage))
-            {
-                NavigateFrame(viewModel.CurrentPage);
-                SelectNavigationItem(viewModel.CurrentPage.NavigationKey);
-            }
-        };
+        viewModel.RequestOpenSettingsWindow += (_, _) => OpenSettingsWindow();
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
-
-        if (e.Key == Key.Left && e.KeyModifiers.HasFlag(KeyModifiers.Alt) && _viewModel.CanGoBack)
-        {
-            _viewModel.GoBack();
-            e.Handled = true;
-        }
 
         if (e.Key == Key.O
             && e.KeyModifiers.HasFlag(KeyModifiers.Control)
@@ -77,163 +51,7 @@ public partial class MainWindow : FAAppWindow
         }
     }
 
-    protected override void OnPointerReleased(PointerReleasedEventArgs e)
-    {
-        base.OnPointerReleased(e);
-
-        if (e.InitialPressMouseButton == MouseButton.XButton1 && _viewModel.CanGoBack)
-        {
-            _viewModel.GoBack();
-            e.Handled = true;
-        }
-    }
-
-    private void BuildNavigationItems()
-    {
-        var overviewItem = CreateNavigationItem(
-            _viewModel.Overview.Title,
-            _viewModel.Overview.NavigationKey,
-            _viewModel.Localization["Navigation.Overview.HelpText"]);
-        overviewItem.IconSource = new FASymbolIconSource { Symbol = FASymbol.Home };
-        AddTopItem(overviewItem);
-
-        foreach (var plugin in _viewModel.BuiltInFeatures)
-        {
-            AddTopItem(CreateNavigationItem(
-                plugin.DisplayName,
-                plugin.RouteKey,
-                string.Format(CultureInfo.InvariantCulture, _viewModel.Localization["Navigation.Plugin.HelpText"], plugin.DisplayName)));
-        }
-
-        var settingsItem = CreateNavigationItem(
-            _viewModel.Settings.Title,
-            _viewModel.Settings.NavigationKey,
-            _viewModel.Localization["Navigation.Settings.HelpText"]);
-        ShellNavigation.FooterMenuItems.Add(settingsItem);
-        _navigationItems[_viewModel.Settings.NavigationKey] = settingsItem;
-
-        _viewModel.PropertyChanged += (_, args) =>
-        {
-            if (args.PropertyName == nameof(ShellViewModel.LocalizedTextVersion))
-            {
-                RefreshNavigationText();
-            }
-        };
-
-        void AddTopItem(FANavigationViewItem item)
-        {
-            ShellNavigation.MenuItems.Add(item);
-            _navigationItems[(string)item.Tag!] = item;
-        }
-    }
-
-    private void RefreshNavigationText()
-    {
-        if (_navigationItems.TryGetValue(_viewModel.Overview.NavigationKey, out var overviewItem))
-        {
-            SetNavigationText(overviewItem, _viewModel.Overview.Title, _viewModel.Localization["Navigation.Overview.HelpText"]);
-        }
-
-        if (_navigationItems.TryGetValue(_viewModel.Settings.NavigationKey, out var settingsItem))
-        {
-            SetNavigationText(settingsItem, _viewModel.Settings.Title, _viewModel.Localization["Navigation.Settings.HelpText"]);
-        }
-
-        foreach (var plugin in _viewModel.BuiltInFeatures)
-        {
-            var key = plugin.RouteKey;
-            if (_navigationItems.TryGetValue(key, out var pluginItem))
-            {
-                SetNavigationText(pluginItem, plugin.DisplayName, string.Format(CultureInfo.InvariantCulture, _viewModel.Localization["Navigation.Plugin.HelpText"], plugin.DisplayName));
-            }
-        }
-    }
-
-    private static void SetNavigationText(FANavigationViewItem item, string content, string helpText)
-    {
-        item.Content = content;
-        Avalonia.Automation.AutomationProperties.SetName(item, content);
-        Avalonia.Automation.AutomationProperties.SetHelpText(item, helpText);
-    }
-
-    private FANavigationViewItem CreateNavigationItem(string content, string tag, string helpText)
-    {
-        var item = new FANavigationViewItem
-        {
-            Content = content,
-            Tag = tag,
-            MinHeight = 40,
-        };
-        item.Tapped += OnNavigationItemTapped;
-        Avalonia.Automation.AutomationProperties.SetName(item, content);
-        Avalonia.Automation.AutomationProperties.SetHelpText(item, helpText);
-        return item;
-    }
-
-    private void OnNavigationItemTapped(object? sender, TappedEventArgs e)
-    {
-        if (_selectionChanging || sender is not FANavigationViewItem { Tag: string tag })
-        {
-            return;
-        }
-
-        NavigateByTag(tag);
-        e.Handled = true;
-    }
-
-    private void OnItemInvoked(object? sender, FANavigationViewItemInvokedEventArgs e)
-    {
-        if (_selectionChanging || e.InvokedItemContainer?.Tag is not string tag)
-        {
-            return;
-        }
-
-        NavigateByTag(tag);
-    }
-
-    private void OnSelectionChanged(object? sender, FANavigationViewSelectionChangedEventArgs e)
-    {
-        var container = e.SelectedItemContainer ?? e.SelectedItem as FANavigationViewItem;
-        if (_selectionChanging || container?.Tag is not string tag)
-        {
-            return;
-        }
-
-        NavigateByTag(tag);
-    }
-
-    private void NavigateByTag(string tag)
-    {
-        if (tag == _viewModel.Overview.NavigationKey)
-        {
-            _viewModel.NavigateToOverview();
-            return;
-        }
-
-        if (tag == _viewModel.Settings.NavigationKey)
-        {
-            _viewModel.NavigateToSettings();
-            return;
-        }
-
-        _ = ActivateFeatureAsync(tag);
-    }
-
-    private async Task ActivateFeatureAsync(string route)
-    {
-        var parsed = new BuiltInFeatureRouteParser().Parse(route);
-        if (!parsed.IsSuccess) return;
-        if (parsed.FeatureId == BuiltInFeatureId.Settings || parsed.FeatureId == BuiltInFeatureId.Onboarding || parsed.FeatureId == BuiltInFeatureId.Logs)
-        {
-            _viewModel.NavigateToFeature(route);
-            return;
-        }
-        await _featureHost.ActivateAsync(parsed.FeatureId!.Value, route, parsed.CorrelationId).ConfigureAwait(true);
-    }
-
-    private BuiltInFeatureHost CreateDefaultFeatureHost() => NativeBuiltInFeatureHostFactory.Create(() => this);
-
-    private void OnBackRequested(object? sender, FANavigationViewBackRequestedEventArgs e) => _viewModel.GoBack();
+    private static BuiltInFeatureHost CreateDefaultFeatureHost() => NativeBuiltInFeatureHostFactory.Create();
 
     protected override async void OnClosed(EventArgs e)
     {
@@ -254,6 +72,8 @@ public partial class MainWindow : FAAppWindow
 
     private void OnOpenOverlayClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => OpenOverlay();
 
+    private void OnOpenLogsClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => OpenLogsWindow();
+
     public void OpenOverlay()
     {
         if (_overlayWindow is { IsVisible: true })
@@ -262,7 +82,7 @@ public partial class MainWindow : FAAppWindow
             return;
         }
 
-        var overlayWindow = new OverlayWindow(_viewModel.Localization);
+        var overlayWindow = new OverlayWindow(_viewModel.Localization, _viewModel.SettingsCoordinator);
         overlayWindow.Closed += (_, _) =>
         {
             if (ReferenceEquals(_overlayWindow, overlayWindow))
@@ -277,24 +97,102 @@ public partial class MainWindow : FAAppWindow
         };
 
         _overlayWindow = overlayWindow;
-        overlayWindow.Show(this);
+        overlayWindow.Show();
         overlayWindow.Activate();
     }
 
-    private void NavigateFrame(ShellPageViewModel page)
+    public void OpenSettingsWindow()
     {
-        _navigationService.Navigate(page);
+        if (_settingsWindow is { IsVisible: true })
+        {
+            _settingsWindow.Activate();
+            return;
+        }
+
+        var settingsWindow = new SettingsWindow(_viewModel.Settings);
+        settingsWindow.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_settingsWindow, settingsWindow))
+            {
+                _settingsWindow = null;
+            }
+        };
+
+        _settingsWindow = settingsWindow;
+        settingsWindow.Show();
+        settingsWindow.Activate();
     }
 
-    private void SelectNavigationItem(string navigationKey)
+    public void OpenLogsWindow()
     {
-        if (!_navigationItems.TryGetValue(navigationKey, out var item))
+        if (_logsWindow is { IsVisible: true })
+        {
+            _logsWindow.Activate();
+            return;
+        }
+
+        var logsWindow = new LogsWindow(_viewModel.Logs);
+        logsWindow.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_logsWindow, logsWindow))
+            {
+                _logsWindow = null;
+            }
+        };
+
+        _logsWindow = logsWindow;
+        logsWindow.Show();
+        logsWindow.Activate();
+    }
+
+    public void OpenOnboardingWindow()
+    {
+        if (_onboardingWindow is { IsVisible: true })
+        {
+            _onboardingWindow.Activate();
+            return;
+        }
+
+        var onboardingWindow = new OnboardingWindow(_viewModel.Onboarding);
+        onboardingWindow.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_onboardingWindow, onboardingWindow))
+            {
+                _onboardingWindow = null;
+            }
+        };
+
+        _onboardingWindow = onboardingWindow;
+        onboardingWindow.Show();
+        onboardingWindow.Activate();
+    }
+
+    public async Task ActivateFeatureAsync(string route)
+    {
+        var parsed = new BuiltInFeatureRouteParser().Parse(route);
+        if (!parsed.IsSuccess)
         {
             return;
         }
 
-        _selectionChanging = true;
-        ShellNavigation.SelectedItem = item;
-        _selectionChanging = false;
+        if (parsed.FeatureId == BuiltInFeatureId.Settings)
+        {
+            OpenSettingsWindow();
+            return;
+        }
+
+        if (parsed.FeatureId == BuiltInFeatureId.Onboarding)
+        {
+            OpenOnboardingWindow();
+            return;
+        }
+
+        if (parsed.FeatureId == BuiltInFeatureId.Logs)
+        {
+            OpenLogsWindow();
+            return;
+        }
+
+        await _featureHost.ActivateAsync(parsed.FeatureId!.Value, route, parsed.CorrelationId).ConfigureAwait(true);
     }
 }

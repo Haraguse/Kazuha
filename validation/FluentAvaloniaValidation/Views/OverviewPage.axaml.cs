@@ -5,6 +5,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using FluentAvalonia.UI.Controls;
 using FluentAvaloniaValidation.Interop;
 
@@ -26,6 +28,36 @@ public partial class OverviewPage : UserControl
         if (_initialized) return;
         _initialized = true;
         EnvText.Text = BuildEnvironmentText();
+
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1500) };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            DumpComboBoxLayout("默认32 (ComboDefault32)", ComboDefault32);
+            DumpComboBoxLayout("触摸40 (ComboTouch40)", ComboTouch40);
+            DumpComboBoxLayout("应用样式 (ComboAppStyle)", ComboAppStyle);
+            DumpComboBoxLayout("字符串40 (ComboString40)", ComboString40);
+        };
+        timer.Start();
+    }
+
+    private static void DumpComboBoxLayout(string label, ComboBox cb)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"=== {label} ===");
+        sb.AppendLine($"ComboBox Bounds={cb.Bounds} Desired={cb.DesiredSize} Padding={cb.Padding} VCA={cb.VerticalContentAlignment}");
+        foreach (var v in cb.GetVisualDescendants())
+        {
+            if (v is ContentControl cc && cc.Name == "ContentPresenter")
+            {
+                sb.AppendLine($"  ContentControl Bounds={cc.Bounds} VA={cc.VerticalAlignment} VCA={cc.VerticalContentAlignment} HCA={cc.HorizontalContentAlignment} Margin={cc.Margin}");
+            }
+            if (v is TextBlock tb)
+            {
+                sb.AppendLine($"  TextBlock '{tb.Text}' Bounds={tb.Bounds} VA={tb.VerticalAlignment}");
+            }
+        }
+        System.IO.File.AppendAllText(@"C:\Users\Evan Evan\Documents\Luminalium\validation\_combodump.txt", sb.ToString() + "\n");
     }
 
     private static string BuildEnvironmentText()

@@ -79,6 +79,11 @@
         <Style Selector="UserControl">
             <Setter Property="FontFamily" Value="{DynamicResource LuminaliumFontFamily}" />
         </Style>
+        <Style Selector="Slider">
+            <Setter Property="Width" Value="180" />
+            <Setter Property="MinHeight" Value="{StaticResource ShellTouchTargetMinHeight}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
         <!-- ComboBox content vertical centering for CJK text (default FluentAvalonia template
              leaves text anchored near the top on taller touch-target heights).
              Two parts are required:

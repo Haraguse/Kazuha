@@ -1,0 +1,405 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Luminalium.App.ViewModels"
+             xmlns:conv="using:Luminalium.App.Converters"
+             x:Class="Luminalium.App.Views.Pages.PersonalizationSettingsPage"
+             x:DataType="vm:PersonalizationSettingsViewModel">
+    <UserControl.Resources>
+        <conv:IndexToBoolConverter x:Key="IndexToBool" />
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <StackPanel Spacing="24">
+            <!-- Page title -->
+            <TextBlock Text="{Binding PageTitle}"
+                       FontSize="28"
+                       FontWeight="SemiBold" />
+
+            <!-- Tab bar -->
+            <ListBox ItemsSource="{Binding Tabs}"
+                     SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}"
+                     Background="{DynamicResource LayerFillColorAltBrush}"
+                     BorderThickness="0"
+                     Padding="3"
+                     CornerRadius="8"
+                     HorizontalAlignment="Left">
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="3" />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.Styles>
+                    <Style Selector="ListBoxItem">
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="BorderBrush" Value="Transparent" />
+                        <Setter Property="BorderThickness" Value="0" />
+                        <Setter Property="CornerRadius" Value="6" />
+                        <Setter Property="Padding" Value="16,7" />
+                        <Setter Property="MinHeight" Value="32" />
+                        <Setter Property="FontSize" Value="14" />
+                        <Setter Property="Opacity" Value="0.65" />
+                    </Style>
+                    <Style Selector="ListBoxItem:selected">
+                        <Setter Property="Opacity" Value="1" />
+                        <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorBaseBrush}" />
+                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                    </Style>
+                </ListBox.Styles>
+            </ListBox>
+
+            <!-- 外观 -->
+            <StackPanel IsVisible="{Binding SelectedTabIndex, Converter={StaticResource IndexToBool}, ConverterParameter=0}"
+                        Spacing="24">
+                <Border Padding="18"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding AppearanceModeLabel}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14" />
+                            <TextBlock Text="{Binding AppearanceModeDescription}"
+                                       TextWrapping="Wrap"
+                                       Opacity="0.65"
+                                       FontSize="12" />
+                        </StackPanel>
+                        <ListBox Grid.Column="1"
+                                 ItemsSource="{Binding ThemeModes}"
+                                 SelectedIndex="{Binding SelectedThemeModeIndex, Mode=TwoWay}"
+                                 HorizontalAlignment="Left"
+                                 Background="{DynamicResource LayerFillColorAltBrush}"
+                                 BorderThickness="0"
+                                 Padding="3"
+                                 CornerRadius="8">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="3" />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.Styles>
+                                <Style Selector="ListBoxItem">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderBrush" Value="Transparent" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="CornerRadius" Value="6" />
+                                    <Setter Property="Padding" Value="16,7" />
+                                    <Setter Property="MinHeight" Value="32" />
+                                    <Setter Property="FontSize" Value="13" />
+                                </Style>
+                                <Style Selector="ListBoxItem:selected">
+                                    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorBaseBrush}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                </Style>
+                            </ListBox.Styles>
+                        </ListBox>
+                    </Grid>
+                </Border>
+
+                <Border Padding="18"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="16">
+                        <StackPanel Spacing="3">
+                            <TextBlock Text="{Binding AccentSchemeLabel}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14" />
+                            <TextBlock Text="{Binding AccentSchemeDescription}"
+                                       TextWrapping="Wrap"
+                                       Opacity="0.65"
+                                       FontSize="12" />
+                        </StackPanel>
+
+                        <ItemsControl ItemsSource="{Binding AccentOptions}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="6" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="vm:AccentOption">
+                                    <StackPanel Spacing="6" Margin="6">
+                                        <Border CornerRadius="8"
+                                                Height="72"
+                                                BorderThickness="1"
+                                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                                Background="{Binding SurfaceColor, Converter={x:Static conv:HexToBrushConverter.Instance}}"
+                                                Cursor="Hand">
+                                            <Grid ColumnDefinitions="8,*">
+                                                <Border Grid.Column="0"
+                                                        Background="{Binding PrimaryColor, Converter={x:Static conv:HexToBrushConverter.Instance}}"
+                                                        CornerRadius="8,0,0,8"
+                                                        Margin="-1,0,0,-1" />
+                                                <Grid Grid.Column="1" Margin="8,6,8,6" RowDefinitions="Auto,*,Auto">
+                                                    <Border Grid.Row="0"
+                                                            Height="4"
+                                                            Width="24"
+                                                            CornerRadius="2"
+                                                            Background="{Binding PrimaryColor, Converter={x:Static conv:HexToBrushConverter.Instance}}"
+                                                            HorizontalAlignment="Left" />
+                                                    <StackPanel Grid.Row="2" Spacing="3">
+                                                        <Border Height="3" CornerRadius="1.5" Background="#80808080" />
+                                                        <Border Height="3" CornerRadius="1.5" Background="#80808080" Width="60" HorizontalAlignment="Left" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Grid>
+                                        </Border>
+                                        <TextBlock Text="{Binding Name}"
+                                                   FontSize="12"
+                                                   HorizontalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 启动画面 -->
+            <StackPanel IsVisible="{Binding SelectedTabIndex, Converter={StaticResource IndexToBool}, ConverterParameter=1}"
+                        Spacing="24">
+                <Border Padding="18"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding SplashScreenLabel}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14" />
+                            <TextBlock Text="{Binding SplashScreenDescription}"
+                                       TextWrapping="Wrap"
+                                       Opacity="0.65"
+                                       FontSize="12" />
+                        </StackPanel>
+                        <ListBox Grid.Column="1"
+                                 ItemsSource="{Binding SplashModes}"
+                                 SelectedIndex="{Binding SelectedSplashModeIndex, Mode=TwoWay}"
+                                 Background="{DynamicResource LayerFillColorAltBrush}"
+                                 BorderThickness="0"
+                                 Padding="3"
+                                 CornerRadius="8">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="3" />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.Styles>
+                                <Style Selector="ListBoxItem">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="CornerRadius" Value="6" />
+                                    <Setter Property="Padding" Value="16,7" />
+                                    <Setter Property="MinHeight" Value="32" />
+                                </Style>
+                                <Style Selector="ListBoxItem:selected">
+                                    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorBaseBrush}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                </Style>
+                            </ListBox.Styles>
+                        </ListBox>
+                    </Grid>
+                </Border>
+
+                <Border Padding="18"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding ShowDetailedSplashLabel}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14" />
+                            <TextBlock Text="{Binding ShowDetailedSplashDescription}"
+                                       TextWrapping="Wrap"
+                                       Opacity="0.65"
+                                       FontSize="12" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    Spacing="10"
+                                    VerticalAlignment="Center">
+                            <ToggleSwitch IsChecked="{Binding ShowDetailedSplash, Mode=TwoWay}"
+                                          OnContent="{x:Null}"
+                                          OffContent="{x:Null}" />
+                            <TextBlock Text="{Binding ShowDetailedSplash, Converter={x:Static conv:BoolToStatusTextConverter.Instance}}"
+                                       VerticalAlignment="Center"
+                                       Opacity="0.8" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Padding="18"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="16">
+                        <StackPanel Spacing="3">
+                            <TextBlock Text="{Binding SplashStyleLabel}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14" />
+                            <TextBlock Text="{Binding SplashStyleDescription}"
+                                       TextWrapping="Wrap"
+                                       Opacity="0.65"
+                                       FontSize="12" />
+                        </StackPanel>
+
+                        <ListBox ItemsSource="{Binding SplashStyleOptions}"
+                                 SelectedIndex="{Binding SelectedSplashStyleIndex, Mode=TwoWay}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Padding="0">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="4" />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.Styles>
+                                <Style Selector="ListBoxItem">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderBrush" Value="Transparent" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="Padding" Value="0" />
+                                </Style>
+                                <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="Transparent" />
+                                </Style>
+                            </ListBox.Styles>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="vm:SplashStyleOption">
+                                    <StackPanel Spacing="6" Margin="6">
+                                        <Border CornerRadius="10"
+                                                Height="100"
+                                                BorderThickness="1"
+                                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                                Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                                                Cursor="Hand">
+                                            <Panel>
+                                                <Image Source="{Binding PreviewUri}"
+                                                       Stretch="UniformToFill"
+                                                       VerticalAlignment="Center"
+                                                       HorizontalAlignment="Center" />
+                                                <Border IsVisible="{Binding $parent[ListBoxItem].IsSelected}"
+                                                        Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                                        Width="24"
+                                                        Height="24"
+                                                        CornerRadius="12"
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Bottom"
+                                                        Margin="0,0,8,8">
+                                                    <Path Data="M5 12l4 4L19 7"
+                                                          Stroke="White"
+                                                          StrokeThickness="2"
+                                                          StrokeLineCap="Round"
+                                                          StrokeJoin="Round"
+                                                          Margin="4" />
+                                                </Border>
+                                            </Panel>
+                                        </Border>
+                                        <TextBlock Text="{Binding Name}"
+                                                   FontSize="12"
+                                                   HorizontalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- Overlay 主题 -->
+            <StackPanel IsVisible="{Binding SelectedTabIndex, Converter={StaticResource IndexToBool}, ConverterParameter=2}"
+                        Spacing="24">
+                <Border Padding="18"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="16">
+                        <StackPanel Spacing="3">
+                            <TextBlock Text="{Binding OverlayThemeLabel}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14" />
+                            <TextBlock Text="{Binding OverlayThemeDescription}"
+                                       TextWrapping="Wrap"
+                                       Opacity="0.65"
+                                       FontSize="12" />
+                        </StackPanel>
+
+                        <ListBox ItemsSource="{Binding OverlayThemeOptions}"
+                                 SelectedIndex="{Binding SelectedOverlayThemeIndex, Mode=TwoWay}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Padding="0">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="4" />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.Styles>
+                                <Style Selector="ListBoxItem">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderBrush" Value="Transparent" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="Padding" Value="0" />
+                                </Style>
+                                <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="Transparent" />
+                                </Style>
+                            </ListBox.Styles>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="vm:OverlayThemeOption">
+                                    <StackPanel Spacing="6" Margin="6">
+                                        <Border CornerRadius="10"
+                                                Height="100"
+                                                BorderThickness="1"
+                                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                                Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                                                Cursor="Hand">
+                                            <Panel>
+                                                <Image Source="{Binding PreviewUri}"
+                                                       Stretch="UniformToFill"
+                                                       VerticalAlignment="Center"
+                                                       HorizontalAlignment="Center" />
+                                                <Border IsVisible="{Binding $parent[ListBoxItem].IsSelected}"
+                                                        Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                                        Width="24"
+                                                        Height="24"
+                                                        CornerRadius="12"
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Bottom"
+                                                        Margin="0,0,8,8">
+                                                    <Path Data="M5 12l4 4L19 7"
+                                                          Stroke="White"
+                                                          StrokeThickness="2"
+                                                          StrokeLineCap="Round"
+                                                          StrokeJoin="Round"
+                                                          Margin="4" />
+                                                </Border>
+                                            </Panel>
+                                        </Border>
+                                        <TextBlock Text="{Binding Name}"
+                                                   FontSize="12"
+                                                   HorizontalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

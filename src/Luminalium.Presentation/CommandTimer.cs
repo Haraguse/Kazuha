@@ -6,14 +6,25 @@ public sealed class SlidingWindowCommandTimer : ICommandTimer
     private readonly Queue<DateTimeOffset> _pageTurnTimes = new();
     private readonly TimeProvider _timeProvider;
     private readonly TimeSpan _window;
-    private readonly int _maxPerWindow;
+    private readonly Func<int> _maxPerWindow;
 
     public SlidingWindowCommandTimer(
         int maxPerWindow = 2,
         TimeSpan? window = null,
         TimeProvider? timeProvider = null)
     {
-        _maxPerWindow = Math.Max(1, maxPerWindow);
+        _maxPerWindow = () => Math.Max(1, maxPerWindow);
+        _window = window ?? TimeSpan.FromSeconds(1);
+        _timeProvider = timeProvider ?? TimeProvider.System;
+    }
+
+    public SlidingWindowCommandTimer(
+        Func<int> maxPerWindow,
+        TimeSpan? window = null,
+        TimeProvider? timeProvider = null)
+    {
+        ArgumentNullException.ThrowIfNull(maxPerWindow);
+        _maxPerWindow = () => Math.Max(1, maxPerWindow());
         _window = window ?? TimeSpan.FromSeconds(1);
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
@@ -28,11 +39,12 @@ public sealed class SlidingWindowCommandTimer : ICommandTimer
                 _pageTurnTimes.Dequeue();
             }
 
-            if (_pageTurnTimes.Count >= _maxPerWindow)
+            var maxPerWindow = _maxPerWindow();
+            if (_pageTurnTimes.Count >= maxPerWindow)
             {
                 return PresentationOperationResult.Failure(PresentationErrors.CommandRejected(
                     "The presentation page-turn command was throttled.",
-                    $"Maximum {_maxPerWindow} page-turn command(s) per {_window.TotalSeconds:0.###} second(s)."));
+                    $"Maximum {maxPerWindow} page-turn command(s) per {_window.TotalSeconds:0.###} second(s)."));
             }
 
             _pageTurnTimes.Enqueue(now);

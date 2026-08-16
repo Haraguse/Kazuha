@@ -1,0 +1,43 @@
+using System;
+
+namespace FluentAvalonia.UI.Controls;
+
+/// <summary>
+/// Provides event data for the NavigationViewItem.ItemCollapsed event.
+/// </summary>
+public class FANavigationViewItemCollapsedEventArgs : EventArgs
+{
+	private object _collapsedItem;
+
+	private FANavigationView _navigationView;
+
+	/// <summary>
+	/// Gets the object that has been collapsed after the NavigationViewItem.ItemCollapsed event.
+	/// </summary>
+	public object CollapsedItem
+	{
+		get
+		{
+			if (_collapsedItem != null)
+			{
+				return _collapsedItem;
+			}
+			if (_navigationView != null)
+			{
+				_collapsedItem = _navigationView.MenuItemFromContainer(CollapsedItemContainer);
+				return _collapsedItem;
+			}
+			return null;
+		}
+	}
+
+	/// <summary>
+	/// Gets the container of the object that was collapsed in the NavigationViewItem.ItemCollapsed event.
+	/// </summary>
+	public FANavigationViewItemBase CollapsedItemContainer { get; internal set; }
+
+	public FANavigationViewItemCollapsedEventArgs(FANavigationView navigationView)
+	{
+		_navigationView = navigationView;
+	}
+}

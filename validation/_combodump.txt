@@ -1,0 +1,20 @@
+=== 默认32 (ComboDefault32) ===
+ComboBox Bounds=0, 58.666666666666664, 260, 32 Desired=260, 32 Padding=12,6,8,6 VCA=Center
+  TextBlock '' Bounds=0, 0, 0, 0 VA=Center
+  TextBlock '默认高度选项' Bounds=0, 0.6666666666666666, 208, 19.333333333333332 VA=Center
+
+=== 触摸40 (ComboTouch40) ===
+ComboBox Bounds=0, 128.66666666666666, 260, 40 Desired=260, 40 Padding=12,6,8,6 VCA=Center
+  TextBlock '' Bounds=0, 0, 0, 0 VA=Center
+  TextBlock '触摸目标高度选项' Bounds=0, 4.666666666666667, 208, 19.333333333333332 VA=Center
+
+=== 应用样式 (ComboAppStyle) ===
+ComboBox Bounds=0, 206.66666666666666, 260, 40 Desired=260, 40 Padding=12,6,8,6 VCA=Center
+  TextBlock '' Bounds=0, 0, 0, 0 VA=Center
+  TextBlock '应用样式选项' Bounds=0, 4.666666666666667, 208, 19.333333333333332 VA=Center
+
+=== 字符串40 (ComboString40) ===
+ComboBox Bounds=0, 284.6666666666667, 260, 40 Desired=260, 40 Padding=12,6,8,6 VCA=Center
+  TextBlock '' Bounds=0, 0, 0, 0 VA=Center
+  TextBlock '字符串选项一' Bounds=0, 4.666666666666667, 208, 19.333333333333332 VA=Center
+

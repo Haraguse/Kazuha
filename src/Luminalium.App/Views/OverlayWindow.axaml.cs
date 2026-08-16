@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Luminalium.App.Services;
 using Luminalium.App.Overlay;
 using Luminalium.App.ViewModels;
 using Luminalium.Core.Localization;
@@ -20,17 +21,17 @@ public partial class OverlayWindow : Window, IDisposable
     private bool _movingSpotlight;
 
     public OverlayWindow()
-        : this(new LocalizationService())
+        : this(new LocalizationService(), null)
     {
     }
 
-    public OverlayWindow(ILocalizationService localization)
+    public OverlayWindow(ILocalizationService localization, SettingsCoordinator? settingsCoordinator = null)
     {
         _localization = localization;
         InitializeComponent();
         ApplySystemDecorationsNone();
         _ownedAdapter = TryCreateWpsAdapter();
-        _viewModel = CreateDefaultViewModel(_ownedAdapter, new AvaloniaOverlayScreenProvider(this), _localization);
+        _viewModel = CreateDefaultViewModel(_ownedAdapter, new AvaloniaOverlayScreenProvider(this), _localization, settingsCoordinator);
         _screenshotService = new RenderTargetBitmapScreenshotService();
         AttachViewModel();
     }
@@ -127,13 +128,24 @@ public partial class OverlayWindow : Window, IDisposable
     private static OverlayViewModel CreateDefaultViewModel(
         WpsBridgeAutomationAdapter? adapter,
         IOverlayScreenProvider screenProvider,
-        ILocalizationService localization)
+        ILocalizationService localization,
+        SettingsCoordinator? settingsCoordinator = null)
     {
-        var hosts = adapter is not null
-            ? new IPresentationHost[] { new WpsPresentationHost(adapter) }
-            : Array.Empty<IPresentationHost>();
-        var monitor = new PresentationMonitor(hosts, preferredKind: PresentationHostKind.Wps);
-        return new OverlayViewModel(monitor, screenProvider, localizationService: localization);
+        var hosts = new List<IPresentationHost>();
+        var powerpointHost = PresentationHostFactory.TryCreatePowerPointHost();
+        if (powerpointHost is not null)
+        {
+            hosts.Add(powerpointHost);
+        }
+
+        if (adapter is not null)
+        {
+            hosts.Add(new WpsPresentationHost(adapter));
+        }
+
+        var timer = new SlidingWindowCommandTimer(() => settingsCoordinator?.Current.Ppt.PageTurnRateLimit ?? 2);
+        var monitor = new PresentationMonitor(hosts, timer, preferredKind: PresentationHostKind.PowerPoint);
+        return new OverlayViewModel(monitor, screenProvider, localizationService: localization, settingsCoordinator: settingsCoordinator);
     }
 
     private void ApplySystemDecorationsNone()

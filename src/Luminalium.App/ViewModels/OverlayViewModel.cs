@@ -1,7 +1,9 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Luminalium.App.Overlay;
+using Luminalium.App.Services;
+using Luminalium.Core.Configuration;
 using Luminalium.Core.Localization;
 using Luminalium.Presentation;
 using System.Globalization;
@@ -15,6 +17,8 @@ public sealed partial class OverlayViewModel : ObservableObject, IAnnotationSink
 
     private readonly ILocalizationService _localization;
     private readonly PresentationMonitor _monitor;
+    private readonly SettingsCoordinator? _settingsCoordinator;
+    private OverlayToolbarSnapshot _toolbarSnapshot;
     private string? _statusKey = "Overlay.Status.NoActiveSlideshow";
     private object[] _statusArguments = [];
     private string? _externalStatusText;
@@ -66,18 +70,22 @@ public sealed partial class OverlayViewModel : ObservableObject, IAnnotationSink
         PresentationMonitor monitor,
         IOverlayScreenProvider screenProvider,
         int? selectedScreenIndex = null,
-        ILocalizationService? localizationService = null)
+        ILocalizationService? localizationService = null,
+        SettingsCoordinator? settingsCoordinator = null)
     {
         ArgumentNullException.ThrowIfNull(monitor);
         ArgumentNullException.ThrowIfNull(screenProvider);
 
         _localization = localizationService ?? new LocalizationService();
         _monitor = monitor;
+        _settingsCoordinator = settingsCoordinator;
+        _toolbarSnapshot = OverlayToolbarSnapshot.FromSettings(settingsCoordinator?.Current.Toolbar ?? new ToolbarSettings());
         SelectedScreenBounds = NormalizeBounds(screenProvider.GetScreen(selectedScreenIndex));
         SpotlightCenterX = SelectedScreenBounds.Width / 2.0;
         SpotlightCenterY = SelectedScreenBounds.Height / 2.0;
         StatusText = BuildStatusText();
         _localization.LanguageChanged += (_, _) => RefreshLocalizedText();
+        if (_settingsCoordinator is not null) _settingsCoordinator.Changed += OnSettingsChanged;
 
         NextSlideCommand = new AsyncRelayCommand(NextSlideAsync, CanUseSlideshowCommand);
         PreviousSlideCommand = new AsyncRelayCommand(PreviousSlideAsync, CanUseSlideshowCommand);
@@ -93,6 +101,20 @@ public sealed partial class OverlayViewModel : ObservableObject, IAnnotationSink
     public ILocalizationService Localization => _localization;
 
     public OverlayScreenBounds SelectedScreenBounds { get; }
+
+    public OverlayToolbarSnapshot ToolbarSnapshot => _toolbarSnapshot;
+
+    public double ToolbarOpacity => _settingsCoordinator?.Current.Overlay.ToolbarOpacity ?? 1.0;
+
+    public double Scale => _settingsCoordinator?.Current.Overlay.Scale ?? 1.0;
+
+    public bool ShowStatusBar => _settingsCoordinator?.Current.Overlay.ShowStatusBar ?? false;
+
+    public bool IsToolbarItemVisible(string id) => _toolbarSnapshot.Items.FirstOrDefault(item => item.Id == id)?.IsVisible ?? false;
+
+    public bool IsSpotlightVisible => IsToolbarItemVisible("spotlight");
+
+    public bool IsClearVisible => IsToolbarItemVisible("clear");
 
     public bool HasNoActiveSlideshow => !HasActiveSlideshow;
 
@@ -373,6 +395,17 @@ public sealed partial class OverlayViewModel : ObservableObject, IAnnotationSink
         OnPropertyChanged(nameof(ScreenshotText));
         OnPropertyChanged(nameof(CloseText));
         OnPropertyChanged(nameof(CloseHelpText));
+    }
+
+    private void OnSettingsChanged(object? sender, EventArgs e)
+    {
+        _toolbarSnapshot = OverlayToolbarSnapshot.FromSettings(_settingsCoordinator!.Current.Toolbar);
+        OnPropertyChanged(nameof(ToolbarSnapshot));
+        OnPropertyChanged(nameof(ToolbarOpacity));
+        OnPropertyChanged(nameof(Scale));
+        OnPropertyChanged(nameof(ShowStatusBar));
+        OnPropertyChanged(nameof(IsSpotlightVisible));
+        OnPropertyChanged(nameof(IsClearVisible));
     }
 
     private double NextZoomScale()

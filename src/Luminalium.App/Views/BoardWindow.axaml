@@ -6,6 +6,7 @@
                         xmlns:ui="using:FluentAvalonia.UI.Controls"
                         xmlns:vm="using:Luminalium.App.ViewModels"
                         xmlns:windowing="using:FluentAvalonia.UI.Windowing"
+                        xmlns:inking="using:DotNetCampus.Inking"
                         mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
                         x:Class="Luminalium.App.Views.BoardWindow"
                         x:DataType="vm:BoardViewModel"
@@ -44,18 +45,49 @@
                 <StackPanel Grid.Column="0"
                             Orientation="Horizontal"
                             Spacing="8">
-                    <Button MinHeight="40" MinWidth="40"
-                            Padding="8"
-                            Command="{Binding SelectRedColorCommand}"
-                            AutomationProperties.Name="{Binding Localization[Board.Toolbar.Red]}">
-                        <ui:FASymbolIcon Symbol="ColorFill" Foreground="Red" FontSize="20" />
-                    </Button>
-                    <Button MinHeight="40" MinWidth="40"
-                            Padding="8"
-                            Command="{Binding ToggleEraserCommand}"
-                            AutomationProperties.Name="{Binding Localization[Board.Toolbar.Eraser]}">
+                    <ToggleButton x:Name="PenButton"
+                                  MinHeight="40" MinWidth="40"
+                                  Padding="8"
+                                  IsChecked="{Binding IsPenActive}"
+                                  Command="{Binding ActivatePenCommand}"
+                                  DoubleTapped="OnPenDoubleTapped"
+                                  AutomationProperties.Name="{Binding Localization[Board.Toolbar.Pen]}">
+                        <ui:FASymbolIcon Symbol="Edit" FontSize="20" />
+                        <ToggleButton.Flyout>
+                            <Flyout Placement="Bottom">
+                                <ItemsControl ItemsSource="{Binding StrokeColors}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Width="30" Height="30"
+                                                    Margin="4" CornerRadius="15"
+                                                    Command="{Binding $parent[ItemsControl].DataContext.SelectColorCommand}"
+                                                    CommandParameter="{Binding}"
+                                                    ToolTip.Tip="{Binding Name}"
+                                                    AutomationProperties.Name="{Binding Name}">
+                                                <Border Width="30" Height="30" CornerRadius="15"
+                                                        BorderThickness="2"
+                                                        BorderBrush="{Binding SelectionBrush}">
+                                                    <Ellipse Width="24" Height="24" Fill="{Binding Brush}" />
+                                                </Border>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Flyout>
+                        </ToggleButton.Flyout>
+                    </ToggleButton>
+                    <ToggleButton MinHeight="40" MinWidth="40"
+                                  Padding="8"
+                                  IsChecked="{Binding IsEraser}"
+                                  Command="{Binding ActivateEraserCommand}"
+                                  AutomationProperties.Name="{Binding Localization[Board.Toolbar.Eraser]}">
                         <PathIcon Data="M15.8697,2.66878 L20.8382,7.6373 C21.7169,8.51598 21.7169,9.9406 20.8382,10.8193 L12.1564,19.4998 L18.2543,19.5 C18.634,19.5 18.9478,19.7821 18.9975,20.1482 L19.0043,20.25 C19.0043,20.6297 18.7222,20.9435 18.3561,20.9931 L18.2543,21 L9.84431,21.0012 C9.2281,21.0348 8.6007,20.8163 8.12998,20.3456 L3.16145,15.377 C2.28277,14.4984 2.28277,13.0737 3.16145,12.1951 L12.6877,2.66878 C13.5664,1.7901 14.991,1.7901 15.8697,2.66878 Z M5.70844,11.7678 L4.22211,13.2557 C3.92922,13.5486 3.92922,14.0235 4.22211,14.3164 L9.19064,19.2849 C9.33708,19.4314 9.52903,19.5046 9.72097,19.5046 L9.74985,19.5 L9.78834,19.5016 C9.95725,19.4864 10.122,19.4142 10.2513,19.2849 L11.7374,17.7978 L5.70844,11.7678 Z M13.7484,3.72944 L6.76944,10.7068 L12.7984,16.7368 L19.7776,9.75862 C20.0705,9.46573 20.0705,8.99085 19.7776,8.69796 L14.8091,3.72944 C14.5162,3.43654 14.0413,3.43654 13.7484,3.72944 Z" />
-                    </Button>
+                    </ToggleButton>
                     <Button MinHeight="40" MinWidth="40"
                             Padding="8"
                             Command="{Binding ClearBoardCommand}"
@@ -89,12 +121,8 @@
             </Grid>
         </Border>
 
-        <overlay:AnnotationCanvas Grid.Row="2"
-                                  x:Name="BoardCanvas"
-                                  CanDraw="True"
-                                  StrokeColor="{Binding StrokeColor}"
-                                  StrokeWidth="{Binding StrokeWidth}"
-                                  Strokes="{Binding Document.Strokes}"
-                                  AutomationProperties.Name="BoardCanvas" />
+        <inking:InkCanvas Grid.Row="2"
+                          x:Name="BoardCanvas"
+                          AutomationProperties.Name="BoardCanvas" />
     </Grid>
 </windowing:FAAppWindow>

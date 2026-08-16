@@ -1,0 +1,315 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Luminalium.App.ViewModels"
+             x:Class="Luminalium.App.Views.Pages.GeneralSettingsPage"
+             x:DataType="vm:GeneralSettingsViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="0,0,0,36" Spacing="24">
+            <!-- Page title -->
+            <TextBlock Text="{Binding PageTitle}"
+                       FontSize="28"
+                       FontWeight="SemiBold" />
+
+            <!-- 语言 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding LanguageSectionTitle}"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Opacity="0.9" />
+
+                <Border Padding="18"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="14">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="{Binding InterfaceLanguageLabel}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14" />
+                            <TextBlock Text="{Binding InterfaceLanguageDescription}"
+                                       TextWrapping="Wrap"
+                                       Opacity="0.65"
+                                       FontSize="12" />
+                        </StackPanel>
+
+                        <ListBox ItemsSource="{Binding Languages}"
+                                 SelectedIndex="{Binding SelectedLanguageIndex, Mode=TwoWay}"
+                                 HorizontalAlignment="Left"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Padding="0">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="4" />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.Styles>
+                                <Style Selector="ListBoxItem">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderBrush" Value="Transparent" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="CornerRadius" Value="16" />
+                                    <Setter Property="Padding" Value="18,7" />
+                                    <Setter Property="MinHeight" Value="32" />
+                                    <Setter Property="FontSize" Value="13" />
+                                </Style>
+                                <Style Selector="ListBoxItem:selected">
+                                    <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                </Style>
+                            </ListBox.Styles>
+                        </ListBox>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 默认行为 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding DefaultBehaviorSectionTitle}"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Opacity="0.9" />
+
+                <Border Padding="18"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="0">
+                        <!-- 开机自启 -->
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,8">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding AutoStartLabel}"
+                                           FontWeight="SemiBold"
+                                           FontSize="14" />
+                                <TextBlock Text="{Binding AutoStartDescription}"
+                                           TextWrapping="Wrap"
+                                           Opacity="0.65"
+                                           FontSize="12" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="10"
+                                        VerticalAlignment="Center">
+                                <ToggleSwitch IsChecked="{Binding AutoStartEnabled, Mode=TwoWay}"
+                                              OnContent="{x:Null}"
+                                              OffContent="{x:Null}" />
+                                <TextBlock Text="{Binding AutoStartStatusText}"
+                                           VerticalAlignment="Center"
+                                           Opacity="0.8" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 注册 URL 协议 -->
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,8">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding UrlProtocolLabel}"
+                                           FontWeight="SemiBold"
+                                           FontSize="14" />
+                                <TextBlock Text="{Binding UrlProtocolDescription}"
+                                           TextWrapping="Wrap"
+                                           Opacity="0.65"
+                                           FontSize="12" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="10"
+                                        VerticalAlignment="Center">
+                                <ToggleSwitch IsChecked="{Binding UrlProtocolEnabled, Mode=TwoWay}"
+                                              OnContent="{x:Null}"
+                                              OffContent="{x:Null}" />
+                                <TextBlock Text="{Binding UrlProtocolStatusText}"
+                                           VerticalAlignment="Center"
+                                           Opacity="0.8" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,8">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding AutoShowOverlayLabel}"
+                                           FontWeight="SemiBold"
+                                           FontSize="14" />
+                                <TextBlock Text="{Binding AutoShowOverlayDescription}"
+                                           TextWrapping="Wrap"
+                                           Opacity="0.65"
+                                           FontSize="12" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="10"
+                                        VerticalAlignment="Center">
+                                <ToggleSwitch IsChecked="{Binding AutoShowOverlayEnabled, Mode=TwoWay}"
+                                              OnContent="{x:Null}"
+                                              OffContent="{x:Null}" />
+                                <TextBlock Text="{Binding AutoShowOverlayStatusText}"
+                                           VerticalAlignment="Center"
+                                           Opacity="0.8" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 禁用界面动画 -->
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,8">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding DisableAnimationsLabel}"
+                                           FontWeight="SemiBold"
+                                           FontSize="14" />
+                                <TextBlock Text="{Binding DisableAnimationsDescription}"
+                                           TextWrapping="Wrap"
+                                           Opacity="0.65"
+                                           FontSize="12" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="10"
+                                        VerticalAlignment="Center">
+                                <ToggleSwitch IsChecked="{Binding DisableAnimations, Mode=TwoWay}"
+                                              OnContent="{x:Null}"
+                                              OffContent="{x:Null}" />
+                                <TextBlock Text="{Binding DisableAnimationsStatusText}"
+                                           VerticalAlignment="Center"
+                                           Opacity="0.8" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 异常退出处理 -->
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,8">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding CrashHandlerLabel}"
+                                           FontWeight="SemiBold"
+                                           FontSize="14" />
+                                <TextBlock Text="{Binding CrashHandlerDescription}"
+                                           TextWrapping="Wrap"
+                                           Opacity="0.65"
+                                           FontSize="12" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="10"
+                                        VerticalAlignment="Center">
+                                <ComboBox MinHeight="{StaticResource ShellTouchTargetMinHeight}"
+                                          ItemsSource="{Binding CrashHandlerModes}"
+                                          SelectedIndex="{Binding SelectedCrashHandlerModeIndex, Mode=TwoWay}"
+                                          Width="140" />
+                                <ToggleSwitch IsChecked="{Binding CrashHandlerEnabled, Mode=TwoWay}"
+                                              OnContent="{x:Null}"
+                                              OffContent="{x:Null}" />
+                                <TextBlock Text="{Binding CrashHandlerStatusText}"
+                                           VerticalAlignment="Center"
+                                           Opacity="0.8" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 翻页频率上限 -->
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,8">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding PageRateLimitLabel}"
+                                           FontWeight="SemiBold"
+                                           FontSize="14" />
+                                <TextBlock Text="{Binding PageRateLimitDescription}"
+                                           TextWrapping="Wrap"
+                                           Opacity="0.65"
+                                           FontSize="12" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="14"
+                                        VerticalAlignment="Center"
+                                        MinWidth="220">
+                                <Slider Minimum="1"
+                                        Maximum="10"
+                                        TickFrequency="1"
+                                        IsSnapToTickEnabled="True"
+                                        Value="{Binding PageRateLimit, Mode=TwoWay}"
+                                        VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding PageRateLimitDisplay}"
+                                           VerticalAlignment="Center"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 安全 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding SecuritySectionTitle}"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Opacity="0.9" />
+
+                <Border Padding="18"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding PasswordProtectionLabel}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14" />
+                            <TextBlock Text="{Binding PasswordProtectionDescription}"
+                                       TextWrapping="Wrap"
+                                       Opacity="0.65"
+                                       FontSize="12" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    Spacing="10"
+                                    VerticalAlignment="Center">
+                            <ToggleSwitch IsChecked="{Binding PasswordProtectionEnabled, Mode=TwoWay}"
+                                          OnContent="{x:Null}"
+                                          OffContent="{x:Null}" />
+                            <TextBlock Text="{Binding PasswordProtectionStatusText}"
+                                       VerticalAlignment="Center"
+                                       Opacity="0.8" />
+                            <TextBlock Text="›"
+                                       VerticalAlignment="Center"
+                                       FontSize="16"
+                                       Margin="4,0,0,0"
+                                       Opacity="0.6" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <!-- 兼容性 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding CompatibilitySectionTitle}"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Opacity="0.9" />
+
+                <Border Padding="18"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding CompatibilityModeLabel}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14" />
+                            <TextBlock Text="{Binding CompatibilityModeDescription}"
+                                       TextWrapping="Wrap"
+                                       Opacity="0.65"
+                                       FontSize="12" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    Spacing="10"
+                                    VerticalAlignment="Center">
+                            <ToggleSwitch IsChecked="{Binding CompatibilityModeEnabled, Mode=TwoWay}"
+                                          OnContent="{x:Null}"
+                                          OffContent="{x:Null}" />
+                            <TextBlock Text="{Binding CompatibilityModeStatusText}"
+                                       VerticalAlignment="Center"
+                                       Opacity="0.8" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

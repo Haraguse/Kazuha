@@ -1,0 +1,12 @@
+namespace Avalonia.Animation.Animators;
+
+/// <summary>
+/// Animator that handles <see cref="T:Avalonia.Point" /> properties.
+/// </summary>
+internal class PointAnimator : Animator<Point>
+{
+	public override Point Interpolate(double progress, Point oldValue, Point newValue)
+	{
+		return (newValue - oldValue) * progress + oldValue;
+	}
+}

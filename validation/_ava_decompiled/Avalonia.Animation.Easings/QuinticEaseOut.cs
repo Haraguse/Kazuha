@@ -1,0 +1,16 @@
+namespace Avalonia.Animation.Easings;
+
+/// <summary>
+/// Eases out a <see cref="T:System.Double" /> value 
+/// using a quartic equation.
+/// </summary>
+public class QuinticEaseOut : Easing
+{
+	/// <inheritdoc />
+	public override double Ease(double progress)
+	{
+		double num = progress - 1.0;
+		double num2 = num * num;
+		return num2 * num2 * num + 1.0;
+	}
+}

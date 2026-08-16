@@ -13,7 +13,7 @@ public sealed class OnboardingViewModel : ShellPageViewModel
         LuminaliumConfig config,
         ConfigurationService? configurationService,
         ILocalizationService localization)
-        : base("plugin:onboarding", "Plugin.onboarding.Name", localization)
+        : base("Plugin.onboarding.Name", localization)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _configurationService = configurationService;

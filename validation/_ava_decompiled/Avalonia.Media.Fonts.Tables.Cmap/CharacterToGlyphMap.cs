@@ -1,0 +1,159 @@
+using System;
+using System.Runtime.CompilerServices;
+
+namespace Avalonia.Media.Fonts.Tables.Cmap;
+
+/// <summary>
+/// Provides a read-only mapping from Unicode code points to glyph identifiers for a font's character map (cmap)
+/// table.
+/// </summary>
+/// <remarks>This struct enables efficient lookup of glyph IDs corresponding to Unicode code points,
+/// supporting both Format 4 (BMP) and Format 12 (Unicode full repertoire) cmap subtables. 
+/// </remarks>
+public readonly struct CharacterToGlyphMap
+{
+	private readonly CmapFormat4Table? _format4;
+
+	private readonly CmapFormat12Or13Table? _format12Or13;
+
+	internal CmapFormat Format { get; }
+
+	/// <summary>
+	/// Gets the glyph index associated with the specified Unicode code point.
+	/// </summary>
+	/// <param name="codePoint">The Unicode code point for which to retrieve the glyph index.</param>
+	/// <returns>The glyph index corresponding to the specified code point.</returns>
+	public ushort this[int codePoint]
+	{
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		get
+		{
+			return GetGlyph(codePoint);
+		}
+	}
+
+	/// <summary>
+	/// Initializes a new instance of the CharacterToGlyphMap class using the specified Format 4 cmap table.
+	/// </summary>
+	/// <param name="table">The Format 4 cmap table that provides character-to-glyph mapping data. Cannot be null.</param>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	internal CharacterToGlyphMap(CmapFormat4Table table)
+	{
+		Format = CmapFormat.Format4;
+		_format4 = table;
+		_format12Or13 = null;
+	}
+
+	/// <summary>
+	/// Initializes a new instance of the CharacterToGlyphMap class using the specified Format 12 character-to-glyph
+	/// mapping table.
+	/// </summary>
+	/// <param name="table">The Format 12 or 13 cmap table that defines the mapping from Unicode code points to glyph indices. Cannot be null.</param>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	internal CharacterToGlyphMap(CmapFormat12Or13Table table)
+	{
+		Format = table.Format;
+		_format12Or13 = table;
+		_format4 = null;
+	}
+
+	/// <summary>
+	/// Retrieves the glyph index that corresponds to the specified Unicode code point.
+	/// </summary>
+	/// <param name="codePoint">The Unicode code point for which to obtain the glyph index.</param>
+	/// <returns>The glyph index associated with the specified code point. Returns 0 if the code point is not mapped to any
+	/// glyph.</returns>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public ushort GetGlyph(int codePoint)
+	{
+		switch (Format)
+		{
+		case CmapFormat.Format4:
+			return _format4.GetGlyph(codePoint);
+		case CmapFormat.Format12:
+		case CmapFormat.Format13:
+			return _format12Or13.GetGlyph(codePoint);
+		default:
+			return 0;
+		}
+	}
+
+	/// <summary>
+	/// Determines whether the character map contains a glyph for the specified Unicode code point.
+	/// </summary>
+	/// <param name="codePoint">The Unicode code point to check for the presence of a corresponding glyph.</param>
+	/// <returns>true if a glyph exists for the specified code point; otherwise, false.</returns>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public bool ContainsGlyph(int codePoint)
+	{
+		switch (Format)
+		{
+		case CmapFormat.Format4:
+			return _format4.ContainsGlyph(codePoint);
+		case CmapFormat.Format12:
+		case CmapFormat.Format13:
+			return _format12Or13.ContainsGlyph(codePoint);
+		default:
+			return false;
+		}
+	}
+
+	/// <summary>
+	/// Maps a sequence of Unicode code points to their corresponding glyph IDs using the current character mapping
+	/// format.
+	/// </summary>
+	/// <remarks>If the current character mapping format is not supported, all entries in <paramref name="glyphIds" /> are set to zero. The mapping is performed in place, and the method does not allocate
+	/// additional memory.</remarks>
+	/// <param name="codePoints">A read-only span of Unicode code points to be mapped to glyph IDs.</param>
+	/// <param name="glyphIds">A span in which the resulting glyph IDs are written. Must be at least as long as <paramref name="codePoints" />.</param>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public void GetGlyphs(ReadOnlySpan<int> codePoints, Span<ushort> glyphIds)
+	{
+		switch (Format)
+		{
+		case CmapFormat.Format4:
+			_format4.GetGlyphs(codePoints, glyphIds);
+			break;
+		case CmapFormat.Format12:
+		case CmapFormat.Format13:
+			_format12Or13.GetGlyphs(codePoints, glyphIds);
+			break;
+		default:
+			glyphIds.Clear();
+			break;
+		}
+	}
+
+	/// <summary>
+	/// Attempts to retrieve the glyph identifier corresponding to the specified Unicode code point.
+	/// </summary>
+	/// <param name="codePoint">The Unicode code point for which to obtain the glyph identifier.</param>
+	/// <param name="glyphId">When this method returns, contains the glyph identifier associated with the specified code point, if found;
+	/// otherwise, zero. This parameter is passed uninitialized.</param>
+	/// <returns>true if a glyph identifier was found for the specified code point; otherwise, false.</returns>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public bool TryGetGlyph(int codePoint, out ushort glyphId)
+	{
+		switch (Format)
+		{
+		case CmapFormat.Format4:
+			return _format4.TryGetGlyph(codePoint, out glyphId);
+		case CmapFormat.Format12:
+		case CmapFormat.Format13:
+			return _format12Or13.TryGetGlyph(codePoint, out glyphId);
+		default:
+			glyphId = 0;
+			return false;
+		}
+	}
+
+	/// <summary>
+	/// Returns an enumerator that iterates through all code point ranges mapped by this instance.
+	/// </summary>
+	/// <returns>A <see cref="T:Avalonia.Media.Fonts.Tables.Cmap.CodepointRangeEnumerator" /> that can be used to enumerate the mapped code point ranges.</returns>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public CodepointRangeEnumerator GetMappedRanges()
+	{
+		return new CodepointRangeEnumerator(Format, _format4, _format12Or13);
+	}
+}

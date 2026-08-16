@@ -1,0 +1,80 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Luminalium.App.ViewModels"
+             x:Class="Luminalium.App.Views.Pages.BuiltInSettingsPage"
+             x:DataType="vm:BuiltInSettingsViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="0,0,0,36" Spacing="24">
+            <TextBlock Text="{Binding PageTitle}" FontSize="28" FontWeight="SemiBold" />
+
+            <!-- 板中板 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding BoardInBoardSectionTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding WindowPositionLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding WindowPositions}" SelectedIndex="{Binding SelectedWindowPositionIndex, Mode=TwoWay}" Width="150" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding BackgroundColorLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding BackgroundColors}" SelectedIndex="{Binding SelectedBackgroundColorIndex, Mode=TwoWay}" Width="150" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding EraserModeLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding EraserModes}" SelectedIndex="{Binding SelectedEraserModeIndex, Mode=TwoWay}" Width="150" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding PenEffectLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding PenEffects}" SelectedIndex="{Binding SelectedPenEffectIndex, Mode=TwoWay}" Width="150" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding WindowEnterAnimationLabel}" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="{Binding WindowEnterAnimationDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding WindowEnterAnimation, Mode=TwoWay}" OnContent="{x:Null}" OffContent="{x:Null}" VerticalAlignment="Center" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 计时器 -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding TimerSectionTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding FullscreenBehaviorLabel}" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="{Binding FullscreenBehaviorDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" ItemsSource="{Binding FullscreenBehaviors}" SelectedIndex="{Binding SelectedFullscreenBehaviorIndex, Mode=TwoWay}" Width="150" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding EnableSoundEffectsLabel}" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="{Binding EnableSoundEffectsDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding EnableSoundEffects, Mode=TwoWay}" OnContent="{x:Null}" OffContent="{x:Null}" VerticalAlignment="Center" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding QuickAddPresetsLabel}" FontWeight="SemiBold" FontSize="14" />
+                            </StackPanel>
+                            <TextBox Grid.Column="1" MinHeight="{StaticResource ShellTouchTargetMinHeight}" Text="{Binding QuickAddPresetsText, Mode=TwoWay}" Width="220" HorizontalAlignment="Right" PlaceholderText="例如：1, 3, 5" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

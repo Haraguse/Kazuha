@@ -1,0 +1,21 @@
+namespace FluentAvalonia.UI.Controls;
+
+/// <summary>
+/// Defines constants that specify the width of the tab
+/// </summary>
+public enum FATabViewWidthMode
+{
+	/// <summary>
+	/// Each tab has the same width
+	/// </summary>
+	Equal,
+	/// <summary>
+	/// Each tab adjusts its width to the content within the tab
+	/// </summary>
+	SizeToContent,
+	/// <summary>
+	/// Unselected tabs collapse to show only their icon. The selected tab
+	/// adjusts to display the content within the tab
+	/// </summary>
+	Compact
+}

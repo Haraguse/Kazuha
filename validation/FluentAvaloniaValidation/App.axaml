@@ -6,5 +6,16 @@
         <!-- Exactly one theme: FluentAvaloniaTheme. No Avalonia FluentTheme is registered.
              PreferSystemTheme + PreferUserAccentColor mirrors Luminalium's system-accent intent. -->
         <sty:FluentAvaloniaTheme PreferSystemTheme="True" PreferUserAccentColor="True" />
+
+        <!-- Mirrors Luminalium.App.App.axaml's current ComboBox override (validation only).
+             Both parts are required for true vertical centering on tall touch targets:
+             ComboBox VerticalContentAlignment + inner TextBlock VerticalAlignment. -->
+        <Style Selector="ComboBox">
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Padding" Value="12,6,8,6" />
+        </Style>
+        <Style Selector="ComboBox TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
     </Application.Styles>
 </Application>

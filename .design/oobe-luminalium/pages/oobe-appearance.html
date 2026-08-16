@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>外观风格 — Luminalium</title>
+    <style id="theme-vars">
+/* Luminalium OOBE — Colors & Type
+   Free-explore mode: single brand hue, no secondary/accent */
+
+:root {
+  /* === Spacing (8pt grid) === */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 80px;
+  --s-9: 120px;
+
+  /* === Type Scale === */
+  --text-display: clamp(40px, 6vw, 64px);
+  --text-h1: clamp(28px, 3.5vw, 40px);
+  --text-h2: clamp(22px, 2.4vw, 28px);
+  --text-h3: 20px;
+  --text-body-l: 18px;
+  --text-body: 16px;
+  --text-caption: 13px;
+  --text-mono: 14px;
+
+  --leading-display: 1.08;
+  --leading-h1: 1.18;
+  --leading-h2: 1.25;
+  --leading-h3: 1.3;
+  --leading-body: 1.6;
+  --leading-caption: 1.5;
+
+  --weight-display: 600;
+  --weight-heading: 600;
+  --weight-body: 400;
+  --weight-mono: 500;
+
+  /* === Radius === */
+  --r-xs: 2px;
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  /* === Shadows === */
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 1px rgba(15, 23, 42, 0.02);
+  --shadow-2: 0 8px 24px -8px rgba(15, 23, 42, 0.12);
+  --shadow-3: 0 24px 60px -20px rgba(15, 23, 42, 0.22);
+
+  /* === Light Theme === */
+  --brand-background: #FAFBFD;
+  --brand-foreground: #1A1D26;
+  --brand-card: #FFFFFF;
+  --brand-card-foreground: #1A1D26;
+  --brand-popover: #FFFFFF;
+  --brand-popover-foreground: #1A1D26;
+  --brand-primary: #4F6EF7;
+  --brand-primary-foreground: #FFFFFF;
+  --brand-muted: #F4F5F7;
+  --brand-muted-foreground: #5F6570;
+  --brand-border: #E5E7EB;
+  --brand-input: #E5E7EB;
+  --brand-ring: rgba(79, 110, 247, 0.3);
+
+  /* === Semantic surface & text aliases === */
+  --brand-surface: #FFFFFF;
+  --brand-surface-2: #F4F5F7;
+  --brand-ink: #1A1D26;
+  --brand-ink-2: #5F6570;
+  --brand-ink-3: #9CA3AF;
+  --brand-line: #E5E7EB;
+  --brand-brand-ink: #FFFFFF;
+
+  /* === State colors === */
+  --brand-state-success: #22C55E;
+  --brand-state-warning: #F59E0B;
+  --brand-state-error: #EF4444;
+  --brand-state-info: #3B82F6;
+
+  /* === Theme preview palette (decorative swatches) === */
+  --theme-preview-default-1: #4F6EF7;
+  --theme-preview-default-2: #758AF8;
+  --theme-preview-default-3: #9BA8FA;
+  --theme-preview-default-4: #C1C8FC;
+  --theme-preview-sunset-1: #F59E0B;
+  --theme-preview-sunset-2: #F7B73C;
+  --theme-preview-sunset-3: #F9CC6D;
+  --theme-preview-sunset-4: #FCE09E;
+  --theme-preview-teal-1: #10B981;
+  --theme-preview-teal-2: #3CC99A;
+  --theme-preview-teal-3: #6DD9B3;
+  --theme-preview-teal-4: #9EE8CD;
+  --theme-preview-pink-1: #EC4899;
+  --theme-preview-pink-2: #F06DAE;
+  --theme-preview-pink-3: #F493C3;
+  --theme-preview-pink-4: #F8B9D9;
+  --theme-preview-slate-1: #64748B;
+  --theme-preview-slate-2: #8390A2;
+  --theme-preview-slate-3: #A1ACB9;
+  --theme-preview-slate-4: #C0C8D0;
+  --theme-preview-amber-1: #D97706;
+  --theme-preview-amber-2: #E5922D;
+  --theme-preview-amber-3: #F0AD55;
+  --theme-preview-amber-4: #F6C97D;
+  --theme-preview-deepblue-1: #3B82F6;
+  --theme-preview-deepblue-2: #629BF8;
+  --theme-preview-deepblue-3: #89B4FA;
+  --theme-preview-deepblue-4: #B0CDFD;
+  --theme-preview-emerald-1: #059669;
+  --theme-preview-emerald-2: #2EAB82;
+  --theme-preview-emerald-3: #57C09B;
+  --theme-preview-emerald-4: #80D5B4;
+
+  /* === Radius aliases for head contract === */
+  --brand-radius-sm: 4px;
+  --brand-radius-md: 8px;
+  --brand-radius-lg: 16px;
+}
+
+/* === Dark Theme === */
+.dark {
+  --brand-background: #0D0F15;
+  --brand-foreground: #E8EAF0;
+  --brand-card: #151820;
+  --brand-card-foreground: #E8EAF0;
+  --brand-popover: #151820;
+  --brand-popover-foreground: #E8EAF0;
+  --brand-primary: #6B8AFF;
+  --brand-primary-foreground: #0D0F15;
+  --brand-muted: #1A1E2A;
+  --brand-muted-foreground: #8B92A0;
+  --brand-border: #252A36;
+  --brand-input: #252A36;
+  --brand-ring: rgba(107, 138, 255, 0.3);
+  --brand-surface: #151820;
+  --brand-surface-2: #1A1E2A;
+  --brand-ink: #E8EAF0;
+  --brand-ink-2: #8B92A0;
+  --brand-ink-3: #5C6370;
+  --brand-line: #252A36;
+  --brand-brand-ink: #0D0F15;
+  --brand-state-success: #4ADE80;
+  --brand-state-warning: #FBBF24;
+  --brand-state-error: #F87171;
+  --brand-state-info: #60A5FA;
+}
+
+/* === Base === */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  color: var(--brand-foreground);
+  background: var(--brand-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* === Utility === */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--brand-background);
+    --color-foreground: var(--brand-foreground);
+    --color-card: var(--brand-card);
+    --color-card-foreground: var(--brand-card-foreground);
+    --color-popover: var(--brand-popover);
+    --color-popover-foreground: var(--brand-popover-foreground);
+    --color-primary: var(--brand-primary);
+    --color-primary-foreground: var(--brand-primary-foreground);
+    --color-muted: var(--brand-muted);
+    --color-muted-foreground: var(--brand-muted-foreground);
+    --color-border: var(--brand-border);
+    --color-input: var(--brand-input);
+    --color-ring: var(--brand-ring);
+    --radius-sm: var(--brand-radius-sm);
+    --radius-md: var(--brand-radius-md);
+    --radius-lg: var(--brand-radius-lg);
+  }
+  @layer base {
+    body { background: var(--brand-background); color: var(--brand-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--brand-background); }
+      .text-background { color: var(--brand-background); }
+      .border-background { border-color: var(--brand-background); }
+      .ring-background { --tw-ring-color: var(--brand-background); }
+      .bg-foreground { background-color: var(--brand-foreground); }
+      .text-foreground { color: var(--brand-foreground); }
+      .border-foreground { border-color: var(--brand-foreground); }
+      .ring-foreground { --tw-ring-color: var(--brand-foreground); }
+      .bg-card { background-color: var(--brand-card); }
+      .text-card { color: var(--brand-card); }
+      .border-card { border-color: var(--brand-card); }
+      .ring-card { --tw-ring-color: var(--brand-card); }
+      .bg-card-foreground { background-color: var(--brand-card-foreground); }
+      .text-card-foreground { color: var(--brand-card-foreground); }
+      .border-card-foreground { border-color: var(--brand-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--brand-card-foreground); }
+      .bg-popover { background-color: var(--brand-popover); }
+      .text-popover { color: var(--brand-popover); }
+      .border-popover { border-color: var(--brand-popover); }
+      .ring-popover { --tw-ring-color: var(--brand-popover); }
+      .bg-popover-foreground { background-color: var(--brand-popover-foreground); }
+      .text-popover-foreground { color: var(--brand-popover-foreground); }
+      .border-popover-foreground { border-color: var(--brand-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--brand-popover-foreground); }
+      .bg-primary { background-color: var(--brand-primary); }
+      .text-primary { color: var(--brand-primary); }
+      .border-primary { border-color: var(--brand-primary); }
+      .ring-primary { --tw-ring-color: var(--brand-primary); }
+      .bg-primary-foreground { background-color: var(--brand-primary-foreground); }
+      .text-primary-foreground { color: var(--brand-primary-foreground); }
+      .border-primary-foreground { border-color: var(--brand-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--brand-primary-foreground); }
+      .bg-muted { background-color: var(--brand-muted); }
+      .text-muted { color: var(--brand-muted); }
+      .border-muted { border-color: var(--brand-muted); }
+      .ring-muted { --tw-ring-color: var(--brand-muted); }
+      .bg-muted-foreground { background-color: var(--brand-muted-foreground); }
+      .text-muted-foreground { color: var(--brand-muted-foreground); }
+      .border-muted-foreground { border-color: var(--brand-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--brand-muted-foreground); }
+      .bg-border { background-color: var(--brand-border); }
+      .text-border { color: var(--brand-border); }
+      .border-border { border-color: var(--brand-border); }
+      .ring-border { --tw-ring-color: var(--brand-border); }
+      .bg-input { background-color: var(--brand-input); }
+      .text-input { color: var(--brand-input); }
+      .border-input { border-color: var(--brand-input); }
+      .ring-input { --tw-ring-color: var(--brand-input); }
+      .bg-ring { background-color: var(--brand-ring); }
+      .text-ring { color: var(--brand-ring); }
+      .border-ring { border-color: var(--brand-ring); }
+      .ring-ring { --tw-ring-color: var(--brand-ring); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <main class="min-h-screen flex items-center justify-center p-6">
+        <!-- Glass-morphism Wizard Card -->
+        <div class="flex w-full max-w-[960px] h-[720px] rounded-lg shadow-2xl overflow-hidden border border-border backdrop-blur-xl bg-card/80">
+            <!-- Left Sidebar: Step Indicator -->
+            <aside class="w-48 shrink-0 border-r border-border bg-muted/40 flex flex-col items-center justify-center py-12 gap-8">
+                <!-- Step 1 -->
+                <div class="flex items-center gap-3">
+                    <div class="w-2.5 h-2.5 rounded-full bg-muted-foreground/30"></div>
+                    <span class="text-xs text-muted-foreground/50">欢迎</span>
+                </div>
+                <!-- Step 2 -->
+                <div class="flex items-center gap-3">
+                    <div class="w-2.5 h-2.5 rounded-full bg-muted-foreground/30"></div>
+                    <span class="text-xs text-muted-foreground/50">协议</span>
+                </div>
+                <!-- Step 3 (active) -->
+                <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 rounded-full bg-primary shadow-[0_0_8px_rgba(79,110,247,0.5)]"></div>
+                    <span class="text-xs font-semibold text-primary">外观</span>
+                </div>
+                <!-- Step 4 -->
+                <div class="flex items-center gap-3">
+                    <div class="w-2.5 h-2.5 rounded-full bg-muted-foreground/30"></div>
+                    <span class="text-xs text-muted-foreground/50">行为</span>
+                </div>
+                <!-- Step 5 -->
+                <div class="flex items-center gap-3">
+                    <div class="w-2.5 h-2.5 rounded-full bg-muted-foreground/30"></div>
+                    <span class="text-xs text-muted-foreground/50">叠加</span>
+                </div>
+                <!-- Step 6 -->
+                <div class="flex items-center gap-3">
+                    <div class="w-2.5 h-2.5 rounded-full bg-muted-foreground/30"></div>
+                    <span class="text-xs text-muted-foreground/50">完成</span>
+                </div>
+            </aside>
+
+            <!-- Right Content Area -->
+            <div class="flex-1 flex flex-col overflow-y-auto no-scrollbar">
+                <div class="px-12 py-10 flex flex-col gap-8">
+                    <!-- Step Heading -->
+                    <div class="flex flex-col gap-1">
+                        <h2 class="text-[var(--text-h2)] font-semibold leading-[var(--leading-h2)] text-foreground">外观风格</h2>
+                        <p class="text-[var(--text-body)] leading-[var(--leading-body)] text-muted-foreground">选择您喜欢的主题配色方案</p>
+                    </div>
+
+                    <!-- Theme Mode Selector -->
+                    <div class="flex flex-col gap-3">
+                        <label class="text-sm font-medium text-foreground">主题模式</label>
+                        <div class="inline-flex rounded-md border border-border overflow-hidden">
+                            <button class="flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-primary text-primary-foreground transition-colors duration-150" id="mode-light">
+                                <i data-lucide="sun" class="w-4 h-4"></i>
+                                浅色
+                            </button>
+                            <button class="flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-muted text-muted-foreground border-x border-border transition-colors duration-150 hover:bg-muted/70" id="mode-dark">
+                                <i data-lucide="moon" class="w-4 h-4"></i>
+                                深色
+                            </button>
+                            <button class="flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-muted text-muted-foreground transition-colors duration-150 hover:bg-muted/70" id="mode-system">
+                                <i data-lucide="monitor" class="w-4 h-4"></i>
+                                跟随系统
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Theme Preset Gallery -->
+                    <div class="flex flex-col gap-3">
+                        <label class="text-sm font-medium text-foreground">主题预设</label>
+                        <div class="grid grid-cols-4 gap-3">
+                            <!-- Card 1: 默认 (Indigo) -->
+                            <button class="flex flex-col gap-2 p-3 rounded-md border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ring-2 ring-primary ring-offset-2 ring-offset-card" data-theme="default">
+                                <div class="flex gap-0.5 rounded-sm overflow-hidden h-10">
+                                    <div class="flex-1" style="background:var(--theme-preview-default-1);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-default-2);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-default-3);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-default-4);"></div>
+                                </div>
+                                <span class="text-xs font-medium text-foreground">默认</span>
+                            </button>
+                            <!-- Card 2: 薄暮 (Warm Orange) -->
+                            <button class="flex flex-col gap-2 p-3 rounded-md border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md" data-theme="sunset">
+                                <div class="flex gap-0.5 rounded-sm overflow-hidden h-10">
+                                    <div class="flex-1" style="background:var(--theme-preview-sunset-1);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-sunset-2);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-sunset-3);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-sunset-4);"></div>
+                                </div>
+                                <span class="text-xs font-medium text-foreground">薄暮</span>
+                            </button>
+                            <!-- Card 3: 青峦 (Teal Green) -->
+                            <button class="flex flex-col gap-2 p-3 rounded-md border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md" data-theme="teal">
+                                <div class="flex gap-0.5 rounded-sm overflow-hidden h-10">
+                                    <div class="flex-1" style="background:var(--theme-preview-teal-1);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-teal-2);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-teal-3);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-teal-4);"></div>
+                                </div>
+                                <span class="text-xs font-medium text-foreground">青峦</span>
+                            </button>
+                            <!-- Card 4: 樱语 (Soft Pink) -->
+                            <button class="flex flex-col gap-2 p-3 rounded-md border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md" data-theme="pink">
+                                <div class="flex gap-0.5 rounded-sm overflow-hidden h-10">
+                                    <div class="flex-1" style="background:var(--theme-preview-pink-1);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-pink-2);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-pink-3);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-pink-4);"></div>
+                                </div>
+                                <span class="text-xs font-medium text-foreground">樱语</span>
+                            </button>
+                            <!-- Card 5: 墨韵 (Slate Gray) -->
+                            <button class="flex flex-col gap-2 p-3 rounded-md border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md" data-theme="slate">
+                                <div class="flex gap-0.5 rounded-sm overflow-hidden h-10">
+                                    <div class="flex-1" style="background:var(--theme-preview-slate-1);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-slate-2);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-slate-3);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-slate-4);"></div>
+                                </div>
+                                <span class="text-xs font-medium text-foreground">墨韵</span>
+                            </button>
+                            <!-- Card 6: 晨曦 (Amber) -->
+                            <button class="flex flex-col gap-2 p-3 rounded-md border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md" data-theme="amber">
+                                <div class="flex gap-0.5 rounded-sm overflow-hidden h-10">
+                                    <div class="flex-1" style="background:var(--theme-preview-amber-1);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-amber-2);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-amber-3);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-amber-4);"></div>
+                                </div>
+                                <span class="text-xs font-medium text-foreground">晨曦</span>
+                            </button>
+                            <!-- Card 7: 深海 (Deep Blue) -->
+                            <button class="flex flex-col gap-2 p-3 rounded-md border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md" data-theme="deepblue">
+                                <div class="flex gap-0.5 rounded-sm overflow-hidden h-10">
+                                    <div class="flex-1" style="background:var(--theme-preview-deepblue-1);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-deepblue-2);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-deepblue-3);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-deepblue-4);"></div>
+                                </div>
+                                <span class="text-xs font-medium text-foreground">深海</span>
+                            </button>
+                            <!-- Card 8: 翡冷翠 (Emerald) -->
+                            <button class="flex flex-col gap-2 p-3 rounded-md border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md" data-theme="emerald">
+                                <div class="flex gap-0.5 rounded-sm overflow-hidden h-10">
+                                    <div class="flex-1" style="background:var(--theme-preview-emerald-1);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-emerald-2);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-emerald-3);"></div>
+                                    <div class="flex-1" style="background:var(--theme-preview-emerald-4);"></div>
+                                </div>
+                                <span class="text-xs font-medium text-foreground">翡冷翠</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="mt-auto px-12 py-8 border-t border-border flex items-center justify-between">
+                    <button class="flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-md border border-border bg-card text-foreground hover:bg-muted transition-colors duration-150" id="btn-prev">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        上一步
+                    </button>
+                    <button class="flex items-center gap-2 px-6 py-2.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity duration-150" id="btn-next">
+                        下一步
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Theme Mode Selector Script -->
+    <script>
+    (function() {
+        const modes = document.querySelectorAll('#mode-light, #mode-dark, #mode-system');
+        const cards = document.querySelectorAll('[data-theme]');
+
+        function setActiveMode(activeBtn) {
+            modes.forEach(b => {
+                b.classList.remove('bg-primary', 'text-primary-foreground', 'border-x', 'border-border');
+                b.classList.add('bg-muted', 'text-muted-foreground');
+            });
+            activeBtn.classList.remove('bg-muted', 'text-muted-foreground');
+            activeBtn.classList.add('bg-primary', 'text-primary-foreground');
+            // Re-add border-x to the middle button if it's not the active one
+            const darkBtn = document.getElementById('mode-dark');
+            if (activeBtn !== darkBtn) {
+                darkBtn.classList.add('border-x', 'border-border');
+            }
+        }
+
+        function setActiveCard(activeCard) {
+            cards.forEach(c => {
+                c.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'ring-offset-card');
+            });
+            activeCard.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'ring-offset-card');
+        }
+
+        modes.forEach(btn => {
+            btn.addEventListener('click', () => setActiveMode(btn));
+        });
+
+        cards.forEach(card => {
+            card.addEventListener('click', () => setActiveCard(card));
+        });
+    })();
+    </script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

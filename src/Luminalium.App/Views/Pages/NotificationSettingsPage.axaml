@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Luminalium.App.ViewModels"
+             x:Class="Luminalium.App.Views.Pages.NotificationSettingsPage"
+             x:DataType="vm:NotificationSettingsViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="0,0,0,36" Spacing="24">
+            <TextBlock Text="{Binding PageTitle}" FontSize="28" FontWeight="SemiBold" />
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding ResourceMonitorSectionTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding ResourceMonitorLabel}" FontWeight="SemiBold" FontSize="14" />
+                            <TextBlock Text="{Binding ResourceMonitorDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                        </StackPanel>
+                        <ComboBox Grid.Column="1"
+                                  MinHeight="{StaticResource ShellTouchTargetMinHeight}"
+                                  ItemsSource="{Binding MonitorIntervals}"
+                                  SelectedIndex="{Binding SelectedMonitorIntervalIndex, Mode=TwoWay}"
+                                  Width="160"
+                                  HorizontalAlignment="Right" />
+                    </Grid>
+                </Border>
+            </StackPanel>
+            <StackPanel Spacing="10">
+                <TextBlock Text="{Binding TimerNotifySectionTitle}" FontSize="15" FontWeight="SemiBold" Opacity="0.9" />
+                <Border Padding="18" CornerRadius="{StaticResource ShellCornerRadius}" BorderThickness="{StaticResource ShellBorderThickness}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource LayerFillColorDefaultBrush}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding TimerNotifyLabel}" FontWeight="SemiBold" FontSize="14" />
+                            <TextBlock Text="{Binding TimerNotifyDescription}" TextWrapping="Wrap" Opacity="0.65" FontSize="12" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <ToggleSwitch IsChecked="{Binding TimerNotifyEnabled, Mode=TwoWay}" OnContent="{x:Null}" OffContent="{x:Null}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

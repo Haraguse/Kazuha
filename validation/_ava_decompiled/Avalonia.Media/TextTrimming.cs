@@ -1,0 +1,85 @@
+using System;
+using Avalonia.Media.TextFormatting;
+
+namespace Avalonia.Media;
+
+/// <summary>
+/// Describes how text is trimmed when it overflows.
+/// </summary>
+public abstract class TextTrimming
+{
+	internal const string DefaultEllipsisChar = "…";
+
+	/// <summary>
+	/// Text is not trimmed.
+	/// </summary>
+	public static TextTrimming None { get; } = new TextNoneTrimming();
+
+	/// <summary>
+	/// Text is trimmed at a character boundary. An ellipsis (...) is drawn in place of remaining text.
+	/// </summary>
+	public static TextTrimming CharacterEllipsis { get; } = new TextTrailingTrimming("…", isWordBased: false);
+
+	/// <summary>
+	/// Text is trimmed at a word boundary. An ellipsis (...) is drawn in place of remaining text.
+	/// </summary>
+	public static TextTrimming WordEllipsis { get; } = new TextTrailingTrimming("…", isWordBased: true);
+
+	/// <summary>
+	/// Text is trimmed after a given prefix length. An ellipsis (...) is drawn in between prefix and suffix and represents remaining text.
+	/// </summary>
+	public static TextTrimming PrefixCharacterEllipsis { get; } = new TextLeadingPrefixTrimming("…", 8);
+
+	/// <summary>
+	/// Text is trimmed at a character boundary starting from the beginning. An ellipsis (...) is drawn in place of remaining text.
+	/// </summary>
+	public static TextTrimming LeadingCharacterEllipsis { get; } = new TextLeadingPrefixTrimming("…", 0);
+
+	/// <summary>
+	/// Gets a text trimming strategy that inserts an ellipsis to indicate omitted segments in a path string.
+	/// </summary>
+	/// <remarks>Use this property to display long file or directory paths in a shortened form, with
+	/// an ellipsis representing omitted segments. This is useful for UI scenarios where space is limited and the
+	/// full path cannot be shown.</remarks>
+	public static TextTrimming PathSegmentEllipsis { get; } = new TextPathSegmentTrimming("…");
+
+	/// <summary>
+	/// Creates properties that will be used for collapsing lines of text.
+	/// </summary>
+	/// <param name="createInfo">Contextual info about text that will be collapsed.</param>
+	public abstract TextCollapsingProperties CreateCollapsingProperties(TextCollapsingCreateInfo createInfo);
+
+	/// <summary>
+	/// Parses a text trimming string. Names must match static properties defined in this class.
+	/// </summary>
+	/// <param name="s">The text trimming string.</param>
+	/// <returns>The <see cref="T:Avalonia.Media.TextTrimming" />.</returns>
+	public static TextTrimming Parse(string s)
+	{
+		if (Matches("None"))
+		{
+			return None;
+		}
+		if (Matches("CharacterEllipsis"))
+		{
+			return CharacterEllipsis;
+		}
+		if (Matches("WordEllipsis"))
+		{
+			return WordEllipsis;
+		}
+		if (Matches("PrefixCharacterEllipsis"))
+		{
+			return PrefixCharacterEllipsis;
+		}
+		if (Matches("PathSegmentEllipsis"))
+		{
+			return PathSegmentEllipsis;
+		}
+		throw new FormatException("Invalid text trimming string: '" + s + "'.");
+		bool Matches(string name)
+		{
+			return name.Equals(s, StringComparison.OrdinalIgnoreCase);
+		}
+	}
+}

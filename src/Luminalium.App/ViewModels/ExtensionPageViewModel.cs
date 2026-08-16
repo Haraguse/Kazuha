@@ -12,7 +12,7 @@ public sealed class ExtensionPageViewModel : ShellPageViewModel
     private readonly ILocalizationService _localization;
 
     public ExtensionPageViewModel(ExtensionEntryViewModel extension, ILocalizationService localization)
-        : base($"plugin:{extension.Id}", "PluginPage.Title", localization)
+        : base("PluginPage.Title", localization)
     {
         _localization = localization;
         Extension = extension;

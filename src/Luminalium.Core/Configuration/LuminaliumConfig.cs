@@ -18,6 +18,10 @@ public sealed class LuminaliumConfig
     public SelfPenSettings SelfPen { get; set; } = new();
     public NotificationsSettings Notifications { get; set; } = new();
     public SecuritySettings Security { get; set; } = new();
+    public BoardInBoardSettings BoardInBoard { get; set; } = new();
+    public TimerSettings Timer { get; set; } = new();
+    public FontSettings Fonts { get; set; } = new();
+    public UpdateSettings Updates { get; set; } = new();
 
     public static LuminaliumConfig CreateDefault() => new();
 }
@@ -58,6 +62,7 @@ public sealed class ToolbarSettings
     public bool ShowBoardInBoard { get; set; } = true;
     public bool ShowTimer { get; set; } = true;
     public bool ShowToolbarText { get; set; }
+    public bool ShowTooltips { get; set; } = true;
     public string[] QuickLaunchApps { get; set; } = [];
     public string[] ToolbarOrder { get; set; } =
     [
@@ -147,6 +152,49 @@ public sealed class SecuritySettings
     public string PasswordHash { get; set; } = string.Empty;
 }
 
+public sealed class BoardInBoardSettings
+{
+    public BoardInBoardPosition WindowPosition { get; set; } = BoardInBoardPosition.BottomRight;
+    public string BackgroundColor { get; set; } = "#FFFFFF";
+    public BoardEraserMode EraserMode { get; set; } = BoardEraserMode.Stroke;
+    public BoardPenEffect PenEffect { get; set; } = BoardPenEffect.Limited;
+    public bool WindowEnterAnimation { get; set; } = true;
+}
+
+public sealed class TimerSettings
+{
+    public TimerFullscreenBehavior FullscreenBehavior { get; set; } = TimerFullscreenBehavior.Normal;
+    public bool EnableSoundEffects { get; set; } = true;
+    public int[] QuickAddPresets { get; set; } = [];
+}
+
+public sealed class FontSettings
+{
+    public bool CustomFont { get; set; }
+    public string Family { get; set; } = string.Empty;
+    public string Weight { get; set; } = "Regular";
+    public List<LanguageFont> PerLanguageFonts { get; set; } = [];
+    public string PreviewSample { get; set; } = string.Empty;
+}
+
+public sealed class LanguageFont
+{
+    public string LanguageCode { get; set; } = string.Empty;
+    public string Family { get; set; } = string.Empty;
+}
+
+public sealed class UpdateSettings
+{
+    public bool AutoCheck { get; set; }
+    public UpdateSource Source { get; set; } = UpdateSource.GitHub;
+}
+
+public enum UpdateSource
+{
+    GitHub,
+    Mirror,
+}
+
 public enum ThemeMode
 {
     Light,
@@ -208,4 +256,32 @@ public enum PenEffect
     Off,
     Limited,
     Full,
+}
+
+public enum BoardInBoardPosition
+{
+    BottomRight,
+    TopRight,
+    BottomLeft,
+    TopLeft,
+}
+
+public enum BoardEraserMode
+{
+    Point,
+    Stroke,
+}
+
+public enum BoardPenEffect
+{
+    Off,
+    Limited,
+    Full,
+}
+
+public enum TimerFullscreenBehavior
+{
+    Normal,
+    Maximize,
+    Fullscreen,
 }

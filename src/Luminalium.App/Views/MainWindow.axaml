@@ -1,6 +1,5 @@
 <windowing:FAAppWindow xmlns="https://github.com/avaloniaui"
                        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                       xmlns:ui="using:FluentAvalonia.UI.Controls"
                        xmlns:windowing="using:FluentAvalonia.UI.Windowing"
                        xmlns:vm="using:Luminalium.App.ViewModels"
                        x:Class="Luminalium.App.Views.MainWindow"
@@ -32,52 +31,57 @@
             </Grid>
         </Border>
 
-        <ui:FANavigationView x:Name="ShellNavigation"
-                             Grid.Row="1"
-                             PaneDisplayMode="Left"
-                             IsPaneToggleButtonVisible="False"
-                             IsSettingsVisible="False"
-                              IsBackButtonVisible="True"
-                              IsBackEnabled="{Binding CanGoBack}"
-                              BackRequested="OnBackRequested"
-                              ItemInvoked="OnItemInvoked"
-                              SelectionChanged="OnSelectionChanged"
-                              AutomationProperties.Name="Luminalium navigation"
-                             AutomationProperties.AutomationId="LuminaliumNavigation">
-            <Grid RowDefinitions="*,Auto">
-                <ui:FAFrame x:Name="ShellFrame"
-                            Grid.Row="0"
-                            IsNavigationStackEnabled="False"
-                            AutomationProperties.Name="Luminalium page frame"
-                            AutomationProperties.AutomationId="LuminaliumFrame" />
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Margin="{StaticResource ShellPageMargin}"
+                        Spacing="{StaticResource ShellPageSpacing}"
+                        MaxWidth="{StaticResource ShellPageMaxWidth}"
+                        HorizontalAlignment="Left">
+                <StackPanel Spacing="{StaticResource ShellTitleStackSpacing}">
+                    <TextBlock Text="{Binding ProductName}"
+                               FontSize="{StaticResource ShellTitleFontSize}"
+                               FontWeight="SemiBold"
+                               AutomationProperties.Name="Luminalium product name" />
+                    <TextBlock Text="{Binding VersionDisplay}"
+                               FontSize="{StaticResource ShellSubtitleFontSize}"
+                               Opacity="{StaticResource ShellMutedOpacity}"
+                               AutomationProperties.Name="Luminalium version line" />
+                </StackPanel>
 
-                <Border Grid.Row="1"
-                        Padding="{StaticResource ShellCompactPadding}"
-                        BorderThickness="{StaticResource ShellFooterBorderThickness}"
-                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
-                    <StackPanel Spacing="{StaticResource ShellCompactSpacing}">
-                        <Button MinHeight="{StaticResource OverlayTouchTargetSize}"
+                <Border Padding="{StaticResource ShellSectionPadding}"
+                        CornerRadius="{StaticResource ShellCornerRadius}"
+                        BorderThickness="{StaticResource ShellBorderThickness}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                    <StackPanel Spacing="{StaticResource ShellSectionSpacing}">
+                        <Button MinHeight="{StaticResource ShellTouchTargetMinHeight}"
+                                Command="{Binding NavigateToSettingsCommand}"
+                                Content="{Binding Settings.Title}"
+                                HorizontalAlignment="Stretch"
+                                AutomationProperties.Name="OpenSettings" />
+                        <Button MinHeight="{StaticResource ShellTouchTargetMinHeight}"
                                 Click="OnOpenOverlayClicked"
                                 Content="{Binding OpenOverlayText}"
                                 HorizontalAlignment="Stretch"
                                 AutomationProperties.Name="OpenOverlay"
                                 AutomationProperties.HelpText="{Binding OpenOverlayHelpText}" />
-                        <TextBlock Text="{Binding VersionDisplay}"
-                                   FontSize="{StaticResource ShellCaptionFontSize}"
-                                   Opacity="{StaticResource ShellMutedOpacity}"
-                                   AutomationProperties.Name="Luminalium version" />
-                        <TextBlock Text="{Binding TrayStatusText}"
-                                   FontSize="{StaticResource ShellCaptionFontSize}"
-                                   Opacity="{StaticResource ShellMutedOpacity}"
-                                   AutomationProperties.Name="Tray status" />
-                        <TextBlock Text="{Binding ErrorText}"
-                                   FontSize="{StaticResource ShellCaptionFontSize}"
-                                   Opacity="{StaticResource ShellErrorOpacity}"
-                                   IsVisible="{Binding HasError}"
-                                   AutomationProperties.Name="Shell error" />
+                        <Button MinHeight="{StaticResource ShellTouchTargetMinHeight}"
+                                Click="OnOpenLogsClicked"
+                                Content="{Binding Logs.Title}"
+                                HorizontalAlignment="Stretch"
+                                AutomationProperties.Name="OpenLogs" />
                     </StackPanel>
                 </Border>
-            </Grid>
-        </ui:FANavigationView>
+
+                <TextBlock Text="{Binding TrayStatusText}"
+                           FontSize="{StaticResource ShellCaptionFontSize}"
+                           Opacity="{StaticResource ShellMutedOpacity}"
+                           AutomationProperties.Name="Tray status" />
+                <TextBlock Text="{Binding ErrorText}"
+                           FontSize="{StaticResource ShellCaptionFontSize}"
+                           Opacity="{StaticResource ShellErrorOpacity}"
+                           IsVisible="{Binding HasError}"
+                           AutomationProperties.Name="Shell error" />
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </windowing:FAAppWindow>
