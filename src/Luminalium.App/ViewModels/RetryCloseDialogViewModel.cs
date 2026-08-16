@@ -33,7 +33,7 @@ public sealed partial class RetryCloseDialogViewModel : ObservableObject
 
     public event EventHandler<bool>? RetryCompleted;
 
-    private async Task RetryAsync()
+    public async Task<bool> RetryAsync()
     {
         RetryError = string.Empty;
         var succeeded = await _retryAsync().ConfigureAwait(true);
@@ -43,6 +43,7 @@ public sealed partial class RetryCloseDialogViewModel : ObservableObject
         }
 
         RetryCompleted?.Invoke(this, succeeded);
+        return succeeded;
     }
 
     private void Close()

@@ -78,6 +78,58 @@ public sealed class StartupErrorCoordinatorTests
         Assert.DoesNotContain("PasswordHash", message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task RetryCommandInvokesTheOperationOnce()
+    {
+        var calls = 0;
+        var viewModel = new RetryCloseDialogViewModel(
+            "temporary",
+            () =>
+            {
+                calls++;
+                return Task.FromResult(true);
+            },
+            () => { });
+
+        await viewModel.RetryCommand.ExecuteAsync(null);
+
+        Assert.Equal(1, calls);
+    }
+
+    [Fact]
+    public async Task StartupLifecycleReplacesClosedSplashBeforeRetry()
+    {
+        var created = 0;
+        var shown = new List<Marker>();
+        var closed = new List<Marker>();
+        var lifecycle = new StartupSplashLifecycle<Marker>(
+            () => new Marker(++created),
+            value => shown.Add(value),
+            value => closed.Add(value));
+
+        lifecycle.Start();
+        var success = await lifecycle.RetryAsync(() => Task.FromResult(true));
+
+        Assert.True(success);
+        Assert.Equal([1, 2], shown.Select(marker => marker.Value));
+        Assert.Equal([1, 2], closed.Select(marker => marker.Value));
+    }
+
+    [Fact]
+    public void StartupLifecycleClosesTerminalExactlyOnce()
+    {
+        var shutdowns = 0;
+        var lifecycle = new StartupSplashLifecycle<Marker>(() => new Marker(1), _ => { }, _ => { }, () => shutdowns++);
+
+        lifecycle.Start();
+        lifecycle.Close();
+        lifecycle.Close();
+
+        Assert.Equal(1, shutdowns);
+    }
+
+    private sealed record Marker(int Value);
+
     private class ScriptedRetryDialog(RetryCloseDialogResult result) : IDialogService
     {
         public RetryCloseDialogRequest? Request { get; private set; }

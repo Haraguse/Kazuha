@@ -53,13 +53,17 @@ public partial class App : Application
             var startupErrors = new StartupErrorCoordinator(dialogService);
             var mainWindow = new MainWindow(shellViewModel, dialogService);
             var splashPolicy = EvaluateSplashPolicy(configurationLoad.Config, isAutoStart: false);
-            var splashWindow = new SplashWindow(new SplashViewModel(shellViewModel.VersionDisplay, localizationService, splashPolicy));
+            var splashLifecycle = new StartupSplashLifecycle<SplashWindow>(
+                () => new SplashWindow(new SplashViewModel(shellViewModel.VersionDisplay, localizationService, splashPolicy)),
+                splash => splash.Show(),
+                splash => splash.Close(),
+                () => desktop.Shutdown());
 
             desktop.MainWindow = mainWindow;
             Exception? splashException = null;
             mainWindow.Opened += async (_, _) =>
             {
-                splashWindow.Close();
+                splashLifecycle.Dismiss();
                 if (splashException is not null)
                 {
                     await startupErrors.PresentAsync(
@@ -67,16 +71,18 @@ public partial class App : Application
                         splashException,
                         async () =>
                         {
-                            var retryException = TryShowSplash(splashWindow, shellViewModel);
-                            return await Task.FromResult(retryException is null).ConfigureAwait(true);
+                            return await splashLifecycle.RetryAsync(
+                                () => Task.FromResult(true)).ConfigureAwait(true);
                         },
-                        () => { }).ConfigureAwait(true);
+                        () => desktop.Shutdown()).ConfigureAwait(true);
                 }
             };
 
             if (splashPolicy.IsVisible)
             {
-                splashException = TryShowSplash(splashWindow, shellViewModel);
+                splashException = splashLifecycle.TryShowFresh()
+                    ? null
+                    : CreateSplashException(shellViewModel);
             }
             TryInstallTrayIcon(desktop, mainWindow, shellViewModel);
         }
@@ -91,6 +97,12 @@ public partial class App : Application
         return SplashPolicy.Evaluate(config.General, isAutoStart, TimeOnly.FromDateTime(DateTime.Now));
     }
 
+    private static InvalidOperationException CreateSplashException(ShellViewModel shellViewModel)
+    {
+        shellViewModel.ReportLocalizedError(ShellErrorKind.Startup, "Shell.Error.SplashUnavailable");
+        return new InvalidOperationException("Splash window could not be shown.");
+    }
+
     private static string GetSettingsDirectoryPath()
     {
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -100,20 +112,6 @@ public partial class App : Application
         }
 
         return Path.Combine(localAppData, ProductIdentity.DisplayName);
-    }
-
-    private static Exception? TryShowSplash(SplashWindow splashWindow, ShellViewModel shellViewModel)
-    {
-        try
-        {
-            splashWindow.Show();
-            return null;
-        }
-        catch (Exception exception)
-        {
-            shellViewModel.ReportLocalizedError(ShellErrorKind.Startup, "Shell.Error.SplashUnavailable");
-            return exception;
-        }
     }
 
     private void TryInstallTrayIcon(

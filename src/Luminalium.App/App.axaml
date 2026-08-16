@@ -80,10 +80,18 @@
             <Setter Property="FontFamily" Value="{DynamicResource LuminaliumFontFamily}" />
         </Style>
         <!-- ComboBox content vertical centering for CJK text (default FluentAvalonia template
-             leaves text anchored near the top on taller touch-target heights). -->
+             leaves text anchored near the top on taller touch-target heights).
+             Two parts are required:
+             1. VerticalContentAlignment=Center on the ComboBox (drives the template ContentPresenter).
+             2. VerticalAlignment=Center on the inner TextBlock. Without this the SelectionBoxItem
+                TextBlock stretches to the full content height and renders its line at the top,
+                so part 1 alone has no visible effect on tall (40px) touch targets. -->
         <Style Selector="ComboBox">
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Padding" Value="12,6,8,6" />
+        </Style>
+        <Style Selector="ComboBox TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
     </Application.Styles>
 </Application>

@@ -5,6 +5,7 @@ using Luminalium.Core.Localization;
 using Luminalium.Core.Identity;
 using Luminalium.Core.Configuration;
 using System.Globalization;
+using System.Diagnostics;
 
 namespace Luminalium.App.ViewModels;
 
@@ -323,6 +324,20 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
         }
     }
 
+    public void SyncThemeMode(ShellThemeMode mode)
+    {
+        _syncingThemeMode = true;
+        try
+        {
+            SelectedThemeMode = mode;
+            SelectedThemeModeOption = ThemeModeOptions.First(option => option.Mode == mode);
+        }
+        finally
+        {
+            _syncingThemeMode = false;
+        }
+    }
+
     public void InitializeFontAndSplash(
         string fontFamily,
         SplashMode splashMode,
@@ -394,7 +409,10 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
             }
         }
 
-        _ = ApplyThemeAsync(value);
+        if (!_syncingThemeMode)
+        {
+            ObserveCallback(ApplyThemeAsync(value));
+        }
     }
 
     partial void OnSelectedThemeModeOptionChanged(ThemeModeOptionViewModel value)
@@ -414,7 +432,7 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
             return;
         }
 
-        _ = ApplyAccentAsync(value);
+        ObserveCallback(ApplyAccentAsync(value));
     }
 
     partial void OnSelectedLanguageOptionChanged(LanguageOptionViewModel value)
@@ -424,7 +442,7 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
             return;
         }
 
-        _ = ApplyLanguageAsync(value);
+        ObserveCallback(ApplyLanguageAsync(value));
     }
 
     partial void OnSelectedFontFamilyOptionChanged(FontFamilyOptionViewModel value)
@@ -434,7 +452,7 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
             return;
         }
 
-        _ = ApplyFontFamilyAsync(value);
+        ObserveCallback(ApplyFontFamilyAsync(value));
     }
 
     partial void OnSelectedSplashModeOptionChanged(SplashModeOptionViewModel value)
@@ -444,14 +462,14 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
             return;
         }
 
-        _ = ApplySplashModeAsync(value);
+        ObserveCallback(ApplySplashModeAsync(value));
     }
 
     partial void OnSelectedSplashStyleOptionChanged(SplashStyleOptionViewModel value)
     {
         if (!_initializingAppearance && value is not null)
         {
-            _ = ApplySplashStyleAsync(value);
+            ObserveCallback(ApplySplashStyleAsync(value));
         }
     }
 
@@ -459,7 +477,7 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
     {
         if (!_initializingAppearance)
         {
-            _ = ApplyDetailedSplashAsync(value);
+            ObserveCallback(ApplyDetailedSplashAsync(value));
         }
     }
 
@@ -467,7 +485,7 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
     {
         if (!_initializingAppearance)
         {
-            _ = ApplySplashTimeRangeAsync(value, SplashEndTime);
+            ObserveCallback(ApplySplashTimeRangeAsync(value, SplashEndTime));
         }
     }
 
@@ -475,7 +493,7 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
     {
         if (!_initializingAppearance)
         {
-            _ = ApplySplashTimeRangeAsync(SplashStartTime, value);
+            ObserveCallback(ApplySplashTimeRangeAsync(SplashStartTime, value));
         }
     }
 
@@ -692,6 +710,23 @@ public sealed partial class SettingsViewModel : ShellPageViewModel
         ChangePasswordCommand.NotifyCanExecuteChanged();
         DisablePasswordProtectionCommand.NotifyCanExecuteChanged();
         UnlockSettingsCommand.NotifyCanExecuteChanged();
+    }
+
+    private static void ObserveCallback(Task task)
+    {
+        _ = ObserveCallbackAsync(task);
+    }
+
+    private static async Task ObserveCallbackAsync(Task task)
+    {
+        try
+        {
+            await task.ConfigureAwait(true);
+        }
+        catch (Exception exception)
+        {
+            Debug.WriteLine($"Settings callback failed: {exception}");
+        }
     }
 
     private void SetUpdateStatus(string key, string? argument = null)

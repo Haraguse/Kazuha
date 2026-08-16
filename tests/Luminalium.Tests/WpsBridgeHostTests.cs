@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using Luminalium.Core.Platform;
+using Luminalium.Presentation;
 using Luminalium.Wps;
 using Xunit;
 
@@ -11,6 +12,20 @@ namespace Luminalium.Tests;
 public sealed class WpsBridgeHostTests
 {
     private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(10);
+
+    [Fact]
+    public void ProductionAdapterRejectsMissingAuthenticationToken()
+    {
+        Assert.Throws<InvalidOperationException>(() => new WpsBridgeAutomationAdapter(
+            authenticationTokenProvider: static () => null));
+    }
+
+    [Fact]
+    public void ProductionAdapterRejectsInvalidAuthenticationToken()
+    {
+        Assert.Throws<ArgumentException>(() => new WpsBridgeAutomationAdapter(
+            authenticationTokenProvider: static () => string.Empty));
+    }
 
     [Fact]
     public async Task HappyPathBindsDefaultRangeReceivesHelloAndSendsEnvelope()

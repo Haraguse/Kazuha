@@ -2,12 +2,14 @@ using Luminalium.App.Services;
 using Luminalium.App.ViewModels;
 using Luminalium.Core.Configuration;
 using Luminalium.Core.Localization;
+using System.Text.Json;
 using Xunit;
 
 namespace Luminalium.Tests;
 
 public sealed class OnboardingAndLogsTests : IDisposable
 {
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private readonly string _directory = Path.Combine(Path.GetTempPath(), $"Luminalium-OnboardingLogs-{Guid.NewGuid():N}");
 
     public OnboardingAndLogsTests() => Directory.CreateDirectory(_directory);
@@ -45,6 +47,65 @@ public sealed class OnboardingAndLogsTests : IDisposable
     }
 
     [Fact]
+    public void LogsRetainNewestValidEntriesWhenMalformedLinesArePresent()
+    {
+        var path = Path.Combine(_directory, "bounded.jsonl");
+        File.WriteAllLines(path,
+        [
+            EntryJson("old", 0),
+            "not-json",
+            EntryJson("middle", 1),
+            "{\"timestamp\":\"bad\",\"severity\":\"Error\",\"message\":\"invalid\"}",
+            EntryJson("newest", 2),
+        ]);
+        var service = new LocalLogService(logPath: path, maxEntries: 2);
+
+        var entries = service.Read();
+
+        Assert.Equal(["middle", "newest"], entries.Select(entry => entry.Message));
+    }
+
+    [Fact]
+    public void AppendCreatesDirectoriesAndWritesOneValidJsonLine()
+    {
+        var path = Path.Combine(_directory, "nested", "logs.jsonl");
+        var service = new LocalLogService(logPath: path);
+        var entry = new LogEntry(DateTimeOffset.UnixEpoch, LogSeverity.Warning, "watch", "test");
+
+        service.Append(entry);
+
+        var lines = File.ReadAllLines(path);
+        Assert.Single(lines);
+        using var document = JsonDocument.Parse(lines[0]);
+        Assert.Equal("watch", document.RootElement.GetProperty("message").GetString());
+        Assert.Single(service.Read());
+    }
+
+    [Fact]
+    public async Task ConcurrentAppendsRemainValidJsonLines()
+    {
+        var path = Path.Combine(_directory, "concurrent", "logs.jsonl");
+        var service = new LocalLogService(logPath: path);
+        var tasks = Enumerable.Range(0, 32)
+            .Select(index => Task.Run(() => service.Append(new LogEntry(
+                DateTimeOffset.UnixEpoch.AddSeconds(index),
+                LogSeverity.Information,
+                $"message-{index}",
+                "test"))))
+            .ToArray();
+
+        await Task.WhenAll(tasks);
+
+        var lines = File.ReadAllLines(path);
+        Assert.Equal(32, lines.Length);
+        foreach (var line in lines)
+        {
+            using var document = JsonDocument.Parse(line);
+            Assert.Equal(JsonValueKind.Object, document.RootElement.ValueKind);
+        }
+    }
+
+    [Fact]
     public void ExportReportsSuccessAndFailureWithoutThrowing()
     {
         var fileSystem = new RecordingLogFileSystem();
@@ -58,6 +119,14 @@ public sealed class OnboardingAndLogsTests : IDisposable
     }
 
     public void Dispose() => Directory.Delete(_directory, recursive: true);
+
+    private static string EntryJson(string message, int seconds) => JsonSerializer.Serialize(new
+    {
+        Timestamp = DateTimeOffset.UnixEpoch.AddSeconds(seconds),
+        Severity = LogSeverity.Information.ToString(),
+        Message = message,
+        Source = "test",
+    }, JsonOptions);
 
     private sealed class RecordingLogFileSystem : ILogFileSystem
     {
@@ -76,5 +145,7 @@ public sealed class OnboardingAndLogsTests : IDisposable
 
             LastContent = content;
         }
+
+        public void AppendAllText(string path, string content) => WriteAllText(path, content);
     }
 }

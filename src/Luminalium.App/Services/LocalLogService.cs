@@ -24,6 +24,8 @@ public interface ILogFileSystem
     IEnumerable<string> ReadLines(string path);
 
     void WriteAllText(string path, string content);
+
+    void AppendAllText(string path, string content);
 }
 
 public sealed class LocalLogFileSystem : ILogFileSystem
@@ -31,13 +33,17 @@ public sealed class LocalLogFileSystem : ILogFileSystem
     public IEnumerable<string> ReadLines(string path) => File.Exists(path) ? File.ReadLines(path) : [];
 
     public void WriteAllText(string path, string content) => File.WriteAllText(path, content, new UTF8Encoding(false));
+
+    public void AppendAllText(string path, string content) => File.AppendAllText(path, content, new UTF8Encoding(false));
 }
 
 public sealed class LocalLogService
 {
     public const int DefaultMaxEntries = 500;
     private const int MaxLineLength = 16 * 1024;
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private readonly ILogFileSystem _fileSystem;
+    private static readonly object AppendLock = new();
 
     public LocalLogService(ILogFileSystem? fileSystem = null, string? logPath = null, int maxEntries = DefaultMaxEntries)
     {
@@ -52,9 +58,7 @@ public sealed class LocalLogService
 
     public IReadOnlyList<LogEntry> Read()
     {
-        var entries = new List<LogEntry>(Math.Min(MaxEntries, 64));
-        var linesRead = 0;
-        var maxLines = MaxEntries * 4;
+        var entries = new Queue<LogEntry>(Math.Min(MaxEntries, 64));
         IEnumerable<string> lines;
         try
         {
@@ -73,17 +77,17 @@ public sealed class LocalLogService
         {
             foreach (var line in lines)
             {
-                if (entries.Count >= MaxEntries || linesRead++ >= maxLines)
-                {
-                    break;
-                }
-
                 if (line.Length is 0 or > MaxLineLength || TryParse(line, out var entry) is false)
                 {
                     continue;
                 }
 
-                entries.Add(entry!);
+                if (entries.Count == MaxEntries)
+                {
+                    entries.Dequeue();
+                }
+
+                entries.Enqueue(entry!);
             }
         }
         catch (IOException)
@@ -95,7 +99,36 @@ public sealed class LocalLogService
             return [];
         }
 
-        return entries;
+        return entries.ToArray();
+    }
+
+    public void Append(LogEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        var content = SerializeEntry(entry) + Environment.NewLine;
+
+        lock (AppendLock)
+        {
+            var directory = Path.GetDirectoryName(LogPath);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            _fileSystem.AppendAllText(LogPath, content);
+        }
+    }
+
+    public void Log(LogSeverity severity, string message, string source)
+    {
+        try
+        {
+            Append(new LogEntry(DateTimeOffset.UtcNow, severity, message, source));
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Trace.TraceError($"Failed to write application log: {exception.Message}");
+        }
     }
 
     public IReadOnlyList<LogEntry> Filter(IEnumerable<LogEntry> entries, LogSeverity? minimumSeverity)
@@ -119,13 +152,7 @@ public sealed class LocalLogService
         {
             var content = string.Join(
                 Environment.NewLine,
-                entries.Select(entry => JsonSerializer.Serialize(new
-                {
-                    Timestamp = entry.Timestamp,
-                    Severity = entry.Severity.ToString(),
-                    Message = entry.Message,
-                    Source = entry.Source,
-                })));
+                entries.Select(SerializeEntry));
             _fileSystem.WriteAllText(path, content);
             return true;
         }
@@ -189,4 +216,12 @@ public sealed class LocalLogService
             return false;
         }
     }
+
+    private static string SerializeEntry(LogEntry entry) => JsonSerializer.Serialize(new
+    {
+        Timestamp = entry.Timestamp,
+        Severity = entry.Severity.ToString(),
+        Message = entry.Message,
+        Source = entry.Source,
+    }, JsonOptions);
 }

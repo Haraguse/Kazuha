@@ -1,4 +1,4 @@
-﻿using Avalonia.Controls;
+using Avalonia.Controls;
 using FluentAvalonia.UI.Controls;
 using Luminalium.App.ViewModels;
 using Luminalium.App.Views;
@@ -175,7 +175,10 @@ public sealed class DialogService : IDialogService
         {
             while (true)
             {
-                var viewModel = new RetryCloseDialogViewModel(request.Message, request.RetryAsync, CloseOnce);
+                var viewModel = new RetryCloseDialogViewModel(
+                    request.Message,
+                    request.RetryAsync,
+                    CloseOnce);
                 var dialog = new FAContentDialog
                 {
                     Title = request.Title,
@@ -191,7 +194,7 @@ public sealed class DialogService : IDialogService
                     return RetryCloseDialogResult.Closed;
                 }
 
-                if (await request.RetryAsync().ConfigureAwait(true))
+                if (await viewModel.RetryAsync().ConfigureAwait(true))
                 {
                     return RetryCloseDialogResult.Retried;
                 }

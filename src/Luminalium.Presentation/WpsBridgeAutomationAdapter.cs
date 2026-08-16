@@ -5,6 +5,8 @@ namespace Luminalium.Presentation;
 
 public sealed class WpsBridgeAutomationAdapter : IWpsAutomationAdapter, IDisposable
 {
+    public const string AuthenticationTokenEnvironmentVariable = "LUMINALIUM_WPS_BRIDGE_TOKEN";
+
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(2);
     private readonly WpsBridgeHost _host;
     private readonly WpsRequestTracker _requestTracker;
@@ -14,14 +16,29 @@ public sealed class WpsBridgeAutomationAdapter : IWpsAutomationAdapter, IDisposa
     private TaskCompletionSource<WpsBridgePresentationState>? _stateCompletion;
     private bool _disposed;
 
-    public WpsBridgeAutomationAdapter(WpsBridgeHost? host = null, WpsRequestTracker? requestTracker = null, WpsProtocol? protocol = null)
+    public WpsBridgeAutomationAdapter(
+        WpsBridgeHost? host = null,
+        WpsRequestTracker? requestTracker = null,
+        WpsProtocol? protocol = null,
+        Func<string?>? authenticationTokenProvider = null)
     {
         _protocol = protocol ?? new WpsProtocol();
-        _host = host ?? new WpsBridgeHost(_protocol);
+        _host = host ?? new WpsBridgeHost(_protocol, RequireAuthenticationToken(authenticationTokenProvider ?? ReadAuthenticationToken));
         _requestTracker = requestTracker ?? new WpsRequestTracker();
         _host.OnMessageReceived += OnMessageReceived;
         _host.OnClientDisconnected += OnClientDisconnected;
     }
+
+    private static string? ReadAuthenticationToken() =>
+        Environment.GetEnvironmentVariable(AuthenticationTokenEnvironmentVariable);
+
+    private static string RequireAuthenticationToken(Func<string?> tokenProvider) =>
+        tokenProvider() switch
+        {
+            null => throw new InvalidOperationException($"{AuthenticationTokenEnvironmentVariable} must be configured for the production WPS bridge."),
+            var token when token.Length is 0 => throw new ArgumentException($"{AuthenticationTokenEnvironmentVariable} must not be empty."),
+            var token => token,
+        };
 
     public bool IsConnected => _host.IsConnected;
 
