@@ -4,15 +4,76 @@
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:windowing="clr-namespace:FluentAvalonia.UI.Windowing;assembly=FluentAvalonia"
                        xmlns:lumn="http://luminalium.sectl.cn/schemas/xaml/core"
+                       xmlns:inking="using:DotNetCampus.Inking"
+                       xmlns:vm="using:Luminalium.ViewModels"
                        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                        x:Class="Luminalium.Views.MainWindow"
                        Icon="/Assets/logo.ico"
-                       Title="Luminalium">
-    <Grid>
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Button Click="OpenSettings_OnClick">
-                <lumn:IconText Glyph="{lumn:Fi SettingsRegular}" Text="OpenSettings" />
-            </Button>
-        </StackPanel>
+                       Title="Luminalium 工作区"
+                       Width="1100" Height="720" MinWidth="760" MinHeight="520"
+                       WindowStartupLocation="CenterScreen"
+                       x:DataType="vm:WorkspaceViewModel">
+    <Grid RowDefinitions="Auto,Auto,*" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
+        <Border Grid.Row="0" Padding="18,12" Background="{DynamicResource LayerFillColorDefaultBrush}">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Image Width="22" Height="22" Source="/Assets/logo.ico" />
+                    <StackPanel>
+                        <TextBlock Text="Luminalium" FontSize="16" FontWeight="SemiBold" />
+                        <TextBlock Text="自由书写工作区" FontSize="11" Opacity="0.65" />
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                    <Button Click="OpenSettings_OnClick" ToolTip.Tip="打开设置">设置</Button>
+                    <Button Click="OpenOverlay_OnClick" ToolTip.Tip="打开悬浮演示工具">悬浮工具</Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+        <Border Grid.Row="1" Padding="12,8" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="8">
+                <Button Grid.Column="0" Content="画笔" Command="{Binding ActivatePenCommand}" IsPressed="{Binding !IsEraser}" />
+                <Button Grid.Column="1" Content="橡皮擦" Command="{Binding ToggleEraserCommand}" IsPressed="{Binding IsEraser}" />
+                <Button Grid.Column="2" Content="颜色">
+                    <Button.Flyout>
+                        <Flyout Placement="Bottom">
+                            <ItemsControl ItemsSource="{Binding Colors}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Width="36" Height="36" Margin="3" Command="{Binding $parent[ItemsControl].DataContext.SelectColorCommand}" CommandParameter="{Binding}" ToolTip.Tip="{Binding Name}">
+                                            <Border Width="24" Height="24" CornerRadius="12" Background="{Binding Brush}" BorderThickness="2" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="笔触" VerticalAlignment="Center" />
+                    <Slider Width="160" Minimum="1" Maximum="30" Value="{Binding StrokeWidth}" IsEnabled="{Binding !IsEraser}" />
+                    <TextBlock Text="{Binding ToolModeText}" Opacity="0.7" VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="8">
+                    <Button Content="清空" Command="{Binding ClearWorkspaceCommand}" />
+                    <Button Content="导出 SVG" Click="Save_OnClick" />
+                </StackPanel>
+            </Grid>
+        </Border>
+        <Grid Grid.Row="2" Margin="18">
+            <Border Background="White" BorderBrush="#D6D3D1" BorderThickness="1" CornerRadius="4">
+                <inking:InkCanvas x:Name="WorkspaceCanvas" AutomationProperties.Name="书写画布" />
+            </Border>
+            <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12" Padding="10,6" Background="#EFFFFFFF" CornerRadius="4">
+                <StackPanel Orientation="Horizontal" Spacing="14">
+                    <TextBlock Text="{Binding StatusText}" />
+                    <TextBlock Text="{Binding StrokeCountText}" Opacity="0.65" />
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </windowing:FAAppWindow>

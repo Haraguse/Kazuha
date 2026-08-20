@@ -17,4 +17,5 @@ public partial class SettingsViewModel : ObservableRecipient
     [ObservableProperty] public partial FANavigationViewItemBase? SelectedNavigationViewItem { get; set; } = null;
     public ObservableCollection<FANavigationViewItemBase> NavigationViewItems { get; } = [];
     public ObservableCollection<FANavigationViewItemBase> NavigationViewFooterItems { get; } = [];
+
 }

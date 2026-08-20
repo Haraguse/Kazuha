@@ -36,7 +36,7 @@
             </StackPanel>
         </Grid>
 
-        <fa:FANavigationView Grid.Row="1"
+             <fa:FANavigationView Grid.Row="1"
                              x:Name="NavigationView"
                              PaneDisplayMode="Left"
                              IsSettingsVisible="False"
@@ -44,10 +44,6 @@
                              FooterMenuItemsSource="{Binding ViewModel.NavigationViewFooterItems, Mode=OneWay}"
                              SelectedItem="{Binding ViewModel.SelectedNavigationViewItem, UpdateSourceTrigger=PropertyChanged}"
                              ItemInvoked="NavigationView_OnItemInvoked">
-            <fa:FANavigationView.AutoCompleteBox>
-                <AutoCompleteBox PlaceholderText="搜索..." />
-            </fa:FANavigationView.AutoCompleteBox>
-            
             <lumn:DrawerHost IsDrawerOpen="{Binding ViewModel.IsDrawerOpen, Mode=TwoWay}"
                              DrawerPlacement="Right"
                              DrawerContent="{Binding ViewModel.DrawerContent}">
@@ -73,6 +69,6 @@
                                 Content="{Binding ViewModel.FrameContent}" />
                 </Grid>
             </lumn:DrawerHost>
-        </fa:FANavigationView>
+         </fa:FANavigationView>
     </Grid>
 </windowing:FAAppWindow>

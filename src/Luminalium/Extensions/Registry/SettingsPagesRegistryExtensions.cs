@@ -50,6 +50,7 @@ public static class SettingsPagesRegistryExtensions
             info.Name = name;
         }
 
+
         services.AddKeyedTransient<UserControl, T>(info.Id);
         list.Add(info);
         return services;

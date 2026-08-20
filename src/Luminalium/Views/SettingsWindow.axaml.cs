@@ -15,7 +15,7 @@ public partial class SettingsWindow : FAAppWindow, IFANavigationPageFactory
 {
     public static SettingsWindow? Current { get; private set; }
     public SettingsViewModel ViewModel { get; } = IAppHost.GetService<SettingsViewModel>();
-    private const string DefaultPageId = "settings.hello";
+    private const string DefaultPageId = "settings.general";
     private bool _isShowingRestartDialog;
     
     public SettingsWindow()
@@ -73,6 +73,9 @@ public partial class SettingsWindow : FAAppWindow, IFANavigationPageFactory
 
     private void CoreNavigate(SettingsPageInfo info)
     {
+        if (ViewModel.SelectedPageInfo?.Id == info.Id)
+            return;
+        
         CloseDrawer();
         ViewModel.FrameContent = null;
         SelectNavigationItem(info);

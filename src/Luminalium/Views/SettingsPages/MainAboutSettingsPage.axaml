@@ -1,0 +1,89 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fa="clr-namespace:FluentAvalonia.UI.Controls;assembly=FluentAvalonia"
+             xmlns:lumn="http://luminalium.sectl.cn/schemas/xaml/core"
+             xmlns:vm="using:Luminalium.Views.SettingsPages"
+             x:Class="Luminalium.Views.SettingsPages.MainAboutSettingsPage"
+             x:DataType="vm:AboutSettingsPageViewModel">
+    <ScrollViewer>
+        <StackPanel Classes="page-container animated-intro" Spacing="4">
+            <StackPanel Spacing="10">
+                <Border Padding="18"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource AccentControlElevationBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                    <StackPanel Spacing="14">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="关于信息" FontWeight="SemiBold" FontSize="14" />
+                            <TextBlock Text="Luminalium 的版本、构建和开源信息。"
+                                       TextWrapping="Wrap"
+                                       Opacity="0.65"
+                                       FontSize="12" />
+                        </StackPanel>
+                        <StackPanel Spacing="10">
+                            <Grid ColumnDefinitions="160,*"><TextBlock Text="产品名" Opacity="0.65"/><TextBlock Grid.Column="1" Text="{Binding ProductName}" FontWeight="SemiBold"/></Grid>
+                            <Grid ColumnDefinitions="160,*"><TextBlock Text="版本" Opacity="0.65"/><TextBlock Grid.Column="1" Text="{Binding VersionDisplay}" FontWeight="SemiBold"/></Grid>
+                            <Grid ColumnDefinitions="160,*"><TextBlock Text="构建" Opacity="0.65"/><TextBlock Grid.Column="1" Text="{Binding Build}" FontWeight="SemiBold"/></Grid>
+                            <Grid ColumnDefinitions="160,*"><TextBlock Text="运行环境" Opacity="0.65"/><TextBlock Grid.Column="1" Text="{Binding Platform}" TextWrapping="Wrap"/></Grid>
+                            <Grid ColumnDefinitions="160,*"><TextBlock Text="版权" Opacity="0.65"/><TextBlock Grid.Column="1" Text="{Binding Copyright}"/></Grid>
+                            <Grid ColumnDefinitions="160,*"><TextBlock Text="项目链接" Opacity="0.65"/><TextBlock Grid.Column="1" Text="{Binding ProjectUrl}" TextWrapping="Wrap"/></Grid>
+                            <Grid ColumnDefinitions="160,*"><TextBlock Text="第三方库致谢" Opacity="0.65"/><TextBlock Grid.Column="1" Text="{Binding ThirdPartyNotices}" TextWrapping="Wrap" LineHeight="20"/></Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="10" Margin="0,12,0,0">
+                <Border Padding="18"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource AccentControlElevationBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                    <StackPanel Spacing="14">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="诊断信息" FontWeight="SemiBold" FontSize="14" />
+                            <TextBlock Text="用于反馈问题的配置路径。"
+                                       TextWrapping="Wrap"
+                                       Opacity="0.65"
+                                       FontSize="12" />
+                        </StackPanel>
+                        <Grid ColumnDefinitions="160,*">
+                            <TextBlock Text="配置文件" Opacity="0.65" />
+                            <TextBlock Grid.Column="1" Text="{Binding ConfigPath}" TextWrapping="Wrap" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="10" Margin="0,12,0,0">
+                <lumn:IconText Glyph="{lumn:Fi ArrowSyncRegular}" Text="更新" Margin="0,0,0,4" />
+                <fa:FASettingsExpander IconSource="{lumn:FluentIconSource {lumn:Fi ArrowSyncRegular}}"
+                                       Header="更新设置"
+                                       Description="配置启动时的更新检查和更新来源。">
+                    <fa:FASettingsExpanderItem Content="启动时自动检查更新"
+                                               Description="软件启动后查询更新源，发现新版本时提醒。">
+                        <fa:FASettingsExpanderItem.Footer>
+                            <ToggleSwitch IsChecked="{Binding AutoCheckUpdates}" />
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+                    <fa:FASettingsExpanderItem Content="更新源"
+                                               Description="选择获取正式版更新的来源。">
+                        <fa:FASettingsExpanderItem.Footer>
+                            <ComboBox Width="140" SelectedIndex="{Binding UpdateSourceIndex}">
+                                <ComboBoxItem Content="GitHub" />
+                                <ComboBoxItem Content="镜像" />
+                            </ComboBox>
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+                    <fa:FASettingsExpanderItem Content="更新状态"
+                                               Description="点击按钮检查新版本。">
+                        <fa:FASettingsExpanderItem.Footer>
+                            <Button Content="检查更新" Padding="14,6" />
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+                </fa:FASettingsExpander>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -23,12 +23,14 @@
         <PackageReference Include="Avalonia.Desktop"/>
         <PackageReference Include="Avalonia.Markup.Xaml.Loader" />
         <PackageReference Include="CommunityToolkit.Mvvm" />
+        <PackageReference Include="DotNetCampus.AvaloniaInkCanvas" />
         <PackageReference Include="DynamicData" />
         <PackageReference Include="FluentAvaloniaUI" />
         <PackageReference Include="HotAvalonia" />
         <PackageReference Include="HotAvalonia.Core" />
         <PackageReference Include="Microsoft.Extensions.Hosting" />
         <PackageReference Include="Pastel" />
+        <PackageReference Include="SkiaSharp" />
         <PackageReference Include="Xaml.Behaviors" />
     </ItemGroup>
 

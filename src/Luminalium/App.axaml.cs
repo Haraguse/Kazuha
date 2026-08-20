@@ -7,6 +7,7 @@ using HotAvalonia;
 using Luminalium.Extensions.Registry;
 using Luminalium.Helpers;
 using Luminalium.Services.Logging;
+using Luminalium.Services.Config;
 using Luminalium.ViewModels;
 using Luminalium.Views;
 using Luminalium.Views.SettingsPages;
@@ -111,15 +112,29 @@ public partial class App : Application
                     builder.SetMinimumLevel(LogLevel.Trace);
 #endif
                 });
-                services.AddSingleton<ILoggerProvider, FileLoggerProvider>();
+                 services.AddSingleton<ILoggerProvider, FileLoggerProvider>();
 
-                // 配置
+                 // 配置
+                 services.AddSingleton<ConfigServiceBase, DesktopConfigService>();
+                 services.AddSingleton<MainConfigHandler>();
 
                 // 服务
                 
                 // Pages
-                services.AddSettingsPage<HelloSettingsPage>("Hello");
-                services.AddSettingsPageFooter<AboutSettingsPage>("关于");
+                 services.AddSettingsPage<GeneralSettingsPage>("常规");
+                 services.AddSettingsPage<PersonalizationSettingsPage>("个性化");
+                 services.AddSettingsPage<FontSettingsPage>("字体");
+                 services.AddSettingsPage<ToolbarSettingsPage>("工具栏");
+                 services.AddSettingsPage<LinkageSettingsPage>("联动");
+                 services.AddSettingsPage<BuiltInSettingsPage>("内建功能");
+                 services.AddSettingsPage<PenSettingsPage>("画笔");
+                 services.AddSettingsPage<WindowSettingsPage>("窗口");
+                 services.AddSettingsPage<StatusBarSettingsPage>("状态栏");
+                 services.AddSettingsPage<StorageSettingsPage>("存储");
+                 services.AddSettingsPage<NotificationSettingsPage>("通知");
+                 
+                 services.AddSettingsPageFooter<MainAboutSettingsPage>("关于");
+                 services.AddSettingsPageFooter<HelloSettingsPage>("Test");
                 
                 // ViewModels
                 services.AddTransient<SettingsViewModel>();

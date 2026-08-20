@@ -31,7 +31,7 @@
                 <Button Click="RequestRestart">Request Restart</Button>
             </StackPanel>
             
-            <lumn:Field Label="Your Facorite Chip">
+            <lumn:Field Label="Your Favorite Chip">
                 <ListBox Theme="{StaticResource ChipListBoxTheme}">
                     <ListBoxItem>Chip 1</ListBoxItem>
                     <ListBoxItem IsSelected="True">Chip 2</ListBoxItem>

@@ -55,6 +55,11 @@
         <Setter Property="Spacing" Value="4" />
     </Style>
 
+    <!-- SettingsWindow already renders the selected page title above the frame. -->
+    <Style Selector="UserControl.settings-page StackPanel.page-container &gt; TextBlock">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+
     <Style Selector="asyncImageLoader|AdvancedImage">
         <Setter Property="Template">
             <ControlTemplate>
